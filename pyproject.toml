@@ -46,7 +46,7 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "http://www.github.com/thecrazygm/hive-nectar"
-"Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.00.01"
+"Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.0.6"
 "Bug Tracker" = "https://github.com/thecrazygm/hive-nectar/issues"
 
 [project.scripts]
@@ -57,6 +57,13 @@ packages = ["src/nectar", "src/nectarapi", "src/nectarbase", "src/nectargraphene
 
 [tool.uv]
 default-groups = [ ]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
 
 [tool.pytest]
 testpaths = ["tests"]
@@ -112,13 +119,10 @@ dev = [
     "sphinx-rtd-theme",
     "doc8",
     "ruff",
-    "mypy",
-    "bandit",
     "readme_renderer",
     "sphinx-click",
     "codacy-coverage",
     "codecov",
     "build",
-    "twine",
     "tomli",
 ]
