@@ -186,9 +186,8 @@ class Block(BlockchainObject):
             else:
                 block = self.blockchain.rpc.get_block(self.identifier)
         if not block:
-            raise BlockDoesNotExistsException(
-                "output: %s of identifier %s" % (str(block), str(self.identifier))
-            )
+            message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
+            raise BlockDoesNotExistsException(message)
         block = self._parse_json_data(block)
         super(Block, self).__init__(
             block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain

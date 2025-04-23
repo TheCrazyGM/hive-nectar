@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-class WalletExists(Exception):
+class NectarException(Exception):
+    """Base exception for all Nectar-related errors"""
+
+    pass
+
+
+class WalletExists(NectarException):
     """A wallet has already been created and requires a password to be
     unlocked by means of :func:`nectar.wallet.Wallet.unlock`.
     """
@@ -9,85 +15,85 @@ class WalletExists(Exception):
     pass
 
 
-class RPCConnectionRequired(Exception):
+class RPCConnectionRequired(NectarException):
     """An RPC connection is required"""
 
     pass
 
 
-class InvalidMemoKeyException(Exception):
+class InvalidMemoKeyException(NectarException):
     """Memo key in message is invalid"""
 
     pass
 
 
-class WrongMemoKey(Exception):
+class WrongMemoKey(NectarException):
     """The memo provided is not equal the one on the blockchain"""
 
     pass
 
 
-class OfflineHasNoRPCException(Exception):
+class OfflineHasNoRPCException(NectarException):
     """When in offline mode, we don't have RPC"""
 
     pass
 
 
-class AccountExistsException(Exception):
+class AccountExistsException(NectarException):
     """The requested account already exists"""
 
     pass
 
 
-class AccountDoesNotExistsException(Exception):
+class AccountDoesNotExistsException(NectarException):
     """The account does not exist"""
 
     pass
 
 
-class AssetDoesNotExistsException(Exception):
+class AssetDoesNotExistsException(NectarException):
     """The asset does not exist"""
 
     pass
 
 
-class InvalidAssetException(Exception):
+class InvalidAssetException(NectarException):
     """An invalid asset has been provided"""
 
     pass
 
 
-class InsufficientAuthorityError(Exception):
+class InsufficientAuthorityError(NectarException):
     """The transaction requires signature of a higher authority"""
 
     pass
 
 
-class VotingInvalidOnArchivedPost(Exception):
+class VotingInvalidOnArchivedPost(NectarException):
     """The transaction requires signature of a higher authority"""
 
     pass
 
 
-class MissingKeyError(Exception):
+class MissingKeyError(NectarException):
     """A required key couldn't be found in the wallet"""
 
     pass
 
 
-class InvalidWifError(Exception):
+class InvalidWifError(NectarException):
     """The provided private Key has an invalid format"""
 
     pass
 
 
-class BlockDoesNotExistsException(Exception):
+class BlockDoesNotExistsException(NectarException):
     """The block does not exist"""
 
     pass
 
 
-class NoWalletException(Exception):
+class NoWalletException(NectarException):
     """No Wallet could be found, please use :func:`nectar.wallet.Wallet.create` to
     create a new wallet
     """
@@ -95,55 +101,55 @@ class NoWalletException(Exception):
     pass
 
 
-class WitnessDoesNotExistsException(Exception):
+class WitnessDoesNotExistsException(NectarException):
     """The witness does not exist"""
 
     pass
 
 
-class ContentDoesNotExistsException(Exception):
+class ContentDoesNotExistsException(NectarException):
     """The content does not exist"""
 
     pass
 
 
-class VoteDoesNotExistsException(Exception):
+class VoteDoesNotExistsException(NectarException):
     """The vote does not exist"""
 
     pass
 
 
-class WrongMasterPasswordException(Exception):
+class WrongMasterPasswordException(NectarException):
     """The password provided could not properly unlock the wallet"""
 
     pass
 
 
-class VestingBalanceDoesNotExistsException(Exception):
+class VestingBalanceDoesNotExistsException(NectarException):
     """Vesting Balance does not exist"""
 
     pass
 
 
-class InvalidMessageSignature(Exception):
+class InvalidMessageSignature(NectarException):
     """The message signature does not fit the message"""
 
     pass
 
 
-class NoWriteAccess(Exception):
+class NoWriteAccess(NectarException):
     """Cannot store to sqlite3 database due to missing write access"""
 
     pass
 
 
-class BatchedCallsNotSupported(Exception):
+class BatchedCallsNotSupported(NectarException):
     """Batch calls do not work"""
 
     pass
 
 
-class BlockWaitTimeExceeded(Exception):
+class BlockWaitTimeExceeded(NectarException):
     """Wait time for new block exceeded"""
 
     pass

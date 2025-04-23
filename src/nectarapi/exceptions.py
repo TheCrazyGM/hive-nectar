@@ -18,38 +18,40 @@ def decodeRPCErrorMsg(e):
     else:
         return str(e)
 
-
-class UnauthorizedError(Exception):
+class NectarApiException(Exception):
+    """NectarApiException base Exception."""
+    pass
+class UnauthorizedError(NectarApiException):
     """UnauthorizedError Exception."""
 
     pass
 
 
-class RPCConnection(Exception):
+class RPCConnection(NectarApiException):
     """RPCConnection Exception."""
 
     pass
 
 
-class RPCError(Exception):
+class RPCError(NectarApiException):
     """RPCError Exception."""
 
     pass
 
 
-class RPCErrorDoRetry(Exception):
+class RPCErrorDoRetry(NectarApiException):
     """RPCErrorDoRetry Exception."""
 
     pass
 
 
-class NumRetriesReached(Exception):
+class NumRetriesReached(NectarApiException):
     """NumRetriesReached Exception."""
 
     pass
 
 
-class CallRetriesReached(Exception):
+class CallRetriesReached(NectarApiException):
     """CallRetriesReached Exception. Only for internal use"""
 
     pass
@@ -91,33 +93,33 @@ class FilteredItemNotFound(RPCError):
     pass
 
 
-class InvalidEndpointUrl(Exception):
+class InvalidEndpointUrl(NectarApiException):
     pass
 
 
-class InvalidParameters(Exception):
+class InvalidParameters(NectarApiException):
     pass
 
 
-class SupportedByHivemind(Exception):
+class SupportedByHivemind(NectarApiException):
     pass
 
 
-class UnnecessarySignatureDetected(Exception):
+class UnnecessarySignatureDetected(NectarApiException):
     pass
 
 
-class WorkingNodeMissing(Exception):
+class WorkingNodeMissing(NectarApiException):
     pass
 
 
-class TimeoutException(Exception):
+class TimeoutException(NectarApiException):
     pass
 
 
-class VotedBeforeWaitTimeReached(Exception):
+class VotedBeforeWaitTimeReached(NectarApiException):
     pass
 
 
-class UnknownTransaction(Exception):
+class UnknownTransaction(NectarApiException):
     pass
