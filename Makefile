@@ -45,11 +45,13 @@ dist: generate-versions
 	uv build
 	uvx uv-publish@latest --repo pypi
 	# uv publish
+	# python -m twine upload dist/*
 
 test-dist: generate-versions
 	uv build
 	uvx uv-publish@latest --repo testpypi
 	# uv publish --index testpypi
+	# python -m twine upload --repository testpypi dist/* --verbose
 
 docs:
 	# sphinx-apidoc -d 6 -e -f -o docs . *.py tests
