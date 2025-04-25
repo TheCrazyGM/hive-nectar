@@ -10,7 +10,6 @@ from nectar.constants import (
     STEEM_REVERSE_AUCTION_WINDOW_SECONDS_HF21,
 )
 from nectarbase import operations
-from nectargraphenebase.py23 import bytes_types, integer_types, string_types
 
 from .account import Account
 from .amount import Amount
@@ -74,7 +73,7 @@ class Comment(BlockchainObject):
             elif kwargs.get("hive_instance"):
                 blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
-        if isinstance(authorperm, string_types) and authorperm != "":
+        if isinstance(authorperm, str) and authorperm != "":
             [author, permlink] = resolve_authorperm(authorperm)
             self["id"] = 0
             self["author"] = author
@@ -104,7 +103,7 @@ class Comment(BlockchainObject):
             "max_cashout_time",
         ]
         for p in parse_times:
-            if p in comment and isinstance(comment.get(p), string_types):
+            if p in comment and isinstance(comment.get(p), str):
                 comment[p] = formatTimeString(comment.get(p, "1970-01-01T00:00:00"))
         # Parse Amounts
         sbd_amounts = [
@@ -116,7 +115,7 @@ class Comment(BlockchainObject):
             "promoted",
         ]
         for p in sbd_amounts:
-            if p in comment and isinstance(comment.get(p), (string_types, list, dict)):
+            if p in comment and isinstance(comment.get(p), (str, list, dict)):
                 value = comment.get(p, "0.000 %s" % (self.blockchain.backed_token_symbol))
                 if (
                     isinstance(value, str)
@@ -129,7 +128,7 @@ class Comment(BlockchainObject):
         meta_str = comment.get("json_metadata", "{}")
         if meta_str == "{}":
             comment["json_metadata"] = meta_str
-        if isinstance(meta_str, (string_types, bytes_types, bytearray)):
+        if isinstance(meta_str, (str, bytes, bytearray)):
             try:
                 comment["json_metadata"] = json.loads(meta_str)
             except Exception:
@@ -147,20 +146,20 @@ class Comment(BlockchainObject):
             "net_rshares",
         ]
         for p in parse_int:
-            if p in comment and isinstance(comment.get(p), string_types):
+            if p in comment and isinstance(comment.get(p), str):
                 comment[p] = int(comment.get(p, "0"))
 
         if "active_votes" in comment:
             new_active_votes = []
             for vote in comment["active_votes"]:
-                if "time" in vote and isinstance(vote.get("time"), string_types):
+                if "time" in vote and isinstance(vote.get("time"), str):
                     vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
                 parse_int = [
                     "rshares",
                     "reputation",
                 ]
                 for p in parse_int:
-                    if p in vote and isinstance(vote.get(p), string_types):
+                    if p in vote and isinstance(vote.get(p), str):
                         try:
                             vote[p] = int(vote.get(p, "0"))
                         except ValueError:
@@ -263,7 +262,7 @@ class Comment(BlockchainObject):
             "net_rshares",
         ]
         for p in parse_int:
-            if p in output and isinstance(output[p], integer_types):
+            if p in output and isinstance(output[p], int):
                 output[p] = str(output[p])
         if "active_votes" in output:
             new_active_votes = []
@@ -279,7 +278,7 @@ class Comment(BlockchainObject):
                     "reputation",
                 ]
                 for p in parse_int:
-                    if p in vote and isinstance(vote[p], integer_types):
+                    if p in vote and isinstance(vote[p], int):
                         vote[p] = str(vote[p])
                 new_active_votes.append(vote)
             output["active_votes"] = new_active_votes
@@ -685,7 +684,7 @@ class Comment(BlockchainObject):
                 )
             elif pending_payout_value is None:
                 pending_payout_value = 0
-            elif isinstance(pending_payout_value, (float, integer_types)):
+            elif isinstance(pending_payout_value, (float, int)):
                 pending_payout_value = Amount(
                     pending_payout_value,
                     self.blockchain.backed_token_symbol,

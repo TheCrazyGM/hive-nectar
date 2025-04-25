@@ -1,5 +1,5 @@
 nectar\.blockchain
-================
+==================
 
 .. automodule:: nectar.blockchain
     :members:

@@ -4,7 +4,6 @@ from datetime import date, datetime
 
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import ApiNotSupported
-from nectargraphenebase.py23 import string_types
 
 from .blockchainobject import BlockchainObject
 from .exceptions import BlockDoesNotExistsException
@@ -81,12 +80,12 @@ class Block(BlockchainObject):
             "timestamp",
         ]
         for p in parse_times:
-            if p in block and isinstance(block.get(p), string_types):
+            if p in block and isinstance(block.get(p), str):
                 block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
         if "transactions" in block:
             for i in range(len(block["transactions"])):
                 if "expiration" in block["transactions"][i] and isinstance(
-                    block["transactions"][i]["expiration"], string_types
+                    block["transactions"][i]["expiration"], str
                 ):
                     block["transactions"][i]["expiration"] = formatTimeString(
                         block["transactions"][i]["expiration"]
@@ -94,7 +93,7 @@ class Block(BlockchainObject):
         elif "operations" in block:
             for i in range(len(block["operations"])):
                 if "timestamp" in block["operations"][i] and isinstance(
-                    block["operations"][i]["timestamp"], string_types
+                    block["operations"][i]["timestamp"], str
                 ):
                     block["operations"][i]["timestamp"] = formatTimeString(
                         block["operations"][i]["timestamp"]
@@ -186,9 +185,8 @@ class Block(BlockchainObject):
             else:
                 block = self.blockchain.rpc.get_block(self.identifier)
         if not block:
-            raise BlockDoesNotExistsException(
-                "output: %s of identifier %s" % (str(block), str(self.identifier))
-            )
+            message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
+            raise BlockDoesNotExistsException(message)
         block = self._parse_json_data(block)
         super(Block, self).__init__(
             block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
@@ -298,7 +296,8 @@ class Block(BlockchainObject):
 
             ops_stat = nectarbase.operationids.operations.copy()
             for key in ops_stat:
-                ops_stat[key] = 0
+                if isinstance(key, int):
+                    ops_stat[key] = 0
         else:
             ops_stat = add_to_ops_stat.copy()
         for op in self.operations:
@@ -386,7 +385,7 @@ class BlockHeader(BlockchainObject):
             "timestamp",
         ]
         for p in parse_times:
-            if p in block and isinstance(block.get(p), string_types):
+            if p in block and isinstance(block.get(p), str):
                 block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
         return block
 

@@ -1,5 +1,5 @@
 nectargraphenebase\.ecdsasig
-==========================
+============================
 
 .. automodule:: nectargraphenebase.ecdsasig
     :members:

@@ -1,5 +1,5 @@
 nectar\.price
-===========
+=============
 
 .. automodule:: nectar.price
     :members:

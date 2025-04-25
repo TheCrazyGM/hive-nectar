@@ -1,5 +1,5 @@
 nectar\.snapshot
-==============
+================
 
 .. automodule:: nectar.snapshot
     :members:

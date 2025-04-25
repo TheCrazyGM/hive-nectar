@@ -8,12 +8,9 @@ from collections import OrderedDict
 import ecdsa
 from asn1crypto.core import OctetString
 
-from nectargraphenebase.py23 import py23_bytes
-
 from .bip32 import parse_path
 from .chains import known_chains
 from .objects import Operation, isArgsThisClass
-from .py23 import py23_chr, string_types
 from .types import (
     Array,
     JsonObj,
@@ -46,22 +43,22 @@ class GrapheneObjectASN1(object):
 
     def __bytes__(self):
         if self.data is None:
-            return py23_bytes()
+            return bytes()
         b = b""
         output = b""
         for name, value in list(self.data.items()):
             if name == "operations":
                 for operation in value:
-                    if isinstance(value, string_types):
-                        b = py23_bytes(operation, "utf-8")
+                    if isinstance(value, str):
+                        b = bytes(operation, "utf-8")
                     else:
-                        b = py23_bytes(operation)
+                        b = bytes(operation)
                     output += OctetString(b).dump()
             elif name != "signatures":
-                if isinstance(value, string_types):
-                    b = py23_bytes(value, "utf-8")
+                if isinstance(value, str):
+                    b = bytes(value, "utf-8")
                 else:
-                    b = py23_bytes(value)
+                    b = bytes(value)
                 output += OctetString(b).dump()
         return output
 
@@ -123,7 +120,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
                 operations_count = len(kwargs["operations"])
                 # opklass = self.getOperationKlass()
                 # if all([not isinstance(a, opklass) for a in kwargs["operations"]]):
-                #    kwargs['operations'] = Array([opklass(a, prefix=prefix) for a in kwargs["operations"]])
+                #    kwargs['operations'] = Array([opklass(a, ) for a in kwargs["operations"]])
                 # else:
                 #    kwargs['operations'] = (kwargs["operations"])
 
@@ -150,7 +147,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         self.data.pop("signatures", None)
 
         # Generage Hash of the seriliazed version
-        h = hashlib.sha256(py23_bytes(self)).digest()
+        h = hashlib.sha256(bytes(self)).digest()
 
         # recover signatures
         self.data["signatures"] = sigs
@@ -204,16 +201,16 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         for name, value in list(self.data.items()):
             if name == "operations":
                 for operation in value:
-                    if isinstance(value, string_types):
-                        b = py23_bytes(operation, "utf-8")
+                    if isinstance(value, str):
+                        b = bytes(operation, "utf-8")
                     else:
-                        b = py23_bytes(operation)
+                        b = bytes(operation)
                     self.message += OctetString(b).dump()
             elif name != "signatures":
-                if isinstance(value, string_types):
-                    b = py23_bytes(value, "utf-8")
+                if isinstance(value, str):
+                    b = bytes(value, "utf-8")
                 else:
-                    b = py23_bytes(value)
+                    b = bytes(value)
                 self.message += OctetString(b).dump()
 
         self.digest = hashlib.sha256(self.message).digest()
@@ -251,16 +248,12 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             if first:
                 total_size = int(len(path)) + 1 + len(chunk)
                 apdu = (
-                    unhexlify("d4040000")
-                    + py23_chr(total_size)
-                    + py23_chr(path_size)
-                    + path
-                    + chunk
+                    unhexlify("d4040000") + bytes([total_size]) + bytes([path_size]) + path + chunk
                 )
                 first = False
             else:
                 total_size = len(chunk)
-                apdu = unhexlify("d4048000") + py23_chr(total_size) + chunk
+                apdu = unhexlify("d4048000") + bytes([total_size]) + chunk
             result.append(apdu)
             offset += len(chunk)
         return result
@@ -270,14 +263,14 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         if not request_screen_approval:
             return (
                 unhexlify("d4020001")
-                + py23_chr(int(len(path)) + 1)
-                + py23_chr(int(len(path) / 4))
+                + bytes([int(len(path)) + 1])
+                + bytes([int(len(path) / 4)])
                 + path
             )
         else:
             return (
                 unhexlify("d4020101")
-                + py23_chr(int(len(path)) + 1)
-                + py23_chr(int(len(path) / 4))
+                + bytes([int(len(path)) + 1])
+                + bytes([int(len(path) / 4)])
                 + path
             )

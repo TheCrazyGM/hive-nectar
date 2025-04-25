@@ -1,5 +1,5 @@
 nectar\.conveyor
-==============
+================
 
 .. automodule:: nectar.conveyor
     :members:

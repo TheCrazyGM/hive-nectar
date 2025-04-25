@@ -3,7 +3,6 @@ import hashlib
 from binascii import hexlify, unhexlify
 
 from nectargraphenebase.base58 import base58decode, base58encode
-from nectargraphenebase.py23 import py23_bytes
 from nectargraphenebase.types import varintdecode
 
 try:
@@ -50,7 +49,7 @@ def init_aes(shared_secret, nonce):
     " Shared Secret "
     ss = hashlib.sha512(unhexlify(shared_secret)).digest()
     " Seed "
-    seed = py23_bytes(str(nonce), "ascii") + hexlify(ss)
+    seed = bytes(str(nonce), "ascii") + hexlify(ss)
     seed_digest = hexlify(hashlib.sha512(seed).digest()).decode("ascii")
     " AES "
     key = unhexlify(seed_digest[0:64])
@@ -76,7 +75,7 @@ def init_aes_bts(shared_secret, nonce):
     return AES.new(key, AES.MODE_CBC, iv)
 
 
-def init_aes(shared_secret, nonce):
+def init_aes2(shared_secret, nonce):
     """Initialize AES instance
     :param hex shared_secret: Shared Secret to use as encryption key
     :param int nonce: Random nonce
@@ -121,7 +120,7 @@ def encode_memo_bts(priv, pub, nonce, message):
     shared_secret = get_shared_secret(priv, pub)
     aes = init_aes_bts(shared_secret, nonce)
     " Checksum "
-    raw = py23_bytes(message, "utf8")
+    raw = bytes(message, "utf8")
     checksum = hashlib.sha256(raw).digest()
     raw = checksum[0:4] + raw
     " Padding "
@@ -146,7 +145,7 @@ def decode_memo_bts(priv, pub, nonce, message):
     shared_secret = get_shared_secret(priv, pub)
     aes = init_aes_bts(shared_secret, nonce)
     " Encryption "
-    raw = py23_bytes(message, "ascii")
+    raw = bytes(message, "ascii")
     cleartext = aes.decrypt(unhexlify(raw))
     " Checksum "
     checksum = cleartext[0:4]
@@ -172,7 +171,7 @@ def encode_memo(priv, pub, nonce, message, **kwargs):
     shared_secret = get_shared_secret(priv, pub)
     aes, check = init_aes(shared_secret, nonce)
     " Padding "
-    raw = py23_bytes(message, "utf8")
+    raw = bytes(message, "utf8")
     raw = _pad(raw, 16)
     " Encryption "
     cipher = hexlify(aes.encrypt(raw)).decode("ascii")
@@ -186,7 +185,7 @@ def encode_memo(priv, pub, nonce, message, **kwargs):
         "prefix": prefix,
     }
     tx = Memo(**s)
-    return "#" + base58encode(hexlify(py23_bytes(tx)).decode("ascii"))
+    return "#" + base58encode(hexlify(bytes(tx)).decode("ascii"))
 
 
 def extract_memo_data(message):
@@ -234,7 +233,7 @@ def decode_memo(priv, message):
     numBytes = 16 - len(cipher) % 16
     n = 16 - numBytes
     message = cipher[n:]
-    message = aes.decrypt(unhexlify(py23_bytes(message, "ascii")))
+    message = aes.decrypt(unhexlify(bytes(message, "ascii")))
     message = _unpad(message, 16)
     n = varintdecode(message)
     if (len(message) - n) > 0 and (len(message) - n) < 8:

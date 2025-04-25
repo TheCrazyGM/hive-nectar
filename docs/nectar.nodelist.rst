@@ -1,5 +1,5 @@
 nectar\.nodelist
-==============
+================
 
 .. automodule:: nectar.nodelist
     :members:

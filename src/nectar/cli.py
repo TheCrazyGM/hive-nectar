@@ -151,7 +151,7 @@ def unlock_wallet(stm, password=None, allow_wif=True):
         if stm.wallet.is_encrypted():
             try:
                 stm.wallet.unlock(password)
-            except:
+            except Exception:
                 try:
                     from nectarstorage import InRamPlainKeyStore
 
@@ -159,7 +159,7 @@ def unlock_wallet(stm, password=None, allow_wif=True):
                     stm.wallet.setKeys([password])
                     print("Wif accepted!")
                     return True
-                except:
+                except Exception:
                     if allow_wif:
                         raise exceptions.WrongMasterPasswordException(
                             "entered password is not a valid password/wif"
@@ -173,13 +173,13 @@ def unlock_wallet(stm, password=None, allow_wif=True):
                 stm.wallet.setKeys([password])
                 print("Wif accepted!")
                 return True
-            except:
+            except Exception:
                 try:
                     from nectarstorage import SqliteEncryptedKeyStore
 
                     stm.wallet.store = SqliteEncryptedKeyStore(config=stm.config)
                     stm.wallet.unlock(password)
-                except:
+                except Exception:
                     if allow_wif:
                         raise exceptions.WrongMasterPasswordException(
                             "entered password is not a valid password/wif"
@@ -231,7 +231,7 @@ def unlock_token_wallet(stm, sc2, password=None):
         )
         try:
             sc2.unlock(password)
-        except:
+        except Exception:
             raise exceptions.WrongMasterPasswordException(
                 "entered password is not a valid password"
             )
@@ -1539,7 +1539,7 @@ def powerup(amount, account, to, export):
     acc = Account(account, blockchain_instance=stm)
     try:
         amount = float(amount)
-    except:
+    except Exception:
         amount = str(amount)
     tx = acc.transfer_to_vesting(amount, to=to)
     if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
@@ -1570,7 +1570,7 @@ def powerdown(amount, account, export):
     acc = Account(account, blockchain_instance=stm)
     try:
         amount = float(amount)
-    except:
+    except Exception:
         amount = str(amount)
     tx = acc.withdraw_vesting(amount)
     if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
@@ -1602,7 +1602,7 @@ def delegate(amount, to_account, account, export):
     acc = Account(account, blockchain_instance=stm)
     try:
         amount = float(amount)
-    except:
+    except Exception:
         amount = Amount(str(amount), blockchain_instance=stm)
         if amount.symbol == stm.token_symbol and isinstance(stm, Steem):
             amount = stm.sp_to_vests(float(amount))
@@ -1747,7 +1747,7 @@ def convert(amount, account, export):
     acc = Account(account, blockchain_instance=stm)
     try:
         amount = float(amount)
-    except:
+    except Exception:
         amount = str(amount)
     tx = acc.convert(amount)
     if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
@@ -2760,7 +2760,7 @@ def decrypt(memo, account, output, info, text, binary):
                 else:
                     print("to: %s" % str(to_key))
                 print("nonce: %s" % nonce)
-            except:
+            except Exception:
                 print("from: %s" % str(from_key))
                 print("to: %s" % str(to_key))
                 print("nonce: %s" % nonce)
@@ -3031,7 +3031,7 @@ def createpost(
             community = input("community account (name or title): ")
             try:
                 community = Community(community)
-            except:
+            except Exception:
                 c = Communities(limit=1000)
                 comm_cand = c.search_title(community)
                 if len(comm_cand) == 0:
@@ -3264,7 +3264,7 @@ def post(
     if permlink is not None:
         try:
             comment = Comment(construct_authorperm(author, permlink), blockchain_instance=stm)
-        except:
+        except Exception:
             comment = None
     else:
         comment = None
@@ -3291,7 +3291,7 @@ def post(
         permlink = derive_permlink(title, with_suffix=False)
         try:
             comment = Comment(construct_authorperm(author, permlink), blockchain_instance=stm)
-        except:
+        except Exception:
             comment = None
     if comment is None:
         json_metadata = {}
@@ -5768,7 +5768,7 @@ def info(objects):
                 Amount(median_price["base"], blockchain_instance=stm).amount
                 / Amount(median_price["quote"], blockchain_instance=stm).amount
             )
-        except:
+        except Exception:
             price = None
         for key in info:
             if isinstance(info[key], dict) and "amount" in info[key]:

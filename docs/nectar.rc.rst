@@ -1,5 +1,5 @@
 nectar\.rc
-========
+==========
 
 .. automodule:: nectar.rc
     :members:

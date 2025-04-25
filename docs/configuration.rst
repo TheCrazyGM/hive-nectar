@@ -131,7 +131,7 @@ When `password_storage` is set to `environment`, the master password can be stor
 for unlocking automatically the wallet.
 
 Keyring support for hive-nectar and wallet
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to use keyring for storing the wallet password, the following steps are necessary:
 

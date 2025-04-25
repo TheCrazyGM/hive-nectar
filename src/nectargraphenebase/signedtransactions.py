@@ -6,8 +6,6 @@ from collections import OrderedDict
 
 import ecdsa
 
-from nectargraphenebase.py23 import py23_bytes
-
 from .account import PublicKey
 from .chains import known_chains
 from .ecdsasig import sign_message, verify_message
@@ -48,9 +46,12 @@ class Signed_Transaction(GrapheneObject):
             if "signatures" not in kwargs:
                 kwargs["signatures"] = Array([])
             else:
-                kwargs["signatures"] = Array(
-                    [Signature(unhexlify(a)) for a in kwargs["signatures"]]
-                )
+                # Defensive: if a string, wrap in a list and log warning
+                sigs = kwargs["signatures"]
+                if isinstance(sigs, str):
+                    log.warning("signatures was a string, converting to list to avoid type errors.")
+                    sigs = [sigs]
+                kwargs["signatures"] = Array([Signature(unhexlify(a)) for a in sigs])
 
             if "operations" in kwargs:
                 opklass = self.getOperationKlass()
@@ -83,7 +84,7 @@ class Signed_Transaction(GrapheneObject):
         self.data.pop("signatures", None)
 
         # Generage Hash of the seriliazed version
-        h = hashlib.sha256(py23_bytes(self)).digest()
+        h = hashlib.sha256(bytes(self)).digest()
 
         # recover signatures
         self.data["signatures"] = sigs
@@ -133,7 +134,7 @@ class Signed_Transaction(GrapheneObject):
         # Get message to sign
         #   bytes(self) will give the wire formated data according to
         #   GrapheneObject and the data given in __init__()
-        self.message = unhexlify(self.chainid) + py23_bytes(self)
+        self.message = unhexlify(self.chainid) + bytes(self)
         self.digest = hashlib.sha256(self.message).digest()
 
         # restore signatures
@@ -150,13 +151,13 @@ class Signed_Transaction(GrapheneObject):
 
         for signature in signatures:
             if recover_parameter:
-                p = verify_message(self.message, py23_bytes(signature))
+                p = verify_message(self.message, bytes(signature))
             else:
                 p = None
             if p is None:
                 for i in range(4):
                     try:
-                        p = verify_message(self.message, py23_bytes(signature), recover_parameter=i)
+                        p = verify_message(self.message, bytes(signature), recover_parameter=i)
                         phex = hexlify(p).decode("ascii")
                         pubKeysFound.append(phex)
                     except Exception:

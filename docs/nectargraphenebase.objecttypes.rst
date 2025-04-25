@@ -1,5 +1,5 @@
 nectargraphenebase\.objecttypes
-=============================
+===============================
 
 .. automodule:: nectargraphenebase.objecttypes
     :members:

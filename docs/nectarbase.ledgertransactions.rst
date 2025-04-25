@@ -1,5 +1,5 @@
 nectarbase\.ledgertransactions
-============================
+==============================
 
 .. automodule:: nectarbase.ledgertransactions
     :members:

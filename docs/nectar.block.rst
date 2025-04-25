@@ -1,5 +1,5 @@
 nectar\.block
-===========
+=============
 
 .. automodule:: nectar.block
     :members:

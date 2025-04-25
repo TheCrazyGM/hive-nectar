@@ -1,5 +1,5 @@
 nectar\.community
-===============
+=================
 
 .. automodule:: nectar.community
     :members:

@@ -1,5 +1,5 @@
 nectar\.memo
-==========
+============
 
 .. automodule:: nectar.memo
     :members:

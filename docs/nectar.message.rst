@@ -1,5 +1,5 @@
 nectar\.message
-=============
+===============
 
 .. automodule:: nectar.message
     :members:

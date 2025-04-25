@@ -5,7 +5,6 @@ from datetime import date, datetime, timezone
 from prettytable import PrettyTable
 
 from nectarapi.exceptions import InvalidParameters, UnknownKey
-from nectargraphenebase.py23 import integer_types, string_types
 
 from .account import Account
 from .blockchainobject import BlockchainObject
@@ -42,7 +41,7 @@ class Vote(BlockchainObject):
             elif kwargs.get("hive_instance"):
                 blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
-        if isinstance(voter, string_types) and authorperm is not None:
+        if isinstance(voter, str) and authorperm is not None:
             [author, permlink] = resolve_authorperm(authorperm)
             self["voter"] = voter
             self["author"] = author
@@ -138,20 +137,20 @@ class Vote(BlockchainObject):
             "reputation",
         ]
         for p in parse_int:
-            if p in vote and isinstance(vote.get(p), string_types):
+            if p in vote and isinstance(vote.get(p), str):
                 vote[p] = int(vote.get(p, "0"))
 
-        if "time" in vote and isinstance(vote.get("time"), string_types) and vote.get("time") != "":
+        if "time" in vote and isinstance(vote.get("time"), str) and vote.get("time") != "":
             vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
         elif (
             "timestamp" in vote
-            and isinstance(vote.get("timestamp"), string_types)
+            and isinstance(vote.get("timestamp"), str)
             and vote.get("timestamp") != ""
         ):
             vote["time"] = formatTimeString(vote.get("timestamp", "1970-01-01T00:00:00"))
         elif (
             "last_update" in vote
-            and isinstance(vote.get("last_update"), string_types)
+            and isinstance(vote.get("last_update"), str)
             and vote.get("last_update") != ""
         ):
             vote["last_update"] = formatTimeString(vote.get("last_update", "1970-01-01T00:00:00"))
@@ -178,7 +177,7 @@ class Vote(BlockchainObject):
             "reputation",
         ]
         for p in parse_int:
-            if p in output and isinstance(output[p], integer_types):
+            if p in output and isinstance(output[p], int):
                 output[p] = str(output[p])
         return json.loads(str(json.dumps(output)))
 
@@ -456,7 +455,7 @@ class ActiveVotes(VotesObject):
                     authorperm["author"], authorperm["permlink"], api="condenser"
                 )
             authorperm = authorperm["authorperm"]
-        elif isinstance(authorperm, string_types):
+        elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
             if self.blockchain.rpc.get_use_appbase():
                 self.blockchain.rpc.set_next_node_on_empty_reply(False)
@@ -534,7 +533,7 @@ class AccountVotes(VotesObject):
                 time = x.get("last_update", "")
                 if time != "":
                     x["time"] = time
-            if time != "" and isinstance(time, string_types):
+            if time != "" and isinstance(time, str):
                 d_time = formatTimeString(time)
             elif isinstance(time, datetime):
                 d_time = time

@@ -8,7 +8,6 @@ from parameterized import parameterized
 
 import nectargraphenebase.ecdsasig as ecda
 from nectargraphenebase.account import PrivateKey
-from nectargraphenebase.py23 import py23_bytes
 
 wif = "5J4KCbg1G3my9b9hCaQXnHSm6vrwW9xQTJS6ZciW2Kek7cCkCEk"
 
@@ -29,7 +28,7 @@ class Testcases(unittest.TestCase):
             ecda.SECP256K1_MODULE = "secp256k1"
         else:
             ecda.SECP256K1_MODULE = module
-        pub_key = py23_bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)
         self.assertEqual(hexlify(pub_key_sig), pub_key)
@@ -50,7 +49,7 @@ class Testcases(unittest.TestCase):
                 return
             ecda.SECP256K1_MODULE = "secp256k1"
 
-        pub_key = py23_bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
         signature = ecda.sign_message("Foobar", wif)
         ecda.SECP256K1_MODULE = "ecdsa"
         pub_key_sig = ecda.verify_message("Foobar", signature)
@@ -76,7 +75,7 @@ class Testcases(unittest.TestCase):
             if not ecda.SECP256K1_AVAILABLE:
                 return
             ecda.SECP256K1_MODULE = "secp256k1"
-        pub_key = py23_bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
         ecda.SECP256K1_MODULE = module
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)

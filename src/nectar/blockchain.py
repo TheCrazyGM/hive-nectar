@@ -5,13 +5,13 @@ import logging
 import math
 import time
 from datetime import timedelta
+from queue import Queue
 from threading import Event, Thread
 from time import sleep
 
 import nectar as stm
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import UnknownTransaction
-from nectargraphenebase.py23 import py23_bytes
 
 from .block import Block, BlockHeader
 from .exceptions import (
@@ -23,12 +23,11 @@ from .exceptions import (
 from .utils import addTzInfo
 
 log = logging.getLogger(__name__)
-from queue import Queue
 
 FUTURES_MODULE = None
 if not FUTURES_MODULE:
     try:
-        from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         FUTURES_MODULE = "futures"
         # FUTURES_MODULE = None
@@ -961,7 +960,7 @@ class Blockchain(object):
             op = event["value"]
             event = [op_type, op]
         data = json.dumps(event, sort_keys=True)
-        return hashlib.sha1(py23_bytes(data, "utf-8")).hexdigest()
+        return hashlib.sha1(bytes(data, "utf-8")).hexdigest()
 
     def get_all_accounts(self, start="", stop="", steps=1e3, limit=-1, **kwargs):
         """Yields account names between start and stop.

@@ -1,5 +1,5 @@
 nectarapi\.noderpc
-================
+==================
 
 .. automodule:: nectarapi.noderpc
     :members:

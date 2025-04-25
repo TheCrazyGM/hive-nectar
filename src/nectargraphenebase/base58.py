@@ -5,7 +5,6 @@ import string
 from binascii import hexlify, unhexlify
 
 from .prefix import Prefix
-from .py23 import integer_types, py23_bytes, py23_chr, string_types
 
 log = logging.getLogger(__name__)
 
@@ -99,14 +98,12 @@ BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 
 def base58decode(base58_str):
-    base58_text = py23_bytes(base58_str, "ascii")
+    base58_text = bytes(base58_str, "ascii")
     n = 0
     leading_zeroes_count = 0
     for b in base58_text:
-        if isinstance(b, integer_types):
-            n = n * 58 + BASE58_ALPHABET.find(py23_chr(b))
-        else:
-            n = n * 58 + BASE58_ALPHABET.find(b)
+        # b is always int in Python 3 when iterating bytes
+        n = n * 58 + BASE58_ALPHABET.find(bytes([b]))
         if n == 0:
             leading_zeroes_count += 1
     res = bytearray()
@@ -120,7 +117,7 @@ def base58decode(base58_str):
 
 
 def base58encode(hexstring):
-    byteseq = py23_bytes(unhexlify(py23_bytes(hexstring, "ascii")))
+    byteseq = bytes(unhexlify(bytes(hexstring, "ascii")))
     n = 0
     leading_zeroes_count = 0
     for c in byteseq:
@@ -156,7 +153,7 @@ def b58decode(v):
 
 
 def base58CheckEncode(version, payload):
-    if isinstance(version, string_types):
+    if isinstance(version, str):
         s = version + payload
     else:
         s = ("%.2x" % version) + payload

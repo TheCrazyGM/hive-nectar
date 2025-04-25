@@ -8,7 +8,6 @@ from binascii import hexlify
 import ecdsa
 
 from .account import PrivateKey, PublicKey
-from .py23 import bytes_types, py23_bytes
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ if not SECP256K1_MODULE:
 
         SECP256K1_MODULE = "secp256k1"
         SECP256K1_AVAILABLE = True
-    except:
+    except Exception:
         try:
             import secp256k1
 
@@ -31,26 +30,22 @@ if not SECP256K1_MODULE:
         except ImportError:
             try:
                 import cryptography
-
-                SECP256K1_MODULE = "cryptography"
-                CRYPTOGRAPHY_AVAILABLE = True
             except ImportError:
                 SECP256K1_MODULE = "ecdsa"
+            else:
+                SECP256K1_MODULE = "cryptography"
+                CRYPTOGRAPHY_AVAILABLE = True
 
-    try:
-        from cryptography.exceptions import InvalidSignature
-        from cryptography.hazmat.backends import default_backend
-        from cryptography.hazmat.primitives import hashes
-        from cryptography.hazmat.primitives.asymmetric import ec
-        from cryptography.hazmat.primitives.asymmetric.utils import (
-            decode_dss_signature,
-            encode_dss_signature,
-        )
-
-        CRYPTOGRAPHY_AVAILABLE = True
-    except ImportError:
-        CRYPTOGRAPHY_AVAILABLE = False
-        log.debug("Cryptography not available")
+try:
+    from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric.utils import (
+        decode_dss_signature,
+        encode_dss_signature,
+    )
+except ImportError:
+    pass
 
 log.debug("Using SECP256K1 module: %s" % SECP256K1_MODULE)
 
@@ -76,7 +71,7 @@ def compressedPubkey(pk):
         x = p.x()
         y = p.y()
     x_str = ecdsa.util.number_to_string(x, order)
-    return py23_bytes(chr(2 + (y & 1)), "ascii") + x_str
+    return bytes(chr(2 + (y & 1)), "ascii") + x_str
 
 
 def recover_public_key(digest, signature, i, message=None):
@@ -103,20 +98,20 @@ def recover_public_key(digest, signature, i, message=None):
     Q = ecdsa.numbertheory.inverse_mod(r, order) * (s * R + (-e % order) * G)
 
     if SECP256K1_MODULE == "cryptography" and message is not None:
-        if not isinstance(message, bytes_types):
-            message = py23_bytes(message, "utf-8")
+        if not isinstance(message, bytes):
+            message = bytes(message, "utf-8")
         sigder = encode_dss_signature(r, s)
         try:
             Q_point = Q.to_affine()
             public_key = ec.EllipticCurvePublicNumbers(
                 Q_point.x(), Q_point.y(), ec.SECP256K1()
             ).public_key(default_backend())
-        except:
+        except Exception:
             try:
                 public_key = ec.EllipticCurvePublicNumbers(
                     Q._Point__x, Q._Point__y, ec.SECP256K1()
                 ).public_key(default_backend())
-            except:
+            except Exception:
                 Q_point = Q.to_affine()
                 public_key = ec.EllipticCurvePublicNumbers(
                     int(Q_point.x()), int(Q_point.y()), ec.SECP256K1()
@@ -136,8 +131,8 @@ def recoverPubkeyParameter(message, digest, signature, pubkey):
     """Use to derive a number that allows to easily recover the
     public key from the signature
     """
-    if not isinstance(message, bytes_types):
-        message = py23_bytes(message, "utf-8")
+    if not isinstance(message, bytes):
+        message = bytes(message, "utf-8")
     for i in range(0, 4):
         if SECP256K1_MODULE == "secp256k1":
             sig = pubkey.ecdsa_recoverable_deserialize(signature, i)
@@ -155,7 +150,7 @@ def recoverPubkeyParameter(message, digest, signature, pubkey):
             p_comp = hexlify(compressedPubkey(p))
             p_string = hexlify(p.to_string())
             if isinstance(pubkey, PublicKey):
-                pubkey_string = py23_bytes(repr(pubkey), "latin")
+                pubkey_string = bytes(repr(pubkey), "latin")
             else:  # pragma: no cover
                 pubkey_string = hexlify(pubkey.to_string())
             if p_string == pubkey_string or p_comp == pubkey_string:
@@ -169,13 +164,13 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
     :param str wif: Private key in
     """
 
-    if not isinstance(message, bytes_types):
-        message = py23_bytes(message, "utf-8")
+    if not isinstance(message, bytes):
+        message = bytes(message, "utf-8")
 
     digest = hashfn(message).digest()
     priv_key = PrivateKey(wif)
     if SECP256K1_MODULE == "secp256k1":
-        p = py23_bytes(priv_key)
+        p = bytes(priv_key)
         ndata = secp256k1.ffi.new("const int *ndata")
         ndata[0] = 0
         while True:
@@ -220,7 +215,7 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
                 break
     else:  # pragma: no branch  # pragma: no cover
         cnt = 0
-        p = py23_bytes(priv_key)
+        p = bytes(priv_key)
         sk = ecdsa.SigningKey.from_string(p, curve=ecdsa.SECP256k1)
         while 1:
             cnt += 1
@@ -270,13 +265,13 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
 
 
 def verify_message(message, signature, hashfn=hashlib.sha256, recover_parameter=None):
-    if not isinstance(message, bytes_types):
-        message = py23_bytes(message, "utf-8")
-    if not isinstance(signature, bytes_types):
-        signature = py23_bytes(signature, "utf-8")
-    if not isinstance(message, bytes_types):
+    if not isinstance(message, bytes):
+        message = bytes(message, "utf-8")
+    if not isinstance(signature, bytes):
+        signature = bytes(signature, "utf-8")
+    if not isinstance(message, bytes):
         raise AssertionError()
-    if not isinstance(signature, bytes_types):
+    if not isinstance(signature, bytes):
         raise AssertionError()
     digest = hashfn(message).digest()
     sig = signature[1:]

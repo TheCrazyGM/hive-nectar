@@ -1,5 +1,5 @@
 nectar\.instance
-==============
+================
 
 .. automodule:: nectar.instance
     :members:

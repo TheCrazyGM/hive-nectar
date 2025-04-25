@@ -1,5 +1,5 @@
 nectarbase\.objecttypes
-=====================
+=======================
 
 .. automodule:: nectarbase.objecttypes
     :members:

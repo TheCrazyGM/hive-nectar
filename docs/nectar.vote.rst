@@ -1,5 +1,5 @@
 nectar\.vote
-==========
+============
 
 .. automodule:: nectar.vote
     :members:

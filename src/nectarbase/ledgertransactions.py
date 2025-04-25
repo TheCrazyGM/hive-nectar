@@ -3,7 +3,6 @@ import logging
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
-from nectargraphenebase.py23 import py23_bytes
 from nectargraphenebase.types import (
     Array,
     Signature,
@@ -54,7 +53,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         dongle = getDongle(True)
         apdu_list = self.build_apdu(path, chain)
         for apdu in apdu_list:
-            result = dongle.exchange(py23_bytes(apdu))
+            result = dongle.exchange(bytes(apdu))
         dongle.close()
         sigs = []
         signature = result
@@ -67,7 +66,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
 
         dongle = getDongle(True)
         apdu = self.build_apdu_pubkey(path, request_screen_approval)
-        result = dongle.exchange(py23_bytes(apdu))
+        result = dongle.exchange(bytes(apdu))
         dongle.close()
         offset = 1 + result[0]
         address = result[offset + 1 : offset + 1 + result[offset]]

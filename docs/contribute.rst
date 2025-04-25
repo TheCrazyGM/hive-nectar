@@ -1,5 +1,5 @@
 Contributing to nectar
-====================
+======================
 
 We welcome your contributions to our project.
 

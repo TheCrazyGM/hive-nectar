@@ -1,5 +1,5 @@
 nectar\.wallet
-============
+==============
 
 .. automodule:: nectar.wallet
     :members:

@@ -3,7 +3,6 @@ from decimal import ROUND_DOWN, Decimal
 
 from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
-from nectargraphenebase.py23 import integer_types, string_types
 
 
 def check_asset(other, self, stm):
@@ -122,7 +121,7 @@ class Amount(dict):
             self["asset"] = Asset(amount["nai"], blockchain_instance=self.blockchain)
             self["symbol"] = self["asset"]["symbol"]
 
-        elif amount is not None and asset is None and isinstance(amount, string_types):
+        elif amount is not None and asset is None and isinstance(amount, str):
             self["amount"], self["symbol"] = amount.split(" ")
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
 
@@ -153,7 +152,7 @@ class Amount(dict):
             self["asset"] = asset
             self["symbol"] = self["asset"]["symbol"]
 
-        elif isinstance(amount, (integer_types, Decimal)) and asset and isinstance(asset, Asset):
+        elif isinstance(amount, (int, Decimal)) and asset and isinstance(asset, Asset):
             self["amount"] = amount
             self["asset"] = asset
             self["symbol"] = self["asset"]["symbol"]
@@ -163,21 +162,17 @@ class Amount(dict):
             self["asset"] = asset
             self["symbol"] = self["asset"]["symbol"]
 
-        elif isinstance(amount, (integer_types, Decimal)) and asset and isinstance(asset, dict):
+        elif isinstance(amount, (int, Decimal)) and asset and isinstance(asset, dict):
             self["amount"] = amount
             self["asset"] = asset
             self["symbol"] = self["asset"]["symbol"]
 
-        elif isinstance(amount, (float)) and asset and isinstance(asset, string_types):
+        elif isinstance(amount, (float)) and asset and isinstance(asset, str):
             self["amount"] = str(amount)
             self["asset"] = Asset(asset, blockchain_instance=self.blockchain)
             self["symbol"] = asset
 
-        elif (
-            isinstance(amount, (integer_types, Decimal))
-            and asset
-            and isinstance(asset, string_types)
-        ):
+        elif isinstance(amount, (int, Decimal)) and asset and isinstance(asset, str):
             self["amount"] = amount
             self["asset"] = Asset(asset, blockchain_instance=self.blockchain)
             self["symbol"] = asset
@@ -185,7 +180,7 @@ class Amount(dict):
             self["amount"] = amount
             self["symbol"] = asset["symbol"]
             self["asset"] = asset
-        elif amount and asset and isinstance(asset, string_types):
+        elif amount and asset and isinstance(asset, str):
             self["amount"] = amount
             self["asset"] = Asset(asset, blockchain_instance=self.blockchain)
             self["symbol"] = self["asset"]["symbol"]

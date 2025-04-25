@@ -1,5 +1,5 @@
 nectar\.witness
-=============
+===============
 
 .. automodule:: nectar.witness
     :members:

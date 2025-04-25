@@ -2,7 +2,7 @@ Modules
 =======
 
 nectar Modules
-------------
+--------------
 
 .. toctree::
 
@@ -39,7 +39,7 @@ nectar Modules
    nectar.witness
 
 nectarapi Modules
----------------
+-----------------
 
 .. toctree::
 
@@ -49,7 +49,7 @@ nectarapi Modules
    nectarapi.noderpc
 
 nectarbase Modules
-----------------
+------------------
 
 .. toctree::
 
@@ -63,7 +63,7 @@ nectarbase Modules
 
 
 nectargraphenebase Modules
-------------------------
+--------------------------
 
 .. toctree::
 
@@ -81,7 +81,7 @@ nectargraphenebase Modules
 
 
 nectarstorage Modules
--------------------
+---------------------
 
 .. toctree::
 

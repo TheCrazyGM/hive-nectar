@@ -1,5 +1,5 @@
 nectar\.comment
-=============
+===============
 
 .. automodule:: nectar.comment
     :members:

@@ -1,5 +1,5 @@
 nectar\.asciichart
-================
+==================
 
 .. automodule:: nectar.asciichart
     :members:

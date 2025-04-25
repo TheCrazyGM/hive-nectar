@@ -23,5 +23,4 @@ __all__ = [
     "signedtransactions",
     "unsignedtransactions",
     "objecttypes",
-    "py23",
 ]

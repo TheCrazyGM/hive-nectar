@@ -1,5 +1,5 @@
 nectar\.market
-============
+==============
 
 .. automodule:: nectar.market
     :members:
