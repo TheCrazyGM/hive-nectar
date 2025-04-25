@@ -1,5 +1,5 @@
 nectarstorage\.exceptions
-=======================
+=========================
 
 .. automodule:: nectarstorage.exceptions
     :members:

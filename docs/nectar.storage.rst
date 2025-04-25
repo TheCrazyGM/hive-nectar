@@ -1,5 +1,5 @@
 nectar\.storage
-=============
+===============
 
 .. automodule:: nectar.storage
     :members:

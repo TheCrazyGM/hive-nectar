@@ -1,5 +1,5 @@
 nectargraphenebase\.account
-=========================
+===========================
 
 .. automodule:: nectargraphenebase.account
     :members:

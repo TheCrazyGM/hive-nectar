@@ -1,5 +1,5 @@
 nectar\.hive
-==========
+============
 
 .. automodule:: nectar.hive
     :members:

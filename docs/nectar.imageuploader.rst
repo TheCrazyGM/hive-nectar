@@ -1,5 +1,5 @@
 nectar\.imageuploader
-===================
+=====================
 
 .. automodule:: nectar.imageuploader
     :members:

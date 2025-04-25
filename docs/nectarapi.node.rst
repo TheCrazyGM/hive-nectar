@@ -1,5 +1,5 @@
 nectarapi\.node
-=============
+===============
 
 .. automodule:: nectarapi.node
     :members:

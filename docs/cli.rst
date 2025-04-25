@@ -1,5 +1,5 @@
 hive-nectar CLI
-~~~~~~~~~~
+~~~~~~~~~~~~~~~
 `hive-nectar` is a convenient CLI utility that enables you to manage your wallet, transfer funds, check
 balances and more.
 
@@ -117,7 +117,7 @@ Commands
     :show-nested:
 
 hive-nectar --help
--------------
+------------------
 You can see all available commands with ``hive-nectar --help``
 
 ::

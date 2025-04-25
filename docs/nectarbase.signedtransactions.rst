@@ -1,5 +1,5 @@
 nectarbase\.signedtransactions
-============================
+==============================
 
 .. automodule:: nectarbase.signedtransactions
     :members:

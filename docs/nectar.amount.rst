@@ -1,5 +1,5 @@
 nectar\.amount
-============
+==============
 
 .. automodule:: nectar.amount
     :members:

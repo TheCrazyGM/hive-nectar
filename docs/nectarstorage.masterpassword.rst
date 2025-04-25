@@ -1,5 +1,5 @@
 nectarstorage\.masterpassword
-===========================
+=============================
 
 .. automodule:: nectarstorage.masterpassword
     :members:

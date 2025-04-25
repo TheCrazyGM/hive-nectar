@@ -1,5 +1,5 @@
 nectar\.blockchaininstance
-========================
+==========================
 
 .. automodule:: nectar.blockchaininstance
     :members:

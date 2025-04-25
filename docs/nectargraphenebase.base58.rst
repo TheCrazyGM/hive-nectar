@@ -1,5 +1,5 @@
 nectargraphenebase\.base58
-========================
+==========================
 
 .. automodule:: nectargraphenebase.base58
     :members:

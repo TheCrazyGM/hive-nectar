@@ -1,5 +1,5 @@
 nectar\.account
-=============
+===============
 
 .. automodule:: nectar.account
     :members:

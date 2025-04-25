@@ -1,5 +1,5 @@
-nectargraphenebase\.signedtransactions 
-====================================
+nectargraphenebase\.signedtransactions
+======================================
 
 .. automodule:: nectargraphenebase.signedtransactions
     :members:

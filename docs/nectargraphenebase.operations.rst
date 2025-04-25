@@ -1,5 +1,5 @@
 nectargraphenebase\.operations
-============================
+==============================
 
 .. automodule:: nectargraphenebase.operationids
     :members:

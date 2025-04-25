@@ -1,5 +1,5 @@
 nectar\.steem
-===========
+=============
 
 .. automodule:: nectar.steem
     :members:

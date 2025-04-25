@@ -1,5 +1,5 @@
 nectarapi\.exceptions
-===================
+=====================
 
 .. automodule:: nectarapi.exceptions
     :members:

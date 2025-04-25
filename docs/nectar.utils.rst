@@ -1,5 +1,5 @@
 nectar\.utils
-===========
+=============
 
 .. automodule:: nectar.utils
     :members:

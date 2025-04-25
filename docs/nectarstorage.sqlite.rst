@@ -1,5 +1,5 @@
 nectarstorage\.sqlite
-===================
+=====================
 
 .. automodule:: nectarstorage.sqlite
     :members:

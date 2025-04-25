@@ -1,5 +1,5 @@
 nectar\.hivesigner
-================
+==================
 
 .. automodule:: nectar.hivesigner
     :members:

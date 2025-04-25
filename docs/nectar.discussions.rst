@@ -1,5 +1,5 @@
 nectar\.discussions
-=================
+===================
 
 .. automodule:: nectar.discussions
     :members:

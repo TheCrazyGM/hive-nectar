@@ -1,5 +1,5 @@
 nectar\.asset
-===========
+=============
 
 .. automodule:: nectar.asset
     :members:
