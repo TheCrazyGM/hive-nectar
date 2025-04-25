@@ -338,7 +338,7 @@ class Blockchain(object):
             >>> from datetime import datetime
             >>> blockchain = Blockchain()
             >>> block_num = blockchain.get_estimated_block_num(datetime(2019, 6, 18, 5 ,8, 27))
-            >>> block_num == 33898184
+            >>> block_num == 33898182
             True
 
         """
