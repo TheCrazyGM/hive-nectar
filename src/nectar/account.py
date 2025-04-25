@@ -1548,7 +1548,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_balance("rewards", "HBD")
             0.000 HBD
 
@@ -1733,7 +1733,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_owner_history()
             []
 
@@ -1766,7 +1766,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_conversion_requests()
             []
 
@@ -1804,7 +1804,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_vesting_delegations()
             []
 
@@ -1839,7 +1839,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_withdraw_routes()
             []
 
@@ -1873,7 +1873,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_savings_withdrawals()
             []
 
@@ -1908,7 +1908,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_recovery_request()
             []
 
@@ -1942,7 +1942,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_escrow(1234)
             []
 
@@ -2035,7 +2035,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_expiring_vesting_delegations()
             []
 
@@ -2072,7 +2072,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectar.app", blockchain_instance=stm)
+            >>> account = Account("nectarflower", blockchain_instance=stm)
             >>> account.get_account_votes()  # doctest: +SKIP
 
         """

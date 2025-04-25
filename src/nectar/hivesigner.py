@@ -33,7 +33,7 @@ class HiveSigner(object):
         from nectar import Steem
         from nectar.HiveSigner import HiveSigner
         from nectar.comment import Comment
-        hs = HiveSigner(client_id="nectar.app")
+        hs = HiveSigner(client_id="nectarflower")
         steem = Steem(HiveSigner=hs)
         steem.wallet.unlock("supersecret-passphrase")
         post = Comment("author/permlink", blockchain_instance=steem)
