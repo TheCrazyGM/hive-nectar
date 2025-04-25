@@ -4,7 +4,6 @@ import threading
 from datetime import datetime, timedelta, timezone
 
 from nectar.instance import shared_blockchain_instance
-from nectargraphenebase.py23 import integer_types, string_types
 
 
 class ObjectCache(dict):
@@ -115,7 +114,7 @@ class BlockchainObject(dict):
         if isinstance(data, (list, set, tuple)):
             raise ValueError("Cannot interpret lists! Please load elements individually!")
 
-        if id_item and isinstance(id_item, string_types):
+        if id_item and isinstance(id_item, str):
             self.id_item = id_item
         else:
             self.id_item = "id"
@@ -125,7 +124,7 @@ class BlockchainObject(dict):
         elif isinstance(data, dict):
             self.identifier = data.get(self.id_item)
             super(BlockchainObject, self).__init__(data)
-        elif isinstance(data, integer_types):
+        elif isinstance(data, int):
             # This is only for block number basically
             self.identifier = data
             if not lazy and not self.cached:
@@ -134,7 +133,7 @@ class BlockchainObject(dict):
             self[self.id_item] = data
             # Set identifier again as it is overwritten in super() in refresh()
             self.identifier = data
-        elif isinstance(data, string_types):
+        elif isinstance(data, str):
             self.identifier = data
             if not lazy and not self.cached:
                 self.refresh()
@@ -159,9 +158,9 @@ class BlockchainObject(dict):
         BlockchainObject._cache = ObjectCache()
 
     def test_valid_objectid(self, i):
-        if isinstance(i, string_types):
+        if isinstance(i, str):
             return True
-        elif isinstance(i, integer_types):
+        elif isinstance(i, int):
             return True
         else:
             return False

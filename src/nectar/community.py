@@ -6,7 +6,6 @@ from datetime import date, datetime, time
 from prettytable import PrettyTable
 
 from nectar.instance import shared_blockchain_instance
-from nectargraphenebase.py23 import integer_types, string_types
 
 from .blockchainobject import BlockchainObject
 from .exceptions import AccountDoesNotExistsException, OfflineHasNoRPCException
@@ -118,11 +117,11 @@ class Community(BlockchainObject):
             "num_authors",
         ]
         for p in parse_int:
-            if p in community and isinstance(community.get(p), string_types):
+            if p in community and isinstance(community.get(p), str):
                 community[p] = int(community.get(p, 0))
         parse_times = ["created_at"]
         for p in parse_times:
-            if p in community and isinstance(community.get(p), string_types):
+            if p in community and isinstance(community.get(p), str):
                 community[p] = addTzInfo(
                     datetime.strptime(community.get(p, "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S")
                 )
@@ -138,10 +137,10 @@ class Community(BlockchainObject):
         ]
         parse_int_without_zero = []
         for p in parse_int:
-            if p in output and isinstance(output[p], integer_types):
+            if p in output and isinstance(output[p], int):
                 output[p] = str(output[p])
         for p in parse_int_without_zero:
-            if p in output and isinstance(output[p], integer_types) and output[p] != 0:
+            if p in output and isinstance(output[p], int) and output[p] != 0:
                 output[p] = str(output[p])
 
         parse_times = [

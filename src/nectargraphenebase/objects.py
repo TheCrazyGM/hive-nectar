@@ -4,13 +4,12 @@ import json
 from nectargraphenebase.types import Id, JsonObj, Optional, String
 
 from .operationids import operations
-from .py23 import integer_types, py23_bytes, string_types
 
 
 class Operation(object):
     def __init__(self, op):
         if isinstance(op, list) and len(op) == 2:
-            if isinstance(op[0], integer_types):
+            if isinstance(op[0], int):
                 self.opId = op[0]
                 name = self.getOperationNameForId(self.opId)
             else:
@@ -61,7 +60,7 @@ class Operation(object):
         return class_
 
     def __bytes__(self):
-        return py23_bytes(Id(self.opId)) + py23_bytes(self.op)
+        return bytes(Id(self.opId)) + bytes(self.op)
 
     def __str__(self):
         return json.dumps([self.opId, self.op.toJson()])
@@ -83,13 +82,13 @@ class GrapheneObject(object):
 
     def __bytes__(self):
         if self.data is None:
-            return py23_bytes()
+            return bytes()
         b = b""
         for name, value in list(self.data.items()):
-            if isinstance(value, string_types):
-                b += py23_bytes(value, "utf-8")
+            if isinstance(value, str):
+                b += bytes(value, "utf-8")
             else:
-                b += py23_bytes(value)
+                b += bytes(value)
         return b
 
     def __json__(self):

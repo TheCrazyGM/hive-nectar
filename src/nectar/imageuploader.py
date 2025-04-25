@@ -6,7 +6,6 @@ import requests
 
 from nectar.account import Account
 from nectargraphenebase.ecdsasig import sign_message
-from nectargraphenebase.py23 import py23_bytes, string_types
 
 from .instance import shared_blockchain_instance
 
@@ -55,14 +54,14 @@ class ImageUploader(object):
         for authority in account["posting"]["key_auths"]:
             posting_wif = self.steem.wallet.getPrivateKeyForPublicKey(authority[0])
 
-        if isinstance(image, string_types):
+        if isinstance(image, str):
             image_data = open(image, "rb").read()
         elif isinstance(image, io.BytesIO):
             image_data = image.read()
         else:
             image_data = image
 
-        message = py23_bytes(self.challenge, "ascii") + image_data
+        message = bytes(self.challenge, "ascii") + image_data
         signature = sign_message(message, posting_wif)
         signature_in_hex = hexlify(signature).decode("ascii")
 

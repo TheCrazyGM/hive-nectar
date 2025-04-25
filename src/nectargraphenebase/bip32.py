@@ -17,7 +17,6 @@ from ecdsa.curves import SECP256k1
 from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
 
 from nectargraphenebase.base58 import base58CheckDecode, base58CheckEncode
-from nectargraphenebase.py23 import py23_bytes
 
 VerifyKey = ecdsa.VerifyingKey.from_public_point
 SigningKey = ecdsa.SigningKey.from_string
@@ -45,7 +44,7 @@ EX_TEST_PUBLIC = [
 
 
 def int_to_hex(x):
-    return py23_bytes(hex(x)[2:], encoding="utf-8")
+    return bytes(hex(x)[2:], encoding="utf-8")
 
 
 def parse_path(nstr, as_bytes=False):
@@ -123,11 +122,7 @@ class BIP32Key(object):
             raise ValueError("unknown extended key version")
 
         # Extract remaining fields
-        # Python 2.x compatibility
-        if type(raw[4]) == int:
-            depth = raw[4]
-        else:
-            depth = ord(raw[4])
+        depth = raw[4]
         fpr = raw[5:9]
         child = struct.unpack(">L", raw[9:13])[0]
         chain = raw[13:45]
@@ -138,8 +133,7 @@ class BIP32Key(object):
             secret = secret[1:]
         else:
             # Recover public curve point from compressed key
-            # Python3 FIX
-            lsb = secret[0] & 1 if type(secret[0]) == int else ord(secret[0]) & 1
+            lsb = secret[0] & 1
             x = int.from_bytes(secret[1:], "big")
             ys = (x**3 + 7) % FIELD_ORDER  # y^2 = x^3 + 7 mod p
             y = sqrt_mod(ys, FIELD_ORDER)
@@ -167,10 +161,10 @@ class BIP32Key(object):
         Create a public or private BIP32Key using key material and chain code.
 
         secret   This is the source material to generate the keypair, either a
-                 32-byte string representation of a private key, or the ECDSA
+                 32-byte str representation of a private key, or the ECDSA
                  library object representing a public key.
 
-        chain    This is a 32-byte string representation of the chain code
+        chain    This is a 32-byte str representation of the chain code
 
         depth    Child depth; parent increments its own by one when assigning this
 

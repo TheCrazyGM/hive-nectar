@@ -5,7 +5,6 @@ from binascii import hexlify
 from collections import OrderedDict
 
 from nectargraphenebase.account import PublicKey
-from nectargraphenebase.py23 import PY2, PY3, string_types
 from nectargraphenebase.types import (
     Array,
     Bool,
@@ -58,7 +57,7 @@ class Transfer(GrapheneObject):
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
             memo = Optional(Memo(**kwargs["memo"]))
-        elif isinstance(kwargs["memo"], string_types):
+        elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
             memo = Optional(Memo(kwargs["memo"]))
@@ -90,7 +89,7 @@ class Recurring_transfer(GrapheneObject):
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
             memo = Optional(Memo(**kwargs["memo"]))
-        elif isinstance(kwargs["memo"], string_types):
+        elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
             memo = Optional(Memo(kwargs["memo"]))
@@ -539,10 +538,8 @@ class Witness_set_properties(GrapheneObject):
         for k in kwargs["props"]:
             if k[0] in ["key", "new_signing_key"]:
                 continue
-            if isinstance(k[1], str) and PY3:
+            if isinstance(k[1], str):
                 is_hex = re.fullmatch(r"[0-9a-fA-F]+", k[1] or "") is not None
-            elif isinstance(k[1], str) and PY2:
-                is_hex = re.match(r"[0-9a-fA-F]+", k[1] or "") is not None
             else:
                 is_hex = False
             if isinstance(k[1], int) and k[0] in [
@@ -991,7 +988,6 @@ class Transfer_from_savings(GrapheneObject):
         json_str = kwargs.get("json_str", False)
         if "memo" not in kwargs:
             kwargs["memo"] = ""
-
         super(Transfer_from_savings, self).__init__(
             OrderedDict(
                 [

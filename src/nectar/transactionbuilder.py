@@ -279,7 +279,7 @@ class TransactionBuilder(dict):
             try:
                 PrivateKey(wif, prefix=self.blockchain.prefix)
                 self.wifs.add(wif)
-            except:
+            except Exception:
                 raise InvalidWifError
 
     def clearWifs(self):
@@ -427,7 +427,7 @@ class TransactionBuilder(dict):
             # try:
             #    ledgertx = Ledger_Transaction(**self.json(with_prefix=True))
             #    ledgertx.add_custom_chains(self.blockchain.custom_chains)
-            # except:
+            # except Exception:
             #    raise ValueError("Invalid TransactionBuilder Format")
             # ledgertx.sign(self.path, chain=self.blockchain.chain_params)
             self.ledgertx.sign(self.path, chain=self.blockchain.chain_params)
@@ -438,7 +438,16 @@ class TransactionBuilder(dict):
                 raise MissingKeyError
 
             self.tx.sign(self.wifs, chain=self.blockchain.chain_params)
-            self["signatures"].extend(self.tx.json().get("signatures"))
+            # Defensive: ensure self["signatures"] is a list before extend
+            if isinstance(self["signatures"], str):
+                log.warning(
+                    "self['signatures'] was a string, converting to list to avoid AttributeError."
+                )
+                self["signatures"] = [self["signatures"]]
+            sigs = self.tx.json().get("signatures")
+            if isinstance(sigs, str):
+                sigs = [sigs]
+            self["signatures"].extend(sigs)
             return self.tx
 
     def verify_authority(self):

@@ -8,7 +8,6 @@ from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.objects import GrapheneObject, isArgsThisClass
 from nectargraphenebase.objects import Operation as GPHOperation
-from nectargraphenebase.py23 import py23_bytes, string_types
 from nectargraphenebase.types import (
     Array,
     Bytes,
@@ -38,7 +37,7 @@ def value_to_decimal(value, decimal_places):
 class Amount(object):
     def __init__(self, d, prefix=default_prefix, json_str=False):
         self.json_str = json_str
-        if isinstance(d, string_types):
+        if isinstance(d, str):
             self.amount, self.symbol = d.strip().split(" ")
             self.precision = None
             for c in known_chains:
@@ -113,7 +112,7 @@ class Amount(object):
         return (
             struct.pack("<q", int(self.amount))
             + struct.pack("<b", self.precision)
-            + py23_bytes(symbol, "ascii")
+            + bytes(symbol, "ascii")
         )
 
     def __str__(self):
@@ -150,7 +149,7 @@ class Operation(GPHOperation):
         # return json.loads(str(json.dumps([self.name, self.op.toJson()])))
 
     def __bytes__(self):
-        return py23_bytes(Id(self.opId)) + py23_bytes(self.op)
+        return bytes(Id(self.opId)) + bytes(self.op)
 
     def __str__(self):
         if self.appbase:
@@ -364,7 +363,7 @@ class CommentOptionExtensions(Static_variant):
     """
 
     def __init__(self, o):
-        if type(o) == dict and "type" in o and "value" in o:
+        if isinstance(o, dict) and "type" in o and "value" in o:
             if o["type"] == "comment_payout_beneficiaries":
                 type_id = 0
             else:

@@ -8,7 +8,6 @@ from binascii import hexlify
 
 from nectargraphenebase import bip38
 from nectargraphenebase.aes import AESCipher
-from nectargraphenebase.py23 import py23_bytes
 
 from .exceptions import WalletLocked, WrongMasterPasswordException
 
@@ -192,7 +191,7 @@ class MasterPassword(object):
 
     def deriveChecksum(self, s):
         """Derive the checksum"""
-        checksum = hashlib.sha256(py23_bytes(s, "ascii")).hexdigest()
+        checksum = hashlib.sha256(bytes(s, "ascii")).hexdigest()
         return checksum[:4]
 
     def encrypt_text(self, txt):
@@ -216,7 +215,7 @@ class MasterPassword(object):
         checksum, encrypted_text = enctxt.split("$")
         try:
             decrypted_text = aes.decrypt(encrypted_text)
-        except:
+        except Exception:
             raise WrongMasterPasswordException
         if checksum != self.deriveChecksum(decrypted_text):
             raise WrongMasterPasswordException

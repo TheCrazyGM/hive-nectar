@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import binascii
 import bisect
-import codecs
 import hashlib
 import itertools
 import os
 import re
-import sys
 import unicodedata
 from binascii import hexlify, unhexlify
 
@@ -17,7 +15,6 @@ from .bip32 import BIP32Key, parse_path
 from .dictionary import words as BrainKeyDictionary
 from .dictionary import words_bip39 as MnemonicDictionary
 from .prefix import Prefix
-from .py23 import PY2, py23_bytes
 
 PBKDF2_ROUNDS = 2048
 
@@ -55,7 +52,7 @@ class PasswordKey(Prefix):
         else:
             seed = self.account + self.role + self.password
         seed = self.normalize(seed)
-        a = py23_bytes(seed, "utf8")
+        a = bytes(seed, "utf8")
         s = hashlib.sha256(a).digest()
         return PrivateKey(hexlify(s).decode("ascii"), prefix=self.prefix)
 
@@ -121,13 +118,13 @@ class BrainKey(Prefix):
         number
         """
         encoded = "%s %d" % (self.brainkey, self.sequence)
-        a = py23_bytes(encoded, "ascii")
+        a = bytes(encoded, "ascii")
         s = hashlib.sha256(hashlib.sha512(a).digest()).digest()
         return PrivateKey(hexlify(s).decode("ascii"), prefix=self.prefix)
 
     def get_blind_private(self):
         """Derive private key from the brain key (and no sequence number)"""
-        a = py23_bytes(self.brainkey, "ascii")
+        a = bytes(self.brainkey, "ascii")
         return PrivateKey(hashlib.sha256(a).hexdigest(), prefix=self.prefix)
 
     def get_public(self):
@@ -149,12 +146,7 @@ class BrainKey(Prefix):
             raise AssertionError()
         for j in range(0, word_count):
             urand = os.urandom(2)
-            if isinstance(urand, str):
-                urand = py23_bytes(urand, "ascii")
-            if PY2:
-                num = int(codecs.encode(urand[::-1], "hex"), 16)
-            else:
-                num = int.from_bytes(urand, byteorder="little")
+            num = int.from_bytes(urand, byteorder="little")
             rndMult = num / 2**16  # returns float between 0..1 (inclusive)
             wIdx = int(round(len(dict_lines) * rndMult))
             brainkey[j] = dict_lines[wIdx]
@@ -180,7 +172,7 @@ class Mnemonic(object):
         """
         if strength not in [128, 160, 192, 224, 256]:
             raise ValueError(
-                "Strength should be one of the following [128, 160, 192, 224, 256], but it is not (%d)."
+                "Strength should be one of the following: [128, 160, 192, 224, 256], but it is not (%d)."
                 % strength
             )
         return self.to_mnemonic(os.urandom(strength // 8))
@@ -223,18 +215,11 @@ class Mnemonic(object):
                     entropy[ii] |= 1 << (7 - jj)
         # Take the digest of the entropy.
         hashBytes = hashlib.sha256(entropy).digest()
-        if sys.version < "3":
-            hashBits = list(
-                itertools.chain.from_iterable(
-                    ([ord(c) & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)
-                )
+        hashBits = list(
+            itertools.chain.from_iterable(
+                ([c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)
             )
-        else:
-            hashBits = list(
-                itertools.chain.from_iterable(
-                    ([c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)
-                )
-            )
+        )
         # Check all the checksum bits.
         for i in range(checksumLengthBits):
             if concatBits[entropyLengthBits + i] != hashBits[i]:
@@ -308,13 +293,7 @@ class Mnemonic(object):
     @classmethod
     def normalize_string(cls, txt):
         """Normalizes strings"""
-        if isinstance(txt, str if sys.version < "3" else bytes):
-            utxt = txt.decode("utf8")
-        elif isinstance(txt, unicode if sys.version < "3" else str):  # noqa: F821
-            utxt = txt
-        else:
-            raise TypeError("String value expected")
-
+        utxt = txt.decode("utf8")
         return unicodedata.normalize("NFKD", utxt)
 
     @classmethod
@@ -535,7 +514,7 @@ class Address(Prefix):
 
     def __bytes__(self):
         """Returns the raw content of the ``Base58CheckEncoded`` address"""
-        return py23_bytes(self._address)
+        return bytes(self._address)
 
 
 class GrapheneAddress(Address):
@@ -683,7 +662,7 @@ class PublicKey(Prefix):
 
     def __bytes__(self):
         """Returns the raw public key (has length 33)"""
-        return py23_bytes(self._pk)
+        return bytes(self._pk)
 
     def __lt__(self, other):
         """For sorting of public keys (due to graphene),
@@ -774,13 +753,13 @@ class PrivateKey(Prefix):
         sequence number
         """
         encoded = "%s %d" % (str(self), sequence)
-        a = py23_bytes(encoded, "ascii")
+        a = bytes(encoded, "ascii")
         s = hashlib.sha256(hashlib.sha512(a).digest()).digest()
         return PrivateKey(hexlify(s).decode("ascii"), prefix=self.pubkey.prefix)
 
     def child(self, offset256):
         """Derive new private key from this key and a sha256 "offset" """
-        a = py23_bytes(self.pubkey) + offset256
+        a = bytes(self.pubkey) + offset256
         s = hashlib.sha256(a).digest()
         return self.derive_from_seed(s)
 
@@ -789,7 +768,7 @@ class PrivateKey(Prefix):
         Here, the key itself serves as a `seed`, and `offset`
         is expected to be a sha256 digest.
         """
-        seed = int(hexlify(py23_bytes(self)).decode("ascii"), 16)
+        seed = int(hexlify(bytes(self)).decode("ascii"), 16)
         z = int(hexlify(offset).decode("ascii"), 16)
         order = ecdsa.SECP256k1.order
         secexp = (seed + z) % order
@@ -816,7 +795,7 @@ class PrivateKey(Prefix):
 
     def __bytes__(self):
         """Returns the raw private key"""
-        return py23_bytes(self._wif)
+        return bytes(self._wif)
 
 
 class BitcoinAddress(Address):

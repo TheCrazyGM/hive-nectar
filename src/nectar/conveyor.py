@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 import requests
 
 from nectargraphenebase.ecdsasig import sign_message
-from nectargraphenebase.py23 import py23_bytes
 
 from .account import Account
 from .instance import shared_blockchain_instance
@@ -64,7 +63,7 @@ class Conveyor(object):
         self.id = 0
         self.ENCODING = "utf-8"
         self.TIMEFORMAT = "%Y-%m-%dT%H:%M:%S.%f"
-        self.K = hashlib.sha256(py23_bytes("steem_jsonrpc_auth", self.ENCODING)).digest()
+        self.K = hashlib.sha256(bytes("steem_jsonrpc_auth", self.ENCODING)).digest()
 
     def prehash_message(self, timestamp, account, method, params, nonce):
         """Prepare a hash for the Conveyor API request with SHA256 according
@@ -78,7 +77,7 @@ class Conveyor(object):
         :param bytes nonce: random 8 bytes
 
         """
-        first = hashlib.sha256(py23_bytes(timestamp + account + method + params, self.ENCODING))
+        first = hashlib.sha256(bytes(timestamp + account + method + params, self.ENCODING))
         return self.K + first.digest() + nonce
 
     def _request(self, account, method, params, key):
@@ -91,7 +90,7 @@ class Conveyor(object):
         :param str key: Steem posting key for signing
 
         """
-        params_bytes = py23_bytes(json.dumps(params), self.ENCODING)
+        params_bytes = bytes(json.dumps(params), self.ENCODING)
         params_enc = base64.b64encode(params_bytes).decode(self.ENCODING)
         timestamp = datetime.now(timezone.utc).strftime(self.TIMEFORMAT)[:-3] + "Z"
         nonce_int = random.getrandbits(64)

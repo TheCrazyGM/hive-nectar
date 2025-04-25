@@ -409,7 +409,7 @@ class Wallet(object):
         else:
             try:
                 account = Account(name, blockchain_instance=self.blockchain)
-            except:
+            except Exception:
                 return
             return {
                 "name": account["name"],

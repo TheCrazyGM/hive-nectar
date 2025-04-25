@@ -328,7 +328,7 @@ class BlockChainInstance(object):
                 self.data["last_node"] = self.rpc.url
             try:
                 self.data["feed_history"] = self.get_feed_history(False)
-            except:
+            except Exception:
                 self.data["feed_history"] = None
             self.data["get_feed_history"] = self.data["feed_history"]
         elif chain_property == "hardfork_properties":
@@ -348,7 +348,7 @@ class BlockChainInstance(object):
                 self.data["last_node"] = self.rpc.url
             try:
                 self.data["hardfork_properties"] = self.get_hardfork_properties(False)
-            except:
+            except Exception:
                 self.data["hardfork_properties"] = None
         elif chain_property == "witness_schedule":
             if not self.offline:
@@ -430,7 +430,7 @@ class BlockChainInstance(object):
                 "current_reserve_ratio": props["current_reserve_ratio"],
                 "max_virtual_bandwidth": props["max_virtual_bandwidth"],
             }
-        except:
+        except Exception:
             reserve_ratio = {
                 "id": 0,
                 "average_block_size": None,
@@ -541,7 +541,7 @@ class BlockChainInstance(object):
             return None
         try:
             return self.rpc.get_network(props=config)
-        except:
+        except Exception:
             return known_chains["HIVE"]
 
     def get_median_price(self, use_stored_data=True):

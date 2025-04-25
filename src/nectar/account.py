@@ -23,7 +23,6 @@ from nectarapi.exceptions import (
 )
 from nectarbase import operations
 from nectargraphenebase.account import PasswordKey, PublicKey
-from nectargraphenebase.py23 import integer_types, string_types
 
 from .blockchain import Blockchain
 from .blockchainobject import BlockchainObject
@@ -164,12 +163,12 @@ class Account(BlockchainObject):
             "savings_hbd_seconds",
         ]
         for p in parse_int:
-            if p in account and isinstance(account.get(p), string_types):
+            if p in account and isinstance(account.get(p), str):
                 account[p] = int(account.get(p, 0))
         if "proxied_vsf_votes" in account:
             proxied_vsf_votes = []
             for p_int in account["proxied_vsf_votes"]:
-                if isinstance(p_int, string_types):
+                if isinstance(p_int, str):
                     proxied_vsf_votes.append(int(p_int))
                 else:
                     proxied_vsf_votes.append(p_int)
@@ -197,7 +196,7 @@ class Account(BlockchainObject):
             "savings_hbd_last_interest_payment",
         ]
         for p in parse_times:
-            if p in account and isinstance(account.get(p), string_types):
+            if p in account and isinstance(account.get(p), str):
                 account[p] = formatTimeString(account.get(p, "1970-01-01T00:00:00"))
         # Parse Amounts
         amounts = [
@@ -220,7 +219,7 @@ class Account(BlockchainObject):
             "vesting_balance",
         ]
         for p in amounts:
-            if p in account and isinstance(account.get(p), (string_types, list, dict)):
+            if p in account and isinstance(account.get(p), (str, list, dict)):
                 account[p] = Amount(account[p], blockchain_instance=self.blockchain)
         return account
 
@@ -239,15 +238,15 @@ class Account(BlockchainObject):
             "average_bandwidth",
         ]
         for p in parse_int:
-            if p in output and isinstance(output[p], integer_types):
+            if p in output and isinstance(output[p], int):
                 output[p] = str(output[p])
         for p in parse_int_without_zero:
-            if p in output and isinstance(output[p], integer_types) and output[p] != 0:
+            if p in output and isinstance(output[p], int) and output[p] != 0:
                 output[p] = str(output[p])
         if "proxied_vsf_votes" in output:
             proxied_vsf_votes = []
             for p_int in output["proxied_vsf_votes"]:
-                if isinstance(p_int, integer_types) and p_int != 0:
+                if isinstance(p_int, int) and p_int != 0:
                     proxied_vsf_votes.append(str(p_int))
                 else:
                     proxied_vsf_votes.append(p_int)
@@ -427,7 +426,7 @@ class Account(BlockchainObject):
             rc_mana = self.get_rc_manabar()
             rc = self.get_rc()
             rc_calc = RC(blockchain_instance=self.blockchain)
-        except:
+        except Exception:
             rc_mana = None
             rc_calc = None
 
@@ -564,7 +563,7 @@ class Account(BlockchainObject):
                 )["reputations"]
                 if len(rep) > 0:
                     rep = int(rep[0]["reputation"])
-            except:
+            except Exception:
                 if "reputation" in self:
                     rep = int(self["reputation"])
                 else:
@@ -839,7 +838,7 @@ class Account(BlockchainObject):
 
         if isinstance(token_units, Amount):
             token_units = Amount(token_units, blockchain_instance=self.blockchain)
-        elif isinstance(token_units, string_types):
+        elif isinstance(token_units, str):
             token_units = Amount(token_units, blockchain_instance=self.blockchain)
         else:
             token_units = Amount(
@@ -1136,7 +1135,7 @@ class Account(BlockchainObject):
                     if isinstance(ret, dict) and "blog" in ret:
                         ret = ret["blog"]
                     return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
-            except:
+            except Exception:
                 success = False
 
         if not self.blockchain.rpc.get_use_appbase() or not success:
@@ -1262,7 +1261,7 @@ class Account(BlockchainObject):
                 return self.blockchain.rpc.get_blog_authors(
                     {"blog_account": account}, api="condenser"
                 )["blog_authors"]
-            except:
+            except Exception:
                 return self.blockchain.rpc.get_blog_authors(account, api="condenser")
         else:
             return self.blockchain.rpc.get_blog_authors(account, api="condenser")
@@ -1278,7 +1277,7 @@ class Account(BlockchainObject):
         if self.blockchain.rpc.get_use_appbase():
             try:
                 return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser")
-            except:
+            except Exception:
                 return self.blockchain.rpc.get_follow_count(account, api="condenser")
         else:
             return self.blockchain.rpc.get_follow_count(account, api="condenser")
@@ -1370,7 +1369,7 @@ class Account(BlockchainObject):
                 if direction == "follower":
                     try:
                         followers = self.blockchain.rpc.get_followers(query, api="condenser")
-                    except:
+                    except Exception:
                         followers = self.blockchain.rpc.get_followers(
                             self.name, last_user, what, limit, api="condenser"
                         )
@@ -1379,7 +1378,7 @@ class Account(BlockchainObject):
                 elif direction == "following":
                     try:
                         followers = self.blockchain.rpc.get_following(query, api="condenser")
-                    except:
+                    except Exception:
                         followers = self.blockchain.rpc.get_following(
                             self.name, last_user, what, limit, api="condenser"
                         )
@@ -1391,7 +1390,7 @@ class Account(BlockchainObject):
                         followers = self.blockchain.rpc.get_followers(
                             self.name, last_user, what, limit, api="condenser"
                         )
-                    except:
+                    except Exception:
                         followers = self.blockchain.rpc.get_followers(
                             [self.name, last_user, what, limit], api="condenser"
                         )
@@ -1400,7 +1399,7 @@ class Account(BlockchainObject):
                         followers = self.blockchain.rpc.get_following(
                             self.name, last_user, what, limit, api="condenser"
                         )
-                    except:
+                    except Exception:
                         followers = self.blockchain.rpc.get_following(
                             self.name, last_user, what, limit, api="condenser"
                         )
@@ -1554,7 +1553,7 @@ class Account(BlockchainObject):
             0.000 HBD
 
         """
-        if isinstance(balances, string_types):
+        if isinstance(balances, str):
             if balances == "available":
                 balances = self.available_balances
             elif balances == "savings":
@@ -1672,7 +1671,7 @@ class Account(BlockchainObject):
         global_properties = self.blockchain.get_dynamic_global_properties()
         try:
             reserve_ratio = self.blockchain.get_reserve_ratio()
-        except:
+        except Exception:
             return {"used": 0, "allocated": 0}
         if "received_vesting_shares" in self:
             received_vesting_shares = self["received_vesting_shares"].amount
@@ -1695,7 +1694,7 @@ class Account(BlockchainObject):
         if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
             try:
                 account_bandwidth = self.get_account_bandwidth(bandwidth_type=1, account=account)
-            except:
+            except Exception:
                 account_bandwidth = None
             if account_bandwidth is None:
                 return {"used": 0, "allocated": allocated_bandwidth}
@@ -2246,7 +2245,7 @@ class Account(BlockchainObject):
         min_index = 0
         try:
             created = self._get_blocknum_from_hist(0, min_index=min_index)
-        except:
+        except Exception:
             min_index = 1
             created = self._get_blocknum_from_hist(0, min_index=min_index)
         return created, min_index
@@ -3653,12 +3652,9 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def _check_amount(self, amount, symbol):
-        if isinstance(amount, (float, integer_types)):
+        if isinstance(amount, (float, int)):
             amount = Amount(amount, symbol, blockchain_instance=self.blockchain)
-        elif (
-            isinstance(amount, string_types)
-            and amount.replace(".", "", 1).replace(",", "", 1).isdigit()
-        ):
+        elif isinstance(amount, str) and amount.replace(".", "", 1).replace(",", "", 1).isdigit():
             amount = Amount(float(amount), symbol, blockchain_instance=self.blockchain)
         else:
             amount = Amount(amount, blockchain_instance=self.blockchain)
@@ -3879,11 +3875,11 @@ class Account(BlockchainObject):
         try:
             pubkey = PublicKey(foreign, prefix=self.blockchain.prefix)
             authority["key_auths"].append([str(pubkey), weight])
-        except:
+        except Exception:
             try:
                 foreign_account = Account(foreign, blockchain_instance=self.blockchain)
                 authority["account_auths"].append([foreign_account["name"], weight])
-            except:
+            except Exception:
                 raise ValueError("Unknown foreign account or invalid public key")
         if threshold:
             authority["weight_threshold"] = threshold
@@ -3930,7 +3926,7 @@ class Account(BlockchainObject):
             authority["key_auths"] = list(
                 [x for x in authority["key_auths"] if x[0] != str(pubkey)]
             )
-        except:
+        except Exception:
             try:
                 foreign_account = Account(foreign, blockchain_instance=self.blockchain)
                 affected_items = list(
@@ -3939,7 +3935,7 @@ class Account(BlockchainObject):
                 authority["account_auths"] = list(
                     [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
                 )
-            except:
+            except Exception:
                 raise ValueError("Unknown foreign account or unvalid public key")
 
         if not affected_items:
@@ -3954,7 +3950,7 @@ class Account(BlockchainObject):
         # authority)
         try:
             self.blockchain._test_weights_treshold(authority)
-        except:
+        except Exception:
             log.critical("The account's threshold will be reduced by %d" % (removed_weight))
             authority["weight_threshold"] -= removed_weight
             self.blockchain._test_weights_treshold(authority)
@@ -4010,7 +4006,7 @@ class Account(BlockchainObject):
 
         """
         if limit is not None:
-            if not isinstance(limit, integer_types) or limit <= 0:
+            if not isinstance(limit, int) or limit <= 0:
                 raise AssertionError("`limit` has to be greater than 0`")
         if (start_author is None and start_permlink is not None) or (
             start_author is not None and start_permlink is None
@@ -4084,7 +4080,7 @@ class Account(BlockchainObject):
 
         """
         if limit is not None:
-            if not isinstance(limit, integer_types) or limit <= 0:
+            if not isinstance(limit, int) or limit <= 0:
                 raise AssertionError("`limit` has to be greater than 0`")
 
         if account is None:
@@ -4156,7 +4152,7 @@ class Account(BlockchainObject):
 
         """
         if limit is not None:
-            if not isinstance(limit, integer_types) or limit <= 0:
+            if not isinstance(limit, int) or limit <= 0:
                 raise AssertionError("`limit` has to be greater than 0`")
 
         if account is None:
@@ -4223,7 +4219,7 @@ class Account(BlockchainObject):
 
         """
         if limit is not None:
-            if not isinstance(limit, integer_types) or limit <= 0:
+            if not isinstance(limit, int) or limit <= 0:
                 raise AssertionError("`limit` has to be greater than 0`")
         if (start_author is None and start_permlink is not None) or (
             start_author is not None and start_permlink is None

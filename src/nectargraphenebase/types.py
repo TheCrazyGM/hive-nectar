@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import struct
-import sys
 import time
 from binascii import hexlify, unhexlify
 from calendar import timegm
 from datetime import datetime
-
-from .py23 import py23_bytes
 
 timeformat = "%Y-%m-%dT%H:%M:%S%Z"
 
@@ -247,7 +244,7 @@ class Array(object):
 
     def __bytes__(self):
         """Returns bytes representation."""
-        return py23_bytes(self.length) + b"".join([py23_bytes(a) for a in self.data])
+        return bytes(self.length) + b"".join([bytes(a) for a in self.data])
 
     def __str__(self):
         """Returns data as string."""
@@ -271,10 +268,8 @@ class PointInTime(object):
         """Returns bytes representation."""
         if isinstance(self.data, datetime):
             unixtime = timegm(self.data.timetuple())
-        elif sys.version > "3":
-            unixtime = timegm(time.strptime((self.data + "UTC"), timeformat))
         else:
-            unixtime = timegm(time.strptime((self.data + "UTC"), timeformat.encode("utf-8")))
+            unixtime = timegm(time.strptime((self.data + "UTC"), timeformat))
         if unixtime < 0:
             return struct.pack("<i", unixtime)
         return struct.pack("<I", unixtime)
@@ -331,22 +326,17 @@ class Optional(object):
     def __bytes__(self):
         """Returns data as bytes."""
         if not self.data:
-            return py23_bytes(Bool(0))
+            return bytes(Bool(0))
         else:
-            return (
-                py23_bytes(Bool(1)) + py23_bytes(self.data)
-                if py23_bytes(self.data)
-                else py23_bytes(Bool(0))
-            )
+            return bytes(Bool(1)) + bytes(self.data)
 
     def __str__(self):
         """Returns data as string."""
         return str(self.data)
 
     def isempty(self):
-        if not self.data:
-            return True
-        return not bool(py23_bytes(self.data))
+        """Returns True if data is empty, False otherwise."""
+        return not self.data
 
 
 class Static_variant(object):
@@ -359,7 +349,7 @@ class Static_variant(object):
 
     def __bytes__(self):
         """Returns bytes representation."""
-        return varint(self.type_id) + py23_bytes(self.data)
+        return varint(self.type_id) + bytes(self.data)
 
     def __str__(self):
         """Returns data as string."""
@@ -378,7 +368,7 @@ class Map(object):
         b = b""
         b += varint(len(self.data))
         for e in self.data:
-            b += py23_bytes(e[0]) + py23_bytes(e[1])
+            b += bytes(e[0]) + bytes(e[1])
         return b
 
     def __str__(self):
@@ -395,7 +385,7 @@ class Id(object):
 
     def __bytes__(self):
         """Returns bytes representation."""
-        return py23_bytes(self.data)
+        return bytes(self.data)
 
     def __str__(self):
         """Returns data as string."""

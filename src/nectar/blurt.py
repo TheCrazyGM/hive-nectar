@@ -6,7 +6,6 @@ from datetime import date, datetime, timezone
 from nectar.blockchaininstance import BlockChainInstance
 from nectar.constants import STEEM_100_PERCENT, STEEM_VOTE_REGENERATION_SECONDS
 from nectargraphenebase.chains import known_chains
-from nectargraphenebase.py23 import string_types
 
 from .amount import Amount
 from .utils import formatToTimeStamp
@@ -124,7 +123,7 @@ class Blurt(BlockChainInstance):
             return known_chains["BLURT"]
         try:
             return self.rpc.get_network(props=config)
-        except:
+        except Exception:
             return known_chains["BLURT"]
 
     def rshares_to_token_backed_dollar(
@@ -378,7 +377,7 @@ class Blurt(BlockChainInstance):
         """
         if isinstance(sbd, Amount):
             sbd = Amount(sbd, blockchain_instance=self)
-        elif isinstance(sbd, string_types):
+        elif isinstance(sbd, str):
             sbd = Amount(sbd, blockchain_instance=self)
         else:
             sbd = Amount(sbd, self.token_symbol, blockchain_instance=self)
@@ -502,7 +501,7 @@ class Blurt(BlockChainInstance):
         """
         if isinstance(sbd, Amount):
             sbd = Amount(sbd, blockchain_instance=self)
-        elif isinstance(sbd, string_types):
+        elif isinstance(sbd, str):
             sbd = Amount(sbd, blockchain_instance=self)
         else:
             sbd = Amount(sbd, self.token_symbol, blockchain_instance=self)

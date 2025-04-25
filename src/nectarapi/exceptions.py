@@ -18,9 +18,13 @@ def decodeRPCErrorMsg(e):
     else:
         return str(e)
 
+
 class NectarApiException(Exception):
     """NectarApiException base Exception."""
+
     pass
+
+
 class UnauthorizedError(NectarApiException):
     """UnauthorizedError Exception."""
 

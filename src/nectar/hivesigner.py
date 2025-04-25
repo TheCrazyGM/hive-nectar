@@ -377,7 +377,7 @@ class HiveSigner(object):
                     try:
                         amount = Amount(value, blockchain_instance=self.blockchain)
                         params[key] = str(amount)
-                    except:
+                    except Exception:
                         amount = None
                 elif isinstance(value, bool):
                     if value:

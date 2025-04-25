@@ -9,7 +9,6 @@ from nectar.constants import (
 from nectarbase import operations
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
-from nectargraphenebase.py23 import py23_bytes
 
 from .instance import shared_blockchain_instance
 
@@ -38,7 +37,7 @@ class RC(object):
             operations=ops,
         )
         tx = tx.sign([wif], chain=prefix)
-        txWire = hexlify(py23_bytes(tx)).decode("ascii")
+        txWire = hexlify(bytes(tx)).decode("ascii")
         tx_size = len(txWire)
         return tx_size
 

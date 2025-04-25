@@ -6,7 +6,6 @@ from datetime import date, datetime, timezone
 from nectar.blockchaininstance import BlockChainInstance
 from nectar.constants import STEEM_100_PERCENT
 from nectargraphenebase.chains import known_chains
-from nectargraphenebase.py23 import string_types
 
 from .amount import Amount
 from .utils import formatToTimeStamp
@@ -124,7 +123,7 @@ class Hive(BlockChainInstance):
             return known_chains["HIVE"]
         try:
             return self.rpc.get_network(props=config)
-        except:
+        except Exception:
             return known_chains["HIVE"]
 
     def rshares_to_token_backed_dollar(
@@ -362,7 +361,7 @@ class Hive(BlockChainInstance):
         """
         if isinstance(hbd, Amount):
             hbd = Amount(hbd, blockchain_instance=self)
-        elif isinstance(hbd, string_types):
+        elif isinstance(hbd, str):
             hbd = Amount(hbd, blockchain_instance=self)
         else:
             hbd = Amount(hbd, self.hbd_symbol, blockchain_instance=self)
@@ -486,7 +485,7 @@ class Hive(BlockChainInstance):
         """
         if isinstance(hbd, Amount):
             hbd = Amount(hbd, blockchain_instance=self)
-        elif isinstance(hbd, string_types):
+        elif isinstance(hbd, str):
             hbd = Amount(hbd, blockchain_instance=self)
         else:
             hbd = Amount(hbd, self.hbd_symbol, blockchain_instance=self)

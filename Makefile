@@ -23,7 +23,7 @@ format:
 	uv run ruff format src
 
 test:
-	python -m pytest
+	python -m pytest -v 
 
 build: generate-versions
 	uv build

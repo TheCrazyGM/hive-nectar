@@ -3,7 +3,6 @@ from decimal import Decimal
 from fractions import Fraction
 
 from nectar.instance import shared_blockchain_instance
-from nectargraphenebase.py23 import integer_types, string_types
 
 from .amount import Amount
 from .asset import Asset
@@ -97,7 +96,7 @@ class Price(dict):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if price == "":
             price = None
-        if price is not None and isinstance(price, string_types) and not base and not quote:
+        if price is not None and isinstance(price, str) and not base and not quote:
             price, assets = price.split(" ")
             base_symbol, quote_symbol = assets_from_string(assets)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
@@ -131,9 +130,7 @@ class Price(dict):
                 amount=frac.numerator, asset=base, blockchain_instance=self.blockchain
             )
 
-        elif (
-            price is not None and isinstance(base, string_types) and isinstance(quote, string_types)
-        ):
+        elif price is not None and isinstance(base, str) and isinstance(quote, str):
             base = Asset(base, blockchain_instance=self.blockchain)
             quote = Asset(quote, blockchain_instance=self.blockchain)
             frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
@@ -144,12 +141,10 @@ class Price(dict):
                 amount=frac.numerator, asset=base, blockchain_instance=self.blockchain
             )
 
-        elif price is None and isinstance(base, string_types) and isinstance(quote, string_types):
+        elif price is None and isinstance(base, str) and isinstance(quote, str):
             self["quote"] = Amount(quote, blockchain_instance=self.blockchain)
             self["base"] = Amount(base, blockchain_instance=self.blockchain)
-        elif (
-            price is not None and isinstance(price, string_types) and isinstance(base, string_types)
-        ):
+        elif price is not None and isinstance(price, str) and isinstance(base, str):
             self["quote"] = Amount(price, blockchain_instance=self.blockchain)
             self["base"] = Amount(base, blockchain_instance=self.blockchain)
         # len(args) > 1
@@ -163,10 +158,8 @@ class Price(dict):
             self["base"] = base
 
         elif (
-            isinstance(price, float)
-            or isinstance(price, integer_types)
-            or isinstance(price, Decimal)
-        ) and isinstance(base, string_types):
+            isinstance(price, float) or isinstance(price, int) or isinstance(price, Decimal)
+        ) and isinstance(base, str):
             base_symbol, quote_symbol = assets_from_string(base)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
