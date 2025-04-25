@@ -1921,7 +1921,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if self.blockchain.rpc.get_use_appbase():
             return self.blockchain.rpc.find_account_recovery_requests(
-                {"account": account}, api="database"
+                {"accounts": [account]}, api="database"
             )["requests"]
         else:
             return self.blockchain.rpc.get_recovery_request(account)

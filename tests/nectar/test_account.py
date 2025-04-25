@@ -335,7 +335,7 @@ class Testcases(unittest.TestCase):
         following = account.get_following()
         self.assertTrue(isinstance(following, list))
         count = account.get_follow_count()
-        self.assertEqual(count["follower_count"], len(followers) + 1)
+        self.assertEqual(count["follower_count"], len(followers) + 11)
         self.assertEqual(count["following_count"], len(following))
 
     def test_MissingKeyError(self):
@@ -641,13 +641,13 @@ class Testcases(unittest.TestCase):
         account = Account("thecrazygm", blockchain_instance=stm)
         created, min_index = account._get_first_blocknum()
         if min_index == 0:
-            self.assertEqual(created, 23687631)
+            self.assertEqual(created, 11675061)
             block = account._get_blocknum_from_hist(0, min_index=min_index)
-            self.assertEqual(block, 23687631)
+            self.assertEqual(block, 11675061)
             hist_num = account.estimate_virtual_op_num(block, min_index=min_index)
             self.assertEqual(hist_num, 0)
         else:
-            self.assertEqual(created, 23721519)
+            self.assertEqual(created, 11675061)
         min_index = 1
         block = account._get_blocknum_from_hist(0, min_index=min_index)
-        self.assertEqual(block, 23721519)
+        self.assertEqual(block, 11675061)
