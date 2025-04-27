@@ -9,7 +9,6 @@ from nectar.steem import Steem
 from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
 from nectarbase.objects import Operation
-from nectargraphenebase.py23 import py23_bytes
 
 TEST_AGAINST_CLI_WALLET = False
 
@@ -36,7 +35,7 @@ class Testcases(unittest.TestCase):
             expiration=expiration,
             operations=ops,
         )
-        txWire = hexlify(py23_bytes(tx)).decode("ascii")
+        txWire = hexlify(bytes(tx)).decode("ascii")
         txApdu = tx.build_apdu(path, chain=prefix)
         if printWire:
             print()
@@ -121,6 +120,6 @@ class Testcases(unittest.TestCase):
         )
         apdu = tx.build_apdu_pubkey()
         self.assertEqual(
-            (py23_bytes(apdu)),
+            bytes(apdu),
             b"\xd4\x02\x00\x01\x15\x05\x80\x00\x000\x80\x00\x00\r\x80\x00\x00\x00\x80\x00\x00\x00\x80\x00\x00\x00",
         )

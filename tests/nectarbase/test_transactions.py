@@ -11,7 +11,6 @@ from nectarbase import operations
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
 from nectargraphenebase.account import PrivateKey
-from nectargraphenebase.py23 import py23_bytes
 
 TEST_AGAINST_CLI_WALLET = False
 
@@ -40,7 +39,7 @@ class Testcases(unittest.TestCase):
         )
         tx = tx.sign([wif], chain=prefix)
         tx.verify([PrivateKey(wif, prefix="STM").pubkey], prefix)
-        txWire = hexlify(py23_bytes(tx)).decode("ascii")
+        txWire = hexlify(bytes(tx)).decode("ascii")
         if printWire:
             print()
             print(txWire)

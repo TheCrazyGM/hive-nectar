@@ -287,7 +287,7 @@ class Testcases(unittest.TestCase):
         )
         self.assertEqual(str(u), "[10, 10, 10, 10, 10, 10, 10, 10, 10, 10]")
         u = types.Array(["Foobar"])
-        # We do not support py23_bytes of Array containing String only!
+        # We do not support bytes of Array containing String only!
         # self.assertEqual(bytes(u), b'')
         self.assertEqual(str(u), '["Foobar"]')
 
