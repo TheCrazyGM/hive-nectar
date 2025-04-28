@@ -169,7 +169,7 @@ def encode_memo(priv, pub, nonce, message, **kwargs):
     :rtype: hex
     """
     shared_secret = get_shared_secret(priv, pub)
-    aes, check = init_aes(shared_secret, nonce)
+    aes, check = init_aes2(shared_secret, nonce)
     " Padding "
     raw = bytes(message, "utf8")
     raw = _pad(raw, 16)
