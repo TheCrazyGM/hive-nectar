@@ -224,7 +224,7 @@ def decode_memo(priv, message):
         raise ValueError("Incorrect PrivateKey")
 
     # Init encryption
-    aes, checksum = init_aes(shared_secret, nonce)
+    aes, checksum = init_aes2(shared_secret, nonce)
     # Check
     if not check == checksum:
         raise AssertionError("Checksum failure")
