@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.8
+
+Added new documentation and type hints to community
+
 ## 0.0.7
 
 Removed all python2 legacy dependencies, drop python3 version requirement to >=3.10
