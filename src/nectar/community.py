@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import date, datetime, time
+from typing import Union
 
 from prettytable import PrettyTable
 
@@ -18,27 +19,23 @@ log = logging.getLogger(__name__)
 
 
 class Community(BlockchainObject):
-    """This class allows to easily access Community data
+    """A class representing a Hive community with methods to interact with it.
 
-    :param str account: Name of the account
-    :param Steem/Hive blockchain_instance: Hive or Steem
-           instance
-    :param bool lazy: Use lazy loading
-    :param bool full: Obtain all account data including orders, positions,
-           etc.
-    :param Hive hive_instance: Hive instance
-    :param Steem steem_instance: Steem instance
-    :returns: Account data
-    :rtype: dictionary
-    :raises nectar.exceptions.AccountDoesNotExistsException: if account
-            does not exist
+    This class provides an interface to access and manipulate community data on the Hive blockchain.
+    It extends BlockchainObject and provides additional community-specific functionality.
 
-    Instances of this class are dictionaries that come with additional
-    methods (see below) that allow dealing with an community and its
-    corresponding functions.
+    Args:
+        community: Either a community name (str) or a dictionary containing community data
+        observer: Observer account for personalized results (default: "")
+        full: If True, fetch full community data (default: True)
+        lazy: If True, use lazy loading (default: False)
+        blockchain_instance: Hive or Steem instance for blockchain access
+        **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
 
-    .. code-block:: python
+    Attributes:
+        type_id (int): Type identifier for blockchain objects (2 for communities)
 
+    Example:
         >>> from nectar.community import Community
         >>> from nectar import Hive
         >>> from nectar.nodelist import NodeList
@@ -48,28 +45,32 @@ class Community(BlockchainObject):
         >>> community = Community("hive-139531", blockchain_instance=stm)
         >>> print(community)
         <Community hive-139531>
-        >>> print(community.balances) # doctest: +SKIP
 
-    .. note:: This class comes with its own caching function to reduce the
-              load on the API server. Instances of this class can be
-              refreshed with ``Community.refresh()``. The cache can be
-              cleared with ``Community.clear_cache()``
-
+    Note:
+        This class includes caching to reduce API server load. Use refresh() to update
+        the data and clear_cache() to clear the cache.
     """
 
     type_id = 2
 
     def __init__(
-        self, community, observer="", full=True, lazy=False, blockchain_instance=None, **kwargs
-    ):
-        """Initialize an community
+        self,
+        community: Union[str, dict],
+        observer: str = "",
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance=None,
+        **kwargs,
+    ) -> None:
+        """Initialize a Community instance.
 
-        :param str community: Name of the community
-        :param Hive/Steem blockchain_instance: Hive/Steem
-               instance
-        :param bool lazy: Use lazy loading
-        :param bool full: Obtain all community data including orders, positions,
-               etc.
+        Args:
+            community: Either a community name (str) or a dictionary containing community data
+            observer: Observer account for personalized results (default: "")
+            full: If True, fetch full community data (default: True)
+            lazy: If True, use lazy loading (default: False)
+            blockchain_instance: Hive or Steem instance for blockchain access
+            **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
         """
         self.full = full
         self.lazy = lazy
@@ -86,8 +87,16 @@ class Community(BlockchainObject):
             community, lazy=lazy, full=full, id_item="name", blockchain_instance=blockchain_instance
         )
 
-    def refresh(self):
-        """Refresh/Obtain an community's data from the API server"""
+    def refresh(self) -> None:
+        """Refresh the community's data from the blockchain.
+
+        This method updates the community's data by fetching the latest information
+        from the blockchain. It raises an exception if the community doesn't exist.
+
+        Raises:
+            AccountDoesNotExistsException: If the community doesn't exist on the blockchain
+            OfflineHasNoRPCException: If not connected to the blockchain
+        """
         if not self.blockchain.is_connected():
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
@@ -109,208 +118,402 @@ class Community(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, community):
-        parse_int = [
+    def _parse_json_data(self, community: dict) -> dict:
+        """Parse and convert community JSON data into proper Python types.
+
+        This internal method converts string representations of numbers to integers
+        and parses date strings into datetime objects with timezone information.
+
+        Args:
+            community: Dictionary containing raw community data from the API
+
+        Returns:
+            dict: Processed community data with proper Python types
+        """
+        # Convert string numbers to integers
+        int_fields = [
             "sum_pending",
             "subscribers",
             "num_pending",
             "num_authors",
         ]
-        for p in parse_int:
-            if p in community and isinstance(community.get(p), str):
-                community[p] = int(community.get(p, 0))
-        parse_times = ["created_at"]
-        for p in parse_times:
-            if p in community and isinstance(community.get(p), str):
-                community[p] = addTzInfo(
-                    datetime.strptime(community.get(p, "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S")
+        for field in int_fields:
+            if field in community and isinstance(community.get(field), str):
+                community[field] = int(community.get(field, 0))
+
+        # Parse date strings into datetime objects
+        date_fields = ["created_at"]
+        for field in date_fields:
+            if field in community and isinstance(community.get(field), str):
+                community[field] = addTzInfo(
+                    datetime.strptime(
+                        community.get(field, "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+                    )
                 )
+
         return community
 
-    def json(self):
+    def json(self) -> dict:
+        """Convert the community data to a JSON-serializable dictionary.
+
+        This method prepares the community data for JSON serialization by converting
+        non-JSON-serializable types (like datetime objects) to strings.
+
+        Returns:
+            dict: A dictionary containing the community data in a JSON-serializable format
+        """
         output = self.copy()
-        parse_int = [
+
+        # Convert integer fields to strings for JSON serialization
+        int_fields = [
             "sum_pending",
             "subscribers",
             "num_pending",
             "num_authors",
         ]
-        parse_int_without_zero = []
-        for p in parse_int:
-            if p in output and isinstance(output[p], int):
-                output[p] = str(output[p])
-        for p in parse_int_without_zero:
-            if p in output and isinstance(output[p], int) and output[p] != 0:
-                output[p] = str(output[p])
 
-        parse_times = [
-            "created_at",
-        ]
-        for p in parse_times:
-            if p in output:
-                p_date = output.get(p, datetime(1970, 1, 1, 0, 0))
-                if isinstance(p_date, (datetime, date, time)):
-                    output[p] = formatTimeString(p_date).replace("T", " ")
+        # Fields that should only be converted if non-zero
+        int_non_zero_fields = []
+
+        # Convert regular integer fields
+        for field in int_fields:
+            if field in output and isinstance(output[field], int):
+                output[field] = str(output[field])
+
+        # Convert non-zero integer fields
+        for field in int_non_zero_fields:
+            if field in output and isinstance(output[field], int) and output[field] != 0:
+                output[field] = str(output[field])
+
+        # Convert datetime fields to ISO format strings
+        date_fields = ["created_at"]
+        for field in date_fields:
+            if field in output:
+                date_val = output.get(field, datetime(1970, 1, 1, 0, 0))
+                if isinstance(date_val, (datetime, date, time)):
+                    output[field] = formatTimeString(date_val).replace("T", " ")
                 else:
-                    output[p] = p_date
+                    output[field] = date_val
         return json.loads(str(json.dumps(output)))
 
-    def get_community_roles(self):
-        """Lists community roles"""
-        community = self["name"]
-        if not self.blockchain.is_connected():
-            raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_community_roles({"community": community}, api="bridge")
+    def get_community_roles(self, limit: int = 100, last: str = None) -> list:
+        """Lists community roles
 
-    def get_subscribers(self):
-        """Returns subscribers"""
-        community = self["name"]
-        if not self.blockchain.is_connected():
-            raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_subscribers({"community": community}, api="bridge")
+        Args:
+            limit: Maximum number of roles to return (default: 100)
+            last: Account name of the last role from previous page for pagination
 
-    def get_activities(self, limit=100, last_id=None):
-        """Returns community activity"""
-        community = self["name"]
-        if not self.blockchain.is_connected():
-            raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.account_notifications(
-            {"account": community, "limit": limit, "last_id": last_id}, api="bridge"
-        )
+        Returns:
+            list: List of community roles
 
-    def get_ranked_posts(
-        self, observer=None, limit=100, start_author=None, start_permlink=None, sort="created"
-    ):
-        """Returns community post"""
-        community = self["name"]
-        if not self.blockchain.is_connected():
-            raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_ranked_posts(
-            {
-                "tag": community,
-                "observer": observer,
-                "limit": limit,
-                "start_author": start_author,
-                "start_permlink": start_permlink,
-                "sort": sort,
-            },
-            api="bridge",
-        )
-
-    def set_role(self, account, role, mod_account):
-        """Set role for a given account
-
-        :param str account: Set role of this account
-        :param str role: Can be member, mod, admin, owner, guest
-        :param str mod_account: Account who broadcast this, (mods or higher)
-
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
         """
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
+        params = {"community": community, "limit": limit}
+        if last is not None:
+            params["last"] = last
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        return self.blockchain.rpc.list_community_roles(params, api="bridge")
+
+    def get_subscribers(self, limit: int = 100, last: str = None) -> list:
+        """Returns subscribers
+
+        Args:
+            limit: Maximum number of subscribers to return (default: 100)
+            last: Account name of the last subscriber from previous page for pagination
+
+        Returns:
+            list: List of subscribers
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+        """
+        community = self["name"]
+        if not self.blockchain.is_connected():
+            raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
+        params = {"community": community, "limit": limit}
+        if last is not None:
+            params["last"] = last
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        return self.blockchain.rpc.list_subscribers(params, api="bridge")
+
+    def get_activities(self, limit: int = 100, last_id: str = None) -> list:
+        """Returns community activity
+
+        Args:
+            limit: Maximum number of activities to return (default: 100)
+            last_id: ID of the last activity from previous page for pagination
+
+        Returns:
+            list: List of community activities
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+        """
+        community = self["name"]
+        if not self.blockchain.is_connected():
+            raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
+        params = {"account": community, "limit": limit}
+        if last_id is not None:
+            params["last_id"] = last_id
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        return self.blockchain.rpc.account_notifications(params, api="bridge")
+
+    def get_ranked_posts(
+        self,
+        observer: str = None,
+        limit: int = 100,
+        start_author: str = None,
+        start_permlink: str = None,
+        sort: str = "created",
+    ) -> list:
+        """Returns community posts
+
+        Args:
+            observer: Account name of the observer (optional)
+            limit: Maximum number of posts to return (default: 100)
+            start_author: Author of the post to start from for pagination (optional)
+            start_permlink: Permlink of the post to start from for pagination (optional)
+            sort: Sort order (default: "created")
+
+        Returns:
+            list: List of community posts
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+        """
+        community = self["name"]
+        if not self.blockchain.is_connected():
+            raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
+        params = {"tag": community, "limit": limit, "sort": sort}
+
+        if observer is not None:
+            params["observer"] = observer
+        if start_author is not None:
+            params["start_author"] = start_author
+        if start_permlink is not None:
+            params["start_permlink"] = start_permlink
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        return self.blockchain.rpc.get_ranked_posts(params, api="bridge")
+
+    def set_role(self, account: str, role: str, mod_account: str) -> dict:
+        """Set role for a given account in the community.
+
+        Args:
+            account: Account name to set the role for
+            role: Role to assign (member, mod, admin, owner, or guest)
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If role is not one of the allowed values
+        """
+        valid_roles = {"member", "mod", "admin", "owner", "guest"}
+        if role.lower() not in valid_roles:
+            raise ValueError(f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+
+        community = self["name"]
+        if not self.blockchain.is_connected():
+            raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "setRole",
             {
                 "community": community,
                 "account": account,
-                "role": role,
+                "role": role.lower(),
             },
         ]
         return self.blockchain.custom_json(
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def set_user_title(self, account, title, mod_account):
-        """Set title for a given account
+    def set_user_title(self, account: str, title: str, mod_account: str) -> dict:
+        """Set the title for a given account in the community.
 
-        :param str account: Set role of this account
-        :param str title: Title
-        :param str mod_account: Account who broadcast this, (mods or higher)
+        Args:
+            account: Account name to set the title for
+            title: Title to assign to the account
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
 
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If account or title is empty
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+
+        if not title or not isinstance(title, str):
+            raise ValueError("Title must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "setUserTitle",
             {
                 "community": community,
                 "account": account,
-                "title": title,
+                "title": title.strip(),
             },
         ]
         return self.blockchain.custom_json(
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def mute_post(self, account, permlink, notes, mod_account):
-        """Mutes a post
+    def mute_post(self, account: str, permlink: str, notes: str, mod_account: str) -> dict:
+        """Mutes a post in the community.
 
-        :param str account: Set role of this account
-        :param str permlink: permlink
-        :param str notes: permlink
-        :param str mod_account: Account who broadcast this, (mods or higher)
+        Args:
+            account: Author of the post to mute
+            permlink: Permlink of the post to mute
+            notes: Reason for muting the post
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
 
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+        if not permlink or not isinstance(permlink, str):
+            raise ValueError("Permlink must be a non-empty string")
+        if not isinstance(notes, str):
+            raise ValueError("Notes must be a string")
+        if not mod_account or not isinstance(mod_account, str):
+            raise ValueError("Moderator account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "mutePost",
-            {"community": community, "account": account, "permlink": permlink, "notes": notes},
+            {
+                "community": community,
+                "account": account,
+                "permlink": permlink,
+                "notes": notes.strip(),
+            },
         ]
         return self.blockchain.custom_json(
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def unmute_post(self, account, permlink, notes, mod_account):
-        """Unmute a post
+    def unmute_post(self, account: str, permlink: str, notes: str, mod_account: str) -> dict:
+        """Unmute a previously muted post in the community.
 
-        :param str account: post author
-        :param str permlink: permlink
-        :param str notes: notes
-        :param str mod_account: Account who broadcast this, (mods or higher)
+        Args:
+            account: Author of the post to unmute
+            permlink: Permlink of the post to unmute
+            notes: Reason for unmuting the post
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
 
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+        if not permlink or not isinstance(permlink, str):
+            raise ValueError("Permlink must be a non-empty string")
+        if not isinstance(notes, str):
+            raise ValueError("Notes must be a string")
+        if not mod_account or not isinstance(mod_account, str):
+            raise ValueError("Moderator account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "unmutePost",
-            {"community": community, "account": account, "permlink": permlink, "notes": notes},
+            {
+                "community": community,
+                "account": account,
+                "permlink": permlink,
+                "notes": notes.strip(),
+            },
         ]
         return self.blockchain.custom_json(
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def update_props(self, title, about, is_nsfw, description, flag_text, admin_account):
-        """Updates the community properties
+    def update_props(
+        self,
+        title: str,
+        about: str,
+        is_nsfw: bool,
+        description: str,
+        flag_text: str,
+        admin_account: str,
+    ) -> dict:
+        """Update community properties.
 
-        :param str title: Community title
-        :param str about: about
-        :param bool is_nsfw: is_nsfw
-        :param str description: description
-        :param str flag_text: flag_text
-        :param str admin_account: Account who broadcast this, (admin or higher)
+        Args:
+            title: New title for the community (must be non-empty)
+            about: Brief description of the community
+            is_nsfw: Whether the community contains NSFW content
+            description: Detailed description of the community
+            flag_text: Text shown when flagging content in this community
+            admin_account: Account name of the admin performing this action
 
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not title or not isinstance(title, str):
+            raise ValueError("Title must be a non-empty string")
+        if not isinstance(about, str):
+            about = ""
+        if not isinstance(description, str):
+            description = ""
+        if not isinstance(flag_text, str):
+            flag_text = ""
+        if not admin_account or not isinstance(admin_account, str):
+            raise ValueError("Admin account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "updateProps",
             {
                 "community": community,
                 "props": {
-                    "title": title,
-                    "about": about,
-                    "is_nsfw": is_nsfw,
-                    "description": description,
-                    "flag_text": flag_text,
+                    "title": title.strip(),
+                    "about": about.strip(),
+                    "is_nsfw": bool(is_nsfw),
+                    "description": description.strip(),
+                    "flag_text": flag_text.strip(),
                 },
             },
         ]
@@ -318,15 +521,29 @@ class Community(BlockchainObject):
             "community", json_body, required_posting_auths=[admin_account]
         )
 
-    def subscribe(self, account):
-        """subscribe to a community
+    def subscribe(self, account: str) -> dict:
+        """Subscribe an account to this community.
 
-        :param str account: account who suscribe to the community (is also broadcasting the custom_json)
+        The account that calls this method will be subscribed to the community.
+        The same account must be used to sign the transaction.
 
+        Args:
+            account: Account name that wants to subscribe to the community
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If account is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "subscribe",
             {
@@ -335,17 +552,35 @@ class Community(BlockchainObject):
         ]
         return self.blockchain.custom_json("community", json_body, required_posting_auths=[account])
 
-    def pin_post(self, account, permlink, mod_account):
-        """Stickes a post to the top of a community
+    def pin_post(self, account: str, permlink: str, mod_account: str) -> dict:
+        """Pin a post to the top of the community feed.
 
-        :param str account: post author
-        :param str permlink: permlink
-        :param str mod_account: Account who broadcast this, (mods or higher)
+        This method allows community moderators to pin a specific post to the top of the
+        community's feed. The post will remain pinned until it is manually unpinned.
 
+        Args:
+            account: Author of the post to pin
+            permlink: Permlink of the post to pin
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+        if not permlink or not isinstance(permlink, str):
+            raise ValueError("Permlink must be a non-empty string")
+        if not mod_account or not isinstance(mod_account, str):
+            raise ValueError("Moderator account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "pinPost",
             {
@@ -358,15 +593,29 @@ class Community(BlockchainObject):
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def unsubscribe(self, account):
-        """unsubscribe a community
+    def unsubscribe(self, account: str) -> dict:
+        """Unsubscribe an account from this community.
 
-        :param str account: account who unsuscribe to the community (is also broadcasting the custom_json)
+        The account that calls this method will be unsubscribed from the community.
+        The same account must be used to sign the transaction.
 
+        Args:
+            account: Account name that wants to unsubscribe from the community
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If account is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "unsubscribe",
             {
@@ -375,17 +624,35 @@ class Community(BlockchainObject):
         ]
         return self.blockchain.custom_json("community", json_body, required_posting_auths=[account])
 
-    def unpin_post(self, account, permlink, mod_account):
-        """Removes a post from the top of a community
+    def unpin_post(self, account: str, permlink: str, mod_account: str) -> dict:
+        """Remove a post from being pinned at the top of the community feed.
 
-        :param str account: post author
-        :param str permlink: permlink
-        :param str mod_account: Account who broadcast this, (mods or higher)
+        This method allows community moderators to unpin a previously pinned post.
+        After unpinning, the post will return to its normal position in the feed.
 
+        Args:
+            account: Author of the post to unpin
+            permlink: Permlink of the post to unpin
+            mod_account: Account name of the moderator performing this action (must be mod or higher)
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+        if not permlink or not isinstance(permlink, str):
+            raise ValueError("Permlink must be a non-empty string")
+        if not mod_account or not isinstance(mod_account, str):
+            raise ValueError("Moderator account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "unpinPost",
             {
@@ -398,20 +665,47 @@ class Community(BlockchainObject):
             "community", json_body, required_posting_auths=[mod_account]
         )
 
-    def flag_post(self, account, permlink, notes, reporter):
-        """Suggest a post for the review queue
+    def flag_post(self, account: str, permlink: str, notes: str, reporter: str) -> dict:
+        """Report a post to the community moderators for review.
 
-        :param str account: post author
-        :param str permlink: permlink
-        :param str notes: notes
-        :param str reporter: Account who broadcast this
+        This method allows community members to flag posts that may violate
+        community guidelines. The post will be added to the community's
+        review queue for moderators to evaluate.
+
+        Args:
+            account: Author of the post being reported
+            permlink: Permlink of the post being reported
+            notes: Explanation of why the post is being reported
+            reporter: Account name of the user reporting the post
+
+        Returns:
+            dict: Transaction result
+
+        Raises:
+            OfflineHasNoRPCException: If not connected to the blockchain
+            ValueError: If any required parameter is invalid
         """
+        if not account or not isinstance(account, str):
+            raise ValueError("Account must be a non-empty string")
+        if not permlink or not isinstance(permlink, str):
+            raise ValueError("Permlink must be a non-empty string")
+        if not notes or not isinstance(notes, str):
+            raise ValueError("Notes must be a string")
+        if not reporter or not isinstance(reporter, str):
+            raise ValueError("Reporter account must be a non-empty string")
+
         community = self["name"]
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
+
         json_body = [
             "flagPost",
-            {"community": community, "account": account, "permlink": permlink, "notes": notes},
+            {
+                "community": community,
+                "account": account,
+                "permlink": permlink,
+                "notes": notes.strip(),
+            },
         ]
         return self.blockchain.custom_json(
             "community", json_body, required_posting_auths=[reporter]
@@ -419,7 +713,21 @@ class Community(BlockchainObject):
 
 
 class CommunityObject(list):
-    def printAsTable(self):
+    """A list-like container for Community objects with additional utility methods."""
+
+    def printAsTable(self) -> None:
+        """Print a formatted table of communities with key metrics.
+
+        The table includes the following columns:
+        - Nr.: Sequential number
+        - Name: Community name
+        - Title: Community title
+        - lang: Language code
+        - subscribers: Number of subscribers
+        - sum_pending: Sum of pending payouts
+        - num_pending: Number of pending posts
+        - num_authors: Number of unique authors
+        """
         t = PrettyTable(
             [
                 "Nr.",
@@ -452,26 +760,45 @@ class CommunityObject(list):
 
 
 class Communities(CommunityObject):
-    """Obtain a list of communities
+    """A list of communities with additional querying capabilities.
 
-    :param list name_list: list of accounts to fetch
-    :param int batch_limit: (optional) maximum number of accounts
-        to fetch per call, defaults to 100
-    :param Steem/Hive blockchain_instance: Steem() or Hive() instance to use when
-        accessing a RPCcreator = Account(creator, blockchain_instance=self)
+    This class extends CommunityObject to provide methods for fetching and
+    searching communities from the blockchain.
+
+    Args:
+        sort: Sort order for communities (default: "rank")
+        observer: Observer account for personalized results (optional)
+        last: Last community name for pagination (optional)
+        limit: Maximum number of communities to fetch (default: 100)
+        lazy: If True, use lazy loading (default: False)
+        full: If True, fetch full community data (default: True)
+        blockchain_instance: Hive or Steem instance to use for blockchain access
+        **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
     """
 
     def __init__(
         self,
-        sort="rank",
-        observer=None,
-        last=None,
-        limit=100,
-        lazy=False,
-        full=True,
+        sort: str = "rank",
+        observer: str = None,
+        last: str = None,
+        limit: int = 100,
+        lazy: bool = False,
+        full: bool = True,
         blockchain_instance=None,
         **kwargs,
-    ):
+    ) -> None:
+        """Initialize the Communities list with the given parameters.
+
+        Args:
+            sort: Sort order for communities (default: "rank")
+            observer: Observer account for personalized results (optional)
+            last: Last community name for pagination (optional)
+            limit: Maximum number of communities to fetch (default: 100)
+            lazy: If True, use lazy loading (default: False)
+            full: If True, fetch full community data (default: True)
+            blockchain_instance: Hive or Steem instance to use for blockchain access
+            **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
+        """
         if blockchain_instance is None:
             if kwargs.get("steem_instance"):
                 blockchain_instance = kwargs["steem_instance"]
@@ -481,32 +808,52 @@ class Communities(CommunityObject):
 
         if not self.blockchain.is_connected():
             return
+
         communities = []
         community_cnt = 0
-        batch_limit = 100
-        if batch_limit > limit:
-            batch_limit = limit
+        batch_limit = min(100, limit)  # Ensure we don't exceed the limit
 
         while community_cnt < limit:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            communities += self.blockchain.rpc.list_communities(
+            batch = self.blockchain.rpc.list_communities(
                 {"sort": sort, "observer": observer, "last": last, "limit": batch_limit},
                 api="bridge",
             )
-            community_cnt += batch_limit
+            if not batch:  # No more communities to fetch
+                break
+
+            communities.extend(batch)
+            community_cnt += len(batch)
             last = communities[-1]["name"]
+
+            # Adjust batch size for the next iteration if needed
+            if community_cnt + batch_limit > limit:
+                batch_limit = limit - community_cnt
 
         super(Communities, self).__init__(
             [
                 Community(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
-                for x in communities
+                for x in communities[:limit]  # Ensure we don't exceed the limit
             ]
         )
 
-    def search_title(self, title):
-        """Returns all communites which have a title similar to title"""
+    def search_title(self, title: str) -> "CommunityObject":
+        """Search for communities with titles containing the given string.
+
+        The search is case-insensitive.
+
+        Args:
+            title: Text to search for in community titles
+
+        Returns:
+            CommunityObject: A new CommunityObject containing matching communities
+        """
+        if not title or not isinstance(title, str):
+            raise ValueError("Title must be a non-empty string")
+
         ret = CommunityObject()
+        title_lower = title.lower()
         for community in self:
-            if title.lower() in community["title"].lower():
+            if title_lower in community["title"].lower():
                 ret.append(community)
         return ret
