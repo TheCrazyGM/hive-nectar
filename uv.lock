@@ -344,7 +344,7 @@ wheels = [
 
 [[package]]
 name = "hive-nectar"
-version = "0.0.7b0"
+version = "0.0.8b0"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },

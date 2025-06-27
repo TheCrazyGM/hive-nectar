@@ -1220,7 +1220,7 @@ class Account(BlockchainObject):
             last_notification = self.get_notifications(only_unread=False, limit=1, account=account)
             if len(last_notification) == 0:
                 raise ValueError("Notification list is empty")
-            last_read = last_notification[0]["date"]
+            last_read = datetime.now(timezone.utc)
         if isinstance(last_read, datetime):
             last_read = formatTimeString(last_read)
         json_body = [
