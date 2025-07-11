@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.9
+
+- Refactored `nodelist` logic:
+  - `update_nodes` now reads authoritative node metadata from `nectarflower` account `json_metadata` only.
+  - Uses `weighted_score` directly for ranking and zeroes scores for nodes missing from the report.
+  - Dynamically adds new nodes from the report and failing list, ensuring completeness.
+  - Removed unused fall-back paths and cleaned up internal code.
+
 ## 0.0.8
 
 Added new documentation and type hints to community

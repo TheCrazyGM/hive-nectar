@@ -5,7 +5,7 @@ import os
 import shutil
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from appdirs import user_data_dir
 

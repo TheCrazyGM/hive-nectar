@@ -10,6 +10,7 @@ from .version import version as __version__
 # from . import dictionary as BrainKeyDictionary
 
 __all__ = [
+    "__version__",
     "account",
     "aes",
     "base58",

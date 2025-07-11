@@ -243,7 +243,12 @@ class NodeList(list):
             cnt += 1
             try:
                 account = Account("nectarflower", blockchain_instance=steem)
-                metadata = json.loads(account["posting_json_metadata"])
+                # Metadata is stored in the account's json_metadata field (not posting_json_metadata)
+                raw_meta = account.get("json_metadata") or ""
+                try:
+                    metadata = json.loads(raw_meta) if raw_meta else None
+                except Exception:
+                    metadata = None
             except Exception as e:
                 log.warning(f"Error fetching metadata (attempt {cnt}): {str(e)}")
                 steem.rpc.next()
@@ -257,10 +262,30 @@ class NodeList(list):
         report = metadata.get("report", [])
         failing_nodes = metadata.get("failing_nodes", {})
         parameter = metadata.get("parameter", {})
-        benchmarks = parameter.get("benchmarks", {})
+        benchmarks = parameter.get("benchmarks")
 
-        # Convert benchmarks dict to list of benchmark names
-        benchmark_names = list(benchmarks.keys())
+        # Determine benchmark names. If not explicitly provided in metadata parameters, derive them
+        # by inspecting the keys of the report entries and filtering out the non-benchmark fields.
+        if benchmarks and isinstance(benchmarks, dict):
+            benchmark_names: list[str] = list(benchmarks.keys())
+        else:
+            benchmark_names = []
+            # Common non-benchmark keys present in every report entry
+            _skip_keys = {
+                "node",
+                "version",
+                "hive",
+                "weighted_score",
+                "tests_completed",
+            }
+            # Collect benchmark names dynamically from the report section
+            for _entry in report:
+                if isinstance(_entry, dict):
+                    for _k in _entry.keys():
+                        if _k not in _skip_keys and _k not in benchmark_names:
+                            benchmark_names.append(_k)
+            # Sort for deterministic ordering
+            benchmark_names.sort()
 
         if weights is None:
             weights_dict = {}
@@ -294,6 +319,7 @@ class NodeList(list):
 
         for node in self:
             new_node = node.copy()
+            node_was_updated = False
 
             # Check against report data
             for report_node in report:
@@ -319,17 +345,67 @@ class NodeList(list):
                             weighted_score = score * weights_dict.get(benchmark, 0)
                             scores.append(weighted_score)
 
-                    sum_score = sum(scores)
-                    new_node["score"] = sum_score
+                    # Prefer the pre-computed weighted_score from the metadata if present; fall back to
+                    # the locally calculated score otherwise.
+                    if "weighted_score" in report_node and isinstance(report_node["weighted_score"], (int, float)):
+                        new_node["score"] = report_node["weighted_score"]
+                    else:
+                        sum_score = sum(scores)
+                        new_node["score"] = sum_score
+                    node_was_updated = True
                     break
 
             # Check if node is in failing nodes list
             if node["url"] in failing_nodes:
                 failing_count += 1
                 new_node["score"] = -1
+            elif not node_was_updated:
+                # If node wasn't part of the metadata report, reset its score so it
+                # doesn't overshadow the authoritative ordering
+                new_node["score"] = 0
 
             new_nodes.append(new_node)
 
+        # ------------------------------------------------------------
+        # Ensure that all nodes present in the metadata are included
+        # in the final list, even if they were not part of the default
+        # hard-coded set.
+        # ------------------------------------------------------------
+        existing_urls: set[str] = {n["url"] for n in new_nodes}
+
+        # Add nodes found in the report section
+        for report_node in report:
+            url = report_node.get("node")
+            if not url or url in existing_urls:
+                continue
+            new_entry = {
+                "url": url,
+                "version": report_node.get("version", "0.0.0"),
+                "type": "appbase",
+                "owner": report_node.get("owner", "unknown"),
+                "hive": report_node.get("hive", True),
+                "score": report_node.get("weighted_score", 0),
+            }
+            new_nodes.append(new_entry)
+            existing_urls.add(url)
+
+        # Add nodes listed as failing but missing
+        for url in failing_nodes.keys():
+            if url in existing_urls:
+                continue
+            new_nodes.append(
+                {
+                    "url": url,
+                    "version": "unknown",
+                    "type": "appbase",
+                    "owner": "unknown",
+                    "hive": True,
+                    "score": -1,
+                }
+            )
+            existing_urls.add(url)
+
+        # Re-initialise internal list
         super(NodeList, self).__init__(new_nodes)
 
     def get_nodes(

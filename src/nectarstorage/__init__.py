@@ -15,7 +15,27 @@ from .base import (
 )
 from .sqlite import SQLiteCommon, SQLiteFile
 
-__all__ = ["interfaces", "masterpassword", "base", "sqlite", "ram"]
+__all__ = [
+    # submodules
+    "interfaces",
+    "masterpassword",
+    "base",
+    "sqlite",
+    "ram",
+    # store classes re-exported for convenience
+    "InRamConfigurationStore",
+    "InRamEncryptedKeyStore",
+    "InRamEncryptedTokenStore",
+    "InRamPlainKeyStore",
+    "InRamPlainTokenStore",
+    "SqliteConfigurationStore",
+    "SqliteEncryptedKeyStore",
+    "SqliteEncryptedTokenStore",
+    "SqlitePlainKeyStore",
+    "SqlitePlainTokenStore",
+    "SQLiteCommon",
+    "SQLiteFile",
+]
 
 
 def get_default_config_store(*args, **kwargs):

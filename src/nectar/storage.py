@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from nectarstorage import SqliteConfigurationStore, SqliteEncryptedKeyStore
+
 from .nodelist import NodeList
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
-from nectarstorage import (
-    SqliteConfigurationStore,
-    SqliteEncryptedKeyStore,
-)
+
 
 timeformat = "%Y%m%d-%H%M%S"
 

@@ -6,6 +6,7 @@ from .steem import Steem
 from .version import version as __version__
 
 __all__ = [
+    "__version__",
     "steem",
     "account",
     "amount",
