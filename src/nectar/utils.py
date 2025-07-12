@@ -136,7 +136,7 @@ def derive_permlink(
     author (for replies).
 
     """
-    suffix = "-" + formatTime(datetime.now(timezone.utc)) + "z"
+    suffix = "-" + formatTime(datetime.now(timezone.utc)).lower()
     if parent_permlink and parent_author:
         prefix = "re-" + sanitize_permlink(parent_author) + "-"
         if with_suffix:

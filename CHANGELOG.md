@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.0.9
+## 0.0.9b - 2025-07-12
+
+- Emergency hotfix: lower-case the UTC timestamp suffix during permlink generation (in `derive_permlink`) to resolve validation errors caused by the uppercase `U`.
+
+## 0.0.9 - 2025-07-12
 
 - Refactored `nodelist` logic:
   - `update_nodes` now reads authoritative node metadata from `nectarflower` account `json_metadata` only.
