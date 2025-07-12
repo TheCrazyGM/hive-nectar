@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - 2025-07-12
+## 0.0.10 - 2025-07-12
 
 - Emergency hotfix: lower-case the UTC timestamp suffix during permlink generation (in `derive_permlink`) to resolve validation errors caused by the uppercase `U`.
 
