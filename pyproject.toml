@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hive-nectar"
-version = "0.0.9b"
+version = "0.0.10"
 description = "Unofficial Python library for HIVE"
 readme = "README.md"
 requires-python = ">=3.10"
