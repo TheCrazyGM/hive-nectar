@@ -124,6 +124,9 @@ class Comment(BlockchainObject):
                     value = value.split(" ")[0] + " " + self.blockchain.backed_token_symbol
                 comment[p] = Amount(value, blockchain_instance=self.blockchain)
 
+        if "community" not in comment:
+            comment["community"] = ""
+
         # turn json_metadata into python dict
         meta_str = comment.get("json_metadata", "{}")
         if meta_str == "{}":
@@ -138,7 +141,7 @@ class Comment(BlockchainObject):
         if isinstance(comment["json_metadata"], dict):
             if "tags" in comment["json_metadata"]:
                 comment["tags"] = comment["json_metadata"]["tags"]
-            if "community" in comment["json_metadata"] and not comment["community"]:
+            if "community" in comment["json_metadata"]:
                 comment["community"] = comment["json_metadata"]["community"]
 
         parse_int = [

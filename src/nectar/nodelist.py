@@ -347,7 +347,9 @@ class NodeList(list):
 
                     # Prefer the pre-computed weighted_score from the metadata if present; fall back to
                     # the locally calculated score otherwise.
-                    if "weighted_score" in report_node and isinstance(report_node["weighted_score"], (int, float)):
+                    if "weighted_score" in report_node and isinstance(
+                        report_node["weighted_score"], (int, float)
+                    ):
                         new_node["score"] = report_node["weighted_score"]
                     else:
                         sum_score = sum(scores)
