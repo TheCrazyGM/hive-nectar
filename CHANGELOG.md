@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.11 - 2025-07-25
+
+- Fixed handling of missing `community` field in comments (`Comment`) and improved `weighted_score` type check in node list ranking (`NodeList`).
+
 ## 0.0.10 - 2025-07-12
 
 - Emergency hotfix: lower-case the UTC timestamp suffix during permlink generation (in `derive_permlink`) to resolve validation errors caused by the uppercase `U`.
