@@ -1,6 +1,6 @@
-# nectar - Unofficial Python Library for HIVE
+# nectar - Python Library for HIVE
 
-nectar is an unofficial python library for HIVE, which is
+nectar is a python library for HIVE, which is
 created from the remains of [beem](https://github.com/holgern/beem) which was derived from [python-bitshares](https://github.com/xeroc/python-bitshares)
 The library name is derived from a nectar of a flower.
 
