@@ -14,10 +14,9 @@ nectar includes [python-graphenelib](https://github.com/xeroc/python-graphenelib
 
 # Support & Documentation
 
-You may find help in the [nectar-discord-channel](). The discord channel can also be used to discuss things about nectar.
+You may find help in the nectar-discord. The discord channel can also be used to discuss things about nectar.
 
-A complete library documentation is available at
-[temporary]()
+A complete library documentation is available at [ReadTheDocs](https://hive-nectar.readthedocs.io/en/latest/)
 
 # About hive-nectar
 
