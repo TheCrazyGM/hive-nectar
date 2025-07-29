@@ -1,0 +1,725 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectar.blockchain &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectar.blockchainobject" href="nectar.blockchainobject.html" />
+    <link rel="prev" title="nectar.block" href="nectar.block.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectar.account.html">nectar.account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.amount.html">nectar.amount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asciichart.html">nectar.asciichart</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asset.html">nectar.asset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.block.html">nectar.block</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectar.blockchain</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.blockchain.Blockchain"><code class="docutils literal notranslate"><span class="pre">Blockchain</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.blockchain.Pool"><code class="docutils literal notranslate"><span class="pre">Pool</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.blockchain.Worker"><code class="docutils literal notranslate"><span class="pre">Worker</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.blockchain.default_handler"><code class="docutils literal notranslate"><span class="pre">default_handler()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchainobject.html">nectar.blockchainobject</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchaininstance.html">nectar.blockchaininstance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.comment.html">nectar.comment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.community.html">nectar.community</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.conveyor.html">nectar.conveyor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.discussions.html">nectar.discussions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.exceptions.html">nectar.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hive.html">nectar.hive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hivesigner.html">nectar.hivesigner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.imageuploader.html">nectar.imageuploader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.instance.html">nectar.instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.market.html">nectar.market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.memo.html">nectar.memo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.message.html">nectar.message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.nodelist.html">nectar.nodelist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.price.html">nectar.price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.rc.html">nectar.rc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.snapshot.html">nectar.snapshot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.steem.html">nectar.steem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.storage.html">nectar.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.transactionbuilder.html">nectar.transactionbuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.utils.html">nectar.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.vote.html">nectar.vote</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.wallet.html">nectar.wallet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.witness.html">nectar.witness</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectar.blockchain</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectar.blockchain.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectar.blockchain">
+<span id="nectar-blockchain"></span><h1>nectar.blockchain<a class="headerlink" href="#module-nectar.blockchain" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.blockchain.</span></span><span class="sig-name descname"><span class="pre">Blockchain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blockchain_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'irreversible'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_block_wait_repetition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_refresh_time_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class allows to access the blockchain and read data
+from it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blockchain_instance</strong> (<em>Steem/Hive</em>) – Steem or Hive instance</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – (default) Irreversible block (<code class="docutils literal notranslate"><span class="pre">irreversible</span></code>) or
+actual head block (<code class="docutils literal notranslate"><span class="pre">head</span></code>)</p></li>
+<li><p><strong>max_block_wait_repetition</strong> (<em>int</em>) – maximum wait repetition for next block
+where each repetition is block_interval long (default is 3)</p></li>
+</ul>
+</dd>
+</dl>
+<p>This class let’s you deal with blockchain related data and methods.
+Read blockchain related data:</p>
+<p>Read current block and blockchain info</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">get_current_block</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">blockchain</span><span class="o">.</span><span class="n">info</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Monitor for new blocks. When <code class="docutils literal notranslate"><span class="pre">stop</span></code> is not set, monitoring will never stop.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">current_num</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">get_current_block_num</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">chain</span><span class="o">.</span><span class="n">blocks</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">current_num</span> <span class="o">-</span> <span class="mi">99</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">current_num</span><span class="p">):</span>
+    <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>100
+</pre></div>
+</div>
+<p>or each operation individually:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ops</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">current_num</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">get_current_block_num</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">operation</span> <span class="ow">in</span> <span class="n">chain</span><span class="o">.</span><span class="n">ops</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">current_num</span> <span class="o">-</span> <span class="mi">99</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">current_num</span><span class="p">):</span>
+    <span class="n">ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">operation</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.awaitTxConfirmation">
+<span class="sig-name descname"><span class="pre">awaitTxConfirmation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.awaitTxConfirmation" title="Link to this definition"></a></dt>
+<dd><p>Returns the transaction as seen by the blockchain after being
+included into a block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transaction</strong> (<em>dict</em>) – transaction to wait for</p></li>
+<li><p><strong>limit</strong> (<em>int</em>) – (optional) number of blocks to wait for the transaction (default: 10)</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want instant confirmation, you need to instantiate
+class:<cite>nectar.blockchain.Blockchain</cite> with
+<code class="docutils literal notranslate"><span class="pre">mode=&quot;head&quot;</span></code>, otherwise, the call will wait until
+confirmed in an irreversible block.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method returns once the blockchain has included a
+transaction with the <strong>same signature</strong>. Even though the
+signature is not usually used to identify a transaction,
+it still cannot be forfeited and is derived from the
+transaction contented and thus identifies a transaction
+uniquely.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.block_time">
+<span class="sig-name descname"><span class="pre">block_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_num</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.block_time" title="Link to this definition"></a></dt>
+<dd><p>Returns a datetime of the block with the given block
+number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>block_num</strong> (<em>int</em>) – Block number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.block_timestamp">
+<span class="sig-name descname"><span class="pre">block_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_num</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.block_timestamp" title="Link to this definition"></a></dt>
+<dd><p>Returns the timestamp of the block with the given block
+number as integer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>block_num</strong> (<em>int</em>) – Block number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.blocks">
+<span class="sig-name descname"><span class="pre">blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threading</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_virtual_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.blocks" title="Link to this definition"></a></dt>
+<dd><p>Yields blocks starting from <code class="docutils literal notranslate"><span class="pre">start</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>int</em>) – Starting block</p></li>
+<li><p><strong>stop</strong> (<em>int</em>) – Stop at this block</p></li>
+<li><p><strong>max_batch_size</strong> (<em>int</em>) – only for appbase nodes. When not None, batch calls of are used.
+Cannot be combined with threading</p></li>
+<li><p><strong>threading</strong> (<em>bool</em>) – Enables threading. Cannot be combined with batch calls</p></li>
+<li><p><strong>thread_num</strong> (<em>int</em>) – Defines the number of threads, when <cite>threading</cite> is set.</p></li>
+<li><p><strong>only_ops</strong> (<em>bool</em>) – Only yield operations (default: False).
+Cannot be combined with <code class="docutils literal notranslate"><span class="pre">only_virtual_ops=True</span></code>.</p></li>
+<li><p><strong>only_virtual_ops</strong> (<em>bool</em>) – Only yield virtual operations (default: False)</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want instant confirmation, you need to instantiate
+class:<cite>nectar.blockchain.Blockchain</cite> with
+<code class="docutils literal notranslate"><span class="pre">mode=&quot;head&quot;</span></code>, otherwise, the call will wait until
+confirmed in an irreversible block.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.find_change_recovery_account_requests">
+<span class="sig-name descname"><span class="pre">find_change_recovery_account_requests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">accounts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.find_change_recovery_account_requests" title="Link to this definition"></a></dt>
+<dd><p>Find pending <cite>change_recovery_account</cite> requests for one or more
+specific accounts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>accounts</strong> (<em>str/list</em>) – account name or list of account
+names to find <cite>change_recovery_account</cite> requests for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of <cite>change_recovery_account</cite> requests for the
+given account(s).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="s2">&quot;https://api.steemit.com&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blockchain</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">stm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ret</span> <span class="o">=</span> <span class="n">blockchain</span><span class="o">.</span><span class="n">find_change_recovery_account_requests</span><span class="p">(</span><span class="s1">&#39;bott&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.find_rc_accounts">
+<span class="sig-name descname"><span class="pre">find_rc_accounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.find_rc_accounts" title="Link to this definition"></a></dt>
+<dd><p>Returns the RC parameters of one or more accounts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – account name to search rc params for (can also be a list of accounts)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>RC params</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="s2">&quot;https://api.steemit.com&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blockchain</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">stm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ret</span> <span class="o">=</span> <span class="n">blockchain</span><span class="o">.</span><span class="n">find_rc_accounts</span><span class="p">([</span><span class="s2">&quot;test&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_account_count">
+<span class="sig-name descname"><span class="pre">get_account_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_account_count" title="Link to this definition"></a></dt>
+<dd><p>Returns the number of accounts</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_account_reputations">
+<span class="sig-name descname"><span class="pre">get_account_reputations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_account_reputations" title="Link to this definition"></a></dt>
+<dd><p>Yields account reputation between start and stop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>str</em>) – Start at this account name</p></li>
+<li><p><strong>stop</strong> (<em>str</em>) – Stop at this account name</p></li>
+<li><p><strong>steps</strong> (<em>int</em>) – Obtain <code class="docutils literal notranslate"><span class="pre">steps</span></code> ret with a single call from RPC</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_all_accounts">
+<span class="sig-name descname"><span class="pre">get_all_accounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_all_accounts" title="Link to this definition"></a></dt>
+<dd><p>Yields account names between start and stop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>str</em>) – Start at this account name</p></li>
+<li><p><strong>stop</strong> (<em>str</em>) – Stop at this account name</p></li>
+<li><p><strong>steps</strong> (<em>int</em>) – Obtain <code class="docutils literal notranslate"><span class="pre">steps</span></code> ret with a single call from RPC</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_current_block">
+<span class="sig-name descname"><span class="pre">get_current_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">only_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_virtual_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_current_block" title="Link to this definition"></a></dt>
+<dd><p>This call returns the current block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>only_ops</strong> (<em>bool</em>) – Returns block with operations only, when set to True (default: False)</p></li>
+<li><p><strong>only_virtual_ops</strong> (<em>bool</em>) – Includes only virtual operations (default: False)</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The block number returned depends on the <code class="docutils literal notranslate"><span class="pre">mode</span></code> used
+when instantiating from this class.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_current_block_num">
+<span class="sig-name descname"><span class="pre">get_current_block_num</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_current_block_num" title="Link to this definition"></a></dt>
+<dd><p>This call returns the current block number</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The block number returned depends on the <code class="docutils literal notranslate"><span class="pre">mode</span></code> used
+when instantiating from this class.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_estimated_block_num">
+<span class="sig-name descname"><span class="pre">get_estimated_block_num</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimateForwards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accurate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_estimated_block_num" title="Link to this definition"></a></dt>
+<dd><p>This call estimates the block number based on a given date</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>date</strong> (<em>datetime</em>) – block time for which a block number is estimated</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The block number returned depends on the <code class="docutils literal notranslate"><span class="pre">mode</span></code> used
+when instantiating from this class.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blockchain</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">block_num</span> <span class="o">=</span> <span class="n">blockchain</span><span class="o">.</span><span class="n">get_estimated_block_num</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">5</span> <span class="p">,</span><span class="mi">8</span><span class="p">,</span> <span class="mi">27</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">block_num</span> <span class="o">==</span> <span class="mi">33898182</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_similar_account_names">
+<span class="sig-name descname"><span class="pre">get_similar_account_names</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_similar_account_names" title="Link to this definition"></a></dt>
+<dd><p>Returns limit similar accounts with name as list</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – account name to search similars for</p></li>
+<li><p><strong>limit</strong> (<em>int</em>) – limits the number of accounts, which will be returned</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Similar account names as list</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="s2">&quot;https://api.steemit.com&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blockchain</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">stm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ret</span> <span class="o">=</span> <span class="n">blockchain</span><span class="o">.</span><span class="n">get_similar_account_names</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_transaction">
+<span class="sig-name descname"><span class="pre">get_transaction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_transaction" title="Link to this definition"></a></dt>
+<dd><p>Returns a transaction from the blockchain</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>transaction_id</strong> (<em>str</em>) – transaction_id</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.get_transaction_hex">
+<span class="sig-name descname"><span class="pre">get_transaction_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.get_transaction_hex" title="Link to this definition"></a></dt>
+<dd><p>Returns a hexdump of the serialized binary form of a transaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>transaction</strong> (<em>dict</em>) – transaction</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.hash_op">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hash_op</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.hash_op" title="Link to this definition"></a></dt>
+<dd><p>This method generates a hash of blockchain operation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.is_irreversible_mode">
+<span class="sig-name descname"><span class="pre">is_irreversible_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.is_irreversible_mode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.is_transaction_existing">
+<span class="sig-name descname"><span class="pre">is_transaction_existing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.is_transaction_existing" title="Link to this definition"></a></dt>
+<dd><p>Returns true, if the transaction_id is valid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.list_change_recovery_account_requests">
+<span class="sig-name descname"><span class="pre">list_change_recovery_account_requests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'by_account'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.list_change_recovery_account_requests" title="Link to this definition"></a></dt>
+<dd><p>List pending <cite>change_recovery_account</cite> requests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>str/list</em>) – Start the listing from this entry.
+Leave empty to start from the beginning. If <cite>order</cite> is set
+to <cite>by_account</cite>, <cite>start</cite> has to be an account name. If
+<cite>order</cite> is set to <cite>by_effective_date</cite>, <cite>start</cite> has to be a
+list of [effective_on, account_to_recover],
+e.g. <cite>start=[‘2018-12-18T01:46:24’, ‘bott’]</cite>.</p></li>
+<li><p><strong>limit</strong> (<em>int</em>) – maximum number of results to return (default
+and maximum: 1000).</p></li>
+<li><p><strong>order</strong> (<em>str</em>) – valid values are “by_account” (default) or
+“by_effective_date”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of <cite>change_recovery_account</cite> requests.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="s2">&quot;https://api.steemit.com&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blockchain</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">stm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ret</span> <span class="o">=</span> <span class="n">blockchain</span><span class="o">.</span><span class="n">list_change_recovery_account_requests</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.ops">
+<span class="sig-name descname"><span class="pre">ops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_virtual_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.ops" title="Link to this definition"></a></dt>
+<dd><p>Blockchain.ops() is deprecated. Please use Blockchain.stream() instead.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.ops_statistics">
+<span class="sig-name descname"><span class="pre">ops_statistics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_to_ops_stat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_virtual_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.ops_statistics" title="Link to this definition"></a></dt>
+<dd><p>Generates statistics for all operations (including virtual operations) starting from
+<code class="docutils literal notranslate"><span class="pre">start</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>int</em>) – Starting block</p></li>
+<li><p><strong>stop</strong> (<em>int</em>) – Stop at this block, if set to None, the current_block_num is taken</p></li>
+<li><p><strong>add_to_ops_stat</strong> (<em>dict</em>) – if set, the result is added to add_to_ops_stat</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – if True, the current block number and timestamp is printed</p></li>
+</ul>
+</dd>
+</dl>
+<p>This call returns a dict with all possible operations and their occurrence.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.participation_rate">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">participation_rate</span></span><a class="headerlink" href="#nectar.blockchain.Blockchain.participation_rate" title="Link to this definition"></a></dt>
+<dd><p>Returns the witness participation rate in a range from 0 to 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.stream">
+<span class="sig-name descname"><span class="pre">stream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opNames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.stream" title="Link to this definition"></a></dt>
+<dd><p>Yield specific operations (e.g. comments) only</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opNames</strong> (<em>array</em>) – List of operations to filter for</p></li>
+<li><p><strong>raw_ops</strong> (<em>bool</em>) – When set to True, it returns the unmodified operations (default: False)</p></li>
+<li><p><strong>start</strong> (<em>int</em>) – Start at this block</p></li>
+<li><p><strong>stop</strong> (<em>int</em>) – Stop at this block</p></li>
+<li><p><strong>max_batch_size</strong> (<em>int</em>) – only for appbase nodes. When not None, batch calls of are used.
+Cannot be combined with threading</p></li>
+<li><p><strong>threading</strong> (<em>bool</em>) – Enables threading. Cannot be combined with batch calls</p></li>
+<li><p><strong>thread_num</strong> (<em>int</em>) – Defines the number of threads, when <cite>threading</cite> is set.</p></li>
+<li><p><strong>only_ops</strong> (<em>bool</em>) – Only yield operations (default: False)
+Cannot be combined with <code class="docutils literal notranslate"><span class="pre">only_virtual_ops=True</span></code></p></li>
+<li><p><strong>only_virtual_ops</strong> (<em>bool</em>) – Only yield virtual operations (default: False)</p></li>
+</ul>
+</dd>
+</dl>
+<p>The dict output is formated such that <code class="docutils literal notranslate"><span class="pre">type</span></code> carries the
+operation type. Timestamp and block_num are taken from the
+block the operation was stored in and the other keys depend
+on the actual operation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want instant confirmation, you need to instantiate
+class:<cite>nectar.blockchain.Blockchain</cite> with
+<code class="docutils literal notranslate"><span class="pre">mode=&quot;head&quot;</span></code>, otherwise, the call will wait until
+confirmed in an irreversible block.</p>
+</div>
+<p>output when <cite>raw_ops=False</cite> is set:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="s1">&#39;type&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;transfer&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;from&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;johngreenfield&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;to&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;thundercurator&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;amount&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;0.080 SBD&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;memo&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;_id&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;6d4c5f2d4d8ef1918acaee4a8dce34f9da384786&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;timestamp&#39;</span><span class="o">:</span><span class="w"> </span><span class="nx">datetime</span><span class="p">.</span><span class="nx">datetime</span><span class="p">(</span><span class="mf">2018</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">,</span><span class="w"> </span><span class="mf">9</span><span class="p">,</span><span class="w"> </span><span class="mf">11</span><span class="p">,</span><span class="w"> </span><span class="mf">23</span><span class="p">,</span><span class="w"> </span><span class="mf">6</span><span class="p">,</span><span class="w"> </span><span class="nx">tzinfo</span><span class="o">=&lt;</span><span class="nx">UTC</span><span class="o">&gt;</span><span class="p">),</span>
+<span class="w">    </span><span class="s1">&#39;block_num&#39;</span><span class="o">:</span><span class="w"> </span><span class="mf">22277588</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;trx_num&#39;</span><span class="o">:</span><span class="w"> </span><span class="mf">35</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;trx_id&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;cf11b2ac8493c71063ec121b2e8517ab1e0e6bea&#39;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>output when <cite>raw_ops=True</cite> is set:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="s1">&#39;block_num&#39;</span><span class="o">:</span><span class="w"> </span><span class="mf">22277588</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;op&#39;</span><span class="o">:</span>
+<span class="w">        </span><span class="p">[</span>
+<span class="w">            </span><span class="s1">&#39;transfer&#39;</span><span class="p">,</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="s1">&#39;from&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;johngreenfield&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;to&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;thundercurator&#39;</span><span class="p">,</span>
+<span class="w">                    </span><span class="s1">&#39;amount&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;0.080 SBD&#39;</span><span class="p">,</span>
+<span class="w">                    </span><span class="s1">&#39;memo&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right&#39;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="s1">&#39;timestamp&#39;</span><span class="o">:</span><span class="w"> </span><span class="nx">datetime</span><span class="p">.</span><span class="nx">datetime</span><span class="p">(</span><span class="mf">2018</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">,</span><span class="w"> </span><span class="mf">9</span><span class="p">,</span><span class="w"> </span><span class="mf">11</span><span class="p">,</span><span class="w"> </span><span class="mf">23</span><span class="p">,</span><span class="w"> </span><span class="mf">6</span><span class="p">,</span><span class="w"> </span><span class="nx">tzinfo</span><span class="o">=&lt;</span><span class="nx">UTC</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Blockchain.wait_for_and_get_block">
+<span class="sig-name descname"><span class="pre">wait_for_and_get_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks_waiting_for</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_virtual_ops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_number_check_cnt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_current_block_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Blockchain.wait_for_and_get_block" title="Link to this definition"></a></dt>
+<dd><p>Get the desired block from the chain, if the current head block is smaller (for both head and irreversible)
+then we wait, but a maxmimum of blocks_waiting_for * max_block_wait_repetition time before failure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>block_number</strong> (<em>int</em>) – desired block number</p></li>
+<li><p><strong>blocks_waiting_for</strong> (<em>int</em>) – difference between block_number and current head and defines
+how many blocks we are willing to wait, positive int (default: None)</p></li>
+<li><p><strong>only_ops</strong> (<em>bool</em>) – Returns blocks with operations only, when set to True (default: False)</p></li>
+<li><p><strong>only_virtual_ops</strong> (<em>bool</em>) – Includes only virtual operations (default: False)</p></li>
+<li><p><strong>block_number_check_cnt</strong> (<em>int</em>) – limit the number of retries when greater than -1</p></li>
+<li><p><strong>last_current_block_num</strong> (<em>int</em>) – can be used to reduce the number of get_current_block_num() api calls</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.blockchain.</span></span><span class="sig-name descname"><span class="pre">Pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_mode=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception_handler=&lt;function</span> <span class="pre">default_handler&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pool of threads consuming tasks from a queue</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.abort">
+<span class="sig-name descname"><span class="pre">abort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.abort" title="Link to this definition"></a></dt>
+<dd><p>Tell each worker that its done working</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.alive">
+<span class="sig-name descname"><span class="pre">alive</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.alive" title="Link to this definition"></a></dt>
+<dd><p>Returns True if any threads are currently running</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.done">
+<span class="sig-name descname"><span class="pre">done</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.done" title="Link to this definition"></a></dt>
+<dd><p>Returns True if not tasks are left to be completed</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.enqueue">
+<span class="sig-name descname"><span class="pre">enqueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.enqueue" title="Link to this definition"></a></dt>
+<dd><p>Add a task to the queue</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.idle">
+<span class="sig-name descname"><span class="pre">idle</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.idle" title="Link to this definition"></a></dt>
+<dd><p>Returns True if all threads are waiting for work</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.join">
+<span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.join" title="Link to this definition"></a></dt>
+<dd><p>Wait for completion of all the tasks in the queue</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.results">
+<span class="sig-name descname"><span class="pre">results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sleep_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.results" title="Link to this definition"></a></dt>
+<dd><p>Get the set of results that have been processed, repeatedly call until done</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Pool.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Pool.run" title="Link to this definition"></a></dt>
+<dd><p>Start the threads, or restart them if you’ve aborted</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.blockchain.Worker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.blockchain.</span></span><span class="sig-name descname"><span class="pre">Worker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abort</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception_handler</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Worker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Thread</span></code></p>
+<p>Thread executing tasks from a given tasks queue</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.blockchain.Worker.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.Worker.run" title="Link to this definition"></a></dt>
+<dd><p>Thread work loop calling the function with the params</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectar.blockchain.default_handler">
+<span class="sig-prename descclassname"><span class="pre">nectar.blockchain.</span></span><span class="sig-name descname"><span class="pre">default_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.blockchain.default_handler" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectar.block.html" class="btn btn-neutral float-left" title="nectar.block" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectar.blockchainobject.html" class="btn btn-neutral float-right" title="nectar.blockchainobject" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

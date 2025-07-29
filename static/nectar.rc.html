@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectar.rc &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectar.snapshot" href="nectar.snapshot.html" />
+    <link rel="prev" title="nectar.price" href="nectar.price.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectar.account.html">nectar.account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.amount.html">nectar.amount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asciichart.html">nectar.asciichart</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asset.html">nectar.asset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.block.html">nectar.block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchain.html">nectar.blockchain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchainobject.html">nectar.blockchainobject</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchaininstance.html">nectar.blockchaininstance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.comment.html">nectar.comment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.community.html">nectar.community</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.conveyor.html">nectar.conveyor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.discussions.html">nectar.discussions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.exceptions.html">nectar.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hive.html">nectar.hive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hivesigner.html">nectar.hivesigner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.imageuploader.html">nectar.imageuploader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.instance.html">nectar.instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.market.html">nectar.market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.memo.html">nectar.memo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.message.html">nectar.message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.nodelist.html">nectar.nodelist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.price.html">nectar.price</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectar.rc</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.rc.RC"><code class="docutils literal notranslate"><span class="pre">RC</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.snapshot.html">nectar.snapshot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.steem.html">nectar.steem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.storage.html">nectar.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.transactionbuilder.html">nectar.transactionbuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.utils.html">nectar.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.vote.html">nectar.vote</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.wallet.html">nectar.wallet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.witness.html">nectar.witness</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectar.rc</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectar.rc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectar.rc">
+<span id="nectar-rc"></span><h1>nectar.rc<a class="headerlink" href="#module-nectar.rc" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.rc.RC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.rc.</span></span><span class="sig-name descname"><span class="pre">RC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blockchain_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.account_create_dict">
+<span class="sig-name descname"><span class="pre">account_create_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account_create_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.account_create_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for account create</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.account_update_dict">
+<span class="sig-name descname"><span class="pre">account_update_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account_update_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.account_update_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for account update</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.claim_account">
+<span class="sig-name descname"><span class="pre">claim_account</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.claim_account" title="Link to this definition"></a></dt>
+<dd><p>Claim account</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.comment">
+<span class="sig-name descname"><span class="pre">comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permlink_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_permlink_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.comment" title="Link to this definition"></a></dt>
+<dd><p>Calc RC for a comment</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.comment_dict">
+<span class="sig-name descname"><span class="pre">comment_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.comment_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for a comment dict object</p>
+<p>Example for calculating RC costs</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.rc</span><span class="w"> </span><span class="kn">import</span> <span class="n">RC</span>
+<span class="n">comment_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;permlink&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;thecrazygm&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;parent_permlink&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;parent_author&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;json_metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;foo&quot;</span><span class="p">:</span> <span class="s2">&quot;bar&quot;</span><span class="p">}</span>
+               <span class="p">}</span>
+
+<span class="n">rc</span> <span class="o">=</span> <span class="n">RC</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">comment_from_dict</span><span class="p">(</span><span class="n">comment_dict</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.create_claimed_account_dict">
+<span class="sig-name descname"><span class="pre">create_claimed_account_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">create_claimed_account_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.create_claimed_account_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for claimed account create</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.custom_json">
+<span class="sig-name descname"><span class="pre">custom_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">444</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">follow_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.custom_json" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.custom_json_dict">
+<span class="sig-name descname"><span class="pre">custom_json_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_json_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.custom_json_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for a custom_json</p>
+<p>Example for calculating RC costs</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.rc</span><span class="w"> </span><span class="kn">import</span> <span class="n">RC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="n">custom_json_dict</span> <span class="o">=</span> <span class="p">{</span>
+                     <span class="s2">&quot;json&quot;</span><span class="p">:</span> <span class="p">[</span>
+                              <span class="s2">&quot;reblog&quot;</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;account&quot;</span><span class="p">,</span> <span class="s2">&quot;xeroc&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">,</span> <span class="s2">&quot;chainsquad&quot;</span><span class="p">),</span>
+                                                     <span class="p">(</span><span class="s2">&quot;permlink&quot;</span><span class="p">,</span> <span class="s2">&quot;streemian-com-to-open-its-doors-and-offer-a-20-discount&quot;</span><span class="p">)</span>
+                                                    <span class="p">])</span>
+                             <span class="p">],</span>
+                     <span class="s2">&quot;required_auths&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                     <span class="s2">&quot;required_posting_auths&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;xeroc&quot;</span><span class="p">],</span>
+                     <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;follow&quot;</span>
+                    <span class="p">}</span>
+
+<span class="n">rc</span> <span class="o">=</span> <span class="n">RC</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">comment</span><span class="p">(</span><span class="n">custom_json_dict</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.delegate_from_pool">
+<span class="sig-name descname"><span class="pre">delegate_from_pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.delegate_from_pool" title="Link to this definition"></a></dt>
+<dd><p>Set a slot to receive RC from a pool</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_pool</strong> (<em>str</em>) – Pool to set the slot to</p></li>
+<li><p><strong>to_account</strong> (<em>str</em>) – Account on which we want to update the slot</p></li>
+<li><p><strong>max_rc</strong> (<em>int</em>) – max rc to delegate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.delegate_to_pool">
+<span class="sig-name descname"><span class="pre">delegate_to_pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.delegate_to_pool" title="Link to this definition"></a></dt>
+<dd><p>Set a slot to receive RC from a pool</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>username</strong> (<em>str</em>) – user delegating rc to the pool</p></li>
+<li><p><strong>to_pool</strong> (<em>str</em>) – Pool to delegate to</p></li>
+<li><p><strong>rc</strong> (<em>str</em>) – rc to delegate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.get_authority_byte_count">
+<span class="sig-name descname"><span class="pre">get_authority_byte_count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auth</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.get_authority_byte_count" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.get_resource_count">
+<span class="sig-name descname"><span class="pre">get_resource_count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution_time_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_bytes_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_account_op_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">market_op_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.get_resource_count" title="Link to this definition"></a></dt>
+<dd><p>Creates the resource_count dictionary based on tx_size, state_bytes_count, new_account_op_count and market_op_count</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.get_tx_size">
+<span class="sig-name descname"><span class="pre">get_tx_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.get_tx_size" title="Link to this definition"></a></dt>
+<dd><p>Returns the tx size of an operation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.set_slot_delegator">
+<span class="sig-name descname"><span class="pre">set_slot_delegator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_slot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.set_slot_delegator" title="Link to this definition"></a></dt>
+<dd><p>Set a slot to receive RC from a pool</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_pool</strong> (<em>str</em>) – Pool to set the slot to</p></li>
+<li><p><strong>to_account</strong> (<em>str</em>) – Account on which we want to update the slot</p></li>
+<li><p><strong>to_slot</strong> (<em>int</em>) – slot we want to set</p></li>
+<li><p><strong>signer</strong> (<em>str</em>) – Account who broadcast this</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.transfer">
+<span class="sig-name descname"><span class="pre">transfer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">290</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">market_op_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.transfer" title="Link to this definition"></a></dt>
+<dd><p>Calc RC of a transfer</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.transfer_dict">
+<span class="sig-name descname"><span class="pre">transfer_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transfer_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.transfer_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for a transfer dict object</p>
+<p>Example for calculating RC costs</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.rc</span><span class="w"> </span><span class="kn">import</span> <span class="n">RC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.amount</span><span class="w"> </span><span class="kn">import</span> <span class="n">Amount</span>
+<span class="n">transfer_dict</span> <span class="o">=</span> <span class="p">{</span>
+                 <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">:</span> <span class="s2">&quot;baar&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="n">Amount</span><span class="p">(</span><span class="s2">&quot;111.110 STEEM&quot;</span><span class="p">),</span>
+                 <span class="s2">&quot;memo&quot;</span><span class="p">:</span> <span class="s2">&quot;Fooo&quot;</span>
+                <span class="p">}</span>
+
+<span class="n">rc</span> <span class="o">=</span> <span class="n">RC</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">comment</span><span class="p">(</span><span class="n">transfer_dict</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.vote">
+<span class="sig-name descname"><span class="pre">vote</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">210</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.vote" title="Link to this definition"></a></dt>
+<dd><p>Calc RC for a vote</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.rc.RC.vote_dict">
+<span class="sig-name descname"><span class="pre">vote_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vote_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.rc.RC.vote_dict" title="Link to this definition"></a></dt>
+<dd><p>Calc RC costs for a vote</p>
+<p>Example for calculating RC costs</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.rc</span><span class="w"> </span><span class="kn">import</span> <span class="n">RC</span>
+<span class="n">vote_dict</span> <span class="o">=</span> <span class="p">{</span>
+             <span class="s2">&quot;voter&quot;</span><span class="p">:</span> <span class="s2">&quot;foobara&quot;</span><span class="p">,</span> <span class="s2">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;foobarc&quot;</span><span class="p">,</span>
+             <span class="s2">&quot;permlink&quot;</span><span class="p">:</span> <span class="s2">&quot;foobard&quot;</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="mi">1000</span>
+            <span class="p">}</span>
+
+<span class="n">rc</span> <span class="o">=</span> <span class="n">RC</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">comment</span><span class="p">(</span><span class="n">vote_dict</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectar.price.html" class="btn btn-neutral float-left" title="nectar.price" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectar.snapshot.html" class="btn btn-neutral float-right" title="nectar.snapshot" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

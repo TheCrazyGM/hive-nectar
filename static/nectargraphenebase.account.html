@@ -1,0 +1,697 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectargraphenebase.account &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectargraphenebase.aes" href="nectargraphenebase.aes.html" />
+    <link rel="prev" title="nectarbase.ledgertransactions" href="nectarbase.ledgertransactions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectargraphenebase.account</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.Address"><code class="docutils literal notranslate"><span class="pre">Address</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.BitcoinAddress"><code class="docutils literal notranslate"><span class="pre">BitcoinAddress</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.BitcoinPublicKey"><code class="docutils literal notranslate"><span class="pre">BitcoinPublicKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.BrainKey"><code class="docutils literal notranslate"><span class="pre">BrainKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.GrapheneAddress"><code class="docutils literal notranslate"><span class="pre">GrapheneAddress</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.Mnemonic"><code class="docutils literal notranslate"><span class="pre">Mnemonic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.MnemonicKey"><code class="docutils literal notranslate"><span class="pre">MnemonicKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.PasswordKey"><code class="docutils literal notranslate"><span class="pre">PasswordKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.PrivateKey"><code class="docutils literal notranslate"><span class="pre">PrivateKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.PublicKey"><code class="docutils literal notranslate"><span class="pre">PublicKey</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.account.binary_search"><code class="docutils literal notranslate"><span class="pre">binary_search()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.aes.html">nectargraphenebase.aes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.base58.html">nectargraphenebase.base58</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.bip32.html">nectargraphenebase.bip32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.bip38.html">nectargraphenebase.bip38</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.ecdsasig.html">nectargraphenebase.ecdsasig</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.objects.html">nectargraphenebase.objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.objecttypes.html">nectargraphenebase.objecttypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.operations.html">nectargraphenebase.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.signedtransactions.html">nectargraphenebase.signedtransactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.unsignedtransactions.html">nectargraphenebase.unsignedtransactions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectargraphenebase.account</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectargraphenebase.account.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectargraphenebase.account">
+<span id="nectargraphenebase-account"></span><h1>nectargraphenebase.account<a class="headerlink" href="#module-nectargraphenebase.account" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Address">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">Address</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Address" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>Address class</p>
+<p>This class serves as an address representation for Public Keys.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>address</strong> (<em>str</em>) – Base58 encoded address (defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – Network prefix (defaults to <code class="docutils literal notranslate"><span class="pre">STM</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Address</span><span class="p">(</span><span class="s2">&quot;STMFN9r6VYzBK8EKtMewfNbfiGCr56pHDBFi&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Address.derivesha256address">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">derivesha256address</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pubkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Address.derivesha256address" title="Link to this definition"></a></dt>
+<dd><p>Derive address using <code class="docutils literal notranslate"><span class="pre">RIPEMD160(SHA256(x))</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Address.derivesha512address">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">derivesha512address</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pubkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Address.derivesha512address" title="Link to this definition"></a></dt>
+<dd><p>Derive address using <code class="docutils literal notranslate"><span class="pre">RIPEMD160(SHA512(x))</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Address.from_pubkey">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pubkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pubkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">56</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Address.from_pubkey" title="Link to this definition"></a></dt>
+<dd><p>Load an address provided by the public key.
+Version: 56 =&gt; PTS</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BitcoinAddress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">BitcoinAddress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BitcoinAddress" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#nectargraphenebase.account.Address" title="nectargraphenebase.account.Address"><code class="xref py py-class docutils literal notranslate"><span class="pre">Address</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BitcoinAddress.from_pubkey">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pubkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pubkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">56</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BitcoinAddress.from_pubkey" title="Link to this definition"></a></dt>
+<dd><p>Load an address provided by the public key.
+Version: 56 =&gt; PTS</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BitcoinPublicKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">BitcoinPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BitcoinPublicKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#nectargraphenebase.account.PublicKey" title="nectargraphenebase.account.PublicKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">PublicKey</span></code></a></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BitcoinPublicKey.address">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">address</span></span><a class="headerlink" href="#nectargraphenebase.account.BitcoinPublicKey.address" title="Link to this definition"></a></dt>
+<dd><p>Obtain a GrapheneAddress from a public key</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">BrainKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">brainkey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>Brainkey implementation similar to the graphene-ui web-wallet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>brainkey</strong> (<em>str</em>) – Brain Key</p></li>
+<li><p><strong>sequence</strong> (<em>int</em>) – Sequence number for consecutive keys</p></li>
+</ul>
+</dd>
+</dl>
+<p>Keys in Graphene are derived from a seed brain key which is a string of
+16 words out of a predefined dictionary with 49744 words. It is a
+simple single-chain key derivation scheme that is not compatible with
+BIP44 but easy to use.</p>
+<p>Given the brain key, a private key is derived as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">privkey</span> <span class="o">=</span> <span class="n">SHA256</span><span class="p">(</span><span class="n">SHA512</span><span class="p">(</span><span class="n">brainkey</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">sequence</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Incrementing the sequence number yields a new key that can be
+regenerated given the brain key.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_blind_private">
+<span class="sig-name descname"><span class="pre">get_blind_private</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_blind_private" title="Link to this definition"></a></dt>
+<dd><p>Derive private key from the brain key (and no sequence number)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_brainkey">
+<span class="sig-name descname"><span class="pre">get_brainkey</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_brainkey" title="Link to this definition"></a></dt>
+<dd><p>Return brain key of this instance</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_private">
+<span class="sig-name descname"><span class="pre">get_private</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_private" title="Link to this definition"></a></dt>
+<dd><p>Derive private key from the brain key and the current sequence
+number</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_private_key">
+<span class="sig-name descname"><span class="pre">get_private_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_private_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_public">
+<span class="sig-name descname"><span class="pre">get_public</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_public" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.get_public_key">
+<span class="sig-name descname"><span class="pre">get_public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.get_public_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.next_sequence">
+<span class="sig-name descname"><span class="pre">next_sequence</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.next_sequence" title="Link to this definition"></a></dt>
+<dd><p>Increment the sequence number by 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.normalize">
+<span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">brainkey</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.normalize" title="Link to this definition"></a></dt>
+<dd><p>Correct formating with single whitespace syntax and no trailing space</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.BrainKey.suggest">
+<span class="sig-name descname"><span class="pre">suggest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">word_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.BrainKey.suggest" title="Link to this definition"></a></dt>
+<dd><p>Suggest a new random brain key. Randomness is provided by the
+operating system using <code class="docutils literal notranslate"><span class="pre">os.urandom()</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.GrapheneAddress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">GrapheneAddress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.GrapheneAddress" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#nectargraphenebase.account.Address" title="nectargraphenebase.account.Address"><code class="xref py py-class docutils literal notranslate"><span class="pre">Address</span></code></a></p>
+<p>Graphene Addresses are different. Hence we have a different class</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.GrapheneAddress.from_pubkey">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pubkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pubkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">56</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.GrapheneAddress.from_pubkey" title="Link to this definition"></a></dt>
+<dd><p>Load an address provided by the public key.
+Version: 56 =&gt; PTS</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">Mnemonic</span></span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>BIP39 mnemoric implementation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mnemonic</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.check" title="Link to this definition"></a></dt>
+<dd><p>Checks the mnemonic word list is valid
+:param list mnemonic: mnemonic word list with lenght of 12, 15, 18, 21, 24
+:returns: True, when valid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.check_word">
+<span class="sig-name descname"><span class="pre">check_word</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">word</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.check_word" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.expand">
+<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mnemonic</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.expand" title="Link to this definition"></a></dt>
+<dd><p>Expands all words given in a list</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.expand_word">
+<span class="sig-name descname"><span class="pre">expand_word</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.expand_word" title="Link to this definition"></a></dt>
+<dd><p>Expands a word when sufficient chars are given</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>prefix</strong> (<em>str</em>) – first chars of a valid dict word</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.generate">
+<span class="sig-name descname"><span class="pre">generate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strength</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.generate" title="Link to this definition"></a></dt>
+<dd><p>Generates a word list based on the given strength</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>strength</strong> (<em>int</em>) – initial entropy strength, must be one of [128, 160, 192, 224, 256]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.normalize_string">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">normalize_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.normalize_string" title="Link to this definition"></a></dt>
+<dd><p>Normalizes strings</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.to_entropy">
+<span class="sig-name descname"><span class="pre">to_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">words</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.to_entropy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.to_mnemonic">
+<span class="sig-name descname"><span class="pre">to_mnemonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.to_mnemonic" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.Mnemonic.to_seed">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">to_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mnemonic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passphrase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.Mnemonic.to_seed" title="Link to this definition"></a></dt>
+<dd><p>Returns a seed based on bip39</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mnemonic</strong> (<em>str</em>) – string containing a valid mnemonic word list</p></li>
+<li><p><strong>passphrase</strong> (<em>str</em>) – optional, passphrase can be set to modify the returned seed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">MnemonicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">word_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passphrase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>This class derives a private key from a BIP39 mnemoric implementation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.generate_mnemonic">
+<span class="sig-name descname"><span class="pre">generate_mnemonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passphrase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strength</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.generate_mnemonic" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.get_path">
+<span class="sig-name descname"><span class="pre">get_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.get_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.get_private">
+<span class="sig-name descname"><span class="pre">get_private</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.get_private" title="Link to this definition"></a></dt>
+<dd><p>Derive private key from the account_sequence, the role and the key_sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.get_private_key">
+<span class="sig-name descname"><span class="pre">get_private_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.get_private_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.get_public">
+<span class="sig-name descname"><span class="pre">get_public</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.get_public" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.get_public_key">
+<span class="sig-name descname"><span class="pre">get_public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.get_public_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.next_account_sequence">
+<span class="sig-name descname"><span class="pre">next_account_sequence</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.next_account_sequence" title="Link to this definition"></a></dt>
+<dd><p>Increment the account sequence number by 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.next_sequence">
+<span class="sig-name descname"><span class="pre">next_sequence</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.next_sequence" title="Link to this definition"></a></dt>
+<dd><p>Increment the key sequence number by 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.set_mnemonic">
+<span class="sig-name descname"><span class="pre">set_mnemonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">word_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passphrase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.set_mnemonic" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.set_path">
+<span class="sig-name descname"><span class="pre">set_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.set_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.set_path_BIP32">
+<span class="sig-name descname"><span class="pre">set_path_BIP32</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.set_path_BIP32" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.set_path_BIP44">
+<span class="sig-name descname"><span class="pre">set_path_BIP44</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hardened_address</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.set_path_BIP44" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.MnemonicKey.set_path_BIP48">
+<span class="sig-name descname"><span class="pre">set_path_BIP48</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'owner'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.MnemonicKey.set_path_BIP48" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">PasswordKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'active'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>This class derives a private key given the account name, the
+role and a password. It leverages the technology of Brainkeys
+and allows people to have a secure private key by providing a
+passphrase only.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey.get_private">
+<span class="sig-name descname"><span class="pre">get_private</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey.get_private" title="Link to this definition"></a></dt>
+<dd><p>Derive private key from the account, the role and the password</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey.get_private_key">
+<span class="sig-name descname"><span class="pre">get_private_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey.get_private_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey.get_public">
+<span class="sig-name descname"><span class="pre">get_public</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey.get_public" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey.get_public_key">
+<span class="sig-name descname"><span class="pre">get_public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey.get_public_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PasswordKey.normalize">
+<span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PasswordKey.normalize" title="Link to this definition"></a></dt>
+<dd><p>Correct formating with single whitespace syntax and no trailing space</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">PrivateKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>Derives the compressed and uncompressed public keys and
+constructs two instances of <a class="reference internal" href="#nectargraphenebase.account.PublicKey" title="nectargraphenebase.account.PublicKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">PublicKey</span></code></a>:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wif</strong> (<em>str</em>) – Base58check-encoded wif key</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – Network prefix (defaults to <code class="docutils literal notranslate"><span class="pre">STM</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PrivateKey</span><span class="p">(</span><span class="s2">&quot;5HqUkGuo62BfcJU5vNhTXKJRXuUi9QSE6jp8C3uBJ2BVHtB8WSd&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Compressed vs. Uncompressed:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">PrivateKey(&quot;w-i-f&quot;).pubkey</span></code>:</dt><dd><p>Instance of <a class="reference internal" href="#nectargraphenebase.account.PublicKey" title="nectargraphenebase.account.PublicKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">PublicKey</span></code></a> using compressed key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">PrivateKey(&quot;w-i-f&quot;).pubkey.address</span></code>:</dt><dd><p>Instance of <a class="reference internal" href="#nectargraphenebase.account.Address" title="nectargraphenebase.account.Address"><code class="xref py py-class docutils literal notranslate"><span class="pre">Address</span></code></a> using compressed key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">PrivateKey(&quot;w-i-f&quot;).uncompressed</span></code>:</dt><dd><p>Instance of <a class="reference internal" href="#nectargraphenebase.account.PublicKey" title="nectargraphenebase.account.PublicKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">PublicKey</span></code></a> using uncompressed key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">PrivateKey(&quot;w-i-f&quot;).uncompressed.address</span></code>:</dt><dd><p>Instance of <a class="reference internal" href="#nectargraphenebase.account.Address" title="nectargraphenebase.account.Address"><code class="xref py py-class docutils literal notranslate"><span class="pre">Address</span></code></a> using uncompressed key.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.address">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">address</span></span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.address" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.bitcoin">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bitcoin</span></span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.bitcoin" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.child">
+<span class="sig-name descname"><span class="pre">child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.child" title="Link to this definition"></a></dt>
+<dd><p>Derive new private key from this key and a sha256 “offset”</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.compressed">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compressed</span></span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.compressed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.derive_from_seed">
+<span class="sig-name descname"><span class="pre">derive_from_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.derive_from_seed" title="Link to this definition"></a></dt>
+<dd><p>Derive private key using “generate_from_seed” method.
+Here, the key itself serves as a <cite>seed</cite>, and <cite>offset</cite>
+is expected to be a sha256 digest.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.derive_private_key">
+<span class="sig-name descname"><span class="pre">derive_private_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequence</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.derive_private_key" title="Link to this definition"></a></dt>
+<dd><p>Derive new private key from this private key and an arbitrary
+sequence number</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.get_public_key">
+<span class="sig-name descname"><span class="pre">get_public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.get_public_key" title="Link to this definition"></a></dt>
+<dd><p>Legacy: Returns the pubkey</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.get_secret">
+<span class="sig-name descname"><span class="pre">get_secret</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.get_secret" title="Link to this definition"></a></dt>
+<dd><p>Get sha256 digest of the wif key.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.pubkey">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pubkey</span></span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.pubkey" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PrivateKey.uncompressed">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uncompressed</span></span><a class="headerlink" href="#nectargraphenebase.account.PrivateKey.uncompressed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">PublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Prefix</span></code></p>
+<p>This class deals with Public Keys and inherits <code class="docutils literal notranslate"><span class="pre">Address</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pk</strong> (<em>str</em>) – Base58 encoded public key</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – Network prefix (defaults to <code class="docutils literal notranslate"><span class="pre">STM</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PublicKey</span><span class="p">(</span><span class="s2">&quot;STM6UtYWWs3rkZGV8JA86qrgkG6tyFksgECefKE1MiH4HkLD8PFGL&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, graphene-based networks deal with <strong>compressed</strong>
+public keys. If an <strong>uncompressed</strong> key is required, the
+method <a class="reference internal" href="#nectargraphenebase.account.PublicKey.unCompressed" title="nectargraphenebase.account.PublicKey.unCompressed"><code class="xref py py-func docutils literal notranslate"><span class="pre">unCompressed()</span></code></a> can be used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PublicKey</span><span class="p">(</span><span class="s2">&quot;xxxxx&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unCompressed</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">digest256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.add" title="Link to this definition"></a></dt>
+<dd><p>Derive new public key from this key and a sha256 “digest”</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.address">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">address</span></span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.address" title="Link to this definition"></a></dt>
+<dd><p>Obtain a GrapheneAddress from a public key</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.child">
+<span class="sig-name descname"><span class="pre">child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">offset256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.child" title="Link to this definition"></a></dt>
+<dd><p>Derive new public key from this key and a sha256 “offset”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.compressed">
+<span class="sig-name descname"><span class="pre">compressed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.compressed" title="Link to this definition"></a></dt>
+<dd><p>Derive compressed public key</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.compressed_key">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compressed_key</span></span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.compressed_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.from_privkey">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_privkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">privkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.from_privkey" title="Link to this definition"></a></dt>
+<dd><p>Derive uncompressed public key</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.get_public_key">
+<span class="sig-name descname"><span class="pre">get_public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.get_public_key" title="Link to this definition"></a></dt>
+<dd><p>Returns the pubkey</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.point">
+<span class="sig-name descname"><span class="pre">point</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.point" title="Link to this definition"></a></dt>
+<dd><p>Return the point for the public key</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.pubkey">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pubkey</span></span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.pubkey" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.unCompressed">
+<span class="sig-name descname"><span class="pre">unCompressed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.unCompressed" title="Link to this definition"></a></dt>
+<dd><p>Alias for self.uncompressed() - LEGACY</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.account.PublicKey.uncompressed">
+<span class="sig-name descname"><span class="pre">uncompressed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.PublicKey.uncompressed" title="Link to this definition"></a></dt>
+<dd><p>Derive uncompressed key</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectargraphenebase.account.binary_search">
+<span class="sig-prename descclassname"><span class="pre">nectargraphenebase.account.</span></span><span class="sig-name descname"><span class="pre">binary_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.account.binary_search" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectarbase.ledgertransactions.html" class="btn btn-neutral float-left" title="nectarbase.ledgertransactions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectargraphenebase.aes.html" class="btn btn-neutral float-right" title="nectargraphenebase.aes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

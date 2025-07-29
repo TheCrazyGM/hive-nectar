@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectar.conveyor &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectar.discussions" href="nectar.discussions.html" />
+    <link rel="prev" title="nectar.community" href="nectar.community.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectar.account.html">nectar.account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.amount.html">nectar.amount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asciichart.html">nectar.asciichart</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asset.html">nectar.asset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.block.html">nectar.block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchain.html">nectar.blockchain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchainobject.html">nectar.blockchainobject</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchaininstance.html">nectar.blockchaininstance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.comment.html">nectar.comment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.community.html">nectar.community</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectar.conveyor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.conveyor.Conveyor"><code class="docutils literal notranslate"><span class="pre">Conveyor</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.discussions.html">nectar.discussions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.exceptions.html">nectar.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hive.html">nectar.hive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hivesigner.html">nectar.hivesigner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.imageuploader.html">nectar.imageuploader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.instance.html">nectar.instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.market.html">nectar.market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.memo.html">nectar.memo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.message.html">nectar.message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.nodelist.html">nectar.nodelist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.price.html">nectar.price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.rc.html">nectar.rc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.snapshot.html">nectar.snapshot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.steem.html">nectar.steem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.storage.html">nectar.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.transactionbuilder.html">nectar.transactionbuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.utils.html">nectar.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.vote.html">nectar.vote</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.wallet.html">nectar.wallet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.witness.html">nectar.witness</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectar.conveyor</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectar.conveyor.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectar.conveyor">
+<span id="nectar-conveyor"></span><h1>nectar.conveyor<a class="headerlink" href="#module-nectar.conveyor" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.conveyor.</span></span><span class="sig-name descname"><span class="pre">Conveyor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://conveyor.steemit.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blockchain_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to access Steemit Conveyor instances:
+<a class="reference external" href="https://github.com/steemit/conveyor">https://github.com/steemit/conveyor</a></p>
+<p>Description from the official documentation:</p>
+<ul class="simple">
+<li><p>Feature flags: “Feature flags allows our apps (condenser mainly) to
+hide certain features behind flags.”</p></li>
+<li><p>User data: “Conveyor is the central point for storing sensitive user
+data (email, phone, etc). No other services should store this data
+and should instead query for it here every time.”</p></li>
+<li><p>User tags: “Tagging mechanism for other services, allows defining and
+assigning tags to accounts (or other identifiers) and querying for
+them.”</p></li>
+</ul>
+<p>Not contained in the documentation, but implemented and working:</p>
+<ul class="simple">
+<li><p>Draft handling: saving, listing and removing post drafts
+consisting of a post title and a body.</p></li>
+</ul>
+<p>The underlying RPC authentication and request signing procedure is
+described here: <a class="reference external" href="https://github.com/steemit/rpc-auth">https://github.com/steemit/rpc-auth</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.get_feature_flag">
+<span class="sig-name descname"><span class="pre">get_feature_flag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.get_feature_flag" title="Link to this definition"></a></dt>
+<dd><p>Test if a specific feature flag is set for an account. The request
+has to be signed by the requested account or an admin account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>flag</strong> (<em>str</em>) – flag to be tested</p></li>
+<li><p><strong>signing_account</strong> (<em>str</em>) – (optional) account to sign the
+request. If unset, <cite>account</cite> is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.conveyor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Conveyor</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;5JPOSTINGKEY&quot;</span><span class="p">])</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Conveyor</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">get_feature_flag</span><span class="p">(</span><span class="s1">&#39;accountname&#39;</span><span class="p">,</span> <span class="s1">&#39;accepted_tos&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.get_feature_flags">
+<span class="sig-name descname"><span class="pre">get_feature_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.get_feature_flags" title="Link to this definition"></a></dt>
+<dd><p>Get the account’s feature flags. The request has to be signed by the
+requested account or an admin account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>signing_account</strong> (<em>str</em>) – (optional) account to sign the
+request. If unset, <cite>account</cite> is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.conveyor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Conveyor</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;5JPOSTINGKEY&quot;</span><span class="p">])</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Conveyor</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">get_feature_flags</span><span class="p">(</span><span class="s1">&#39;accountname&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.get_user_data">
+<span class="sig-name descname"><span class="pre">get_user_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.get_user_data" title="Link to this definition"></a></dt>
+<dd><p>Get the account’s email address and phone number. The request has to be
+signed by the requested account or an admin account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>signing_account</strong> (<em>str</em>) – (optional) account to sign the
+request. If unset, <cite>account</cite> is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.conveyor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Conveyor</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;5JPOSTINGKEY&quot;</span><span class="p">])</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Conveyor</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">get_user_data</span><span class="p">(</span><span class="s1">&#39;accountname&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.healthcheck">
+<span class="sig-name descname"><span class="pre">healthcheck</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.healthcheck" title="Link to this definition"></a></dt>
+<dd><p>Get the Conveyor status</p>
+<p>Sample output:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="s1">&#39;ok&#39;</span><span class="o">:</span><span class="w"> </span><span class="nx">True</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;version&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;1.1.1-4d28e36-1528725174&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;date&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2018-07-21T12:12:25.502Z&#39;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.list_drafts">
+<span class="sig-name descname"><span class="pre">list_drafts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.list_drafts" title="Link to this definition"></a></dt>
+<dd><p>List all saved drafts from <cite>account</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>account</strong> (<em>str</em>) – requested account</p>
+</dd>
+</dl>
+<p>Sample output:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="s1">&#39;jsonrpc&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;2.0&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;id&#39;</span><span class="o">:</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;result&#39;</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;draft-title&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;body&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;draft-body&#39;</span><span class="p">,</span>
+<span class="w">         </span><span class="s1">&#39;uuid&#39;</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;06497e1e-ac30-48cb-a069-27e1672924c9&#39;</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.prehash_message">
+<span class="sig-name descname"><span class="pre">prehash_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonce</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.prehash_message" title="Link to this definition"></a></dt>
+<dd><p>Prepare a hash for the Conveyor API request with SHA256 according
+to <a class="reference external" href="https://github.com/steemit/rpc-auth">https://github.com/steemit/rpc-auth</a>
+Hashing of <cite>second</cite> is then done inside <cite>ecdsasig.sign_message()</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> (<em>str</em>) – valid iso8601 datetime ending in “Z”</p></li>
+<li><p><strong>account</strong> (<em>str</em>) – valid steem blockchain account name</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Conveyor method name to be called</p></li>
+<li><p><strong>param</strong> (<em>bytes</em>) – base64 encoded request parameters</p></li>
+<li><p><strong>nonce</strong> (<em>bytes</em>) – random 8 bytes</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.remove_draft">
+<span class="sig-name descname"><span class="pre">remove_draft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uuid</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.remove_draft" title="Link to this definition"></a></dt>
+<dd><p>Remove a draft from the Conveyor database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>uuid</strong> (<em>str</em>) – draft identifier as returned from
+<cite>list_drafts</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.save_draft">
+<span class="sig-name descname"><span class="pre">save_draft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.save_draft" title="Link to this definition"></a></dt>
+<dd><p>Save a draft in the Conveyor database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>title</strong> (<em>str</em>) – draft post title</p></li>
+<li><p><strong>body</strong> (<em>str</em>) – draft post body</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.conveyor.Conveyor.set_user_data">
+<span class="sig-name descname"><span class="pre">set_user_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signing_account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.conveyor.Conveyor.set_user_data" title="Link to this definition"></a></dt>
+<dd><p>Set the account’s email address and phone number. The request has to be
+signed by an admin account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<em>str</em>) – requested account</p></li>
+<li><p><strong>param</strong> (<em>dict</em>) – user data to be set</p></li>
+<li><p><strong>signing_account</strong> (<em>str</em>) – (optional) account to sign the
+request. If unset, <cite>account</cite> is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.conveyor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Conveyor</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;5JADMINPOSTINGKEY&quot;</span><span class="p">])</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Conveyor</span><span class="p">(</span><span class="n">blockchain_instance</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+<span class="n">userdata</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;email&#39;</span><span class="p">:</span> <span class="s1">&#39;foo@bar.com&#39;</span><span class="p">,</span> <span class="s1">&#39;phone&#39;</span><span class="p">:</span><span class="s1">&#39;+123456789&#39;</span><span class="p">}</span>
+<span class="n">c</span><span class="o">.</span><span class="n">set_user_data</span><span class="p">(</span><span class="s1">&#39;accountname&#39;</span><span class="p">,</span> <span class="n">userdata</span><span class="p">,</span> <span class="s1">&#39;adminaccountname&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectar.community.html" class="btn btn-neutral float-left" title="nectar.community" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectar.discussions.html" class="btn btn-neutral float-right" title="nectar.discussions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

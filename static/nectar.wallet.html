@@ -1,0 +1,523 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectar.wallet &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectar.witness" href="nectar.witness.html" />
+    <link rel="prev" title="nectar.vote" href="nectar.vote.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectar.account.html">nectar.account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.amount.html">nectar.amount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asciichart.html">nectar.asciichart</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.asset.html">nectar.asset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.block.html">nectar.block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchain.html">nectar.blockchain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchainobject.html">nectar.blockchainobject</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.blockchaininstance.html">nectar.blockchaininstance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.comment.html">nectar.comment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.community.html">nectar.community</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.conveyor.html">nectar.conveyor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.discussions.html">nectar.discussions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.exceptions.html">nectar.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hive.html">nectar.hive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.hivesigner.html">nectar.hivesigner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.imageuploader.html">nectar.imageuploader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.instance.html">nectar.instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.market.html">nectar.market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.memo.html">nectar.memo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.message.html">nectar.message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.nodelist.html">nectar.nodelist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.price.html">nectar.price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.rc.html">nectar.rc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.snapshot.html">nectar.snapshot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.steem.html">nectar.steem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.storage.html">nectar.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.transactionbuilder.html">nectar.transactionbuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.utils.html">nectar.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.vote.html">nectar.vote</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectar.wallet</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectar.wallet.Wallet"><code class="docutils literal notranslate"><span class="pre">Wallet</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectar.witness.html">nectar.witness</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectar.wallet</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectar.wallet.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectar.wallet">
+<span id="nectar-wallet"></span><h1>nectar.wallet<a class="headerlink" href="#module-nectar.wallet" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectar.wallet.</span></span><span class="sig-name descname"><span class="pre">Wallet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blockchain_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The wallet is meant to maintain access to private keys for
+your accounts. It either uses manually provided private keys
+or uses a SQLite database managed by storage.py.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rpc</strong> (<em>SteemNodeRPC</em>) – RPC connection to a Steem node</p></li>
+<li><p><strong>keys</strong> (<em>array</em><em>, </em><em>dict</em><em>, </em><em>str</em>) – Predefine the wif keys to shortcut the
+wallet database</p></li>
+</ul>
+</dd>
+</dl>
+<p>Three wallet operation modes are possible:</p>
+<ul class="simple">
+<li><p><strong>Wallet Database</strong>: Here, nectar loads the keys from the
+locally stored wallet SQLite database (see <code class="docutils literal notranslate"><span class="pre">storage.py</span></code>).
+To use this mode, simply call <a class="reference internal" href="nectar.steem.html#nectar.steem.Steem" title="nectar.steem.Steem"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectar.steem.Steem</span></code></a> without the
+<code class="docutils literal notranslate"><span class="pre">keys</span></code> parameter</p></li>
+<li><p><strong>Providing Keys</strong>: Here, you can provide the keys for
+your accounts manually. All you need to do is add the wif
+keys for the accounts you want to use as a simple array
+using the <code class="docutils literal notranslate"><span class="pre">keys</span></code> parameter to <a class="reference internal" href="nectar.steem.html#nectar.steem.Steem" title="nectar.steem.Steem"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectar.steem.Steem</span></code></a>.</p></li>
+<li><p><strong>Force keys</strong>: This more is for advanced users and
+requires that you know what you are doing. Here, the
+<code class="docutils literal notranslate"><span class="pre">keys</span></code> parameter is a dictionary that overwrite the
+<code class="docutils literal notranslate"><span class="pre">active</span></code>, <code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">posting</span></code> or <code class="docutils literal notranslate"><span class="pre">memo</span></code> keys for
+any account. This mode is only used for <em>foreign</em>
+signatures!</p></li>
+</ul>
+<p>A new wallet can be created by using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">steem</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="n">steem</span><span class="o">.</span><span class="n">wallet</span><span class="o">.</span><span class="n">wipe</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">steem</span><span class="o">.</span><span class="n">wallet</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;supersecret-passphrase&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will raise <a class="reference internal" href="nectar.exceptions.html#nectar.exceptions.WalletExists" title="nectar.exceptions.WalletExists"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectar.exceptions.WalletExists</span></code></a> if you already have a wallet installed.</p>
+<p>The wallet can be unlocked for signing using</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">steem</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="n">steem</span><span class="o">.</span><span class="n">wallet</span><span class="o">.</span><span class="n">unlock</span><span class="p">(</span><span class="s2">&quot;supersecret-passphrase&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A private key can be added by using the
+<a class="reference internal" href="#nectar.wallet.Wallet.addPrivateKey" title="nectar.wallet.Wallet.addPrivateKey"><code class="xref py py-func docutils literal notranslate"><span class="pre">addPrivateKey()</span></code></a> method that is available
+<strong>after</strong> unlocking the wallet with the correct passphrase:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">steem</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="n">steem</span><span class="o">.</span><span class="n">wallet</span><span class="o">.</span><span class="n">unlock</span><span class="p">(</span><span class="s2">&quot;supersecret-passphrase&quot;</span><span class="p">)</span>
+<span class="n">steem</span><span class="o">.</span><span class="n">wallet</span><span class="o">.</span><span class="n">addPrivateKey</span><span class="p">(</span><span class="s2">&quot;5xxxxxxxxxxxxxxxxxxxx&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The private key has to be either in hexadecimal or in wallet
+import format (wif) (starting with a <code class="docutils literal notranslate"><span class="pre">5</span></code>).</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.addPrivateKey">
+<span class="sig-name descname"><span class="pre">addPrivateKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.addPrivateKey" title="Link to this definition"></a></dt>
+<dd><p>Add a private key to the wallet database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>wif</strong> (<em>str</em>) – Private key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.changePassphrase">
+<span class="sig-name descname"><span class="pre">changePassphrase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_pwd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.changePassphrase" title="Link to this definition"></a></dt>
+<dd><p>Change the passphrase for the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pwd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.create" title="Link to this definition"></a></dt>
+<dd><p>Alias for <a class="reference internal" href="#nectar.wallet.Wallet.newWallet" title="nectar.wallet.Wallet.newWallet"><code class="xref py py-func docutils literal notranslate"><span class="pre">newWallet()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pwd</strong> (<em>str</em>) – Passphrase for the created wallet</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.created">
+<span class="sig-name descname"><span class="pre">created</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.created" title="Link to this definition"></a></dt>
+<dd><p>Do we have a wallet database already?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAccount">
+<span class="sig-name descname"><span class="pre">getAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAccount" title="Link to this definition"></a></dt>
+<dd><p>Get the account data for a public key (first account found for this
+public key)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAccountFromPrivateKey">
+<span class="sig-name descname"><span class="pre">getAccountFromPrivateKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAccountFromPrivateKey" title="Link to this definition"></a></dt>
+<dd><p>Obtain account name from private key</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAccountFromPublicKey">
+<span class="sig-name descname"><span class="pre">getAccountFromPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAccountFromPublicKey" title="Link to this definition"></a></dt>
+<dd><p>Obtain the first account name from public key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>Note: this returns only the first account with the given key. To
+get all accounts associated with a given public key, use
+<a class="reference internal" href="#nectar.wallet.Wallet.getAccountsFromPublicKey" title="nectar.wallet.Wallet.getAccountsFromPublicKey"><code class="xref py py-func docutils literal notranslate"><span class="pre">getAccountsFromPublicKey()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAccounts">
+<span class="sig-name descname"><span class="pre">getAccounts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAccounts" title="Link to this definition"></a></dt>
+<dd><p>Return all accounts installed in the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAccountsFromPublicKey">
+<span class="sig-name descname"><span class="pre">getAccountsFromPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAccountsFromPublicKey" title="Link to this definition"></a></dt>
+<dd><p>Obtain all account names associated with a public key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getActiveKeyForAccount">
+<span class="sig-name descname"><span class="pre">getActiveKeyForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getActiveKeyForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain owner Active Key for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getActiveKeysForAccount">
+<span class="sig-name descname"><span class="pre">getActiveKeysForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getActiveKeysForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain list of all owner Active Keys for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getAllAccounts">
+<span class="sig-name descname"><span class="pre">getAllAccounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getAllAccounts" title="Link to this definition"></a></dt>
+<dd><p>Get the account data for a public key (all accounts found for this
+public key)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getKeyForAccount">
+<span class="sig-name descname"><span class="pre">getKeyForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getKeyForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain <cite>key_type</cite> Private Key for an account from the wallet database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Account name</p></li>
+<li><p><strong>key_type</strong> (<em>str</em>) – key type, has to be one of “owner”, “active”,
+“posting” or “memo”</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getKeyType">
+<span class="sig-name descname"><span class="pre">getKeyType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getKeyType" title="Link to this definition"></a></dt>
+<dd><p>Get key type</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>account</strong> (<a class="reference internal" href="nectar.account.html#nectar.account.Account" title="nectar.account.Account"><em>Account</em></a><em>, </em><em>dict</em>) – Account data</p></li>
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getKeysForAccount">
+<span class="sig-name descname"><span class="pre">getKeysForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getKeysForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain a List of <cite>key_type</cite> Private Keys for an account from the wallet database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Account name</p></li>
+<li><p><strong>key_type</strong> (<em>str</em>) – key type, has to be one of “owner”, “active”,
+“posting” or “memo”</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getMemoKeyForAccount">
+<span class="sig-name descname"><span class="pre">getMemoKeyForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getMemoKeyForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain owner Memo Key for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getOwnerKeyForAccount">
+<span class="sig-name descname"><span class="pre">getOwnerKeyForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getOwnerKeyForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain owner Private Key for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getOwnerKeysForAccount">
+<span class="sig-name descname"><span class="pre">getOwnerKeysForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getOwnerKeysForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain list of all owner Private Keys for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getPostingKeyForAccount">
+<span class="sig-name descname"><span class="pre">getPostingKeyForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getPostingKeyForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain owner Posting Key for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getPostingKeysForAccount">
+<span class="sig-name descname"><span class="pre">getPostingKeysForAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getPostingKeysForAccount" title="Link to this definition"></a></dt>
+<dd><p>Obtain list of all owner Posting Keys for an account from the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><p>Obtain the private key for a given public key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public Key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.getPublicKeys">
+<span class="sig-name descname"><span class="pre">getPublicKeys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.getPublicKeys" title="Link to this definition"></a></dt>
+<dd><p>Return all installed public keys
+:param bool current: If true, returns only keys for currently</p>
+<blockquote>
+<div><p>connected blockchain</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.is_encrypted">
+<span class="sig-name descname"><span class="pre">is_encrypted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.is_encrypted" title="Link to this definition"></a></dt>
+<dd><p>Is the key store encrypted?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.lock" title="Link to this definition"></a></dt>
+<dd><p>Lock the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.locked">
+<span class="sig-name descname"><span class="pre">locked</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.locked" title="Link to this definition"></a></dt>
+<dd><p>Is the wallet database locked?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.newWallet">
+<span class="sig-name descname"><span class="pre">newWallet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pwd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.newWallet" title="Link to this definition"></a></dt>
+<dd><p>Create a new wallet database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pwd</strong> (<em>str</em>) – Passphrase for the created wallet</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.prefix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prefix</span></span><a class="headerlink" href="#nectar.wallet.Wallet.prefix" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.privatekey">
+<span class="sig-name descname"><span class="pre">privatekey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.privatekey" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.publickey_from_wif">
+<span class="sig-name descname"><span class="pre">publickey_from_wif</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.publickey_from_wif" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.removeAccount">
+<span class="sig-name descname"><span class="pre">removeAccount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">account</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.removeAccount" title="Link to this definition"></a></dt>
+<dd><p>Remove all keys associated with a given account</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>account</strong> (<em>str</em>) – name of account to be removed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.removePrivateKeyFromPublicKey">
+<span class="sig-name descname"><span class="pre">removePrivateKeyFromPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.removePrivateKeyFromPublicKey" title="Link to this definition"></a></dt>
+<dd><p>Remove a key from the wallet database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.rpc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rpc</span></span><a class="headerlink" href="#nectar.wallet.Wallet.rpc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.setKeys">
+<span class="sig-name descname"><span class="pre">setKeys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loadkeys</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.setKeys" title="Link to this definition"></a></dt>
+<dd><p>This method is strictly only for in memory keys that are
+passed to Wallet with the <code class="docutils literal notranslate"><span class="pre">keys</span></code> argument</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.unlock">
+<span class="sig-name descname"><span class="pre">unlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pwd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.unlock" title="Link to this definition"></a></dt>
+<dd><p>Unlock the wallet database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.unlocked">
+<span class="sig-name descname"><span class="pre">unlocked</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.unlocked" title="Link to this definition"></a></dt>
+<dd><p>Is the wallet database unlocked?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectar.wallet.Wallet.wipe">
+<span class="sig-name descname"><span class="pre">wipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectar.wallet.Wallet.wipe" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectar.vote.html" class="btn btn-neutral float-left" title="nectar.vote" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectar.witness.html" class="btn btn-neutral float-right" title="nectar.witness" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

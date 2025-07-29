@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectarbase.objects &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectarbase.objecttypes" href="nectarbase.objecttypes.html" />
+    <link rel="prev" title="nectarbase.memo" href="nectarbase.memo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.memo.html">nectarbase.memo</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectarbase.objects</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Amount"><code class="docutils literal notranslate"><span class="pre">Amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Beneficiaries"><code class="docutils literal notranslate"><span class="pre">Beneficiaries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Beneficiary"><code class="docutils literal notranslate"><span class="pre">Beneficiary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.CommentOptionExtensions"><code class="docutils literal notranslate"><span class="pre">CommentOptionExtensions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.ExchangeRate"><code class="docutils literal notranslate"><span class="pre">ExchangeRate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Extension"><code class="docutils literal notranslate"><span class="pre">Extension</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Memo"><code class="docutils literal notranslate"><span class="pre">Memo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Operation"><code class="docutils literal notranslate"><span class="pre">Operation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Permission"><code class="docutils literal notranslate"><span class="pre">Permission</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.Price"><code class="docutils literal notranslate"><span class="pre">Price</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.UpdateProposalEndDate"><code class="docutils literal notranslate"><span class="pre">UpdateProposalEndDate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.UpdateProposalExtensions"><code class="docutils literal notranslate"><span class="pre">UpdateProposalExtensions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.WitnessProps"><code class="docutils literal notranslate"><span class="pre">WitnessProps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarbase.objects.value_to_decimal"><code class="docutils literal notranslate"><span class="pre">value_to_decimal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.objecttypes.html">nectarbase.objecttypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.operationids.html">nectarbase.operationids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.operations.html">nectarbase.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.signedtransactions.html">nectarbase.signedtransactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarbase.ledgertransactions.html">nectarbase.ledgertransactions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectarbase.objects</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectarbase.objects.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectarbase.objects">
+<span id="nectarbase-objects"></span><h1>nectarbase.objects<a class="headerlink" href="#module-nectarbase.objects" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Amount">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Amount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'STM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Amount" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Beneficiaries">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Beneficiaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Beneficiaries" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Beneficiary">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Beneficiary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Beneficiary" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.CommentOptionExtensions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">CommentOptionExtensions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.CommentOptionExtensions" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Static_variant</span></code></p>
+<p>Serialize Comment Payout Beneficiaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>beneficiaries</strong> (<em>list</em>) – A static_variant containing beneficiaries.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">{</span><span class="s1">&#39;beneficiaries&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s1">&#39;account&#39;</span><span class="p">:</span> <span class="s1">&#39;furion&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">}</span>
+    <span class="p">]}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.ExchangeRate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">ExchangeRate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.ExchangeRate" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Extension">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Extension" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Memo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Memo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Memo" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Operation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Operation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.Operation" title="nectargraphenebase.objects.Operation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Operation</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarbase.objects.Operation.getOperationNameForId">
+<span class="sig-name descname"><span class="pre">getOperationNameForId</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Operation.getOperationNameForId" title="Link to this definition"></a></dt>
+<dd><p>Convert an operation id into the corresponding string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarbase.objects.Operation.json">
+<span class="sig-name descname"><span class="pre">json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Operation.json" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarbase.objects.Operation.operations">
+<span class="sig-name descname"><span class="pre">operations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Operation.operations" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Permission">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Permission</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Permission" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.Price">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">Price</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.Price" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.UpdateProposalEndDate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">UpdateProposalEndDate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.UpdateProposalEndDate" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.UpdateProposalExtensions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">UpdateProposalExtensions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.UpdateProposalExtensions" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Static_variant</span></code></p>
+<p>Serialize Update proposal extensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>end_date</strong> – A static_variant containing the new end_date.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;value&#39;</span><span class="p">:</span>
+          <span class="p">{</span>
+            <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="s1">&#39;2021-04-05T13:39:48&#39;</span>
+          <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarbase.objects.WitnessProps">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">WitnessProps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.WitnessProps" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectargraphenebase.objects.html#nectargraphenebase.objects.GrapheneObject" title="nectargraphenebase.objects.GrapheneObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrapheneObject</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectarbase.objects.value_to_decimal">
+<span class="sig-prename descclassname"><span class="pre">nectarbase.objects.</span></span><span class="sig-name descname"><span class="pre">value_to_decimal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimal_places</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarbase.objects.value_to_decimal" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectarbase.memo.html" class="btn btn-neutral float-left" title="nectarbase.memo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectarbase.objecttypes.html" class="btn btn-neutral float-right" title="nectarbase.objecttypes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

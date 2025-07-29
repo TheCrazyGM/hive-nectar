@@ -1,0 +1,916 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Api Definitions &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Modules" href="modules.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Api Definitions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#condenser-api">condenser_api</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#broadcast-block">broadcast_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#broadcast-transaction">broadcast_transaction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#broadcast-transaction-synchronous">broadcast_transaction_synchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-account-bandwidth">get_account_bandwidth</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-account-count">get_account_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-account-history">get_account_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-account-reputations">get_account_reputations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-account-votes">get_account_votes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-active-votes">get_active_votes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-active-witnesses">get_active_witnesses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-block">get_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-block-header">get_block_header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-blog">get_blog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-blog-authors">get_blog_authors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-blog-entries">get_blog_entries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-chain-properties">get_chain_properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-comment-discussions-by-payout">get_comment_discussions_by_payout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-config">get_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-content">get_content</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-content-replies">get_content_replies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-conversion-requests">get_conversion_requests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-current-median-history-price">get_current_median_history_price</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-active">get_discussions_by_active</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-author-before-date">get_discussions_by_author_before_date</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-blog">get_discussions_by_blog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-cashout">get_discussions_by_cashout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-children">get_discussions_by_children</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-comments">get_discussions_by_comments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-created">get_discussions_by_created</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-feed">get_discussions_by_feed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-hot">get_discussions_by_hot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-promoted">get_discussions_by_promoted</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-trending">get_discussions_by_trending</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-discussions-by-votes">get_discussions_by_votes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-dynamic-global-properties">get_dynamic_global_properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-escrow">get_escrow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-expiring-vesting-delegations">get_expiring_vesting_delegations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-feed">get_feed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-feed-entries">get_feed_entries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-feed-history">get_feed_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-follow-count">get_follow_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-followers">get_followers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-following">get_following</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-hardfork-version">get_hardfork_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-key-references">get_key_references</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-market-history">get_market_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-market-history-buckets">get_market_history_buckets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-next-scheduled-hardfork">get_next_scheduled_hardfork</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-open-orders">get_open_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-ops-in-block">get_ops_in_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-order-book">get_order_book</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-owner-history">get_owner_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-post-discussions-by-payout">get_post_discussions_by_payout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-potential-signatures">get_potential_signatures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-reblogged-by">get_reblogged_by</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-recent-trades">get_recent_trades</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-recovery-request">get_recovery_request</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-replies-by-last-update">get_replies_by_last_update</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-required-signatures">get_required_signatures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-reward-fund">get_reward_fund</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-savings-withdraw-from">get_savings_withdraw_from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-savings-withdraw-to">get_savings_withdraw_to</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-state">get_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-tags-used-by-author">get_tags_used_by_author</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-ticker">get_ticker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-trade-history">get_trade_history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-transaction">get_transaction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-transaction-hex">get_transaction_hex</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-trending-tags">get_trending_tags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-version">get_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-vesting-delegations">get_vesting_delegations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-volume">get_volume</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-withdraw-routes">get_withdraw_routes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-witness-by-account">get_witness_by_account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-witness-count">get_witness_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-witness-schedule">get_witness_schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-witnesses">get_witnesses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-witnesses-by-vote">get_witnesses_by_vote</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lookup-account-names">lookup_account_names</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lookup-accounts">lookup_accounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lookup-witness-accounts">lookup_witness_accounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#verify-account-authority">verify_account_authority</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#verify-authority">verify_authority</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Api Definitions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/apidefinitions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-definitions">
+<h1>Api Definitions<a class="headerlink" href="#api-definitions" title="Link to this heading"></a></h1>
+<section id="condenser-api">
+<h2>condenser_api<a class="headerlink" href="#condenser-api" title="Link to this heading"></a></h2>
+<section id="broadcast-block">
+<h3>broadcast_block<a class="headerlink" href="#broadcast-block" title="Link to this heading"></a></h3>
+<p>not implemented</p>
+</section>
+<section id="broadcast-transaction">
+<h3>broadcast_transaction<a class="headerlink" href="#broadcast-transaction" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.transactionbuilder</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransactionBuilder</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">TransactionBuilder</span><span class="p">()</span>
+<span class="n">t</span><span class="o">.</span><span class="n">broadcast</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="broadcast-transaction-synchronous">
+<h3>broadcast_transaction_synchronous<a class="headerlink" href="#broadcast-transaction-synchronous" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.transactionbuilder</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransactionBuilder</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">TransactionBuilder</span><span class="p">()</span>
+<span class="n">t</span><span class="o">.</span><span class="n">broadcast</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="get-account-bandwidth">
+<h3>get_account_bandwidth<a class="headerlink" href="#get-account-bandwidth" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">account</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
+<span class="n">account</span><span class="o">.</span><span class="n">get_account_bandwidth</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="get-account-count">
+<h3>get_account_count<a class="headerlink" href="#get-account-count" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="n">b</span><span class="o">.</span><span class="n">get_account_count</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="get-account-history">
+<h3>get_account_history<a class="headerlink" href="#get-account-history" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;steemit&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_account_history</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-account-reputations">
+<h3>get_account_reputations<a class="headerlink" href="#get-account-reputations" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="n">get_account_reputations</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-account-votes">
+<h3>get_account_votes<a class="headerlink" href="#get-account-votes" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_account_votes</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-active-votes">
+<h3>get_active_votes<a class="headerlink" href="#get-active-votes" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.vote</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActiveVotes</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">ActiveVotes</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s2">&quot;authorperm&quot;</span><span class="p">])</span>
+<span class="n">a</span><span class="o">.</span><span class="n">printAsTable</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="get-active-witnesses">
+<h3>get_active_witnesses<a class="headerlink" href="#get-active-witnesses" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.witness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Witnesses</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Witnesses</span><span class="p">()</span>
+<span class="n">w</span><span class="o">.</span><span class="n">printAsTable</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="get-block">
+<h3>get_block<a class="headerlink" href="#get-block" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.block</span><span class="w"> </span><span class="kn">import</span> <span class="n">Block</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Block</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-block-header">
+<h3>get_block_header<a class="headerlink" href="#get-block-header" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.block</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlockHeader</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">BlockHeader</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-blog">
+<h3>get_blog<a class="headerlink" href="#get-blog" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_blog</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-blog-authors">
+<h3>get_blog_authors<a class="headerlink" href="#get-blog-authors" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_blog_authors</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-blog-entries">
+<h3>get_blog_entries<a class="headerlink" href="#get-blog-entries" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_blog_entries</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-chain-properties">
+<h3>get_chain_properties<a class="headerlink" href="#get-chain-properties" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_chain_properties</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-comment-discussions-by-payout">
+<h3>get_comment_discussions_by_payout<a class="headerlink" href="#get-comment-discussions-by-payout" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Comment_discussions_by_payout</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Comment_discussions_by_payout</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-config">
+<h3>get_config<a class="headerlink" href="#get-config" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_config</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-content">
+<h3>get_content<a class="headerlink" href="#get-content" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.comment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Comment</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Comment</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s2">&quot;authorperm&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-content-replies">
+<h3>get_content_replies<a class="headerlink" href="#get-content-replies" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.comment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Comment</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Comment</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s2">&quot;authorperm&quot;</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">get_replies</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-conversion-requests">
+<h3>get_conversion_requests<a class="headerlink" href="#get-conversion-requests" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_conversion_requests</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-current-median-history-price">
+<h3>get_current_median_history_price<a class="headerlink" href="#get-current-median-history-price" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_current_median_history</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-active">
+<h3>get_discussions_by_active<a class="headerlink" href="#get-discussions-by-active" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_active</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_active</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-author-before-date">
+<h3>get_discussions_by_author_before_date<a class="headerlink" href="#get-discussions-by-author-before-date" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_author_before_date</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_author_before_date</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;gtg&quot;</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-blog">
+<h3>get_discussions_by_blog<a class="headerlink" href="#get-discussions-by-blog" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_blog</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_blog</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-cashout">
+<h3>get_discussions_by_cashout<a class="headerlink" href="#get-discussions-by-cashout" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_cashout</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_cashout</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-children">
+<h3>get_discussions_by_children<a class="headerlink" href="#get-discussions-by-children" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_children</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_children</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-comments">
+<h3>get_discussions_by_comments<a class="headerlink" href="#get-discussions-by-comments" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_comments</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">start_author</span><span class="o">=</span><span class="s2">&quot;steemit&quot;</span><span class="p">,</span> <span class="n">start_permlink</span><span class="o">=</span><span class="s2">&quot;firstpost&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_comments</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-created">
+<h3>get_discussions_by_created<a class="headerlink" href="#get-discussions-by-created" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_created</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_created</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-feed">
+<h3>get_discussions_by_feed<a class="headerlink" href="#get-discussions-by-feed" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_feed</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;steem&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_feed</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-hot">
+<h3>get_discussions_by_hot<a class="headerlink" href="#get-discussions-by-hot" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_hot</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;steem&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_hot</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-promoted">
+<h3>get_discussions_by_promoted<a class="headerlink" href="#get-discussions-by-promoted" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_promoted</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;steem&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_promoted</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-trending">
+<h3>get_discussions_by_trending<a class="headerlink" href="#get-discussions-by-trending" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_trending</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;steem&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_trending</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-discussions-by-votes">
+<h3>get_discussions_by_votes<a class="headerlink" href="#get-discussions-by-votes" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Discussions_by_votes</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Discussions_by_votes</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-dynamic-global-properties">
+<h3>get_dynamic_global_properties<a class="headerlink" href="#get-dynamic-global-properties" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_dynamic_global_properties</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-escrow">
+<h3>get_escrow<a class="headerlink" href="#get-escrow" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_escrow</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-expiring-vesting-delegations">
+<h3>get_expiring_vesting_delegations<a class="headerlink" href="#get-expiring-vesting-delegations" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_expiring_vesting_delegations</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-feed">
+<h3>get_feed<a class="headerlink" href="#get-feed" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-feed-entries">
+<h3>get_feed_entries<a class="headerlink" href="#get-feed-entries" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed_entries</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-feed-history">
+<h3>get_feed_history<a class="headerlink" href="#get-feed-history" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_feed_history</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-follow-count">
+<h3>get_follow_count<a class="headerlink" href="#get-follow-count" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_follow_count</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-followers">
+<h3>get_followers<a class="headerlink" href="#get-followers" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_followers</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-following">
+<h3>get_following<a class="headerlink" href="#get-following" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_following</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-hardfork-version">
+<h3>get_hardfork_version<a class="headerlink" href="#get-hardfork-version" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_hardfork_properties</span><span class="p">()[</span><span class="s2">&quot;hf_version&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="get-key-references">
+<h3>get_key_references<a class="headerlink" href="#get-key-references" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.wallet</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wallet</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Wallet</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">getAccountFromPublicKey</span><span class="p">(</span><span class="n">acc</span><span class="p">[</span><span class="s2">&quot;posting&quot;</span><span class="p">][</span><span class="s2">&quot;key_auths&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-market-history">
+<h3>get_market_history<a class="headerlink" href="#get-market-history" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">market_history</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-market-history-buckets">
+<h3>get_market_history_buckets<a class="headerlink" href="#get-market-history-buckets" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">market_history_buckets</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-next-scheduled-hardfork">
+<h3>get_next_scheduled_hardfork<a class="headerlink" href="#get-next-scheduled-hardfork" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_hardfork_properties</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-open-orders">
+<h3>get_open_orders<a class="headerlink" href="#get-open-orders" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">accountopenorders</span><span class="p">(</span><span class="n">account</span><span class="o">=</span><span class="s2">&quot;gtg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-ops-in-block">
+<h3>get_ops_in_block<a class="headerlink" href="#get-ops-in-block" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.block</span><span class="w"> </span><span class="kn">import</span> <span class="n">Block</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Block</span><span class="p">(</span><span class="mf">2e6</span><span class="p">,</span> <span class="n">only_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-order-book">
+<h3>get_order_book<a class="headerlink" href="#get-order-book" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">orderbook</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-owner-history">
+<h3>get_owner_history<a class="headerlink" href="#get-owner-history" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_owner_history</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-post-discussions-by-payout">
+<h3>get_post_discussions_by_payout<a class="headerlink" href="#get-post-discussions-by-payout" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Post_discussions_by_payout</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Post_discussions_by_payout</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-potential-signatures">
+<h3>get_potential_signatures<a class="headerlink" href="#get-potential-signatures" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.transactionbuilder</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransactionBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_current_block</span><span class="p">()</span>
+<span class="n">trx</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;transactions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">TransactionBuilder</span><span class="p">(</span><span class="n">trx</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">get_potential_signatures</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-reblogged-by">
+<h3>get_reblogged_by<a class="headerlink" href="#get-reblogged-by" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.comment</span><span class="w"> </span><span class="kn">import</span> <span class="n">Comment</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="n">post</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_feed</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Comment</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s2">&quot;authorperm&quot;</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">get_reblogged_by</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-recent-trades">
+<h3>get_recent_trades<a class="headerlink" href="#get-recent-trades" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">recent_trades</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-recovery-request">
+<h3>get_recovery_request<a class="headerlink" href="#get-recovery-request" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_recovery_request</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-replies-by-last-update">
+<h3>get_replies_by_last_update<a class="headerlink" href="#get-replies-by-last-update" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Replies_by_last_update</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">start_author</span><span class="o">=</span><span class="s2">&quot;steemit&quot;</span><span class="p">,</span> <span class="n">start_permlink</span><span class="o">=</span><span class="s2">&quot;firstpost&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Replies_by_last_update</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-required-signatures">
+<h3>get_required_signatures<a class="headerlink" href="#get-required-signatures" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.transactionbuilder</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransactionBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_current_block</span><span class="p">()</span>
+<span class="n">trx</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;transactions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">TransactionBuilder</span><span class="p">(</span><span class="n">trx</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">get_required_signatures</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-reward-fund">
+<h3>get_reward_fund<a class="headerlink" href="#get-reward-fund" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_reward_funds</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-savings-withdraw-from">
+<h3>get_savings_withdraw_from<a class="headerlink" href="#get-savings-withdraw-from" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_savings_withdrawals</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">&quot;from&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-savings-withdraw-to">
+<h3>get_savings_withdraw_to<a class="headerlink" href="#get-savings-withdraw-to" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_savings_withdrawals</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">&quot;to&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-state">
+<h3>get_state<a class="headerlink" href="#get-state" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.comment</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecentByPath</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">RecentByPath</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;promoted&quot;</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-tags-used-by-author">
+<h3>get_tags_used_by_author<a class="headerlink" href="#get-tags-used-by-author" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_tags_used_by_author</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-ticker">
+<h3>get_ticker<a class="headerlink" href="#get-ticker" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">ticker</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-trade-history">
+<h3>get_trade_history<a class="headerlink" href="#get-trade-history" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">trade_history</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-transaction">
+<h3>get_transaction<a class="headerlink" href="#get-transaction" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">get_transaction</span><span class="p">(</span><span class="s2">&quot;6fde0190a97835ea6d9e651293e90c89911f933c&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-transaction-hex">
+<h3>get_transaction_hex<a class="headerlink" href="#get-transaction-hex" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_current_block</span><span class="p">()</span>
+<span class="n">trx</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;transactions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">get_transaction_hex</span><span class="p">(</span><span class="n">trx</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="get-trending-tags">
+<h3>get_trending_tags<a class="headerlink" href="#get-trending-tags" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.discussions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Trending_tags</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">start_tag</span><span class="o">=</span><span class="s2">&quot;steemit&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">Trending_tags</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-version">
+<h3>get_version<a class="headerlink" href="#get-version" title="Link to this heading"></a></h3>
+<p>not implemented</p>
+</section>
+<section id="get-vesting-delegations">
+<h3>get_vesting_delegations<a class="headerlink" href="#get-vesting-delegations" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_vesting_delegations</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-volume">
+<h3>get_volume<a class="headerlink" href="#get-volume" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.market</span><span class="w"> </span><span class="kn">import</span> <span class="n">Market</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Market</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">volume24h</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-withdraw-routes">
+<h3>get_withdraw_routes<a class="headerlink" href="#get-withdraw-routes" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">get_withdraw_routes</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-witness-by-account">
+<h3>get_witness_by_account<a class="headerlink" href="#get-witness-by-account" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.witness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Witness</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Witness</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-witness-count">
+<h3>get_witness_count<a class="headerlink" href="#get-witness-count" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.witness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Witnesses</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Witnesses</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">witness_count</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="get-witness-schedule">
+<h3>get_witness_schedule<a class="headerlink" href="#get-witness-schedule" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steem</span>
+<span class="n">stm</span> <span class="o">=</span> <span class="n">Steem</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">stm</span><span class="o">.</span><span class="n">get_witness_schedule</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="get-witnesses">
+<h3>get_witnesses<a class="headerlink" href="#get-witnesses" title="Link to this heading"></a></h3>
+<p>not implemented</p>
+</section>
+<section id="get-witnesses-by-vote">
+<h3>get_witnesses_by_vote<a class="headerlink" href="#get-witnesses-by-vote" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.witness</span><span class="w"> </span><span class="kn">import</span> <span class="n">WitnessesRankedByVote</span>
+<span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">WitnessesRankedByVote</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="lookup-account-names">
+<h3>lookup_account_names<a class="headerlink" href="#lookup-account-names" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">,</span> <span class="n">full</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="lookup-accounts">
+<h3>lookup_accounts<a class="headerlink" href="#lookup-accounts" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.account</span><span class="w"> </span><span class="kn">import</span> <span class="n">Account</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">Account</span><span class="p">(</span><span class="s2">&quot;gtg&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">acc</span><span class="o">.</span><span class="n">get_similar_account_names</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="lookup-witness-accounts">
+<h3>lookup_witness_accounts<a class="headerlink" href="#lookup-witness-accounts" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.witness</span><span class="w"> </span><span class="kn">import</span> <span class="n">ListWitnesses</span>
+<span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">ListWitnesses</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="verify-account-authority">
+<h3>verify_account_authority<a class="headerlink" href="#verify-account-authority" title="Link to this heading"></a></h3>
+<p>disabled and not implemented</p>
+</section>
+<section id="verify-authority">
+<h3>verify_authority<a class="headerlink" href="#verify-authority" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">nectar.transactionbuilder</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransactionBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nectar.blockchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blockchain</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Blockchain</span><span class="p">()</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_current_block</span><span class="p">()</span>
+<span class="n">trx</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;transactions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">TransactionBuilder</span><span class="p">(</span><span class="n">trx</span><span class="p">)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">verify_authority</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ok&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="Modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

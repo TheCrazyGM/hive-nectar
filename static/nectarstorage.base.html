@@ -1,0 +1,591 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectarstorage.base &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectarstorage.exceptions" href="nectarstorage.exceptions.html" />
+    <link rel="prev" title="nectargraphenebase.unsignedtransactions" href="nectargraphenebase.unsignedtransactions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectarstorage.base</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.InRamConfigurationStore"><code class="docutils literal notranslate"><span class="pre">InRamConfigurationStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.InRamEncryptedKeyStore"><code class="docutils literal notranslate"><span class="pre">InRamEncryptedKeyStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.InRamEncryptedTokenStore"><code class="docutils literal notranslate"><span class="pre">InRamEncryptedTokenStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.InRamPlainKeyStore"><code class="docutils literal notranslate"><span class="pre">InRamPlainKeyStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.InRamPlainTokenStore"><code class="docutils literal notranslate"><span class="pre">InRamPlainTokenStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.KeyEncryption"><code class="docutils literal notranslate"><span class="pre">KeyEncryption</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.SqliteConfigurationStore"><code class="docutils literal notranslate"><span class="pre">SqliteConfigurationStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.SqliteEncryptedKeyStore"><code class="docutils literal notranslate"><span class="pre">SqliteEncryptedKeyStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.SqliteEncryptedTokenStore"><code class="docutils literal notranslate"><span class="pre">SqliteEncryptedTokenStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.SqlitePlainKeyStore"><code class="docutils literal notranslate"><span class="pre">SqlitePlainKeyStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.SqlitePlainTokenStore"><code class="docutils literal notranslate"><span class="pre">SqlitePlainTokenStore</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectarstorage.base.TokenEncryption"><code class="docutils literal notranslate"><span class="pre">TokenEncryption</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectarstorage.exceptions.html">nectarstorage.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarstorage.interfaces.html">nectarstorage.interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarstorage.masterpassword.html">nectarstorage.masterpassword</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarstorage.ram.html">nectarstorage.ram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectarstorage.sqlite.html">nectarstorage.sqlite</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectarstorage.base</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectarstorage.base.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectarstorage.base">
+<span id="nectarstorage-base"></span><h1>nectarstorage.base<a class="headerlink" href="#module-nectarstorage.base" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamConfigurationStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">InRamConfigurationStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamConfigurationStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">InRamStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.ConfigInterface" title="nectarstorage.interfaces.ConfigInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigInterface</span></code></a></p>
+<p>A simple example that stores configuration in RAM.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.ConfigInterface" title="nectarstorage.interfaces.ConfigInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.ConfigInterface</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamEncryptedKeyStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">InRamEncryptedKeyStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamEncryptedKeyStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">InRamStore</span></code></a>, <a class="reference internal" href="#nectarstorage.base.KeyEncryption" title="nectarstorage.base.KeyEncryption"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyEncryption</span></code></a></p>
+<p>An in-RAM Store that stores keys <strong>encrypted</strong> in RAM.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.KeyInterface</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module also inherits
+<a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.masterpassword.MasterPassword</span></code></a> which offers
+additional methods and deals with encrypting the keys.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamEncryptedTokenStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">InRamEncryptedTokenStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamEncryptedTokenStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">InRamStore</span></code></a>, <a class="reference internal" href="#nectarstorage.base.TokenEncryption" title="nectarstorage.base.TokenEncryption"><code class="xref py py-class docutils literal notranslate"><span class="pre">TokenEncryption</span></code></a></p>
+<p>An in-RAM Store that stores token <strong>encrypted</strong> in RAM.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.TokenInterface</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module also inherits
+<a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.masterpassword.MasterPassword</span></code></a> which offers
+additional methods and deals with encrypting the keys.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainKeyStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">InRamPlainKeyStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainKeyStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">InRamStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyInterface</span></code></a></p>
+<p>A simple in-RAM Store that stores keys unencrypted in RAM</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.KeyInterface</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainKeyStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainKeyStore.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainKeyStore.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainKeyStore.delete" title="Link to this definition"></a></dt>
+<dd><p>Delete a key from the store</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainKeyStore.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainKeyStore.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainKeyStore.getPublicKeys">
+<span class="sig-name descname"><span class="pre">getPublicKeys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainKeyStore.getPublicKeys" title="Link to this definition"></a></dt>
+<dd><p>Returns the public keys stored in the database</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainTokenStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">InRamPlainTokenStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainTokenStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">InRamStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">TokenInterface</span></code></a></p>
+<p>A simple in-RAM Store that stores token unencrypted in RAM</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.TokenInterface</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainTokenStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainTokenStore.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainTokenStore.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainTokenStore.delete" title="Link to this definition"></a></dt>
+<dd><p>Delete a key from the store</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainTokenStore.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainTokenStore.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.InRamPlainTokenStore.getPublicNames">
+<span class="sig-name descname"><span class="pre">getPublicNames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.InRamPlainTokenStore.getPublicNames" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.KeyEncryption">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">KeyEncryption</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.KeyEncryption" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">MasterPassword</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.EncryptedKeyInterface" title="nectarstorage.interfaces.EncryptedKeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">EncryptedKeyInterface</span></code></a></p>
+<p>This is an interface class that provides the methods required for
+EncryptedKeyInterface and links them to the MasterPassword-provided
+functionatlity, accordingly.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.KeyEncryption.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.KeyEncryption.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.KeyEncryption.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.KeyEncryption.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.KeyEncryption.getPublicKeys">
+<span class="sig-name descname"><span class="pre">getPublicKeys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.KeyEncryption.getPublicKeys" title="Link to this definition"></a></dt>
+<dd><p>Returns the public keys stored in the database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.KeyEncryption.is_encrypted">
+<span class="sig-name descname"><span class="pre">is_encrypted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.KeyEncryption.is_encrypted" title="Link to this definition"></a></dt>
+<dd><p>Returns True/False to indicate required use of unlock</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.SqliteConfigurationStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">SqliteConfigurationStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqliteConfigurationStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.ConfigInterface" title="nectarstorage.interfaces.ConfigInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigInterface</span></code></a></p>
+<p>This is the configuration storage that stores key/value
+pairs in the <cite>config</cite> table of the SQLite3 database.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.sqlite.SQLiteStore</span></code></a>. The interface is defined
+in <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.ConfigInterface" title="nectarstorage.interfaces.ConfigInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.ConfigInterface</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.SqliteEncryptedKeyStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">SqliteEncryptedKeyStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqliteEncryptedKeyStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteStore</span></code></a>, <a class="reference internal" href="#nectarstorage.base.KeyEncryption" title="nectarstorage.base.KeyEncryption"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyEncryption</span></code></a></p>
+<p>This is the key storage that stores the public key and the
+<strong>encrypted</strong> private key in the <cite>keys</cite> table in the SQLite3 database.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.KeyInterface</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module also inherits
+<a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.masterpassword.MasterPassword</span></code></a> which offers
+additional methods and deals with encrypting the keys.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.SqliteEncryptedTokenStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">SqliteEncryptedTokenStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqliteEncryptedTokenStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteStore</span></code></a>, <a class="reference internal" href="#nectarstorage.base.TokenEncryption" title="nectarstorage.base.TokenEncryption"><code class="xref py py-class docutils literal notranslate"><span class="pre">TokenEncryption</span></code></a></p>
+<p>This is the key storage that stores the account name and the
+<strong>encrypted</strong> token in the <cite>token</cite> table in the SQLite3 database.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.TokenInterface</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module also inherits
+<a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.masterpassword.MasterPassword</span></code></a> which offers
+additional methods and deals with encrypting the token.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">SqlitePlainKeyStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyInterface</span></code></a></p>
+<p>This is the key storage that stores the public key and the
+<strong>unencrypted</strong> private key in the <cite>keys</cite> table in the SQLite3
+database.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.KeyInterface" title="nectarstorage.interfaces.KeyInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.KeyInterface</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore.delete" title="Link to this definition"></a></dt>
+<dd><p>Delete a key from the store</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – Value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore.getPublicKeys">
+<span class="sig-name descname"><span class="pre">getPublicKeys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore.getPublicKeys" title="Link to this definition"></a></dt>
+<dd><p>Returns the public keys stored in the database</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainKeyStore.is_encrypted">
+<span class="sig-name descname"><span class="pre">is_encrypted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainKeyStore.is_encrypted" title="Link to this definition"></a></dt>
+<dd><p>Returns False, as we are not encrypted here</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">SqlitePlainTokenStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.sqlite.html#nectarstorage.sqlite.SQLiteStore" title="nectarstorage.sqlite.SQLiteStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteStore</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">TokenInterface</span></code></a></p>
+<p>This is the token storage that stores the public key and the
+<strong>unencrypted</strong> private key in the <cite>tokens</cite> table in the SQLite3
+database.</p>
+<p>Internally, this works by simply inheriting
+<a class="reference internal" href="nectarstorage.ram.html#nectarstorage.ram.InRamStore" title="nectarstorage.ram.InRamStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.ram.InRamStore</span></code></a>. The interface is defined in
+<a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.TokenInterface" title="nectarstorage.interfaces.TokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">nectarstorage.interfaces.TokenInterface</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.delete">
+<span class="sig-name descname"><span class="pre">delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.delete" title="Link to this definition"></a></dt>
+<dd><p>Delete a key from the store</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – Value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.getPublicNames">
+<span class="sig-name descname"><span class="pre">getPublicNames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.getPublicNames" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.is_encrypted">
+<span class="sig-name descname"><span class="pre">is_encrypted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.is_encrypted" title="Link to this definition"></a></dt>
+<dd><p>Returns False, as we are not encrypted here</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.SqlitePlainTokenStore.updateToken">
+<span class="sig-name descname"><span class="pre">updateToken</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.SqlitePlainTokenStore.updateToken" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectarstorage.base.</span></span><span class="sig-name descname"><span class="pre">TokenEncryption</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="nectarstorage.masterpassword.html#nectarstorage.masterpassword.MasterPassword" title="nectarstorage.masterpassword.MasterPassword"><code class="xref py py-class docutils literal notranslate"><span class="pre">MasterPassword</span></code></a>, <a class="reference internal" href="nectarstorage.interfaces.html#nectarstorage.interfaces.EncryptedTokenInterface" title="nectarstorage.interfaces.EncryptedTokenInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">EncryptedTokenInterface</span></code></a></p>
+<p>This is an interface class that provides the methods required for
+EncryptedTokenInterface and links them to the MasterPassword-provided
+functionatlity, accordingly.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption.add" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Add a new public/private key pair (correspondence has to be</dt><dd><p>checked elsewhere!)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pub</strong> (<em>str</em>) – Public key</p></li>
+<li><p><strong>wif</strong> (<em>str</em>) – Private key</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption.getPrivateKeyForPublicKey">
+<span class="sig-name descname"><span class="pre">getPrivateKeyForPublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption.getPrivateKeyForPublicKey" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Returns the (possibly encrypted) private key that</dt><dd><p>corresponds to a public key</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub</strong> (<em>str</em>) – Public key</p>
+</dd>
+</dl>
+<p>The encryption scheme is BIP38</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption.getPublicNames">
+<span class="sig-name descname"><span class="pre">getPublicNames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption.getPublicNames" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption.is_encrypted">
+<span class="sig-name descname"><span class="pre">is_encrypted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption.is_encrypted" title="Link to this definition"></a></dt>
+<dd><p>Returns True/False to indicate required use of unlock</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectarstorage.base.TokenEncryption.updateToken">
+<span class="sig-name descname"><span class="pre">updateToken</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectarstorage.base.TokenEncryption.updateToken" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectargraphenebase.unsignedtransactions.html" class="btn btn-neutral float-left" title="nectargraphenebase.unsignedtransactions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectarstorage.exceptions.html" class="btn btn-neutral float-right" title="nectarstorage.exceptions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

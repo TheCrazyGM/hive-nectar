@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nectargraphenebase.bip32 &mdash; nectar 0.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/nectar-icon_bw.png"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=0c446633"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="nectargraphenebase.bip38" href="nectargraphenebase.bip38.html" />
+    <link rel="prev" title="nectargraphenebase.base58" href="nectargraphenebase.base58.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            nectar
+              <img src="_static/nectar-logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">hive-nectar CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidefinitions.html">Api Definitions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Modules</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectar-modules">nectar Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarapi-modules">nectarapi Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarbase-modules">nectarbase Modules</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="modules.html#nectargraphenebase-modules">nectargraphenebase Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.account.html">nectargraphenebase.account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.aes.html">nectargraphenebase.aes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.base58.html">nectargraphenebase.base58</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nectargraphenebase.bip32</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.bip32.BIP32Key"><code class="docutils literal notranslate"><span class="pre">BIP32Key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.bip32.int_to_hex"><code class="docutils literal notranslate"><span class="pre">int_to_hex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.bip32.parse_path"><code class="docutils literal notranslate"><span class="pre">parse_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nectargraphenebase.bip32.test"><code class="docutils literal notranslate"><span class="pre">test()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.bip38.html">nectargraphenebase.bip38</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.ecdsasig.html">nectargraphenebase.ecdsasig</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.objects.html">nectargraphenebase.objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.objecttypes.html">nectargraphenebase.objecttypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.operations.html">nectargraphenebase.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.signedtransactions.html">nectargraphenebase.signedtransactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nectargraphenebase.unsignedtransactions.html">nectargraphenebase.unsignedtransactions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules.html#nectarstorage-modules">nectarstorage Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contributing to nectar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support and Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and Tables</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">nectar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Modules</a></li>
+      <li class="breadcrumb-item active">nectargraphenebase.bip32</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nectargraphenebase.bip32.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-nectargraphenebase.bip32">
+<span id="nectargraphenebase-bip32"></span><h1>nectargraphenebase.bip32<a class="headerlink" href="#module-nectargraphenebase.bip32" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nectargraphenebase.bip32.</span></span><span class="sig-name descname"><span class="pre">BIP32Key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">secret</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">testnet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.Address">
+<span class="sig-name descname"><span class="pre">Address</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.Address" title="Link to this definition"></a></dt>
+<dd><p>Return compressed public key address</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.CKDpriv">
+<span class="sig-name descname"><span class="pre">CKDpriv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.CKDpriv" title="Link to this definition"></a></dt>
+<dd><p>Create a child key of index ‘i’.</p>
+<p>If the most significant bit of ‘i’ is set, then select from the
+hardened key set, otherwise, select a regular child key.</p>
+<p>Returns a BIP32Key constructed with the child key parameters,
+or None if i index would result in an invalid key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.CKDpub">
+<span class="sig-name descname"><span class="pre">CKDpub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.CKDpub" title="Link to this definition"></a></dt>
+<dd><p>Create a publicly derived child key of index ‘i’.</p>
+<p>If the most significant bit of ‘i’ is set, this is
+an error.</p>
+<p>Returns a BIP32Key constructed with the child key parameters,
+or None if index would result in invalid key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.ChainCode">
+<span class="sig-name descname"><span class="pre">ChainCode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.ChainCode" title="Link to this definition"></a></dt>
+<dd><p>Return chain code as string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.ChildKey">
+<span class="sig-name descname"><span class="pre">ChildKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.ChildKey" title="Link to this definition"></a></dt>
+<dd><p>Create and return a child key of this one at index ‘i’.</p>
+<p>The index ‘i’ should be summed with BIP32_HARDEN to indicate
+to use the private derivation algorithm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.ExtendedKey">
+<span class="sig-name descname"><span class="pre">ExtendedKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">private</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.ExtendedKey" title="Link to this definition"></a></dt>
+<dd><p>Return extended private or public key as string, optionally base58 encoded</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.Fingerprint">
+<span class="sig-name descname"><span class="pre">Fingerprint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.Fingerprint" title="Link to this definition"></a></dt>
+<dd><p>Return key fingerprint as string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.Identifier">
+<span class="sig-name descname"><span class="pre">Identifier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.Identifier" title="Link to this definition"></a></dt>
+<dd><p>Return key identifier as string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.P2WPKHoP2SHAddress">
+<span class="sig-name descname"><span class="pre">P2WPKHoP2SHAddress</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.P2WPKHoP2SHAddress" title="Link to this definition"></a></dt>
+<dd><p>Return P2WPKH over P2SH segwit address</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.PrivateKey">
+<span class="sig-name descname"><span class="pre">PrivateKey</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.PrivateKey" title="Link to this definition"></a></dt>
+<dd><p>Return private key as string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.PublicKey">
+<span class="sig-name descname"><span class="pre">PublicKey</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.PublicKey" title="Link to this definition"></a></dt>
+<dd><p>Return compressed public key encoding</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.SetPublic">
+<span class="sig-name descname"><span class="pre">SetPublic</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.SetPublic" title="Link to this definition"></a></dt>
+<dd><p>Convert a private BIP32Key into a public one</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.WalletImportFormat">
+<span class="sig-name descname"><span class="pre">WalletImportFormat</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.WalletImportFormat" title="Link to this definition"></a></dt>
+<dd><p>Returns private key encoded for wallet import</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.dump">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.dump" title="Link to this definition"></a></dt>
+<dd><p>Dump key fields mimicking the BIP0032 test vector format</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.fromEntropy">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fromEntropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entropy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">testnet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.fromEntropy" title="Link to this definition"></a></dt>
+<dd><p>Create a BIP32Key using supplied entropy &gt;= MIN_ENTROPY_LEN</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.fromExtendedKey">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fromExtendedKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xkey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.fromExtendedKey" title="Link to this definition"></a></dt>
+<dd><p>Create a BIP32Key by importing from extended private or public key string</p>
+<p>If public is True, return a public-only key regardless of input type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.BIP32Key.hmac">
+<span class="sig-name descname"><span class="pre">hmac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.BIP32Key.hmac" title="Link to this definition"></a></dt>
+<dd><p>Calculate the HMAC-SHA512 of input data using the chain code as key.</p>
+<p>Returns a tuple of the left and right halves of the HMAC</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.int_to_hex">
+<span class="sig-prename descclassname"><span class="pre">nectargraphenebase.bip32.</span></span><span class="sig-name descname"><span class="pre">int_to_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.int_to_hex" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.parse_path">
+<span class="sig-prename descclassname"><span class="pre">nectargraphenebase.bip32.</span></span><span class="sig-name descname"><span class="pre">parse_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nstr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.parse_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nectargraphenebase.bip32.test">
+<span class="sig-prename descclassname"><span class="pre">nectargraphenebase.bip32.</span></span><span class="sig-name descname"><span class="pre">test</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nectargraphenebase.bip32.test" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nectargraphenebase.base58.html" class="btn btn-neutral float-left" title="nectargraphenebase.base58" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nectargraphenebase.bip38.html" class="btn btn-neutral float-right" title="nectargraphenebase.bip38" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
