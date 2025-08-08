@@ -1,7 +1,7 @@
-nectarstorage\.exceptions
-=========================
+nectarstorage.exceptions module
+===============================
 
 .. automodule:: nectarstorage.exceptions
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

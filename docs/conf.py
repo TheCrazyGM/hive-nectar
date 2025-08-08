@@ -52,7 +52,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "nectar"
+project = "hive-nectar"
 copyright = "2017, ChainSquad GmbH, 2018-2020, Holger Nahrstaedt, 2025, Michael Garcia"
 author = "Michael Garcia"
 
@@ -134,17 +134,17 @@ html_theme = "sphinx_rtd_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/nectar-logo.png"
+# html_logo = "_static/nectar-logo.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "_static/nectar-icon_bw.png"
+# html_favicon = "_static/nectar-icon_bw.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -226,7 +226,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "nectar.tex", "nectar Documentation", author, "manual"),
+    (master_doc, "nectar.tex", "hive-nectar Documentation", author, "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -254,7 +254,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "nectar", "nectar Documentation", [author], 1)]
+man_pages = [(master_doc, "hive-nectar", "hive-nectar Documentation", [author], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -268,10 +268,10 @@ man_pages = [(master_doc, "nectar", "nectar Documentation", [author], 1)]
 texinfo_documents = [
     (
         master_doc,
-        "nectar",
-        "nectar Documentation",
+        "hive-nectar",
+        "hive-nectar Documentation",
         author,
-        "nectar",
+        "hive-nectar",
         "python library for steem",
         "Miscellaneous",
     ),

@@ -1,7 +1,7 @@
-nectar\.account
-===============
+nectar.account module
+=====================
 
 .. automodule:: nectar.account
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

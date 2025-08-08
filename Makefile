@@ -62,7 +62,7 @@ test-dist: generate-versions
 	# python -m twine upload --repository testpypi dist/* --verbose
 
 docs:
-	# sphinx-apidoc -d 6 -e -f -o docs . *.py tests
+	sphinx-apidoc -d 4 -e -f -o docs ./src *.py tests
 	make -C docs clean html
 
 release: clean check dist tag git

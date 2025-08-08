@@ -1,7 +1,7 @@
-nectargraphenebase\.base58
-==========================
+nectargraphenebase.base58 module
+================================
 
 .. automodule:: nectargraphenebase.base58
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

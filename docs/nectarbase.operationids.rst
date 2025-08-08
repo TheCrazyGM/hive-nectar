@@ -1,8 +1,7 @@
-nectarbase\.operationids
-========================
+nectarbase.operationids module
+==============================
 
 .. automodule:: nectarbase.operationids
-    :members:
-    :noindex:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

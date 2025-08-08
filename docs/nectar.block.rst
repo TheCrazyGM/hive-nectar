@@ -1,7 +1,7 @@
-nectar\.block
-=============
+nectar.block module
+===================
 
 .. automodule:: nectar.block
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,7 +1,7 @@
-nectargraphenebase\.bip32
-=========================
+nectargraphenebase.bip32 module
+===============================
 
 .. automodule:: nectargraphenebase.bip32
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

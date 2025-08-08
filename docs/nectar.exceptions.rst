@@ -1,7 +1,7 @@
-nectar\.exceptions
-==================
+nectar.exceptions module
+========================
 
 .. automodule:: nectar.exceptions
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

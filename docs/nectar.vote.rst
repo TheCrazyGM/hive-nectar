@@ -1,7 +1,7 @@
-nectar\.vote
-============
+nectar.vote module
+==================
 
 .. automodule:: nectar.vote
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

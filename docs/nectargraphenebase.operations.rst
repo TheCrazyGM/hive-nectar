@@ -1,7 +1,7 @@
-nectargraphenebase\.operations
-==============================
+nectargraphenebase.operations module
+====================================
 
-.. automodule:: nectargraphenebase.operationids
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: nectargraphenebase.operations
+   :members:
+   :show-inheritance:
+   :undoc-members:

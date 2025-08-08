@@ -1,7 +1,7 @@
-nectarapi\.exceptions
-=====================
+nectarapi.exceptions module
+===========================
 
 .. automodule:: nectarapi.exceptions
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

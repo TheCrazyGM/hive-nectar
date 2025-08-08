@@ -1,7 +1,7 @@
-nectar\.snapshot
-================
+nectar.snapshot module
+======================
 
 .. automodule:: nectar.snapshot
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,7 +1,7 @@
-nectarstorage\.base
-===================
+nectarstorage.base module
+=========================
 
 .. automodule:: nectarstorage.base
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

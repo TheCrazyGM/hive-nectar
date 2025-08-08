@@ -1,7 +1,7 @@
-nectar\.amount
-==============
+nectar.amount module
+====================
 
 .. automodule:: nectar.amount
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

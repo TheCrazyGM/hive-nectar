@@ -1,7 +1,7 @@
-nectargraphenebase\.aes
-=======================
+nectargraphenebase.aes module
+=============================
 
 .. automodule:: nectargraphenebase.aes
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

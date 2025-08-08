@@ -1,7 +1,7 @@
-nectar\.transactionbuilder
-==========================
+nectar.transactionbuilder module
+================================
 
 .. automodule:: nectar.transactionbuilder
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

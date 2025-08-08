@@ -1,7 +1,7 @@
-nectar\.blockchainobject
-========================
+nectar.blockchainobject module
+==============================
 
 .. automodule:: nectar.blockchainobject
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

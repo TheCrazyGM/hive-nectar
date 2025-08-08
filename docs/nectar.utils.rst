@@ -1,7 +1,7 @@
-nectar\.utils
-=============
+nectar.utils module
+===================
 
 .. automodule:: nectar.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

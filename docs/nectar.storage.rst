@@ -1,7 +1,7 @@
-nectar\.storage
-===============
+nectar.storage module
+=====================
 
 .. automodule:: nectar.storage
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -9,11 +9,11 @@
    http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html
    http://rest-sphinx-memo.readthedocs.org/en/latest/ReST.html
 
-.. image:: _static/nectar-logo.svg
-   :width: 300 px
-   :alt: nectar
-   :align: center
-
+.. .. image:: _static/nectar-logo.svg
+..    :width: 300 px
+..    :alt: nectar
+..    :align: center
+..
 Welcome to nectar's documentation!
 ==================================
 

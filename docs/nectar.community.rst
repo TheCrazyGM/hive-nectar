@@ -1,7 +1,7 @@
-nectar\.community
-=================
+nectar.community module
+=======================
 
 .. automodule:: nectar.community
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

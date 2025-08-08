@@ -1,7 +1,7 @@
-nectar\.comment
-===============
+nectar.comment module
+=====================
 
 .. automodule:: nectar.comment
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

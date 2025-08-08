@@ -1,7 +1,7 @@
-nectarbase\.ledgertransactions
-==============================
+nectarbase.ledgertransactions module
+====================================
 
 .. automodule:: nectarbase.ledgertransactions
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

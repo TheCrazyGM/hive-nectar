@@ -1,7 +1,7 @@
-nectar\.rc
-==========
+nectar.rc module
+================
 
 .. automodule:: nectar.rc
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

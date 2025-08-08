@@ -1,7 +1,7 @@
-nectarstorage\.sqlite
-=====================
+nectarstorage.sqlite module
+===========================
 
 .. automodule:: nectarstorage.sqlite
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

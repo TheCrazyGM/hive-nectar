@@ -1,7 +1,7 @@
-nectar\.blockchain
-==================
+nectar.blockchain module
+========================
 
 .. automodule:: nectar.blockchain
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,7 +1,7 @@
-nectar\.price
-=============
+nectar.price module
+===================
 
 .. automodule:: nectar.price
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

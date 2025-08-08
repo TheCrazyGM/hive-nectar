@@ -1,7 +1,7 @@
-nectar\.memo
-============
+nectar.memo module
+==================
 
 .. automodule:: nectar.memo
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

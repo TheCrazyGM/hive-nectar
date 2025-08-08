@@ -1,7 +1,7 @@
-nectargraphenebase\.objecttypes
-===============================
+nectargraphenebase.objecttypes module
+=====================================
 
 .. automodule:: nectargraphenebase.objecttypes
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

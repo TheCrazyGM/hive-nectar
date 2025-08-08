@@ -1,7 +1,7 @@
-nectar\.hivesigner
-==================
+nectar.hivesigner module
+========================
 
 .. automodule:: nectar.hivesigner
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

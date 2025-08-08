@@ -1,7 +1,7 @@
-nectar\.hive
-============
+nectar.hive module
+==================
 
 .. automodule:: nectar.hive
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

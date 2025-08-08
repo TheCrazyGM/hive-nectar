@@ -1,7 +1,7 @@
-nectar\.asciichart
-==================
+nectar.asciichart module
+========================
 
 .. automodule:: nectar.asciichart
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

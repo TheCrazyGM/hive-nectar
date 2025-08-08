@@ -1,7 +1,7 @@
-nectargraphenebase\.account
-===========================
+nectargraphenebase.account module
+=================================
 
 .. automodule:: nectargraphenebase.account
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

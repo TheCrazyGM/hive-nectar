@@ -1,7 +1,7 @@
-nectar\.blockchaininstance
-==========================
+nectar.blockchaininstance module
+================================
 
 .. automodule:: nectar.blockchaininstance
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

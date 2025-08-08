@@ -1,7 +1,7 @@
-nectarapi\.noderpc
-==================
+nectarapi.noderpc module
+========================
 
 .. automodule:: nectarapi.noderpc
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

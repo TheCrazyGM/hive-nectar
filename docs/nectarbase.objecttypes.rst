@@ -1,7 +1,7 @@
-nectarbase\.objecttypes
-=======================
+nectarbase.objecttypes module
+=============================
 
 .. automodule:: nectarbase.objecttypes
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

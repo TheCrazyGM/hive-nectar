@@ -1,7 +1,7 @@
-nectarbase\.objects
-===================
+nectarbase.objects module
+=========================
 
 .. automodule:: nectarbase.objects
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

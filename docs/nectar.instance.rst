@@ -1,7 +1,7 @@
-nectar\.instance
-================
+nectar.instance module
+======================
 
 .. automodule:: nectar.instance
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

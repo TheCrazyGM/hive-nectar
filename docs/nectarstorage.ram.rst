@@ -1,7 +1,7 @@
-nectarstorage\.ram
-==================
+nectarstorage.ram module
+========================
 
 .. automodule:: nectarstorage.ram
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

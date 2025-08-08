@@ -1,7 +1,7 @@
-nectar\.message
-===============
+nectar.message module
+=====================
 
 .. automodule:: nectar.message
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,7 +1,7 @@
-nectar\.market
-==============
+nectar.market module
+====================
 
 .. automodule:: nectar.market
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

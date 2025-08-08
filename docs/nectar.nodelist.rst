@@ -1,7 +1,7 @@
-nectar\.nodelist
-================
+nectar.nodelist module
+======================
 
 .. automodule:: nectar.nodelist
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

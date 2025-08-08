@@ -1,7 +1,7 @@
-nectargraphenebase\.bip38
-=========================
+nectargraphenebase.bip38 module
+===============================
 
 .. automodule:: nectargraphenebase.bip38
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

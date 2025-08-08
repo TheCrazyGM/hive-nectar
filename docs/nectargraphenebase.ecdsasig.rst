@@ -1,7 +1,7 @@
-nectargraphenebase\.ecdsasig
-============================
+nectargraphenebase.ecdsasig module
+==================================
 
 .. automodule:: nectargraphenebase.ecdsasig
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

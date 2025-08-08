@@ -1,7 +1,7 @@
-nectar\.asset
-=============
+nectar.asset module
+===================
 
 .. automodule:: nectar.asset
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

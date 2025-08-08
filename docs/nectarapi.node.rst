@@ -1,7 +1,7 @@
-nectarapi\.node
-===============
+nectarapi.node module
+=====================
 
 .. automodule:: nectarapi.node
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

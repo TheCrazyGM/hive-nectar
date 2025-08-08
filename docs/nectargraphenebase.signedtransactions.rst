@@ -1,7 +1,7 @@
-nectargraphenebase\.signedtransactions
-======================================
+nectargraphenebase.signedtransactions module
+============================================
 
 .. automodule:: nectargraphenebase.signedtransactions
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:
