@@ -34,7 +34,7 @@ class TransactionBuilder(dict):
     :param dict tx: transaction (Optional). If not set, the new transaction is created.
     :param int expiration: Delay in seconds until transactions are supposed
         to expire *(optional)* (default is 30)
-    :param Hive/Steem blockchain_instance: If not set, shared_blockchain_instance() is used
+    :param Hive blockchain_instance: If not set, shared_blockchain_instance() is used
 
     .. testcode::
 
@@ -53,11 +53,6 @@ class TransactionBuilder(dict):
     """
 
     def __init__(self, tx={}, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):
@@ -510,7 +505,7 @@ class TransactionBuilder(dict):
         return ret
 
     def broadcast(self, max_block_age=-1, trx_id=True):
-        """Broadcast a transaction to the steem network
+        """Broadcast a transaction to the Hive network
         Returns the signed transaction and clears itself
         after broadast
 
@@ -546,9 +541,7 @@ class TransactionBuilder(dict):
         # Broadcast
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.use_sc2:
-                ret = self.blockchain.steemconnect.broadcast(self["operations"])
-            elif self.blockchain.blocking and self._use_condenser_api:
+            if self.blockchain.blocking and self._use_condenser_api:
                 ret = self.blockchain.rpc.broadcast_transaction_synchronous(args, api=broadcast_api)
                 if "trx" in ret:
                     ret.update(**ret.get("trx"))

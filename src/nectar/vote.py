@@ -206,21 +206,13 @@ class Vote(BlockchainObject):
         return self["weight"]
 
     @property
-    def sbd(self):
-        return self.blockchain.rshares_to_sbd(int(self.get("rshares", 0)))
-
-    @property
     def hbd(self):
         return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
 
     @property
     def token_backed_dollar(self):
-        from nectar import Hive
-
-        if isinstance(self.blockchain, Hive):
-            return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
-        else:
-            return self.blockchain.rshares_to_sbd(int(self.get("rshares", 0)))
+        # Hive-only: always convert to HBD
+        return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
 
     @property
     def rshares(self):

@@ -462,7 +462,7 @@ class Blockchain(object):
             nodelist = self.blockchain.rpc.nodes.export_working_nodes()
             for i in range(thread_num - 1):
                 blockchain_instance.append(
-                    stm.Steem(
+                    stm.Hive(
                         node=nodelist,
                         num_retries=self.blockchain.rpc.num_retries,
                         num_retries_call=self.blockchain.rpc.num_retries_call,

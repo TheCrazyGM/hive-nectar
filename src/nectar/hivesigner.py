@@ -293,7 +293,7 @@ class HiveSigner(object):
                     'vote', {
                                 'voter': 'gandalf',
                                 'author': 'gtg',
-                                'permlink': 'steem-pressure-4-need-for-speed',
+                                'permlink': 'hive-pressure-4-need-for-speed',
                                 'weight': 10000
                             }
                 ]

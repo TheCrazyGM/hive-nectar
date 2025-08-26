@@ -15,11 +15,6 @@ from .instance import shared_blockchain_instance
 
 class RC(object):
     def __init__(self, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
     def get_tx_size(self, op):
@@ -146,7 +141,7 @@ class RC(object):
             from nectar.amount import Amount
             transfer_dict = {
                              "from": "foo", "to": "baar",
-                             "amount": Amount("111.110 STEEM"),
+                             "amount": Amount("111.110 HIVE"),
                              "memo": "Fooo"
                             }
 

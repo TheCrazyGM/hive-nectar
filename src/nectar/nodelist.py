@@ -206,7 +206,7 @@ class NodeList(list):
                 sorted_nodes.append({"url": node_list[i], "delay_ms": ping_times[i] * 1000})
         return sorted_nodes
 
-    def update_nodes(self, weights=None, blockchain_instance=None, **kwargs):
+    def update_nodes(self, weights=None, blockchain_instance=None):
         """Reads metadata from nectarflower and recalculates the nodes score
 
         :param list/dict weight: can be used to weight the different benchmarks
@@ -221,12 +221,7 @@ class NodeList(list):
             weights = {'block': 0.1, 'history': 0.1, 'apicall': 1, 'config': 1}
             nl.update_nodes(weights)
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
-        steem = blockchain_instance or shared_blockchain_instance()
+        bc = blockchain_instance or shared_blockchain_instance()
 
         metadata = None
         account = None
@@ -234,7 +229,7 @@ class NodeList(list):
         while metadata is None and cnt < 5:
             cnt += 1
             try:
-                account = Account("nectarflower", blockchain_instance=steem)
+                account = Account("nectarflower", blockchain_instance=bc)
                 # Metadata is stored in the account's json_metadata field (not posting_json_metadata)
                 raw_meta = account.get("json_metadata") or ""
                 try:
@@ -243,7 +238,7 @@ class NodeList(list):
                     metadata = None
             except Exception as e:
                 log.warning(f"Error fetching metadata (attempt {cnt}): {str(e)}")
-                steem.rpc.next()
+                bc.rpc.next()
                 account = None
                 metadata = None
 
@@ -483,13 +478,6 @@ class NodeList(list):
             node["url"] for node in sorted(node_list, key=lambda self: self["score"], reverse=True)
         ]
 
-    def get_steem_nodes(self, testnet=False, not_working=False, wss=True, https=True):
-        """DEPRECATED: Steem support has been removed. Returns empty list.
-
-        Kept for backward compatibility to avoid import/runtime errors in external code.
-        """
-        log.warning("get_steem_nodes() is deprecated: Hive-only build returns no Steem nodes.")
-        return []
 
     def get_testnet(self, testnet=True, testnetdev=False):
         """Returns testnet nodes"""

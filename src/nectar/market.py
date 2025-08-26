@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import random
-import warnings
 from datetime import datetime, timedelta, timezone
 
 from nectar.instance import shared_blockchain_instance
@@ -64,15 +63,10 @@ class Market(dict):
         """
         Init Market
 
-            :param nectar.steem.Steem blockchain_instance: Steem instance
+            :param nectar.hive.Hive blockchain_instance: Hive instance
             :param nectar.asset.Asset base: Base asset
             :param nectar.asset.Asset quote: Quote asset
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if quote is None and isinstance(base, str):
@@ -172,15 +166,9 @@ class Market(dict):
             blockchain_instance=self.blockchain,
         )
         data["percent_change"] = float(ticker["percent_change"])
-        if "sbd_volume" in ticker:
-            data["sbd_volume"] = Amount(ticker["sbd_volume"], blockchain_instance=self.blockchain)
-        elif "hbd_volume" in ticker:
+        if "hbd_volume" in ticker:
             data["hbd_volume"] = Amount(ticker["hbd_volume"], blockchain_instance=self.blockchain)
-        if "steem_volume" in ticker:
-            data["steem_volume"] = Amount(
-                ticker["steem_volume"], blockchain_instance=self.blockchain
-            )
-        elif "hive_volume" in ticker:
+        if "hive_volume" in ticker:
             data["hive_volume"] = Amount(ticker["hive_volume"], blockchain_instance=self.blockchain)
 
         return data
@@ -202,16 +190,7 @@ class Market(dict):
         volume = self.blockchain.rpc.get_volume(api="market_history")
         if raw_data:
             return volume
-        if "sbd_volume" in volume and "steem_volume" in volume:
-            return {
-                self["base"]["symbol"]: Amount(
-                    volume["sbd_volume"], blockchain_instance=self.blockchain
-                ),
-                self["quote"]["symbol"]: Amount(
-                    volume["steem_volume"], blockchain_instance=self.blockchain
-                ),
-            }
-        elif "hbd_volume" in volume and "hive_volume" in volume:
+        if "hbd_volume" in volume and "hive_volume" in volume:
             return {
                 self["base"]["symbol"]: Amount(
                     volume["hbd_volume"], blockchain_instance=self.blockchain
@@ -669,16 +648,16 @@ class Market(dict):
         :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
             the head/irreversible block and add the key "orderid" to the tx output
 
-        Prices/Rates are denoted in 'base', i.e. the SBD_STEEM market
-        is priced in STEEM per SBD.
+        Prices/Rates are denoted in 'base', i.e. the HBD_HIVE market
+        is priced in HIVE per HBD.
 
-        **Example:** in the SBD_STEEM market, a price of 300 means
-        a SBD is worth 300 STEEM
+        **Example:** in the HBD_HIVE market, a price of 3 means
+        an HBD is worth 3 HIVE
 
         .. note::
 
             All prices returned are in the **reversed** orientation as the
-            market. I.e. in the STEEM/SBD market, prices are SBD per STEEM.
+            market. I.e. in the HIVE/HBD market, prices are HBD per HIVE.
             That way you can multiply prices with `1.05` to get a +5%.
         """
         if not expiration:
@@ -842,25 +821,6 @@ class Market(dict):
         return Market._weighted_average(
             [x["price"] for x in prices.values()], [x["volume"] for x in prices.values()]
         )
-
-    @staticmethod
-    def steem_btc_ticker():
-        """DEPRECATED: Use :meth:`hive_btc_ticker`. Retained for backward compatibility."""
-        warnings.warn(
-            "steem_btc_ticker() is deprecated; use hive_btc_ticker()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return Market.hive_btc_ticker()
-
-    def steem_usd_implied(self):
-        """DEPRECATED: Use :meth:`hive_usd_implied`. Retained for backward compatibility."""
-        warnings.warn(
-            "steem_usd_implied() is deprecated; use hive_usd_implied()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.hive_usd_implied()
 
     @staticmethod
     def hive_btc_ticker():

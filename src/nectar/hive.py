@@ -59,7 +59,7 @@ class Hive(BlockChainInstance):
     * **Providing Keys**: Here, you can provide the keys for
       your accounts manually. All you need to do is add the wif
       keys for the accounts you want to use as a simple array
-      using the ``keys`` parameter to ``Steem()``.
+      using the ``keys`` parameter to ``Hive()``.
     * **Force keys**: This more is for advanced users and
       requires that you know what you are doing. Here, the
       ``keys`` parameter is a dictionary that overwrite the
@@ -96,7 +96,7 @@ class Hive(BlockChainInstance):
         from nectar import Hive
         stm = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
             {'chain_assets': [{'asset': 'HBD', 'id': 0, 'precision': 3, 'symbol': 'HBD'},
-                              {'asset': 'STEEM', 'id': 1, 'precision': 3, 'symbol': 'STEEM'},
+                              {'asset': 'HIVE', 'id': 1, 'precision': 3, 'symbol': 'HIVE'},
                               {'asset': 'VESTS', 'id': 2, 'precision': 6, 'symbol': 'VESTS'}],
              'chain_id': '79276aea5d4877d9a25892eaa01b0adf019d3e5cb12a97478df3298ccdd01674',
              'min_version': '0.0.0',

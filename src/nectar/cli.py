@@ -204,14 +204,14 @@ def unlock_wallet(stm, password=None, allow_wif=True):
         return True
 
 
-def unlock_token_wallet(stm, sc2, password=None):
+def unlock_token_wallet(stm, hs, password=None):
     if stm.unsigned and stm.nobroadcast:
         return True
     if stm.use_ledger:
         return True
-    if not sc2.locked():
+    if not hs.locked():
         return True
-    if not sc2.store.is_encrypted():
+    if not hs.store.is_encrypted():
         return True
     password_storage = stm.config["password_storage"]
     if not password and password_storage == "keyring" and is_keyring_available():
@@ -221,27 +221,27 @@ def unlock_token_wallet(stm, sc2, password=None):
     if not password and password_storage == "environment" and "UNLOCK" in os.environ:
         password = os.environ.get("UNLOCK")
     if bool(password):
-        sc2.unlock(password)
+        hs.unlock(password)
     else:
         password = click.prompt(
             "Password to unlock wallet", confirmation_prompt=False, hide_input=True
         )
         try:
-            sc2.unlock(password)
+            hs.unlock(password)
         except Exception:
             raise exceptions.WrongMasterPasswordException(
                 "entered password is not a valid password"
             )
 
-    if sc2.locked():
+    if hs.locked():
         if password_storage == "keyring" or password_storage == "environment":
             print("Wallet could not be unlocked with %s!" % password_storage)
             password = click.prompt(
                 "Password to unlock wallet", confirmation_prompt=False, hide_input=True
             )
             if bool(password):
-                unlock_token_wallet(stm, sc2, password=password)
-                if not sc2.locked():
+                unlock_token_wallet(stm, hs, password=password)
+                if not hs.locked():
                     return True
         else:
             print("Wallet could not be unlocked!")
@@ -362,9 +362,9 @@ def cli(
     if create_link:
         no_broadcast = True
         unsigned = True
-        sc2 = HiveSigner()
+        hs = HiveSigner()
     else:
-        sc2 = None
+        hs = None
     debug = verbose > 0
     # Hive-only instance
     stm = Hive(
@@ -376,7 +376,7 @@ def cli(
         unsigned=unsigned,
         use_hs=token,
         expiration=expires,
-        hivesigner=sc2,
+        hivesigner=hs,
         use_ledger=use_ledger,
         path=path,
         debug=debug,
@@ -1148,14 +1148,14 @@ def addtoken(name, unsafe_import_token):
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hs = HiveSigner(blockchain_instance=stm)
+    if not unlock_token_wallet(stm, hs):
         return
     if not unsafe_import_token:
         unsafe_import_token = click.prompt(
             "Enter private token", confirmation_prompt=False, hide_input=True
         )
-    sc2.addToken(name, unsafe_import_token)
+    hs.addToken(name, unsafe_import_token)
     set_shared_blockchain_instance(stm)
 
 
@@ -1179,10 +1179,10 @@ def deltoken(confirm, name):
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hs = HiveSigner(blockchain_instance=stm)
+    if not unlock_token_wallet(stm, hs):
         return
-    sc2.removeTokenFromPublicName(name)
+    hs.removeTokenFromPublicName(name)
     set_shared_blockchain_instance(stm)
 
 
@@ -1230,11 +1230,11 @@ def listtoken():
     stm = shared_blockchain_instance()
     t = PrettyTable(["name", "scope", "status"])
     t.align = "l"
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hs = HiveSigner(blockchain_instance=stm)
+    if not unlock_token_wallet(stm, hs):
         return
-    for name in sc2.getPublicNames():
-        ret = sc2.me(username=name)
+    for name in hs.getPublicNames():
+        ret = hs.me(username=name)
         if "error" in ret:
             t.add_row([name, "-", ret["error"]])
         else:

@@ -38,10 +38,10 @@ class AccountSnapshot(list):
         self.own_vests = [
             Amount(0, self.blockchain.vest_token_symbol, blockchain_instance=self.blockchain)
         ]
-        self.own_steem = [
+        self.own_hive = [
             Amount(0, self.blockchain.token_symbol, blockchain_instance=self.blockchain)
         ]
-        self.own_sbd = [
+        self.own_hbd = [
             Amount(0, self.blockchain.backed_token_symbol, blockchain_instance=self.blockchain)
         ]
         self.delegated_vests_in = [{}]
@@ -144,8 +144,8 @@ class AccountSnapshot(list):
         own = self.own_vests[index]
         din = self.delegated_vests_in[index]
         dout = self.delegated_vests_out[index]
-        steem = self.own_steem[index]
-        sbd = self.own_sbd[index]
+        hive = self.own_hive[index]
+        hbd = self.own_hbd[index]
         sum_in = sum([din[key].amount for key in din])
         sum_out = sum([dout[key].amount for key in dout])
         sp_in = self.blockchain.vests_to_hp(sum_in, timestamp=ts)
@@ -159,8 +159,8 @@ class AccountSnapshot(list):
             "delegated_vests_out": dout,
             "sp_own": sp_own,
             "sp_eff": sp_eff,
-            "steem": steem,
-            "sbd": sbd,
+            "hive": hive,
+            "hbd": hbd,
             "index": index,
         }
 
@@ -181,11 +181,11 @@ class AccountSnapshot(list):
             [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
         )
 
-    def update_rewards(self, timestamp, curation_reward, author_vests, author_steem, author_sbd):
+    def update_rewards(self, timestamp, curation_reward, author_vests, author_hive, author_hbd):
         self.reward_timestamps.append(timestamp)
         self.curation_rewards.append(curation_reward)
         self.author_rewards.append(
-            {"vests": author_vests, "steem": author_steem, "sbd": author_sbd}
+            {"vests": author_vests, "hive": author_hive, "hbd": author_hbd}
         )
 
     def update_out_vote(self, timestamp, weight):
@@ -204,7 +204,7 @@ class AccountSnapshot(list):
             print("Could not find: %s" % v)
             return
 
-    def update(self, timestamp, own, delegated_in=None, delegated_out=None, steem=0, sbd=0):
+    def update(self, timestamp, own, delegated_in=None, delegated_out=None, hive=0, hbd=0):
         """Updates the internal state arrays
 
         :param datetime timestamp: datetime of the update
@@ -212,23 +212,23 @@ class AccountSnapshot(list):
         :type own: amount.Amount, float
         :param dict delegated_in: Incoming delegation
         :param dict delegated_out: Outgoing delegation
-        :param steem: liquid token amount (e.g., HIVE)
-        :type steem: amount.Amount, float
-        :param sbd: backed token amount (e.g., HBD)
-        :type sbd: amount.Amount, float
+        :param hive: liquid token amount (HIVE)
+        :type hive: amount.Amount, float
+        :param hbd: backed token amount (HBD)
+        :type hbd: amount.Amount, float
 
         """
         self.timestamps.append(timestamp - timedelta(seconds=1))
         self.own_vests.append(self.own_vests[-1])
-        self.own_steem.append(self.own_steem[-1])
-        self.own_sbd.append(self.own_sbd[-1])
+        self.own_hive.append(self.own_hive[-1])
+        self.own_hbd.append(self.own_hbd[-1])
         self.delegated_vests_in.append(self.delegated_vests_in[-1])
         self.delegated_vests_out.append(self.delegated_vests_out[-1])
 
         self.timestamps.append(timestamp)
         self.own_vests.append(self.own_vests[-1] + own)
-        self.own_steem.append(self.own_steem[-1] + steem)
-        self.own_sbd.append(self.own_sbd[-1] + sbd)
+        self.own_hive.append(self.own_hive[-1] + hive)
+        self.own_hbd.append(self.own_hbd[-1] + hbd)
 
         new_deleg = dict(self.delegated_vests_in[-1])
         if delegated_in is not None and delegated_in:
@@ -300,19 +300,19 @@ class AccountSnapshot(list):
         ts = parse_time(op["timestamp"])
 
         if op["type"] == "account_create":
-            fee_steem = Amount(op["fee"], blockchain_instance=self.blockchain).amount
-            fee_vests = self.blockchain.sp_to_vests(
+            fee_hive = Amount(op["fee"], blockchain_instance=self.blockchain).amount
+            fee_vests = self.blockchain.hp_to_vests(
                 Amount(op["fee"], blockchain_instance=self.blockchain).amount, timestamp=ts
             )
             if op["new_account_name"] == self.account["name"]:
                 self.update(ts, fee_vests, 0, 0)
                 return
             if op["creator"] == self.account["name"]:
-                self.update(ts, 0, 0, 0, fee_steem * (-1), 0)
+                self.update(ts, 0, 0, 0, fee_hive * (-1), 0)
                 return
 
-        elif op["type"] == "account_create_with_delegation":
-            fee_steem = Amount(op["fee"], blockchain_instance=self.blockchain).amount
+        if op["type"] == "account_create_with_delegation":
+            fee_hive = Amount(op["fee"], blockchain_instance=self.blockchain).amount
             fee_vests = self.blockchain.hp_to_vests(
                 Amount(op["fee"], blockchain_instance=self.blockchain).amount, timestamp=ts
             )
@@ -332,7 +332,7 @@ class AccountSnapshot(list):
                     "account": op["new_account_name"],
                     "amount": Amount(op["delegation"], blockchain_instance=self.blockchain),
                 }
-                self.update(ts, 0, 0, delegation, fee_steem * (-1), 0)
+                self.update(ts, 0, 0, delegation, fee_hive * (-1), 0)
                 return
 
         elif op["type"] == "delegate_vesting_shares":
@@ -376,14 +376,14 @@ class AccountSnapshot(list):
             return
 
         elif op["type"] == "transfer_to_vesting":
-            steem = Amount(op["amount"], blockchain_instance=self.blockchain)
-            vests = self.blockchain.hp_to_vests(steem.amount, timestamp=ts)
+            hive_amt = Amount(op["amount"], blockchain_instance=self.blockchain)
+            vests = self.blockchain.hp_to_vests(hive_amt.amount, timestamp=ts)
             if op["from"] == self.account["name"] and op["to"] == self.account["name"]:
-                self.update(ts, vests, 0, 0, steem * (-1), 0)  # power up from and to given account
+                self.update(ts, vests, 0, 0, hive_amt * (-1), 0)  # power up from and to given account
             elif op["from"] != self.account["name"] and op["to"] == self.account["name"]:
                 self.update(ts, vests, 0, 0, 0, 0)  # power up from another account
             else:  # op['from'] == self.account["name"] and op['to'] != self.account["name"]
-                self.update(ts, 0, 0, 0, steem * (-1), 0)  # power up to another account
+                self.update(ts, 0, 0, 0, hive_amt * (-1), 0)  # power up to another account
             return
 
         elif op["type"] == "fill_vesting_withdraw":
@@ -401,9 +401,9 @@ class AccountSnapshot(list):
 
         elif op["type"] == "claim_reward_balance":
             vests = Amount(op["reward_vests"], blockchain_instance=self.blockchain)
-            steem = Amount(op["reward_steem"], blockchain_instance=self.blockchain)
-            sbd = Amount(op["reward_sbd"], blockchain_instance=self.blockchain)
-            self.update(ts, vests, 0, 0, steem, sbd)
+            hive = Amount(op["reward_hive"], blockchain_instance=self.blockchain)
+            hbd = Amount(op["reward_hbd"], blockchain_instance=self.blockchain)
+            self.update(ts, vests, 0, 0, hive, hbd)
             return
 
         elif op["type"] == "curation_reward":
@@ -418,12 +418,12 @@ class AccountSnapshot(list):
         elif op["type"] == "author_reward":
             if "author_reward" in only_ops or enable_rewards:
                 vests = Amount(op["vesting_payout"], blockchain_instance=self.blockchain)
-                steem = Amount(op["steem_payout"], blockchain_instance=self.blockchain)
-                sbd = Amount(op["sbd_payout"], blockchain_instance=self.blockchain)
+                hive = Amount(op["hive_payout"], blockchain_instance=self.blockchain)
+                hbd = Amount(op["hbd_payout"], blockchain_instance=self.blockchain)
             if "author_reward" in only_ops:
-                self.update(ts, vests, 0, 0, steem, sbd)
+                self.update(ts, vests, 0, 0, hive, hbd)
             if enable_rewards:
-                self.update_rewards(ts, 0, vests, steem, sbd)
+                self.update_rewards(ts, 0, vests, hive, hbd)
             return
 
         elif op["type"] == "producer_reward":
@@ -438,9 +438,9 @@ class AccountSnapshot(list):
                     self.update(ts, vests, 0, 0)
                 else:
                     vests = Amount(op["vesting_payout"], blockchain_instance=self.blockchain)
-                    steem = Amount(op["steem_payout"], blockchain_instance=self.blockchain)
-                    sbd = Amount(op["sbd_payout"], blockchain_instance=self.blockchain)
-                    self.update(ts, vests, 0, 0, steem, sbd)
+                    hive = Amount(op["hive_payout"], blockchain_instance=self.blockchain)
+                    hbd = Amount(op["hbd_payout"], blockchain_instance=self.blockchain)
+                    self.update(ts, vests, 0, 0, hive, hbd)
                 return
             else:
                 return
@@ -667,12 +667,7 @@ class AccountSnapshot(list):
         for ts, vests in zip(self.reward_timestamps, self.curation_rewards):
             if vests == 0:
                 continue
-            from nectar import Steem
-
-            if isinstance(self.blockchain, Steem):
-                sp = self.blockchain.vests_to_sp(vests, timestamp=ts)
-            else:
-                sp = self.blockchain.vests_to_hp(vests, timestamp=ts)
+            sp = self.blockchain.vests_to_hp(vests, timestamp=ts)
             data = self.get_data(timestamp=ts, index=index)
             index = data["index"]
             if "sp_eff" in data and data["sp_eff"] > 0:

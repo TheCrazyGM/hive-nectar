@@ -19,7 +19,7 @@ class Memo(object):
 
     :param Account from_account: Account that has sent the memo
     :param Account to_account: Account that has received the memo
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     A memo is encrypted with a shared secret derived from a private key of
     the sender and a public key of the receiver. Due to the underlying
@@ -51,7 +51,7 @@ class Memo(object):
 
     Memo Keys
 
-    In Steem, memos are AES-256 encrypted with a shared secret between sender and
+    In Hive, memos are AES-256 encrypted with a shared secret between sender and
     receiver. It is derived from the memo private key of the sender and the memo
     public key of the receiver.
 
@@ -136,11 +136,6 @@ class Memo(object):
     """
 
     def __init__(self, from_account=None, to_account=None, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if to_account and len(to_account) < 51:
