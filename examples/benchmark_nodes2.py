@@ -6,12 +6,12 @@ from timeit import default_timer as timer
 
 from prettytable import PrettyTable
 
+from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.comment import Comment
 from nectar.nodelist import NodeList
-from nectar.steem import Steem
 from nectar.utils import (
     construct_authorperm,
     parse_time,

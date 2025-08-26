@@ -22,7 +22,7 @@ class Wallet(object):
     your accounts. It either uses manually provided private keys
     or uses a SQLite database managed by storage.py.
 
-    :param SteemNodeRPC rpc: RPC connection to a Steem node
+    :param Rpc rpc: RPC connection to a Hive node
     :param keys: Predefine the wif keys to shortcut the
            wallet database
     :type keys: array, dict, str
@@ -31,12 +31,12 @@ class Wallet(object):
 
     * **Wallet Database**: Here, nectar loads the keys from the
       locally stored wallet SQLite database (see ``storage.py``).
-      To use this mode, simply call :class:`nectar.steem.Steem` without the
+      To use this mode, simply call :class:`nectar.hive.Hive` without the
       ``keys`` parameter
     * **Providing Keys**: Here, you can provide the keys for
       your accounts manually. All you need to do is add the wif
       keys for the accounts you want to use as a simple array
-      using the ``keys`` parameter to :class:`nectar.steem.Steem`.
+      using the ``keys`` parameter to :class:`nectar.hive.Hive`.
     * **Force keys**: This more is for advanced users and
       requires that you know what you are doing. Here, the
       ``keys`` parameter is a dictionary that overwrite the
@@ -48,10 +48,10 @@ class Wallet(object):
 
     .. code-block:: python
 
-       from nectar import Steem
-       steem = Steem()
-       steem.wallet.wipe(True)
-       steem.wallet.create("supersecret-passphrase")
+       from nectar import Hive
+       hive = Hive()
+       hive.wallet.wipe(True)
+       hive.wallet.create("supersecret-passphrase")
 
     This will raise :class:`nectar.exceptions.WalletExists` if you already have a wallet installed.
 
@@ -60,9 +60,9 @@ class Wallet(object):
 
     .. code-block:: python
 
-       from nectar import Steem
-       steem = Steem()
-       steem.wallet.unlock("supersecret-passphrase")
+       from nectar import Hive
+       hive = Hive()
+       hive.wallet.unlock("supersecret-passphrase")
 
     A private key can be added by using the
     :func:`addPrivateKey` method that is available
@@ -70,10 +70,10 @@ class Wallet(object):
 
     .. code-block:: python
 
-       from nectar import Steem
-       steem = Steem()
-       steem.wallet.unlock("supersecret-passphrase")
-       steem.wallet.addPrivateKey("5xxxxxxxxxxxxxxxxxxxx")
+       from nectar import Hive
+       hive = Hive()
+       hive.wallet.unlock("supersecret-passphrase")
+       hive.wallet.addPrivateKey("5xxxxxxxxxxxxxxxxxxxx")
 
     .. note:: The private key has to be either in hexadecimal or in wallet
               import format (wif) (starting with a ``5``).
@@ -81,11 +81,6 @@ class Wallet(object):
     """
 
     def __init__(self, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         # Compatibility after name change from wif->keys

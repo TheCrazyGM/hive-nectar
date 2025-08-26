@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import random
+import warnings
 from datetime import datetime, timedelta, timezone
 
 from nectar.instance import shared_blockchain_instance
@@ -29,9 +30,9 @@ log = logging.getLogger(__name__)
 
 
 class Market(dict):
-    """This class allows to easily access Markets on the blockchain for trading, etc.
+    """This class allows access to the internal market for trading, etc. (Hive-only).
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
     :param Asset base: Base asset
     :param Asset quote: Quote asset
     :returns: Blockchain Market
@@ -50,7 +51,7 @@ class Market(dict):
     * ``base-quote`` separated with ``-``
 
     .. note:: Throughout this library, the ``quote`` symbol will be
-              presented first (e.g. ``STEEM:SBD`` with ``STEEM`` being the
+              presented first (e.g. ``HIVE:HBD`` with ``HIVE`` being the
               quote), while the ``base`` only refers to a secondary asset
               for a trade. This means, if you call
               :func:`nectar.market.Market.sell` or
@@ -97,7 +98,7 @@ class Market(dict):
             raise ValueError("Unknown Market config")
 
     def get_string(self, separator=":"):
-        """Return a formated string that identifies the market, e.g. ``STEEM:SBD``
+        """Return a formatted string that identifies the market, e.g. ``HIVE:HBD``
 
         :param str separator: The separator of the assets (defaults to ``:``)
         """
@@ -123,8 +124,6 @@ class Market(dict):
         * ``latest``: Price of the order last filled
         * ``lowest_ask``: Price of the lowest ask
         * ``highest_bid``: Price of the highest bid
-        * ``sbd_volume``: Volume of SBD
-        * ``steem_volume``: Volume of STEEM
         * ``hbd_volume``: Volume of HBD
         * ``hive_volume``: Volume of HIVE
         * ``percent_change``: 24h change percentage (in %)
@@ -141,8 +140,8 @@ class Market(dict):
                 'latest': 0.0,
                 'lowest_ask': 0.3249636958897082,
                 'percent_change': 0.0,
-                'sbd_volume': 108329611.0,
-                'steem_volume': 355094043.0
+                'hbd_volume': 108329611.0,
+                'hive_volume': 355094043.0
             }
 
         """
@@ -187,15 +186,15 @@ class Market(dict):
         return data
 
     def volume24h(self, raw_data=False):
-        """Returns the 24-hour volume for all markets, plus totals for primary currencies.
+        """Returns the 24-hour volume for the internal market, plus totals for primary currencies (Hive-only).
 
         Sample output:
 
         .. code-block:: js
 
             {
-                "STEEM": 361666.63617,
-                "SBD": 1087.0
+                "HIVE": 361666.63617,
+                "HBD": 1087.0
             }
 
         """
@@ -223,7 +222,7 @@ class Market(dict):
             }
 
     def orderbook(self, limit=25, raw_data=False):
-        """Returns the order book for SBD/STEEM market.
+        """Returns the order book for the HBD/HIVE market.
 
         :param int limit: Limit the amount of orders (default: 25)
 
@@ -233,12 +232,12 @@ class Market(dict):
 
                 {
                     'asks': [
-                        380.510 STEEM 460.291 SBD @ 1.209669 SBD/STEEM,
-                        53.785 STEEM 65.063 SBD @ 1.209687 SBD/STEEM
+                        380.510 HIVE 460.291 HBD @ 1.209669 HBD/HIVE,
+                        53.785 HIVE 65.063 HBD @ 1.209687 HBD/HIVE
                     ],
                     'bids': [
-                        0.292 STEEM 0.353 SBD @ 1.208904 SBD/STEEM,
-                        8.498 STEEM 10.262 SBD @ 1.207578 SBD/STEEM
+                        0.292 HIVE 0.353 HBD @ 1.208904 HBD/HIVE,
+                        8.498 HIVE 10.262 HBD @ 1.207578 HBD/HIVE
                     ],
                     'asks_date': [
                         datetime.datetime(2018, 4, 30, 21, 7, 24, tzinfo=<UTC>),
@@ -257,19 +256,19 @@ class Market(dict):
                 {
                     'asks': [
                         {
-                            'order_price': {'base': '8.000 STEEM', 'quote': '9.618 SBD'},
+                            'order_price': {'base': '8.000 HIVE', 'quote': '9.618 HBD'},
                             'real_price': '1.20225000000000004',
-                            'steem': 4565,
-                            'sbd': 5488,
+                            'hive': 4565,
+                            'hbd': 5488,
                             'created': '2018-04-30T21:12:45'
                         }
                     ],
                     'bids': [
                         {
-                            'order_price': {'base': '10.000 SBD', 'quote': '8.333 STEEM'},
+                            'order_price': {'base': '10.000 HBD', 'quote': '8.333 HIVE'},
                             'real_price': '1.20004800192007677',
-                            'steem': 8333,
-                            'sbd': 10000,
+                            'hive': 8333,
+                            'hbd': 10000,
                             'created': '2018-04-30T20:29:33'
                         }
                     ]
@@ -326,11 +325,11 @@ class Market(dict):
             .. code-block:: none
 
                 [
-                    (2018-04-30 21:00:54+00:00) 0.267 STEEM 0.323 SBD @ 1.209738 SBD/STEEM,
-                    (2018-04-30 20:59:30+00:00) 0.131 STEEM 0.159 SBD @ 1.213740 SBD/STEEM,
-                    (2018-04-30 20:55:45+00:00) 0.093 STEEM 0.113 SBD @ 1.215054 SBD/STEEM,
-                    (2018-04-30 20:55:30+00:00) 26.501 STEEM 32.058 SBD @ 1.209690 SBD/STEEM,
-                    (2018-04-30 20:55:18+00:00) 2.108 STEEM 2.550 SBD @ 1.209677 SBD/STEEM,
+                    (2018-04-30 21:00:54+00:00) 0.267 HIVE 0.323 HBD @ 1.209738 HBD/HIVE,
+                    (2018-04-30 20:59:30+00:00) 0.131 HIVE 0.159 HBD @ 1.213740 HBD/HIVE,
+                    (2018-04-30 20:55:45+00:00) 0.093 HIVE 0.113 HBD @ 1.215054 HBD/HIVE,
+                    (2018-04-30 20:55:30+00:00) 26.501 HIVE 32.058 HBD @ 1.209690 HBD/HIVE,
+                    (2018-04-30 20:55:18+00:00) 2.108 HIVE 2.550 HBD @ 1.209677 HBD/HIVE,
                 ]
 
         Sample output (raw_data=True):
@@ -338,11 +337,11 @@ class Market(dict):
             .. code-block:: js
 
                 [
-                    {'date': '2018-04-30T21:02:45', 'current_pays': '0.235 SBD', 'open_pays': '0.194 STEEM'},
-                    {'date': '2018-04-30T21:02:03', 'current_pays': '24.494 SBD', 'open_pays': '20.248 STEEM'},
-                    {'date': '2018-04-30T20:48:30', 'current_pays': '175.464 STEEM', 'open_pays': '211.955 SBD'},
-                    {'date': '2018-04-30T20:48:30', 'current_pays': '0.999 STEEM', 'open_pays': '1.207 SBD'},
-                    {'date': '2018-04-30T20:47:54', 'current_pays': '0.273 SBD', 'open_pays': '0.225 STEEM'},
+                    {'date': '2018-04-30T21:02:45', 'current_pays': '0.235 HBD', 'open_pays': '0.194 HIVE'},
+                    {'date': '2018-04-30T21:02:03', 'current_pays': '24.494 HBD', 'open_pays': '20.248 HIVE'},
+                    {'date': '2018-04-30T20:48:30', 'current_pays': '175.464 HIVE', 'open_pays': '211.955 HBD'},
+                    {'date': '2018-04-30T20:48:30', 'current_pays': '0.999 HIVE', 'open_pays': '1.207 HBD'},
+                    {'date': '2018-04-30T20:47:54', 'current_pays': '0.273 HBD', 'open_pays': '0.225 HIVE'},
                 ]
 
         .. note:: Each bid is an instance of
@@ -465,19 +464,19 @@ class Market(dict):
             .. code-block:: js
 
                 {
-                    'close_sbd': 2493387,
-                    'close_steem': 7743431,
-                    'high_sbd': 1943872,
-                    'high_steem': 5999610,
+                    'close_hbd': 2493387,
+                    'close_hive': 7743431,
+                    'high_hbd': 1943872,
+                    'high_hive': 5999610,
                     'id': '7.1.5252',
-                    'low_sbd': 534928,
-                    'low_steem': 1661266,
+                    'low_hbd': 534928,
+                    'low_hive': 1661266,
                     'open': '2016-07-08T11:25:00',
-                    'open_sbd': 534928,
-                    'open_steem': 1661266,
-                    'sbd_volume': 9714435,
+                    'open_hbd': 534928,
+                    'open_hive': 1661266,
+                    'hbd_volume': 9714435,
                     'seconds': 300,
-                    'steem_volume': 30088443
+                    'hive_volume': 30088443
                 }
 
         """
@@ -572,16 +571,16 @@ class Market(dict):
         :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
             the head/irreversible block and add the key "orderid" to the tx output
 
-        Prices/Rates are denoted in 'base', i.e. the SBD_STEEM market
-        is priced in STEEM per SBD.
+        Prices/Rates are denoted in 'base', i.e. the HBD_HIVE market
+        is priced in HIVE per HBD.
 
-        **Example:** in the SBD_STEEM market, a price of 300 means
-        a SBD is worth 300 STEEM
+        **Example:** in the HBD_HIVE market, a price of 0.3 means
+        an HBD is worth 0.3 HIVE
 
         .. note::
 
             All prices returned are in the **reversed** orientation as the
-            market. I.e. in the STEEM/SBD market, prices are SBD per STEEM.
+            market. I.e. in the HIVE/HBD market, prices are HBD per HIVE.
             That way you can multiply prices with `1.05` to get a +5%.
 
         .. warning::
@@ -592,9 +591,9 @@ class Market(dict):
             buy asset than you placed the order
             for. Example:
 
-                * You place and order to buy 10 SBD for 100 STEEM/SBD
-                * This means that you actually place a sell order for 1000 STEEM in order to obtain **at least** 10 SBD
-                * If an order on the market exists that sells SBD for cheaper, you will end up with more than 10 SBD
+                * You place an order to buy 10 HBD for 3.33 HIVE/HBD
+                * This means that you actually place a sell order for 33.3 HIVE in order to obtain **at least** 10 HBD
+                * If an order on the market exists that sells HBD for cheaper, you will end up with more than 10 HBD
         """
         if not expiration:
             expiration = self.blockchain.config["order-expiration"]
@@ -846,85 +845,22 @@ class Market(dict):
 
     @staticmethod
     def steem_btc_ticker():
-        """Returns the STEEM/BTC price from bittrex, binance, huobi and upbit. The mean price is
-        weighted by the exchange volume.
-        """
-        prices = {}
-        responses = []
-        urls = [
-            # "https://poloniex.com/public?command=returnTicker",
-            # "https://bittrex.com/api/v1.1/public/getmarketsummary?market=BTC-STEEM",
-            # "https://api.binance.com/api/v1/ticker/24hr",
-            # "https://api.huobi.pro/market/history/kline?period=1day&size=1&symbol=steembtc",
-            # "https://crix-api.upbit.com/v1/crix/trades/ticks?code=CRIX.UPBIT.BTC-STEEM&count=1",
-            "https://api.coingecko.com/api/v3/simple/price?ids=steem&vs_currencies=btc&include_24hr_vol=true",
-        ]
-        headers = {
-            "Content-type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36",
-        }
-        cnt = 0
-        while len(prices) == 0 and cnt < 5:
-            cnt += 1
-            try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
-            except Exception as e:
-                log.debug(str(e))
-
-            for r in [
-                x
-                for x in responses
-                if hasattr(x, "status_code") and x.status_code == 200 and x.json()
-            ]:
-                try:
-                    if "poloniex" in r.url:
-                        data = r.json()["BTC_STEEM"]
-                        prices["poloniex"] = {
-                            "price": float(data["last"]),
-                            "volume": float(data["baseVolume"]),
-                        }
-                    elif "bittrex" in r.url:
-                        data = r.json()["result"][0]
-                        price = (data["Bid"] + data["Ask"]) / 2
-                        prices["bittrex"] = {"price": price, "volume": data["BaseVolume"]}
-                    elif "binance" in r.url:
-                        data = [x for x in r.json() if x["symbol"] == "STEEMBTC"][0]
-                        prices["binance"] = {
-                            "price": float(data["lastPrice"]),
-                            "volume": float(data["quoteVolume"]),
-                        }
-                    elif "huobi" in r.url:
-                        data = r.json()["data"][-1]
-                        prices["huobi"] = {
-                            "price": float(data["close"]),
-                            "volume": float(data["vol"]),
-                        }
-                    elif "upbit" in r.url:
-                        data = r.json()[-1]
-                        prices["upbit"] = {
-                            "price": float(data["tradePrice"]),
-                            "volume": float(data["tradeVolume"]),
-                        }
-                    elif "coingecko" in r.url:
-                        data = r.json()["steem"]
-                        if "usd_24h_vol" in data:
-                            volume = float(data["usd_24h_vol"])
-                        else:
-                            volume = 1
-                        prices["coingecko"] = {"price": float(data["btc"]), "volume": volume}
-                except KeyError as e:
-                    log.info(str(e))
-
-        if len(prices) == 0:
-            raise RuntimeError("Obtaining STEEM/BTC prices has failed from all sources.")
-
-        return Market._weighted_average(
-            [x["price"] for x in prices.values()], [x["volume"] for x in prices.values()]
+        """DEPRECATED: Use :meth:`hive_btc_ticker`. Retained for backward compatibility."""
+        warnings.warn(
+            "steem_btc_ticker() is deprecated; use hive_btc_ticker()",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return Market.hive_btc_ticker()
 
     def steem_usd_implied(self):
-        """Returns the current STEEM/USD market price"""
-        return self.steem_btc_ticker() * self.btc_usd_ticker()
+        """DEPRECATED: Use :meth:`hive_usd_implied`. Retained for backward compatibility."""
+        warnings.warn(
+            "steem_usd_implied() is deprecated; use hive_usd_implied()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.hive_usd_implied()
 
     @staticmethod
     def hive_btc_ticker():

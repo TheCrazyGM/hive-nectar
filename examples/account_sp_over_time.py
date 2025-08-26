@@ -27,15 +27,15 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(12, 6))
     opts = {"linestyle": "-", "marker": "."}
-    plt.plot_date(timestamps[1:], own_sp[1:], label="Own SP", **opts)
-    plt.plot_date(timestamps[1:], eff_sp[1:], label="Effective SP", **opts)
+    plt.plot_date(timestamps[1:], own_sp[1:], label="Own HP", **opts)
+    plt.plot_date(timestamps[1:], eff_sp[1:], label="Effective HP", **opts)
     plt.grid()
     plt.legend()
-    plt.title("SP over time - @%s" % (account))
+    plt.title("HP over time - @%s" % (account))
     plt.xlabel("Date")
-    plt.ylabel("SteemPower (SP)")
+    plt.ylabel("Hive Power (HP)")
     # plt.show()
     plt.savefig("sp_over_time-%s.png" % (account))
 
-    print("last effective SP: %.1f SP" % (eff_sp[-1]))
-    print("last own SP: %.1f SP" % (own_sp[-1]))
+    print("last effective HP: %.1f HP" % (eff_sp[-1]))
+    print("last own HP: %.1f HP" % (own_sp[-1]))

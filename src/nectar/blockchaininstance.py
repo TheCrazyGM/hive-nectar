@@ -10,11 +10,11 @@ from datetime import datetime, timezone
 from nectar.constants import (
     CURVE_CONSTANT,
     CURVE_CONSTANT_X4,
+    HIVE_1_PERCENT,
+    HIVE_100_PERCENT,
+    HIVE_RC_REGEN_TIME,
+    HIVE_VOTE_REGENERATION_SECONDS,
     SQUARED_CURVE_CONSTANT,
-    STEEM_1_PERCENT,
-    STEEM_100_PERCENT,
-    STEEM_RC_REGEN_TIME,
-    STEEM_VOTE_REGENERATION_SECONDS,
 )
 from nectarapi.noderpc import NodeRPC
 from nectarbase import operations
@@ -72,21 +72,21 @@ class BlockChainInstance(object):
         NumRetriesReached is raised. Disabled for -1. (default is -1)
     :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
     :param int timeout: Timeout setting for https nodes (default is 60)
-    :param bool use_sc2: When True, a steemconnect object is created. Can be used for
+    :param bool use_hs: When True, a HiveSigner object is created. Can be used for
         broadcast posting op or creating hot_links (default is False)
-    :param SteemConnect steemconnect: A SteemConnect object can be set manually, set use_sc2 to True
+    :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
     :param dict custom_chains: custom chain which should be added to the known chains
 
     Three wallet operation modes are possible:
 
-    * **Wallet Database**: Here, the steemlibs load the keys from the
+    * **Wallet Database**: Here, the nectar libraries load the keys from the
       locally stored wallet SQLite database (see ``storage.py``).
-      To use this mode, simply call ``Steem()`` without the
+      To use this mode, simply call ``Hive()`` without the
       ``keys`` parameter
     * **Providing Keys**: Here, you can provide the keys for
       your accounts manually. All you need to do is add the wif
       keys for the accounts you want to use as a simple array
-      using the ``keys`` parameter to ``Steem()``.
+      using the ``keys`` parameter to ``Hive()``.
     * **Force keys**: This more is for advanced users and
       requires that you know what you are doing. Here, the
       ``keys`` parameter is a dictionary that overwrite the
@@ -94,25 +94,25 @@ class BlockChainInstance(object):
       any account. This mode is only used for *foreign*
       signatures!
 
-    If no node is provided, it will connect to default nodes of
-    http://geo.steem.pl. Default settings can be changed with:
+    If no node is provided, it will connect to the default Hive nodes.
+    Default settings can be changed with:
 
     .. code-block:: python
 
-        steem = Steem(<host>)
+        hive = Hive(<host>)
 
     where ``<host>`` starts with ``https://``, ``ws://`` or ``wss://``.
 
-    The purpose of this class it to simplify interaction with
-    Steem.
+    The purpose of this class is to simplify interaction with
+    Hive.
 
     The idea is to have a class that allows to do this:
 
     .. code-block:: python
 
-        >>> from nectar import Steem
-        >>> steem = Steem()
-        >>> print(steem.get_blockchain_version())  # doctest: +SKIP
+        >>> from nectar import Hive
+        >>> hive = Hive()
+        >>> print(hive.get_blockchain_version())  # doctest: +SKIP
 
     This class also deals with edits, votes and reading content.
 
@@ -120,10 +120,10 @@ class BlockChainInstance(object):
 
     .. code-block:: python
 
-        from nectar import Steem
-        stm = Steem(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
-            {'chain_assets': [{'asset': 'SBD', 'id': 0, 'precision': 3, 'symbol': 'SBD'},
-                              {'asset': 'STEEM', 'id': 1, 'precision': 3, 'symbol': 'STEEM'},
+        from nectar import Hive
+        stm = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
+            {'chain_assets': [{'asset': 'HBD', 'id': 0, 'precision': 3, 'symbol': 'HBD'},
+                              {'asset': 'HIVE', 'id': 1, 'precision': 3, 'symbol': 'HIVE'},
                               {'asset': 'VESTS', 'id': 2, 'precision': 6, 'symbol': 'VESTS'}],
              'chain_id': '79276aea5d4877d9a25892eaa01b0adf019d3e5cb12a97478df3298ccdd01674',
              'min_version': '0.0.0',
@@ -142,7 +142,7 @@ class BlockChainInstance(object):
         data_refresh_time_seconds=900,
         **kwargs,
     ):
-        """Init steem
+        """Init Hive
 
         :param str node: Node to connect to *(optional)*
         :param str rpcuser: RPC user *(optional)*
@@ -168,9 +168,9 @@ class BlockChainInstance(object):
             NumRetriesReached is raised. Disabled for -1. (default is -1)
         :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
             :param int timeout: Timeout setting for https nodes (default is 60)
-        :param bool use_sc2: When True, a steemconnect object is created. Can be used for broadcast
-            posting op or creating hot_links  (default is False)
-        :param SteemConnect steemconnect: A SteemConnect object can be set manually, set use_sc2 to True
+        :param bool use_hs: When True, a HiveSigner object is created. Can be used for broadcast
+            posting op or creating hot_links (default is False)
+        :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
         :param bool use_ledger: When True, a ledger Nano S is used for signing
         :param str path: bip32 path from which the pubkey is derived, when use_ledger is True
 
@@ -184,8 +184,6 @@ class BlockChainInstance(object):
         self.unsigned = bool(kwargs.get("unsigned", False))
         self.expiration = int(kwargs.get("expiration", 30))
         self.bundle = bool(kwargs.get("bundle", False))
-        self.steemconnect = kwargs.get("steemconnect", None)
-        self.use_sc2 = bool(kwargs.get("use_sc2", False))
         self.hivesigner = kwargs.get("hivesigner", None)
         self.use_hs = bool(kwargs.get("use_hs", False))
         self.blocking = kwargs.get("blocking", False)
@@ -210,23 +208,29 @@ class BlockChainInstance(object):
 
         self.wallet = Wallet(blockchain_instance=self, **kwargs)
 
-        # set steemconnect
-        if self.steemconnect is not None and not isinstance(self.steemconnect, (HiveSigner)):
-            raise ValueError("steemconnect musst be SteemConnect object")
+        # set hivesigner
         if self.hivesigner is not None and not isinstance(self.hivesigner, (HiveSigner)):
             raise ValueError("hivesigner musst be HiveSigner object")
-        if self.steemconnect is not None and not self.use_sc2:
-            self.use_sc2 = True
-        elif self.hivesigner is None and self.use_hs:
+        if self.hivesigner is None and self.use_hs:
             self.hivesigner = HiveSigner(blockchain_instance=self, **kwargs)
         elif self.hivesigner is not None and not self.use_hs:
             self.use_hs = True
+
+        # Hive-only compatibility flags (legacy steem fields)
+        # Some parts of the code/tests still reference these. Keep them defined to avoid AttributeErrors.
+        # Do NOT assign to `self.is_hive` here: `Hive.is_hive` is a read-only @property.
+        # If a boolean flag is needed internally, use a non-conflicting name.
+        self._is_hive_compat = True
+        self.is_steem = False
+        # Legacy SteemConnect flags/refs kept for compatibility; Hive uses HiveSigner instead
+        self.use_sc2 = False
+        self.steemconnect = None
 
     # -------------------------------------------------------------------------
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(self, node="", rpcuser="", rpcpassword="", **kwargs):
-        """Connect to Steem network (internal use only)"""
+        """Connect to the Hive network (internal use only)"""
         if not node:
             node = self.get_default_nodes()
             if not bool(node):
@@ -284,7 +288,7 @@ class BlockChainInstance(object):
         }
 
     def refresh_data(self, chain_property, force_refresh=False, data_refresh_time_seconds=None):
-        """Read and stores steem blockchain parameters
+        """Read and store Hive blockchain parameters
         If the last data refresh is older than data_refresh_time_seconds, data will be refreshed
 
         :param bool force_refresh: if True, a refresh of the data is enforced
@@ -616,7 +620,7 @@ class BlockChainInstance(object):
         params = self.get_resource_params()
         dyn_param = self.get_dynamic_global_properties()
         rc_regen = int(Amount(dyn_param["total_vesting_shares"], blockchain_instance=self)) / (
-            STEEM_RC_REGEN_TIME / self.get_block_interval()
+            HIVE_RC_REGEN_TIME / self.get_block_interval()
         )
         total_cost = 0
         if rc_regen == 0:
@@ -647,14 +651,14 @@ class BlockChainInstance(object):
         # get props
         global_properties = self.get_dynamic_global_properties(use_stored_data=use_stored_data)
         vote_power_reserve_rate = global_properties["vote_power_reserve_rate"]
-        max_vote_denom = vote_power_reserve_rate * STEEM_VOTE_REGENERATION_SECONDS
+        max_vote_denom = vote_power_reserve_rate * HIVE_VOTE_REGENERATION_SECONDS
         return max_vote_denom
 
     def _calc_resulting_vote(
-        self, voting_power=STEEM_100_PERCENT, vote_pct=STEEM_100_PERCENT, use_stored_data=True
+        self, voting_power=HIVE_100_PERCENT, vote_pct=HIVE_100_PERCENT, use_stored_data=True
     ):
         # determine voting power used
-        used_power = int((voting_power * abs(vote_pct)) / STEEM_100_PERCENT * (60 * 60 * 24))
+        used_power = int((voting_power * abs(vote_pct)) / HIVE_100_PERCENT * (60 * 60 * 24))
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
         used_power = int((used_power + max_vote_denom - 1) / max_vote_denom)
         return used_power
@@ -696,8 +700,8 @@ class BlockChainInstance(object):
     def vests_to_rshares(
         self,
         vests,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         subtract_dust_threshold=True,
         use_stored_data=True,
     ):
@@ -712,7 +716,7 @@ class BlockChainInstance(object):
             voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
         )
         # calculate vote rshares
-        rshares = int(math.copysign(vests * 1e6 * used_power / STEEM_100_PERCENT, vote_pct))
+        rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
         if subtract_dust_threshold:
             if abs(rshares) <= self.get_dust_threshold(use_stored_data=use_stored_data):
                 return 0
@@ -759,8 +763,8 @@ class BlockChainInstance(object):
         self,
         token_power,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
@@ -783,9 +787,9 @@ class BlockChainInstance(object):
         Properties:::
 
             {
-                'account_creation_fee': '30.000 STEEM',
+                'account_creation_fee': '30.000 HIVE',
                 'maximum_block_size': 65536,
-                'sbd_interest_rate': 250
+                'hbd_interest_rate': 250
             }
 
         """
@@ -851,26 +855,19 @@ class BlockChainInstance(object):
             return False
         return "HIVE_CHAIN_ID" in config
 
-    @property
-    def is_steem(self):
-        config = self.get_config(use_stored_data=True)
-        if config is None:
-            return False
-        return "STEEM_CHAIN_ID" in config
-
     def set_default_account(self, account):
         """Set the default account to be used"""
         Account(account, blockchain_instance=self)
         self.config["default_account"] = account
 
     def switch_blockchain(self, blockchain, update_nodes=False):
-        """Switches the connected blockchain. Can be either hive or steem.
+        """Switches the connected blockchain. Hive only.
 
-        :param str blockchain: can be "hive" or "steem"
+        :param str blockchain: must be "hive"
         :param bool update_nodes: When true, the nodes are updated, using
             NodeList.update_nodes()
         """
-        assert blockchain in ["hive", "steem"]
+        assert blockchain in ["hive"]
         if blockchain == self.config["default_chain"] and not update_nodes:
             return
         from nectar.nodelist import NodeList
@@ -880,8 +877,6 @@ class BlockChainInstance(object):
             nodelist.update_nodes()
         if blockchain == "hive":
             self.set_default_nodes(nodelist.get_hive_nodes())
-        else:
-            self.set_default_nodes(nodelist.get_steem_nodes())
         self.config["default_chain"] = blockchain
         if not self.offline:
             self.connect(node="")
@@ -1041,7 +1036,7 @@ class BlockChainInstance(object):
         return ret
 
     def broadcast(self, tx=None, trx_id=True):
-        """Broadcast a transaction to the Hive/Steem network
+        """Broadcast a transaction to the Hive network
 
         :param tx tx: Signed transaction to broadcast
         :param bool trx_id: when True, the trx_id will be included into the return dict.
@@ -1110,13 +1105,13 @@ class BlockChainInstance(object):
     def claim_account(self, creator, fee=None, **kwargs):
         """Claim account for claimed account creation.
 
-        When fee is 0 STEEM/HIVE a subsidized account is claimed and can be created
+        When fee is 0 HIVE a subsidized account is claimed and can be created
         later with create_claimed_account.
         The number of subsidized account is limited.
 
-        :param str creator: which account should pay the registration fee (RC or STEEM/HIVE)
+        :param str creator: which account should pay the registration fee (RC or HIVE)
                 (defaults to ``default_account``)
-        :param str fee: when set to 0 STEEM (default), claim account is paid by RC
+        :param str fee: when set to 0 HIVE (default), claim account is paid by RC
         """
         fee = fee if fee is not None else "0 %s" % (self.token_symbol)
         if not creator and self.config["default_account"]:
@@ -1158,7 +1153,7 @@ class BlockChainInstance(object):
         fee=None,
         **kwargs,
     ):
-        """Create new claimed account on Steem
+        """Create new claimed account on Hive
 
         The brainkey/password can be used to recover all generated keys
         (see :class:`nectargraphenebase.account` for more details.
@@ -1360,7 +1355,7 @@ class BlockChainInstance(object):
         json_meta=None,
         **kwargs,
     ):
-        """Create new account on Hive/Steem
+        """Create new account on Hive
 
         The brainkey/password can be used to recover all generated keys
         (see :class:`nectargraphenebase.account` for more details.
@@ -1499,13 +1494,11 @@ class BlockChainInstance(object):
 
         props = self.get_chain_properties()
         if self.hardfork >= 20:
-            required_fee_steem = Amount(props["account_creation_fee"], blockchain_instance=self)
+            required_fee = Amount(props["account_creation_fee"], blockchain_instance=self)
         else:
-            required_fee_steem = (
-                Amount(props["account_creation_fee"], blockchain_instance=self) * 30
-            )
+            required_fee = Amount(props["account_creation_fee"], blockchain_instance=self) * 30
         op = {
-            "fee": required_fee_steem,
+            "fee": required_fee,
             "creator": creator["name"],
             "new_account_name": account_name,
             "owner": {
@@ -1762,9 +1755,9 @@ class BlockChainInstance(object):
         Properties:::
 
             {
-                "account_creation_fee": "3.000 STEEM",
+                "account_creation_fee": "3.000 HIVE",
                 "maximum_block_size": 65536,
-                "sbd_interest_rate": 0,
+                "hbd_interest_rate": 0,
             }
 
         """
@@ -1856,7 +1849,7 @@ class BlockChainInstance(object):
 
         .. code-block:: python
 
-           steem.custom_json("id", "json_data",
+           hive.custom_json("id", "json_data",
            required_posting_auths=['account'])
 
         """
@@ -1924,8 +1917,8 @@ class BlockChainInstance(object):
         Example::
 
             comment_options = {
-                'max_accepted_payout': '1000000.000 SBD',
-                'percent_steem_dollars': 10000,
+                'max_accepted_payout': '1000000.000 HBD',
+                'percent_hbd': 10000,
                 'allow_votes': True,
                 'allow_curation_rewards': True,
                 'extensions': [[0, {
@@ -2000,7 +1993,7 @@ class BlockChainInstance(object):
             def get_users(mdstring):
                 users = []
                 for u in re.findall(
-                    r"(^|[^a-zA-Z0-9_!#$%&*@＠\/]|(^|[^a-zA-Z0-9_+~.-\/#]))[@＠]([a-z][-\.a-z\d]+[a-z\d])",
+                    r"(^|[^a-zA-Z0-9_!#$%&*@＠／]|(^|[^a-zA-Z0-9_+~.-／#]))[@＠]([a-z][-．a-z\d]+[a-z\d])",
                     mdstring,
                 ):
                     users.append(list(u)[-1])
@@ -2095,7 +2088,7 @@ class BlockChainInstance(object):
                     "voter": account["name"],
                     "author": account["name"],
                     "permlink": permlink,
-                    "weight": STEEM_100_PERCENT,
+                    "weight": HIVE_100_PERCENT,
                 }
             )
             ops.append(vote_op)
@@ -2122,11 +2115,11 @@ class BlockChainInstance(object):
 
         [post_author, post_permlink] = resolve_authorperm(identifier)
 
-        vote_weight = int(float(weight) * STEEM_1_PERCENT)
-        if vote_weight > STEEM_100_PERCENT:
-            vote_weight = STEEM_100_PERCENT
-        if vote_weight < -STEEM_100_PERCENT:
-            vote_weight = -STEEM_100_PERCENT
+        vote_weight = int(float(weight) * HIVE_1_PERCENT)
+        if vote_weight > HIVE_100_PERCENT:
+            vote_weight = HIVE_100_PERCENT
+        if vote_weight < -HIVE_100_PERCENT:
+            vote_weight = -HIVE_100_PERCENT
 
         op = operations.Vote(
             **{
@@ -2153,8 +2146,8 @@ class BlockChainInstance(object):
             {
                 "author": "",
                 "permlink": "",
-                "max_accepted_payout": "1000000.000 SBD",
-                "percent_steem_dollars": 10000,
+                "max_accepted_payout": "1000000.000 HBD",
+                "percent_hbd": 10000,
                 "allow_votes": True,
                 "allow_curation_rewards": True,
             }
@@ -2174,7 +2167,6 @@ class BlockChainInstance(object):
             options or {},
             [
                 "max_accepted_payout",
-                "percent_steem_dollars",
                 "percent_hbd",
                 "allow_votes",
                 "allow_curation_rewards",
@@ -2192,49 +2184,32 @@ class BlockChainInstance(object):
                 if "account" not in b:
                     raise ValueError("beneficiaries need an account field!")
                 if "weight" not in b:
-                    b["weight"] = STEEM_100_PERCENT
+                    b["weight"] = HIVE_100_PERCENT
                 if len(b["account"]) > 16:
                     raise ValueError("beneficiaries error, account name length >16!")
-                if b["weight"] < 1 or b["weight"] > STEEM_100_PERCENT:
-                    raise ValueError("beneficiaries error, 1<=weight<=%s!" % (STEEM_100_PERCENT))
+                if b["weight"] < 1 or b["weight"] > HIVE_100_PERCENT:
+                    raise ValueError("beneficiaries error, 1<=weight<=%s!" % (HIVE_100_PERCENT))
                 weight_sum += b["weight"]
 
-            if weight_sum > STEEM_100_PERCENT:
-                raise ValueError("beneficiaries exceed total weight limit %s" % STEEM_100_PERCENT)
+            if weight_sum > HIVE_100_PERCENT:
+                raise ValueError("beneficiaries exceed total weight limit %s" % HIVE_100_PERCENT)
 
             options["beneficiaries"] = beneficiaries
 
         default_max_payout = "1000000.000 %s" % (self.backed_token_symbol)
-        if self.is_hive:
-            comment_op = operations.Comment_options(
-                **{
-                    "author": author,
-                    "permlink": permlink,
-                    "max_accepted_payout": options.get("max_accepted_payout", default_max_payout),
-                    "percent_hbd": int(options.get("percent_hbd", STEEM_100_PERCENT)),
-                    "allow_votes": options.get("allow_votes", True),
-                    "allow_curation_rewards": options.get("allow_curation_rewards", True),
-                    "extensions": options.get("extensions", []),
-                    "beneficiaries": options.get("beneficiaries", []),
-                    "prefix": self.prefix,
-                }
-            )
-        else:
-            comment_op = operations.Comment_options(
-                **{
-                    "author": author,
-                    "permlink": permlink,
-                    "max_accepted_payout": options.get("max_accepted_payout", default_max_payout),
-                    "percent_steem_dollars": int(
-                        options.get("percent_steem_dollars", STEEM_100_PERCENT)
-                    ),
-                    "allow_votes": options.get("allow_votes", True),
-                    "allow_curation_rewards": options.get("allow_curation_rewards", True),
-                    "extensions": options.get("extensions", []),
-                    "beneficiaries": options.get("beneficiaries", []),
-                    "prefix": self.prefix,
-                }
-            )
+        comment_op = operations.Comment_options(
+            **{
+                "author": author,
+                "permlink": permlink,
+                "max_accepted_payout": options.get("max_accepted_payout", default_max_payout),
+                "percent_hbd": int(options.get("percent_hbd", HIVE_100_PERCENT)),
+                "allow_votes": options.get("allow_votes", True),
+                "allow_curation_rewards": options.get("allow_curation_rewards", True),
+                "extensions": options.get("extensions", []),
+                "beneficiaries": options.get("beneficiaries", []),
+                "prefix": self.prefix,
+            }
+        )
         return comment_op
 
     def get_api_methods(self):
@@ -2254,7 +2229,7 @@ class BlockChainInstance(object):
     def _get_asset_symbol(self, asset_id):
         """get the asset symbol from an asset id
 
-        :@param int asset_id: 0 -> SBD, 1 -> STEEM, 2 -> VESTS
+        :@param int asset_id: 0 -> HBD, 1 -> HIVE, 2 -> VESTS
 
         """
         for asset in self.chain_params["chain_assets"]:
@@ -2265,7 +2240,7 @@ class BlockChainInstance(object):
 
     @property
     def backed_token_symbol(self):
-        """get the current chains symbol for SBD (e.g. "TBD" on testnet)"""
+        """get the current chains symbol for HBD (e.g. "TBD" on testnet)"""
         # some networks (e.g. whaleshares) do not have SBD
         try:
             symbol = self._get_asset_symbol(0)
@@ -2275,7 +2250,7 @@ class BlockChainInstance(object):
 
     @property
     def token_symbol(self):
-        """get the current chains symbol for STEEM (e.g. "TESTS" on testnet)"""
+        """get the current chains symbol for HIVE (e.g. "TESTS" on testnet)"""
         return self._get_asset_symbol(1)
 
     @property

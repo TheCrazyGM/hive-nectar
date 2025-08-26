@@ -2,7 +2,7 @@
 import json
 
 try:
-    from urllib.parse import urlencode, urljoin, urlparse
+    from urllib.parse import urlencode, urljoin
 except ImportError:
     from urllib import urlencode
 
@@ -29,27 +29,27 @@ class HiveSigner(object):
 
     .. code-block:: python
 
-        # Run the login_app in examples and login with a account
-        from nectar import Steem
-        from nectar.HiveSigner import HiveSigner
+        # Run the login_app in examples and login with an account
+        from nectar import Hive
+        from nectar.hivesigner import HiveSigner
         from nectar.comment import Comment
         hs = HiveSigner(client_id="nectarflower")
-        steem = Steem(HiveSigner=hs)
-        steem.wallet.unlock("supersecret-passphrase")
-        post = Comment("author/permlink", blockchain_instance=steem)
+        hive = Hive(HiveSigner=hs)
+        hive.wallet.unlock("supersecret-passphrase")
+        post = Comment("author/permlink", blockchain_instance=hive)
         post.upvote(voter="test")  # replace "test" with your account
 
     Examples for creating HiveSigner urls for broadcasting in browser:
 
     .. testoutput::
 
-        from nectar import Steem
+        from nectar import Hive
         from nectar.account import Account
-        from nectar.HiveSigner import HiveSigner
+        from nectar.hivesigner import HiveSigner
         from pprint import pprint
-        steem = Steem(nobroadcast=True, unsigned=True)
-        hs = HiveSigner(blockchain_instance=steem)
-        acc = Account("test", blockchain_instance=steem)
+        hive = Hive(nobroadcast=True, unsigned=True)
+        hs = HiveSigner(blockchain_instance=hive)
+        acc = Account("test", blockchain_instance=hive)
         pprint(hs.url_from_tx(acc.transfer("test1", 1, "HIVE", "test")))
 
     .. testcode::
@@ -58,14 +58,14 @@ class HiveSigner(object):
 
     .. testoutput::
 
-        from nectar import Steem
+        from nectar import Hive
         from nectar.transactionbuilder import TransactionBuilder
         from nectarbase import operations
-        from nectar.HiveSigner import HiveSigner
+        from nectar.hivesigner import HiveSigner
         from pprint import pprint
-        stm = Steem(nobroadcast=True, unsigned=True)
-        hs = HiveSigner(blockchain_instance=stm)
-        tx = TransactionBuilder(blockchain_instance=stm)
+        hive = Hive(nobroadcast=True, unsigned=True)
+        hs = HiveSigner(blockchain_instance=hive)
+        tx = TransactionBuilder(blockchain_instance=hive)
         op = operations.Transfer(**{"from": 'test',
                                     "to": 'test1',
                                     "amount": '1.000 HIVE',
@@ -80,11 +80,6 @@ class HiveSigner(object):
     """
 
     def __init__(self, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.access_token = None
         config = self.blockchain.config
@@ -123,8 +118,8 @@ class HiveSigner(object):
         return {"Authorization": self.access_token}
 
     def setToken(self, loadtoken):
-        """This method is strictly only for in memory token that are
-        passed to Wallet/Steem with the ``token`` argument
+        """This method is strictly only for in-memory token that are
+        passed to the Wallet with the ``token`` argument
         """
         log.debug("Force setting of private token. Not using the wallet database!")
         if not isinstance(loadtoken, (dict)):
@@ -259,9 +254,11 @@ class HiveSigner(object):
 
         .. code-block:: python
 
-            from nectar.HiveSigner import HiveSigner
-            hs = HiveSigner()
-            hs.steem.wallet.unlock("supersecret-passphrase")
+            from nectar import Hive
+            from nectar.hivesigner import HiveSigner
+            hive = Hive()
+            hive.wallet.unlock("supersecret-passphrase")
+            hs = HiveSigner(blockchain_instance=hive)
             hs.me(username="test")
 
         """

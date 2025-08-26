@@ -4,10 +4,10 @@ import logging
 import time
 from datetime import datetime, timedelta
 
+from nectar import Hive as Steem
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
-from nectar.steem import Steem
 from nectar.utils import formatTimedelta
 
 log = logging.getLogger(__name__)

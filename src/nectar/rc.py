@@ -25,7 +25,7 @@ class RC(object):
     def get_tx_size(self, op):
         """Returns the tx size of an operation"""
         ops = [Operation(op)]
-        prefix = "STEEM"
+        prefix = "HIVE"
         wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
         ref_block_num = 34294
         ref_block_prefix = 3707022213

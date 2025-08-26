@@ -28,7 +28,7 @@ class Query(dict):
     .. testcode::
 
         from nectar.discussions import Query
-        query = Query(limit=10, tag="steemit")
+        query = Query(limit=10, tag="hive")
 
     """
 
@@ -68,16 +68,11 @@ class Query(dict):
 class Discussions(object):
     """Get Discussions
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     """
 
     def __init__(self, lazy=False, use_appbase=False, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.lazy = lazy
         self.use_appbase = use_appbase
@@ -93,7 +88,7 @@ class Discussions(object):
         .. testcode::
 
             from nectar.discussions import Query, Discussions
-            query = Query(limit=51, tag="steemit")
+            query = Query(limit=51, tag="hive")
             discussions = Discussions()
             count = 0
             for d in discussions.get_discussions("tags", query, limit=200):
@@ -303,13 +298,13 @@ class Discussions_by_trending(list):
 
     :param Query discussion_query: Defines the parameter for
         searching posts
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
     :param bool raw_data: returns list of comments when False, default is False
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_trending
-        q = Query(limit=10, tag="steem")
+        q = Query(limit=10, tag="hive")
         for h in Discussions_by_trending(q):
             print(h)
 
@@ -324,11 +319,6 @@ class Discussions_by_trending(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -394,7 +384,7 @@ class Discussions_by_author_before_date(list):
     :param int limit: Defines the limit of discussions
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -416,11 +406,6 @@ class Discussions_by_author_before_date(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase
@@ -477,7 +462,7 @@ class Comment_discussions_by_payout(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -497,11 +482,6 @@ class Comment_discussions_by_payout(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -561,7 +541,7 @@ class Post_discussions_by_payout(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -581,11 +561,6 @@ class Post_discussions_by_payout(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -645,7 +620,7 @@ class Discussions_by_created(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -665,11 +640,6 @@ class Discussions_by_created(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -729,7 +699,7 @@ class Discussions_by_active(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem() instance to use when accesing a RPC
+    :param Hive blockchain_instance: Hive() instance to use when accesing a RPC
 
     .. testcode::
 
@@ -749,11 +719,6 @@ class Discussions_by_active(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -814,7 +779,7 @@ class Discussions_by_cashout(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -834,11 +799,6 @@ class Discussions_by_cashout(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -899,7 +859,7 @@ class Discussions_by_votes(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -919,11 +879,6 @@ class Discussions_by_votes(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -984,7 +939,7 @@ class Discussions_by_children(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -1004,11 +959,6 @@ class Discussions_by_children(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1070,12 +1020,12 @@ class Discussions_by_hot(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_hot
-        q = Query(limit=10, tag="steem")
+        q = Query(limit=10, tag="hive")
         for h in Discussions_by_hot(q):
             print(h)
 
@@ -1090,11 +1040,6 @@ class Discussions_by_hot(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1154,12 +1099,12 @@ class Discussions_by_feed(list):
         searching posts, tag musst be set to a username
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_feed
-        q = Query(limit=10, tag="steemit")
+        q = Query(limit=10, tag="hive")
         for h in Discussions_by_feed(q):
             print(h)
 
@@ -1174,11 +1119,6 @@ class Discussions_by_feed(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1238,7 +1178,7 @@ class Discussions_by_blog(list):
         searching posts, tag musst be set to a username
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -1258,11 +1198,6 @@ class Discussions_by_blog(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1323,12 +1258,12 @@ class Discussions_by_comments(list):
         searching posts, start_author and start_permlink must be set.
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_comments
-        q = Query(limit=10, start_author="steemit", start_permlink="firstpost")
+        q = Query(limit=10, start_author="hiveio", start_permlink="firstpost")
         for h in Discussions_by_comments(q):
             print(h)
 
@@ -1343,11 +1278,6 @@ class Discussions_by_comments(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in ["start_author", "start_permlink", "limit"]:
@@ -1417,12 +1347,12 @@ class Discussions_by_promoted(list):
         searching posts
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_promoted
-        q = Query(limit=10, tag="steem")
+        q = Query(limit=10, tag="hive")
         for h in Discussions_by_promoted(q):
             print(h)
 
@@ -1437,11 +1367,6 @@ class Discussions_by_promoted(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1501,12 +1426,12 @@ class Discussions_by_replies(list):
         searching posts, start_parent_author, start_permlink must be set.
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Discussions_by_replies
-        q = Query(limit=10, start_parent_author="steemit", start_permlink="firstpost")
+        q = Query(limit=10, start_parent_author="hiveio", start_permlink="firstpost")
         for h in Discussions_by_replies(q):
             print(h)
 
@@ -1521,11 +1446,6 @@ class Discussions_by_replies(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in ["start_parent_author", "start_permlink", "limit"]:
@@ -1607,12 +1527,12 @@ class Replies_by_last_update(list):
         searching posts start_parent_author and start_permlink must be set.
     :param bool use_appbase: use condenser call when set to False, default is False
     :param bool raw_data: returns list of comments when False, default is False
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
         from nectar.discussions import Query, Replies_by_last_update
-        q = Query(limit=10, start_parent_author="steemit", start_permlink="firstpost")
+        q = Query(limit=10, start_parent_author="hiveio", start_permlink="firstpost")
         for h in Replies_by_last_update(q):
             print(h)
 
@@ -1627,11 +1547,6 @@ class Replies_by_last_update(list):
         blockchain_instance=None,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase
@@ -1669,7 +1584,7 @@ class Trending_tags(list):
 
     :param Query discussion_query: Defines the parameter
         searching posts, start_tag is used if set
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. testcode::
 
@@ -1683,11 +1598,6 @@ class Trending_tags(list):
     def __init__(
         self, discussion_query, lazy=False, use_appbase=False, blockchain_instance=None, **kwargs
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase

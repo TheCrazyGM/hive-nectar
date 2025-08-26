@@ -185,9 +185,9 @@ def resolve_authorperm(identifier):
 
             >>> from nectar.utils import resolve_authorperm
             >>> author, permlink = resolve_authorperm('https://d.tube/#!/v/pottlund/m5cqkd1a')
-            >>> author, permlink = resolve_authorperm("https://steemit.com/witness-category/@gtg/24lfrm-gtg-witness-log")
+            >>> author, permlink = resolve_authorperm("https://hive.blog/witness-category/@gtg/24lfrm-gtg-witness-log")
             >>> author, permlink = resolve_authorperm("@gtg/24lfrm-gtg-witness-log")
-            >>> author, permlink = resolve_authorperm("https://busy.org/@gtg/24lfrm-gtg-witness-log")
+            >>> author, permlink = resolve_authorperm("https://peakd.com/@gtg/24lfrm-gtg-witness-log")
 
     """
     # without any http(s)
@@ -415,10 +415,11 @@ def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
     elif "updated" in comment:
         yaml_prefix += "last_update: %s\n" % comment["updated"]
     yaml_prefix += "max_accepted_payout: %s\n" % str(comment["max_accepted_payout"])
-    if "percent_steem_dollars" in comment:
-        yaml_prefix += "percent_steem_dollars: %s\n" % str(comment["percent_steem_dollars"])
-    elif "percent_hbd" in comment:
+    if "percent_hbd" in comment:
         yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_hbd"])
+    elif "percent_steem_dollars" in comment:
+        # Backward-compat: normalize to percent_hbd in YAML
+        yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_steem_dollars"])
     if "tags" in json_metadata:
         if (
             len(json_metadata["tags"]) > 0

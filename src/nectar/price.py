@@ -37,7 +37,7 @@ class Price(dict):
     :param list args: Allows to deal with different representations of a price
     :param Asset base: Base asset
     :param Asset quote: Quote asset
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
     :returns: All data required to represent a price
     :rtype: dictionary
 
@@ -53,16 +53,16 @@ class Price(dict):
         * ``args`` being a list of ``[quote, base]`` both being instances of ``str`` (``amount symbol``)
         * ``base`` and ``quote`` being instances of :class:`nectar.asset.Amount`
 
-    This allows instanciations like:
+    This allows instantiations like:
 
-    * ``Price("0.315 SBD/STEEM")``
-    * ``Price(0.315, base="SBD", quote="STEEM")``
-    * ``Price(0.315, base=Asset("SBD"), quote=Asset("STEEM"))``
-    * ``Price({"base": {"amount": 1, "asset_id": "SBD"}, "quote": {"amount": 10, "asset_id": "SBD"}})``
-    * ``Price(quote="10 STEEM", base="1 SBD")``
-    * ``Price("10 STEEM", "1 SBD")``
-    * ``Price(Amount("10 STEEM"), Amount("1 SBD"))``
-    * ``Price(1.0, "SBD/STEEM")``
+    * ``Price("0.315 HBD/HIVE")``
+    * ``Price(0.315, base="HBD", quote="HIVE")``
+    * ``Price(0.315, base=Asset("HBD"), quote=Asset("HIVE"))``
+    * ``Price({"base": {"amount": 1, "asset_id": "HBD"}, "quote": {"amount": 10, "asset_id": "HBD"}})``
+    * ``Price(quote="10 HIVE", base="1 HBD")``
+    * ``Price("10 HIVE", "1 HBD")``
+    * ``Price(Amount("10 HIVE"), Amount("1 HBD"))``
+    * ``Price(1.0, "HBD/HIVE")``
 
     Instances of this class can be used in regular mathematical expressions
     (``+-*/%``) such as:
@@ -70,12 +70,12 @@ class Price(dict):
     .. code-block:: python
 
         >>> from nectar.price import Price
-        >>> from nectar import Steem
-        >>> stm = Steem("https://api.steemit.com")
-        >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm) * 2
-        0.662804 SBD/STEEM
-        >>> Price(0.3314, "SBD", "STEEM", blockchain_instance=stm)
-        0.331402 SBD/STEEM
+        >>> from nectar import Hive
+        >>> stm = Hive("https://api.hive.blog")
+        >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm) * 2
+        0.662804 HBD/HIVE
+        >>> Price(0.3314, "HBD", "HIVE", blockchain_instance=stm)
+        0.331402 HBD/HIVE
 
     """
 
@@ -86,13 +86,7 @@ class Price(dict):
         quote=None,
         base_asset=None,  # to identify sell/buy
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if price == "":
             price = None
@@ -112,7 +106,7 @@ class Price(dict):
         elif price is not None and isinstance(price, dict) and "base" in price and "quote" in price:
             if "price" in price:
                 raise AssertionError("You cannot provide a 'price' this way")
-            # Regular 'price' objects according to steem-core
+            # Regular 'price' objects according to hive-core
             # base_id = price["base"]["asset_id"]
             # if price["base"]["asset_id"] == base_id:
             self["base"] = Amount(price["base"], blockchain_instance=self.blockchain)
@@ -208,10 +202,10 @@ class Price(dict):
         .. code-block:: python
 
             >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).as_base("STEEM")
-            3.017483 STEEM/SBD
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).as_base("HIVE")
+            3.017483 HIVE/HBD
 
         """
         if base == self["base"]["symbol"]:
@@ -229,10 +223,10 @@ class Price(dict):
         .. code-block:: python
 
             >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).as_quote("SBD")
-            3.017483 STEEM/SBD
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).as_quote("HBD")
+            3.017483 HIVE/HBD
 
         """
         if quote == self["quote"]["symbol"]:
@@ -243,15 +237,15 @@ class Price(dict):
             raise InvalidAssetException
 
     def invert(self):
-        """Invert the price (e.g. go from ``SBD/STEEM`` into ``STEEM/SBD``)
+        """Invert the price (e.g. go from ``HBD/HIVE`` into ``HIVE/HBD``)
 
         .. code-block:: python
 
             >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).invert()
-            3.017483 STEEM/SBD
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).invert()
+            3.017483 HIVE/HBD
 
         """
         tmp = self["quote"]
@@ -451,7 +445,7 @@ class Order(Price):
     ratio of base and quote) but instead has those amounts represent the
     amounts of an actual order!
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. note::
 
@@ -504,7 +498,7 @@ class FilledOrder(Price):
     ratio of base and quote) but instead has those amounts represent the
     amounts of an actually filled order!
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. note:: Instances of this class come with an additional ``date`` key
               that shows when the order has been filled!

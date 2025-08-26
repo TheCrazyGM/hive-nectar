@@ -2,20 +2,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
+from nectar import Hive as Steem
 from nectar.account import Account
-from nectar.steem import Steem
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == "__main__":
-    # stm = Steem(node="https://testnet.timcliff.com/")
-    # stm = Steem(node="https://testnet.steemitdev.com")
-    stm = Steem(node="https://api.steemit.com")
+    # Example testnet endpoints removed; use a Hive API endpoint instead
+    stm = Steem(node="https://api.hive.blog")
     stm.wallet.unlock(pwd="pwd123")
 
     account = Account("thecrazygm", steem_instance=stm)
     print(account.get_voting_power())
 
-    account.transfer("thecrazygm", 0.001, "SBD", "test")
+    account.transfer("thecrazygm", 0.001, "HBD", "test")

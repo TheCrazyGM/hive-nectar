@@ -7,6 +7,8 @@ import string
 import sys
 import unittest
 
+import pytest
+
 from nectar import Steem, exceptions
 from nectar.account import Account
 from nectar.amount import Amount
@@ -14,6 +16,8 @@ from nectar.version import version as nectar_version
 from nectargraphenebase.account import PrivateKey
 
 from .nodes import get_steem_nodes
+
+pytest.skip("Removed Steem support: test disabled in Hive-only build", allow_module_level=True)
 
 wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 wif2 = "5JKu2dFfjKAcD6aP1HqBDxMNbdwtvPS99CaxBzvMYhY94Pt6RDS"

@@ -29,8 +29,7 @@ class Community(BlockchainObject):
         observer: Observer account for personalized results (default: "")
         full: If True, fetch full community data (default: True)
         lazy: If True, use lazy loading (default: False)
-        blockchain_instance: Hive or Steem instance for blockchain access
-        **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
+        blockchain_instance: Blockchain instance for RPC access
 
     Attributes:
         type_id (int): Type identifier for blockchain objects (2 for communities)
@@ -60,7 +59,6 @@ class Community(BlockchainObject):
         full: bool = True,
         lazy: bool = False,
         blockchain_instance=None,
-        **kwargs,
     ) -> None:
         """Initialize a Community instance.
 
@@ -69,22 +67,16 @@ class Community(BlockchainObject):
             observer: Observer account for personalized results (default: "")
             full: If True, fetch full community data (default: True)
             lazy: If True, use lazy loading (default: False)
-            blockchain_instance: Hive or Steem instance for blockchain access
-            **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
+            blockchain_instance: Blockchain instance for RPC access
         """
         self.full = full
         self.lazy = lazy
         self.observer = observer
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(community, dict):
             community = self._parse_json_data(community)
         super(Community, self).__init__(
-            community, lazy=lazy, full=full, id_item="name", blockchain_instance=blockchain_instance
+            community, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
     def refresh(self) -> None:
@@ -772,8 +764,7 @@ class Communities(CommunityObject):
         limit: Maximum number of communities to fetch (default: 100)
         lazy: If True, use lazy loading (default: False)
         full: If True, fetch full community data (default: True)
-        blockchain_instance: Hive or Steem instance to use for blockchain access
-        **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
+        blockchain_instance: Blockchain instance to use for RPC access
     """
 
     def __init__(
@@ -785,7 +776,6 @@ class Communities(CommunityObject):
         lazy: bool = False,
         full: bool = True,
         blockchain_instance=None,
-        **kwargs,
     ) -> None:
         """Initialize the Communities list with the given parameters.
 
@@ -796,14 +786,8 @@ class Communities(CommunityObject):
             limit: Maximum number of communities to fetch (default: 100)
             lazy: If True, use lazy loading (default: False)
             full: If True, fetch full community data (default: True)
-            blockchain_instance: Hive or Steem instance to use for blockchain access
-            **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
+            blockchain_instance: Blockchain instance to use for RPC access
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

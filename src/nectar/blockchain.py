@@ -181,7 +181,7 @@ class Blockchain(object):
     """This class allows to access the blockchain and read data
     from it
 
-    :param Steem/Hive blockchain_instance: Steem or Hive instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :param str mode: (default) Irreversible block (``irreversible``) or
         actual head block (``head``)
     :param int max_block_wait_repetition: maximum wait repetition for next block
@@ -235,11 +235,6 @@ class Blockchain(object):
         data_refresh_time_seconds=900,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if mode == "irreversible":
@@ -826,8 +821,8 @@ class Blockchain(object):
                 'type': 'transfer',
                 'from': 'johngreenfield',
                 'to': 'thundercurator',
-                'amount': '0.080 SBD',
-                'memo': 'https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right',
+                'amount': '0.080 HBD',
+                'memo': 'https://hive.blog/lofi/@johngreenfield/lofi-joji-yeah-right',
                 '_id': '6d4c5f2d4d8ef1918acaee4a8dce34f9da384786',
                 'timestamp': datetime.datetime(2018, 5, 9, 11, 23, 6, tzinfo=<UTC>),
                 'block_num': 22277588, 'trx_num': 35, 'trx_id': 'cf11b2ac8493c71063ec121b2e8517ab1e0e6bea'
@@ -844,8 +839,8 @@ class Blockchain(object):
                         'transfer',
                             {
                                 'from': 'johngreenfield', 'to': 'thundercurator',
-                                'amount': '0.080 SBD',
-                                'memo': 'https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right'
+                                'amount': '0.080 HBD',
+                                'memo': 'https://hive.blog/lofi/@johngreenfield/lofi-joji-yeah-right'
                             }
                     ],
                     'timestamp': datetime.datetime(2018, 5, 9, 11, 23, 6, tzinfo=<UTC>)
@@ -1062,8 +1057,8 @@ class Blockchain(object):
         .. code-block:: python
 
             >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
             >>> blockchain = Blockchain(blockchain_instance=stm)
             >>> ret = blockchain.get_similar_account_names("test", limit=5)
             >>> len(ret) == 5
@@ -1092,8 +1087,8 @@ class Blockchain(object):
         .. code-block:: python
 
             >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
             >>> blockchain = Blockchain(blockchain_instance=stm)
             >>> ret = blockchain.find_rc_accounts(["test"])
             >>> len(ret) == 1
@@ -1131,8 +1126,8 @@ class Blockchain(object):
         .. code-block:: python
 
             >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
             >>> blockchain = Blockchain(blockchain_instance=stm)
             >>> ret = blockchain.list_change_recovery_account_requests(limit=1)
 
@@ -1159,8 +1154,8 @@ class Blockchain(object):
         .. code-block:: python
 
             >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
+            >>> from nectar import Hive
+            >>> stm = Hive("https://api.hive.blog")
             >>> blockchain = Blockchain(blockchain_instance=stm)
             >>> ret = blockchain.find_change_recovery_account_requests('bott')
 

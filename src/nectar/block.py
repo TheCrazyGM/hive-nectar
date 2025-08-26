@@ -14,7 +14,7 @@ class Block(BlockchainObject):
     """Read a single block from the chain
 
     :param int block: block number
-    :param Steem steem_instance: Steem
+    :param Hive blockchain_instance: Hive
         instance
     :param bool lazy: Use lazy loading
     :param bool only_ops: Includes only operations, when set to True (default: False)
@@ -54,7 +54,7 @@ class Block(BlockchainObject):
         """Initilize a block
 
         :param int block: block number
-        :param Steem steem_instance: Steem
+        :param Hive blockchain_instance: Hive
             instance
         :param bool lazy: Use lazy loading
         :param bool only_ops: Includes only operations, when set to True (default: False)
@@ -317,7 +317,7 @@ class BlockHeader(BlockchainObject):
     """Read a single block header from the chain
 
     :param int block: block number
-    :param Steem steem_instance: Steem
+    :param Hive blockchain_instance: Hive
         instance
     :param bool lazy: Use lazy loading
 
@@ -336,7 +336,7 @@ class BlockHeader(BlockchainObject):
         """Initilize a block
 
         :param int block: block number
-        :param Steem steem_instance: Steem
+        :param Hive blockchain_instance: Hive
             instance
         :param bool lazy: Use lazy loading
 
@@ -410,8 +410,8 @@ class Blocks(list):
     :param list name_list: list of accounts to fetch
     :param int count: (optional) maximum number of accounts
         to fetch per call, defaults to 100
-    :param Steem/Hive blockchain_instance: Steem() or Hive() instance to use when
-        accessing a RPCcreator = Account(creator, blockchain_instance=self)
+    :param Hive blockchain_instance: Hive() instance to use when
+        accessing RPC
     """
 
     def __init__(
@@ -421,13 +421,7 @@ class Blocks(list):
         lazy=False,
         full=True,
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

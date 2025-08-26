@@ -302,7 +302,9 @@ class Testcases(unittest.TestCase):
 
     def test_addproxy(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "setproxy", "-a", "hive-nectar", "thecrazygm"], input="test\n")
+        result = runner.invoke(
+            cli, ["-dx", "setproxy", "-a", "hive-nectar", "thecrazygm"], input="test\n"
+        )
         self.assertEqual(result.exit_code, 0)
 
     def test_delproxy(self):
@@ -529,7 +531,8 @@ class Testcases(unittest.TestCase):
     def test_witnessenable(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "witnessenable", "thecrazygm", "STM1111111111111111111111111111111114T1Anm"]
+            cli,
+            ["-dx", "witnessenable", "thecrazygm", "STM1111111111111111111111111111111114T1Anm"],
         )
         self.assertEqual(result.exit_code, 0)
 

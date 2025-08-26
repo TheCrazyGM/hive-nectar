@@ -27,7 +27,7 @@ def node_answer_time(node):
 
 
 class NodeList(list):
-    """Returns HIVE/STEEM nodes as list
+    """Returns Hive nodes as list
 
     .. code-block:: python
 
@@ -39,14 +39,6 @@ class NodeList(list):
 
     def __init__(self):
         nodes = [
-            {
-                "url": "https://api.steemit.com",
-                "version": "0.20.2",
-                "type": "appbase",
-                "owner": "steemit",
-                "hive": False,
-                "score": 50,
-            },
             {
                 "url": "https://api.hive.blog",
                 "version": "1.27.8",
@@ -412,7 +404,7 @@ class NodeList(list):
 
     def get_nodes(
         self,
-        hive=False,
+        hive=True,
         exclude_limited=False,
         dev=False,
         testnet=False,
@@ -451,6 +443,7 @@ class NodeList(list):
             node_type_list.append("appbase-limited")
         for node in self:
             if node["type"] in node_type_list and (node["score"] >= 0 or not_working):
+                # Hive-only by default; legacy callers can still pass hive=False but list is Hive-only
                 if hive != node["hive"]:
                     continue
                 if not https and node["url"][:5] == "https":
@@ -491,31 +484,12 @@ class NodeList(list):
         ]
 
     def get_steem_nodes(self, testnet=False, not_working=False, wss=True, https=True):
-        """Returns steem only nodes as list
+        """DEPRECATED: Steem support has been removed. Returns empty list.
 
-        :param bool testnet: when True, testnet nodes are included
-        :param bool not_working: When True, all nodes including not working ones will be returned
-
+        Kept for backward compatibility to avoid import/runtime errors in external code.
         """
-        node_list = []
-
-        for node in self:
-            if node["hive"]:
-                continue
-            if node["score"] < 0 and not not_working:
-                continue
-            if (testnet and node["type"] == "testnet") or (
-                not testnet and node["type"] != "testnet"
-            ):
-                if not https and node["url"][:5] == "https":
-                    continue
-                if not wss and node["url"][:3] == "wss":
-                    continue
-                node_list.append(node)
-
-        return [
-            node["url"] for node in sorted(node_list, key=lambda self: self["score"], reverse=True)
-        ]
+        log.warning("get_steem_nodes() is deprecated: Hive-only build returns no Steem nodes.")
+        return []
 
     def get_testnet(self, testnet=True, testnetdev=False):
         """Returns testnet nodes"""

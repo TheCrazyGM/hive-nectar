@@ -103,11 +103,6 @@ class Amount(object):
 
     def __bytes__(self):
         # padding
-        # Workaround to allow transfers in HIVE
-        if self.symbol == "HBD":
-            self.symbol = "SBD"
-        elif self.symbol == "HIVE":
-            self.symbol = "STEEM"
         symbol = self.symbol + "\x00" * (7 - len(self.symbol))
         return (
             struct.pack("<q", int(self.amount))

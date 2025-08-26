@@ -21,24 +21,19 @@ class Witness(BlockchainObject):
     :param bool lazy: Use lazy loading
     :param bool full: Get full data about witness
     :param nectar.nectar.nectar blockchain_instance: nectar
-        instance to use when accesing a RPC
+        instance to use when accessing the RPC
     """
 
     type_id = 3
 
-    def __init__(self, owner, full=False, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(self, owner, full=False, lazy=False, blockchain_instance=None):
         self.full = full
         self.lazy = lazy
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(owner, dict):
             owner = self._parse_json_data(owner)
         super(Witness, self).__init__(
-            owner, lazy=lazy, full=full, id_item="owner", blockchain_instance=blockchain_instance
+            owner, lazy=lazy, full=full, id_item="owner", blockchain_instance=self.blockchain
         )
 
     def refresh(self):
@@ -127,7 +122,7 @@ class Witness(BlockchainObject):
     def feed_publish(self, base, quote=None, account=None):
         """Publish a feed price as a witness.
 
-        :param float base: USD Price of STEEM in SBD (implied price)
+        :param float base: USD price of HIVE in HBD (implied price)
         :param float quote: (optional) Quote Price. Should be 1.000 (default), unless
             we are adjusting the feed to support the peg.
         :param str account: (optional) the source account for the transfer
@@ -349,8 +344,8 @@ class GetWitnesses(WitnessesObject):
     :param list name_list: list of witneses to fetch
     :param int batch_limit: (optional) maximum number of witnesses
         to fetch per call, defaults to 100
-    :param Steem steem_instance: Steem() instance to use when
-        accessing a RPCcreator = Witness(creator, steem_instance=self)
+    :param nectar.nectar.nectar blockchain_instance: nectar instance to use when
+        accessing the RPC
 
     .. code-block:: python
 
@@ -362,13 +357,13 @@ class GetWitnesses(WitnessesObject):
     """
 
     def __init__(
-        self, name_list, batch_limit=100, lazy=False, full=True, blockchain_instance=None, **kwargs
+        self,
+        name_list,
+        batch_limit=100,
+        lazy=False,
+        full=True,
+        blockchain_instance=None,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if not self.blockchain.is_connected():
             return
@@ -396,8 +391,8 @@ class GetWitnesses(WitnessesObject):
 class Witnesses(WitnessesObject):
     """Obtain a list of **active** witnesses and the current schedule
 
-    :param Steem steem_instance: Steem instance to use when
-        accesing a RPC
+    :param nectar.nectar.nectar blockchain_instance: nectar instance to use when
+        accessing the RPC
 
     .. code-block:: python
 
@@ -407,12 +402,7 @@ class Witnesses(WitnessesObject):
 
     """
 
-    def __init__(self, lazy=False, full=True, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+    def __init__(self, lazy=False, full=True, blockchain_instance=None):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.lazy = lazy
         self.full = full
@@ -449,8 +439,8 @@ class WitnessesVotedByAccount(WitnessesObject):
     """Obtain a list of witnesses which have been voted by an account
 
     :param str account: Account name
-    :param Steem steem_instance: Steem instance to use when
-        accesing a RPC
+    :param nectar.nectar.nectar blockchain_instance: nectar instance to use when
+        accessing the RPC
 
     .. code-block:: python
 
@@ -460,12 +450,7 @@ class WitnessesVotedByAccount(WitnessesObject):
 
     """
 
-    def __init__(self, account, lazy=False, full=True, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+    def __init__(self, account, lazy=False, full=True, blockchain_instance=None):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, full=True, blockchain_instance=self.blockchain)
         account_name = self.account["name"]
@@ -500,8 +485,8 @@ class WitnessesRankedByVote(WitnessesObject):
 
     :param str from_account: Witness name from which the lists starts (default = "")
     :param int limit: Limits the number of shown witnesses (default = 100)
-    :param Steem steem_instance: Steem instance to use when
-        accesing a RPC
+    :param nectar.nectar.nectar blockchain_instance: nectar instance to use when
+        accessing the RPC
 
     .. code-block:: python
 
@@ -512,13 +497,13 @@ class WitnessesRankedByVote(WitnessesObject):
     """
 
     def __init__(
-        self, from_account="", limit=100, lazy=False, full=False, blockchain_instance=None, **kwargs
+        self,
+        from_account="",
+        limit=100,
+        lazy=False,
+        full=False,
+        blockchain_instance=None,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         witnessList = []
         last_limit = limit
@@ -577,10 +562,10 @@ class WitnessesRankedByVote(WitnessesObject):
 class ListWitnesses(WitnessesObject):
     """List witnesses ranked by name
 
-    :param str from_account: Witness name from which the lists starts (default = "")
+    :param str from_account: Witness name from which the list starts (default = "")
     :param int limit: Limits the number of shown witnesses (default = 100)
-    :param Steem steem_instance: Steem instance to use when
-        accesing a RPC
+    :param nectar.nectar.nectar blockchain_instance: nectar instance to use when
+        accessing the RPC
 
     .. code-block:: python
 
@@ -591,13 +576,13 @@ class ListWitnesses(WitnessesObject):
     """
 
     def __init__(
-        self, from_account="", limit=100, lazy=False, full=False, blockchain_instance=None, **kwargs
+        self,
+        from_account="",
+        limit=100,
+        lazy=False,
+        full=False,
+        blockchain_instance=None,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.identifier = from_account
         self.blockchain.rpc.set_next_node_on_empty_reply(False)

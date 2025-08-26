@@ -30,16 +30,9 @@ class Vote(BlockchainObject):
         instance to use when accesing a RPC
     """
 
-    def __init__(
-        self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None, **kwargs
-    ):
+    def __init__(self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None):
         self.full = full
         self.lazy = lazy
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(voter, str) and authorperm is not None:
             [author, permlink] = resolve_authorperm(authorperm)
@@ -89,7 +82,7 @@ class Vote(BlockchainObject):
             id_item="authorpermvoter",
             lazy=lazy,
             full=full,
-            blockchain_instance=blockchain_instance,
+            blockchain_instance=self.blockchain,
         )
 
     def refresh(self):
@@ -273,7 +266,7 @@ class VotesObject(list):
         return_str=False,
         **kwargs,
     ):
-        table_header = ["Voter", "Votee", "SBD/HBD", "Time", "Rshares", "Percent", "Weight"]
+        table_header = ["Voter", "Votee", "HBD", "Time", "Rshares", "Percent", "Weight"]
         t = PrettyTable(table_header)
         t.align = "l"
         start = addTzInfo(start)
@@ -383,7 +376,7 @@ class VotesObject(list):
 
     def print_stats(self, return_str=False, **kwargs):
         # Using built-in timezone support
-        table_header = ["voter", "votee", "sbd/hbd", "time", "rshares", "percent", "weight"]
+        table_header = ["voter", "votee", "hbd", "time", "rshares", "percent", "weight"]
         t = PrettyTable(table_header)
         t.align = "l"
 
@@ -415,15 +408,10 @@ class ActiveVotes(VotesObject):
     """Obtain a list of votes for a post
 
     :param str authorperm: authorperm link
-    :param Steem steem_instance: Steem() instance to use when accesing a RPC
+    :param Blockchain blockchain_instance: Blockchain instance to use when accessing RPC
     """
 
-    def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+    def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():
@@ -499,7 +487,7 @@ class AccountVotes(VotesObject):
     Lists the last 100+ votes on the given account.
 
     :param str account: Account name
-    :param Steem steem_instance: Steem() instance to use when accesing a RPC
+    :param Blockchain blockchain_instance: Blockchain instance to use when accessing RPC
     """
 
     def __init__(
@@ -511,13 +499,7 @@ class AccountVotes(VotesObject):
         lazy=False,
         full=False,
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         start = addTzInfo(start)
         stop = addTzInfo(stop)

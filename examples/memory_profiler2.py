@@ -4,10 +4,10 @@ import logging
 
 from memory_profiler import profile
 
+from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.blockchain import Blockchain
 from nectar.instance import clear_cache, set_shared_steem_instance
-from nectar.steem import Steem
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     shared_instance = False
     clear_acc_cache = False
     clear_all_cache = False
-    node = "https://api.steemit.com"
+    node = "https://api.hive.blog"
     n = 3
     for i in range(1, n + 1):
         print("%d of %d" % (i, n))

@@ -471,7 +471,6 @@ class Remove_proposal(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        prefix = kwargs.get("prefix", default_prefix)
         extensions = Array([])
         proposal_ids = []
         for e in kwargs["proposal_ids"]:
@@ -494,8 +493,6 @@ class Update_proposal(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-
-        prefix = kwargs.get("prefix", default_prefix)
         extensions = Array([])
         if "end_date" in kwargs and kwargs["end_date"]:
             extension = {
@@ -509,7 +506,10 @@ class Update_proposal(GrapheneObject):
                 [
                     ("proposal_id", Uint64(kwargs["proposal_id"])),
                     ("creator", String(kwargs["creator"])),
-                    ("daily_pay", Amount(kwargs["daily_pay"], prefix=prefix)),
+                    (
+                        "daily_pay",
+                        Amount(kwargs["daily_pay"], prefix=kwargs.get("prefix", default_prefix)),
+                    ),
                     ("subject", String(kwargs["subject"])),
                     ("permlink", String(kwargs["permlink"])),
                     ("extensions", extensions),
@@ -691,40 +691,28 @@ class Comment_options(GrapheneObject):
         extensions = Array([])
         if "extensions" in kwargs and kwargs["extensions"]:
             extensions = Array([CommentOptionExtensions(o) for o in kwargs["extensions"]])
-        if "percent_hbd" in kwargs:
-            super(Comment_options, self).__init__(
-                OrderedDict(
-                    [
-                        ("author", String(kwargs["author"])),
-                        ("permlink", String(kwargs["permlink"])),
-                        (
-                            "max_accepted_payout",
-                            Amount(kwargs["max_accepted_payout"], prefix=prefix, json_str=json_str),
-                        ),
-                        ("percent_hbd", Uint16(int(kwargs["percent_hbd"]))),
-                        ("allow_votes", Bool(bool(kwargs["allow_votes"]))),
-                        ("allow_curation_rewards", Bool(bool(kwargs["allow_curation_rewards"]))),
-                        ("extensions", extensions),
-                    ]
-                )
+        # Hive-only: normalize legacy percent_steem_dollars to percent_hbd
+        percent_value = kwargs.get("percent_hbd", kwargs.get("percent_steem_dollars"))
+        if percent_value is None:
+            raise ValueError(
+                "Comment_options requires 'percent_hbd' (or legacy 'percent_steem_dollars')"
             )
-        else:
-            super(Comment_options, self).__init__(
-                OrderedDict(
-                    [
-                        ("author", String(kwargs["author"])),
-                        ("permlink", String(kwargs["permlink"])),
-                        (
-                            "max_accepted_payout",
-                            Amount(kwargs["max_accepted_payout"], prefix=prefix),
-                        ),
-                        ("percent_steem_dollars", Uint16(int(kwargs["percent_steem_dollars"]))),
-                        ("allow_votes", Bool(bool(kwargs["allow_votes"]))),
-                        ("allow_curation_rewards", Bool(bool(kwargs["allow_curation_rewards"]))),
-                        ("extensions", extensions),
-                    ]
-                )
+        super(Comment_options, self).__init__(
+            OrderedDict(
+                [
+                    ("author", String(kwargs["author"])),
+                    ("permlink", String(kwargs["permlink"])),
+                    (
+                        "max_accepted_payout",
+                        Amount(kwargs["max_accepted_payout"], prefix=prefix, json_str=json_str),
+                    ),
+                    ("percent_hbd", Uint16(int(percent_value))),
+                    ("allow_votes", Bool(bool(kwargs["allow_votes"]))),
+                    ("allow_curation_rewards", Bool(bool(kwargs["allow_curation_rewards"]))),
+                    ("extensions", extensions),
+                ]
             )
+        )
 
 
 class Delete_comment(GrapheneObject):

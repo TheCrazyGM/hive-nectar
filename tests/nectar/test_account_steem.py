@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import pytest
+
 from nectar import Steem, exceptions
 from nectar.account import Account, extract_account_name
 from nectar.amount import Amount
@@ -9,6 +11,8 @@ from nectar.instance import set_shared_blockchain_instance
 from nectar.utils import formatTimeString
 
 from .nodes import get_steem_nodes
+
+pytest.skip("Removed Steem support: test disabled in Hive-only build", allow_module_level=True)
 
 wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 

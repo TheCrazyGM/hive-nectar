@@ -243,8 +243,8 @@ class TransactionBuilder(dict):
 
         if self.blockchain.wallet.locked():
             raise WalletLocked()
-        if self.blockchain.use_sc2 and self.blockchain.steemconnect is not None:
-            self.blockchain.steemconnect.set_username(account["name"], permission)
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            self.blockchain.hivesigner.set_username(account["name"], permission)
             return
 
         if account["name"] not in self.signing_accounts:
@@ -414,7 +414,7 @@ class TransactionBuilder(dict):
             self.constructTx()
         if "operations" not in self or not self["operations"]:
             return
-        if self.blockchain.use_sc2:
+        if self.blockchain.use_hs:
             return
         # We need to set the default prefix, otherwise pubkeys are
         # presented wrongly!

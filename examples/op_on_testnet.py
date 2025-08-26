@@ -2,10 +2,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
+from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.block import Block
 from nectar.blockchain import Blockchain
-from nectar.steem import Steem
 from nectargraphenebase.account import PasswordKey
 
 log = logging.getLogger(__name__)
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     b = Blockchain(steem_instance=stm)
     blocknum = b.get_current_block().identifier
 
-    account.transfer("nectar1", 1, "SBD", "test")
+    account.transfer("nectar1", 1, "HBD", "test")
     b1 = Block(blocknum, steem_instance=stm)

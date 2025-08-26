@@ -50,11 +50,6 @@ timestamp={meta[timestamp]}
 {MESSAGE_SPLIT[3]}"""
 
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.message = message.replace("\r\n", "\n")
         self.signed_by_account = None
@@ -183,11 +178,6 @@ class MessageV2(object):
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         self.message = message

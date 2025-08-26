@@ -2,7 +2,7 @@
 # mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
-from nectar import Steem
+from nectar import Hive as Steem
 from nectar.amount import Amount
 from nectar.utils import reputation_to_score
 
@@ -32,8 +32,8 @@ if __name__ == "__main__":
     plt.semilogx(sp_list, rep_score_list, label="Reputation", **opts)
     plt.grid()
     plt.legend()
-    plt.title("Required number of 1k SP upvotes to reach certain reputation")
-    plt.xlabel("1k SP votes")
+    plt.title("Required number of 1k HP upvotes to reach certain reputation")
+    plt.xlabel("1k HP votes")
     plt.ylabel("Reputation")
     plt.show()
     # plt.savefig("rep_based_on_votes.png")

@@ -47,7 +47,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
     def getKnownChains(self):
         return self.known_chains
 
-    def sign(self, path="48'/13'/0'/0'/0'", chain="STEEM"):
+    def sign(self, path="48'/13'/0'/0'/0'", chain="HIVE"):
         from ledgerblue.comm import getDongle
 
         dongle = getDongle(True)

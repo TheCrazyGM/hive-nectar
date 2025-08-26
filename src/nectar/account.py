@@ -2,16 +2,17 @@
 import json
 import logging
 import random
+import warnings
 from datetime import date, datetime, time, timedelta, timezone
 
 from prettytable import PrettyTable
 
 from nectar.amount import Amount
 from nectar.constants import (
-    STEEM_1_PERCENT,
-    STEEM_100_PERCENT,
-    STEEM_VOTE_REGENERATION_SECONDS,
-    STEEM_VOTING_MANA_REGENERATION_SECONDS,
+    HIVE_1_PERCENT,
+    HIVE_100_PERCENT,
+    HIVE_VOTE_REGENERATION_SECONDS,
+    HIVE_VOTING_MANA_REGENERATION_SECONDS,
 )
 from nectar.instance import shared_blockchain_instance
 from nectar.rc import RC
@@ -53,13 +54,10 @@ class Account(BlockchainObject):
     """This class allows to easily access Account data
 
     :param str account: Name of the account
-    :param Steem/Hive blockchain_instance: Hive or Steem
-           instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :param bool lazy: Use lazy loading
     :param bool full: Obtain all account data including orders, positions,
            etc.
-    :param Hive hive_instance: Hive instance
-    :param Steem steem_instance: Steem instance
     :returns: Account data
     :rtype: dictionary
     :raises nectar.exceptions.AccountDoesNotExistsException: if account
@@ -91,28 +89,22 @@ class Account(BlockchainObject):
 
     type_id = 2
 
-    def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(self, account, full=True, lazy=False, blockchain_instance=None):
         """Initialize an account
 
         :param str account: Name of the account
-        :param Steem blockchain_instance: Steem
-               instance
+        :param Blockchain blockchain_instance: Blockchain instance
         :param bool lazy: Use lazy loading
         :param bool full: Obtain all account data including orders, positions,
                etc.
         """
         self.full = full
         self.lazy = lazy
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(account, dict):
             account = self._parse_json_data(account)
         super(Account, self).__init__(
-            account, lazy=lazy, full=full, id_item="name", blockchain_instance=blockchain_instance
+            account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
     def refresh(self):
@@ -202,16 +194,11 @@ class Account(BlockchainObject):
         amounts = [
             "balance",
             "savings_balance",
-            "sbd_balance",
-            "savings_sbd_balance",
-            "reward_sbd_balance",
             "hbd_balance",
             "savings_hbd_balance",
             "reward_hbd_balance",
-            "reward_steem_balance",
             "reward_hive_balance",
             "reward_vesting_balance",
-            "reward_vesting_steem",
             "vesting_shares",
             "delegated_vesting_shares",
             "received_vesting_shares",
@@ -283,16 +270,11 @@ class Account(BlockchainObject):
         amounts = [
             "balance",
             "savings_balance",
-            "sbd_balance",
-            "savings_sbd_balance",
-            "reward_sbd_balance",
-            "reward_steem_balance",
             "hbd_balance",
             "savings_hbd_balance",
             "reward_hbd_balance",
             "reward_hive_balance",
             "reward_vesting_balance",
-            "reward_vesting_steem",
             "vesting_shares",
             "delegated_vesting_shares",
             "received_vesting_shares",
@@ -323,7 +305,7 @@ class Account(BlockchainObject):
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
         diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -380,12 +362,12 @@ class Account(BlockchainObject):
 
     @property
     def sp(self):
-        """Returns the accounts Steem Power"""
+        """Returns the account Hive Power"""
         return self.get_token_power()
 
     @property
     def tp(self):
-        """Returns the accounts Hive/Steem Power"""
+        """Returns the account Hive Power"""
         return self.get_token_power()
 
     @property
@@ -436,7 +418,7 @@ class Account(BlockchainObject):
             t.add_row(["Name (rep)", self.name + " (%.2f)" % (self.rep)])
             t.add_row(["Voting Power", "%.2f %%, " % (self.get_voting_power())])
             t.add_row(["Downvoting Power", "%.2f %%, " % (self.get_downvoting_power())])
-            t.add_row(["Vote Value", "%.2f $" % (self.get_voting_value_SBD())])
+            t.add_row(["Vote Value (HBD)", "%.2f $" % (self.get_voting_value_HBD())])
             t.add_row(["Last vote", "%s ago" % last_vote_time_str])
             t.add_row(["Full in ", "%s" % (self.get_recharge_time_str())])
             t.add_row(
@@ -507,12 +489,12 @@ class Account(BlockchainObject):
             ret = self.name + " (%.2f) \n" % (self.rep)
             ret += "--- Voting Power ---\n"
             ret += "%.2f %%, " % (self.get_voting_power())
-            ret += " %.2f $\n" % (self.get_voting_value_SBD())
+            ret += " %.2f $\n" % (self.get_voting_value_HBD())
             ret += "full in %s \n" % (self.get_recharge_time_str())
             ret += "--- Downvoting Power ---\n"
             ret += "%.2f %% \n" % (self.get_downvoting_power())
             ret += "--- Balance ---\n"
-            ret += "%.2f SP, " % (self.get_token_power())
+            ret += "%.2f HP, " % (self.get_token_power())
             ret += "%s, %s\n" % (
                 str(self.balances["available"][0]),
                 str(self.balances["available"][1]),
@@ -552,7 +534,7 @@ class Account(BlockchainObject):
             print(ret)
 
     def get_reputation(self):
-        """Returns the account reputation in the (steemit) normalized form"""
+        """Returns the account reputation in the normalized form"""
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
@@ -589,7 +571,7 @@ class Account(BlockchainObject):
             addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
         ).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -624,7 +606,7 @@ class Account(BlockchainObject):
             addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
         ).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -662,7 +644,7 @@ class Account(BlockchainObject):
                     addTzInfo(datetime.now(timezone.utc)) - (last_vote_time)
                 ).total_seconds()
                 regenerated_vp = (
-                    diff_in_seconds * STEEM_100_PERCENT / STEEM_VOTE_REGENERATION_SECONDS / 100
+                    diff_in_seconds * HIVE_100_PERCENT / HIVE_VOTE_REGENERATION_SECONDS / 100
                 )
             else:
                 regenerated_vp = 0
@@ -737,7 +719,7 @@ class Account(BlockchainObject):
         return vesting_shares
 
     def get_token_power(self, only_own_vests=False, use_stored_data=True):
-        """Returns the account Hive/Steem power (amount of staked token + delegations)
+        """Returns the account Hive Power (amount of staked token + delegations)
 
         :param bool only_own_vests: When True, only owned vests is
             returned without delegation (default False)
@@ -750,7 +732,12 @@ class Account(BlockchainObject):
         )
 
     def get_steem_power(self, onlyOwnSP=False):
-        """Returns the account steem power"""
+        """Deprecated; use get_token_power() for Hive Power"""
+        warnings.warn(
+            "get_steem_power() is deprecated; use get_token_power()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.get_token_power(only_own_vests=onlyOwnSP)
 
     def get_voting_value(
@@ -761,7 +748,7 @@ class Account(BlockchainObject):
         token_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the account voting value in Hive/Steem token units"""
+        """Returns the account voting value in Hive token-backed dollar units (HBD)"""
         if voting_power is None:
             voting_power = self.get_voting_power()
         if token_power is None:
@@ -777,40 +764,40 @@ class Account(BlockchainObject):
         )
         return voteValue
 
-    def get_voting_value_SBD(
+    def get_voting_value_HBD(
         self,
         post_rshares=0,
         voting_weight=100,
         voting_power=None,
-        steem_power=None,
+        hive_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the account voting value in SBD"""
+        """Returns the account voting value in HBD"""
         return self.get_voting_value(
             post_rshares=post_rshares,
             voting_weight=voting_weight,
             voting_power=voting_power,
-            token_power=steem_power,
+            token_power=hive_power,
             not_broadcasted_vote=not_broadcasted_vote,
         )
 
-    def get_vote_pct_for_SBD(
-        self, sbd, post_rshares=0, voting_power=None, steem_power=None, not_broadcasted_vote=True
+    def get_vote_pct_for_HBD(
+        self, hbd, post_rshares=0, voting_power=None, hive_power=None, not_broadcasted_vote=True
     ):
-        """Returns the voting percentage needed to have a vote worth a given number of SBD.
+        """Returns the voting percentage needed to have a vote worth a given number of HBD.
 
         If the returned number is bigger than 10000 or smaller than -10000,
-        the given SBD value is too high for that account
+        the given HBD value is too high for that account
 
-        :param sbd: The amount of SBD in vote value
-        :type sbd: str, int, amount.Amount
+        :param hbd: The amount of HBD in vote value
+        :type hbd: str, int, amount.Amount
 
         """
         return self.get_vote_pct_for_vote_value(
-            sbd,
+            hbd,
             post_rshares=post_rshares,
             voting_power=voting_power,
-            token_power=steem_power,
+            token_power=hive_power,
             not_broadcasted_vote=not_broadcasted_vote,
         )
 
@@ -822,12 +809,12 @@ class Account(BlockchainObject):
         token_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the voting percentage needed to have a vote worth a given number of Hive/Steem token units
+        """Returns the voting percentage needed to have a vote worth a given number of Hive token-backed dollar units
 
         If the returned number is bigger than 10000 or smaller than -10000,
-        the given SBD value is too high for that account
+        the given HBD value is too high for that account
 
-        :param token_units: The amount of HBD/SBD in vote value
+        :param token_units: The amount of HBD in vote value
         :type token_units: str, int, amount.Amount
 
         """
@@ -850,18 +837,6 @@ class Account(BlockchainObject):
             raise AssertionError(
                 "Should input %s, not any other asset!" % self.blockchain.backed_token_symbol
             )
-        from nectar import Steem
-
-        if isinstance(self.blockchain, Steem):
-            vote_pct = self.blockchain.rshares_to_vote_pct(
-                self.blockchain.sbd_to_rshares(
-                    token_units, not_broadcasted_vote=not_broadcasted_vote
-                ),
-                post_rshares=post_rshares,
-                voting_power=voting_power * 100,
-                steem_power=token_power,
-            )
-        else:
             vote_pct = self.blockchain.rshares_to_vote_pct(
                 self.blockchain.hbd_to_rshares(
                     token_units, not_broadcasted_vote=not_broadcasted_vote
@@ -911,7 +886,7 @@ class Account(BlockchainObject):
         if missing_vp < 0:
             return 0
         recharge_seconds = (
-            missing_vp * 100 * STEEM_VOTING_MANA_REGENERATION_SECONDS / STEEM_100_PERCENT
+            missing_vp * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
@@ -953,7 +928,7 @@ class Account(BlockchainObject):
         if missing_rc_pct < 0:
             return 0
         recharge_seconds = (
-            missing_rc_pct * 100 * STEEM_VOTING_MANA_REGENERATION_SECONDS / STEEM_100_PERCENT
+            missing_rc_pct * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
@@ -967,47 +942,6 @@ class Account(BlockchainObject):
         return addTzInfo(datetime.now(timezone.utc)) + self.get_manabar_recharge_timedelta(
             manabar, recharge_pct_goal
         )
-
-    def get_feed(
-        self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
-    ):
-        """Returns a list of items in an account’s feed
-
-        :param int start_entry_id: default is 0
-        :param int limit: default is 100
-        :param bool raw_data: default is False
-        :param bool short_entries: when set to True and raw_data is True, get_feed_entries is used istead of get_feed
-        :param str account: When set, a different account name is used (Default is object account name)
-
-        :rtype: list
-
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> account.get_feed(0, 1, raw_data=True)
-            []
-
-        """
-        if account is None:
-            account = self["name"]
-        account = extract_account_name(account)
-        if not self.blockchain.is_connected():
-            return None
-        from nectar.discussions import Discussions, Query
-
-        d = Discussions(blockchain_instance=self.blockchain)
-        if short_entries:
-            truncate_body = 1
-        else:
-            truncate_body = 0
-        q = Query(limit=limit, tag=account, truncate_body=truncate_body)
-        return [c for c in d.get_discussions("feed", q, limit=limit, raw_data=raw_data)]
 
     def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
         """Returns a list of entries in an account’s feed
@@ -1028,7 +962,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
+            >>> account = Account("hiveio", blockchain_instance=stm)
             >>> account.get_feed_entries(0, 1)
             []
 
@@ -1059,10 +993,10 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
+            >>> account = Account("hiveio", blockchain_instance=stm)
             >>> entry = account.get_blog_entries(0, 1, raw_data=True)[0]
             >>> print("%s - %s - %s" % (entry["author"], entry["permlink"], entry["blog"]))
-            steemit - firstpost - steemit
+            hiveio - firstpost - hiveio
 
         """
         return self.get_blog(
@@ -1094,9 +1028,9 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
+            >>> account = Account("hiveio", blockchain_instance=stm)
             >>> account.get_blog(0, 1)
-            [<Comment @steemit/firstpost>]
+            [<Comment @hiveio/firstpost>]
 
         """
         if account is None:
@@ -1444,9 +1378,7 @@ class Account(BlockchainObject):
         """List balances of an account. This call returns instances of
         :class:`nectar.amount.Amount`.
         """
-        if "sbd_balance" in self:
-            amount_list = ["balance", "sbd_balance", "vesting_shares"]
-        elif "hbd_balance" in self:
+        if "hbd_balance" in self:
             amount_list = ["balance", "hbd_balance", "vesting_shares"]
         else:
             amount_list = ["balance", "vesting_shares"]
@@ -1459,9 +1391,7 @@ class Account(BlockchainObject):
     @property
     def saving_balances(self):
         savings_amount = []
-        if "savings_sbd_balance" in self:
-            amount_list = ["savings_balance", "savings_sbd_balance"]
-        elif "savings_hbd_balance" in self:
+        if "savings_hbd_balance" in self:
             amount_list = ["savings_balance", "savings_hbd_balance"]
         else:
             amount_list = ["savings_balance"]
@@ -1472,9 +1402,7 @@ class Account(BlockchainObject):
 
     @property
     def reward_balances(self):
-        if "reward_steem_balance" in self and "reward_sbd_balance" in self:
-            amount_list = ["reward_steem_balance", "reward_sbd_balance", "reward_vesting_balance"]
-        elif "reward_hive_balance" in self and "reward_hbd_balance" in self:
+        if "reward_hive_balance" in self and "reward_hbd_balance" in self:
             amount_list = ["reward_hive_balance", "reward_hbd_balance", "reward_vesting_balance"]
         else:
             amount_list = []
@@ -1513,10 +1441,10 @@ class Account(BlockchainObject):
             .. code-block:: js
 
                 {
-                    'available': [102.985 STEEM, 0.008 SBD, 146273.695970 VESTS],
-                    'savings': [0.000 STEEM, 0.000 SBD],
-                    'rewards': [0.000 STEEM, 0.000 SBD, 0.000000 VESTS],
-                    'total': [102.985 STEEM, 0.008 SBD, 146273.695970 VESTS]
+                    'available': [102.985 HIVE, 0.008 HBD, 146273.695970 VESTS],
+                    'savings': [0.000 HIVE, 0.000 HBD],
+                    'rewards': [0.000 HIVE, 0.000 HBD, 0.000000 VESTS],
+                    'total': [102.985 HIVE, 0.008 HBD, 146273.695970 VESTS]
                 }
 
         """
@@ -1532,12 +1460,12 @@ class Account(BlockchainObject):
         :class:`nectar.amount.Amount`. Available balance types:
 
         * "available"
-        * "saving"
-        * "reward"
+        * "savings"
+        * "rewards"
         * "total"
 
         :param str balances: Defines the balance type
-        :param symbol: Can be "SBD", "STEEM" or "VESTS
+        :param symbol: Can be "HBD", "HIVE" or "VESTS"
         :type symbol: str, dict
 
         .. code-block:: python
@@ -1752,7 +1680,7 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_owner_history(account)
 
     def get_conversion_requests(self, account=None):
-        """Returns a list of SBD conversion request
+        """Returns a list of HBD conversion requests
 
         :param str account: When set, a different account is used for the request (Default is object account name)
 
@@ -1974,7 +1902,7 @@ class Account(BlockchainObject):
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
             >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
+            >>> account = Account("hiveio", blockchain_instance=stm)
             >>> print(account.verify_account_authority(["STM7Q2rLBqzPzFeteQZewv9Lu3NLE69fZoLeL6YK59t7UmssCBNTU"])["valid"])
             False
 
@@ -2548,7 +2476,7 @@ class Account(BlockchainObject):
             block_props = remove_from_dict(event, keys=["op"], keep_keys=False)
 
             def construct_op(account_name):
-                # verbatim output from steemd
+                # verbatim output from RPC node
                 if raw_output:
                     return item
 
@@ -3448,7 +3376,7 @@ class Account(BlockchainObject):
     def transfer_to_vesting(
         self, amount, to=None, account=None, skip_account_check=False, **kwargs
     ):
-        """Vest STEEM
+        """Power up HIVE (transfer liquid HIVE to VESTS)
 
         :param float amount: Amount to transfer
         :param str to: Recipient (optional) if not set equal to account
@@ -3483,9 +3411,9 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def convert(self, amount, account=None, request_id=None):
-        """Convert SteemDollars to Steem (takes 3.5 days to settle)
+        """Convert HBD to HIVE (takes ~3.5 days to settle)
 
-        :param float amount: amount of SBD to convert
+        :param float amount: amount of HBD to convert
         :param str account: (optional) the source account for the transfer
             if not ``default_account``
         :param str request_id: (optional) identifier for tracking the
@@ -3518,7 +3446,7 @@ class Account(BlockchainObject):
         """Convert Hive dollars to Hive (this method is meant to be more instant)
         and reflect the method added in HF25
 
-        :param float amount: amount of SBD to convert
+        :param float amount: amount of HBD to convert
         :param str account: (optional) the source account for the transfer
             if not ``default_account``
         :param str request_id: (optional) identifier for tracking the
@@ -3547,10 +3475,10 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_to_savings(self, amount, asset, memo, to=None, account=None, **kwargs):
-        """Transfer SBD or STEEM into a 'savings' account.
+        """Transfer HBD or HIVE into a 'savings' account.
 
-        :param float amount: STEEM or SBD amount
-        :param float asset: 'STEEM' or 'SBD'
+        :param float amount: HIVE or HBD amount
+        :param float asset: 'HIVE' or 'HBD'
         :param str memo: (optional) Memo
         :param str to: (optional) the source account for the transfer if
             not ``default_account``
@@ -3586,10 +3514,10 @@ class Account(BlockchainObject):
     def transfer_from_savings(
         self, amount, asset, memo, request_id=None, to=None, account=None, **kwargs
     ):
-        """Withdraw SBD or STEEM from 'savings' account.
+        """Withdraw HBD or HIVE from 'savings' account.
 
-        :param float amount: STEEM or SBD amount
-        :param float asset: 'STEEM' or 'SBD'
+        :param float amount: HIVE or HBD amount
+        :param float asset: 'HIVE' or 'HBD'
         :param str memo: (optional) Memo
         :param str request_id: (optional) identifier for tracking or
             cancelling the withdrawal
@@ -3664,8 +3592,6 @@ class Account(BlockchainObject):
 
     def claim_reward_balance(
         self,
-        reward_steem=0,
-        reward_sbd=0,
         reward_hive=0,
         reward_hbd=0,
         reward_vests=0,
@@ -3675,11 +3601,8 @@ class Account(BlockchainObject):
         """Claim reward balances.
         By default, this will claim ``all`` outstanding balances. To bypass
         this behaviour, set desired claim amount by setting any of
-        `reward_steem`/``reward_hive, `reward_sbd`/``reward_hbd or `reward_vests`.
-
-        :param str reward_steem: Amount of STEEM you would like to claim.
+        ``reward_hive``, ``reward_hbd`` or ``reward_vests``.
         :param str reward_hive: Amount of HIVE you would like to claim.
-        :param str reward_sbd: Amount of SBD you would like to claim.
         :param str reward_hbd: Amount of HBD you would like to claim.
         :param str reward_vests: Amount of VESTS you would like to claim.
         :param str account: The source account for the claim if not
@@ -3696,20 +3619,14 @@ class Account(BlockchainObject):
         # if no values were set by user, claim all outstanding balances on
         # account
 
-        reward_token_amount = self._check_amount(
-            reward_steem + reward_hive, self.blockchain.token_symbol
-        )
+        reward_token_amount = self._check_amount(reward_hive, self.blockchain.token_symbol)
         reward_backed_token_amount = self._check_amount(
-            reward_sbd + reward_hbd, self.blockchain.backed_token_symbol
+            reward_hbd, self.blockchain.backed_token_symbol
         )
         reward_vests_amount = self._check_amount(reward_vests, self.blockchain.vest_token_symbol)
 
-        if self.blockchain.is_hive:
-            reward_token = "reward_hive"
-            reward_backed_token = "reward_hbd"
-        else:
-            reward_token = "reward_steem"
-            reward_backed_token = "reward_sbd"
+        reward_token = "reward_hive"
+        reward_backed_token = "reward_hbd"
 
         if (
             reward_token_amount.amount == 0
@@ -3812,7 +3729,7 @@ class Account(BlockchainObject):
         :param str account: (optional) the vesting account
         :param bool auto_vest: Set to true if the 'to' account
             should receive the VESTS as VESTS, or false if it should
-            receive them as STEEM. (defaults to ``False``)
+            receive them as HIVE. (defaults to ``False``)
 
         """
         if account is None:
@@ -3823,7 +3740,7 @@ class Account(BlockchainObject):
             **{
                 "from_account": account["name"],
                 "to_account": to,
-                "percent": int(percentage * STEEM_1_PERCENT),
+                "percent": int(percentage * HIVE_1_PERCENT),
                 "auto_vest": auto_vest,
             }
         )
@@ -3995,12 +3912,12 @@ class Account(BlockchainObject):
         .. code-block:: python
 
             from nectar.account import Account
-            from nectar import Steem
+            from nectar import Hive
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("ned", blockchain_instance=stm)
+            stm = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("gtg", blockchain_instance=stm)
             for reply in acc.feed_history(limit=10):
                 print(reply)
 
@@ -4059,8 +3976,8 @@ class Account(BlockchainObject):
             entries from this index. `start=-1` (default) starts
             with the latest available entry.
         :param bool reblogs: (optional) if set `True` (default)
-            reblogs / resteems are included. If set `False`,
-            reblogs/resteems are omitted.
+            reblogs are included. If set `False`,
+            reblogs are omitted.
         :param str account: (optional) the account to stream blog
             entries for (defaults to ``default_account``)
 
@@ -4069,12 +3986,12 @@ class Account(BlockchainObject):
         .. code-block:: python
 
             from nectar.account import Account
-            from nectar import Steem
+            from nectar import Hive
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("steemitblog", blockchain_instance=stm)
+            stm = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("ecency", blockchain_instance=stm)
             for post in acc.blog_history(limit=10):
                 print(post)
 
@@ -4141,12 +4058,12 @@ class Account(BlockchainObject):
         .. code-block:: python
 
             from nectar.account import Account
-            from nectar import Steem
+            from nectar import Hive
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("ned", blockchain_instance=stm)
+            stm = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("gtg", blockchain_instance=stm)
             for comment in acc.comment_history(limit=10):
                 print(comment)
 
@@ -4328,18 +4245,18 @@ class Accounts(AccountsObject):
     :param list name_list: list of accounts to fetch
     :param int batch_limit: (optional) maximum number of accounts
         to fetch per call, defaults to 100
-    :param Steem/Hive blockchain_instance: Steem() or Hive() instance to use when
-        accessing a RPCcreator = Account(creator, blockchain_instance=self)
+    :param Blockchain blockchain_instance: Blockchain instance to use when
+        accessing the RPC
     """
 
     def __init__(
-        self, name_list, batch_limit=100, lazy=False, full=True, blockchain_instance=None, **kwargs
+        self,
+        name_list,
+        batch_limit=100,
+        lazy=False,
+        full=True,
+        blockchain_instance=None,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

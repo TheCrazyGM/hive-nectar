@@ -13,21 +13,13 @@ from .instance import shared_blockchain_instance
 class ImageUploader(object):
     def __init__(
         self,
-        base_url="https://steemitimages.com",
+        base_url="https://images.hive.blog",
         challenge="ImageSigningChallenge",
         blockchain_instance=None,
-        **kwargs,
     ):
         self.challenge = challenge
         self.base_url = base_url
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
-        self.steem = blockchain_instance or shared_blockchain_instance()
-        if self.steem.is_hive and base_url == "https://steemitimages.com":
-            self.base_url = "https://images.hive.blog"
+        self.blockchain = blockchain_instance or shared_blockchain_instance()
 
     def upload(self, image, account, image_name=None):
         """Uploads an image
@@ -39,20 +31,20 @@ class ImageUploader(object):
 
         .. code-block:: python
 
-            from nectar import Steem
+            from nectar import Hive
             from nectar.imageuploader import ImageUploader
-            stm = Steem(keys=["5xxx"]) # private posting key
+            stm = Hive(keys=["5xxx"])  # private posting key (posting)
             iu = ImageUploader(blockchain_instance=stm)
-            iu.upload("path/to/image.png", "account_name") # "private posting key belongs to account_name
+            iu.upload("path/to/image.png", "account_name")  # posting key must belong to account_name
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         if "posting" not in account:
             account.refresh()
         if "posting" not in account:
             raise AssertionError("Could not access posting permission")
         for authority in account["posting"]["key_auths"]:
-            posting_wif = self.steem.wallet.getPrivateKeyForPublicKey(authority[0])
+            posting_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(authority[0])
 
         if isinstance(image, str):
             image_data = open(image, "rb").read()

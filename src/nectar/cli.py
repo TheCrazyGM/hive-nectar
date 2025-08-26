@@ -24,7 +24,6 @@ from nectar.asciichart import AsciiChart
 from nectar.asset import Asset
 from nectar.block import Block
 from nectar.blockchain import Blockchain
-from nectar.blurt import Blurt
 from nectar.comment import Comment
 from nectar.community import Communities, Community
 from nectar.conveyor import Conveyor
@@ -39,8 +38,6 @@ from nectar.nodelist import NodeList, node_answer_time
 from nectar.price import Price
 from nectar.profile import Profile
 from nectar.rc import RC
-from nectar.steem import Steem
-from nectar.storage import get_default_config_store
 from nectar.transactionbuilder import TransactionBuilder
 from nectar.utils import (
     construct_authorperm,
@@ -93,8 +90,8 @@ def prompt_callback(ctx, param, value):
 
 
 def asset_callback(ctx, param, value):
-    if value not in ["STEEM", "SBD", "HIVE", "HBD", "BLURT", "TBD", "TESTS"]:
-        print("Please STEEM/HIVE/BLURT or SBD/HBD as asset!")
+    if value not in ["HIVE", "HBD", "TBD", "TESTS"]:
+        print("Please choose HIVE/HBD (or TESTS/TBD for test assets) as asset!")
         ctx.abort()
     else:
         return value
@@ -286,8 +283,7 @@ def export_trx(tx, export):
     default=False,
     help="Creates hivesigner links from all broadcast operations",
 )
-@click.option("--steem", "-s", is_flag=True, default=False, help="Connect to the Steem blockchain")
-@click.option("--hive", "-h", is_flag=True, default=False, help="Connect to the Hive blockchain")
+# Hive is the only supported chain; no chain selection flags
 @click.option(
     "--keys",
     "-k",
@@ -325,8 +321,6 @@ def cli(
     no_wallet,
     unsigned,
     create_link,
-    steem,
-    hive,
     keys,
     use_ledger,
     path,
@@ -372,72 +366,25 @@ def cli(
     else:
         sc2 = None
     debug = verbose > 0
-    blurt = False
-    if not hive and not steem:
-        config = get_default_config_store()
-        if config["default_chain"].lower() == "hive":
-            hive = True
-        elif config["default_chain"].lower() == "steem":
-            steem = True
-        elif config["default_chain"].lower() == "blurt":
-            blurt = True
-    if hive:
-        stm = Hive(
-            node=node,
-            nobroadcast=no_broadcast,
-            keys=keys_list,
-            offline=offline,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_hs=token,
-            expiration=expires,
-            hivesigner=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
-    elif steem:
-        stm = Steem(
-            node=node,
-            nobroadcast=no_broadcast,
-            offline=offline,
-            keys=keys_list,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_sc2=token,
-            expiration=expires,
-            steemconnect=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
-    else:
-        stm = Blurt(
-            node=node,
-            nobroadcast=no_broadcast,
-            offline=offline,
-            keys=keys_list,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_sc2=token,
-            expiration=expires,
-            steemconnect=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
+    # Hive-only instance
+    stm = Hive(
+        node=node,
+        nobroadcast=no_broadcast,
+        keys=keys_list,
+        offline=offline,
+        nowallet=no_wallet,
+        unsigned=unsigned,
+        use_hs=token,
+        expiration=expires,
+        hivesigner=sc2,
+        use_ledger=use_ledger,
+        path=path,
+        debug=debug,
+        num_retries=10,
+        num_retries_call=5,
+        timeout=30,
+        autoconnect=autoconnect,
+    )
 
     set_shared_blockchain_instance(stm)
 
@@ -498,11 +445,14 @@ def set(key, value):
     elif key == "hot_sign_redirect_uri":
         stm.config["hot_sign_redirect_uri"] = value
     elif key == "sc2_api_url":
-        stm.config["sc2_api_url"] = value
+        # LEGACY: map SteemConnect API URL to HiveSigner API URL
+        stm.config["hs_api_url"] = value
     elif key == "hs_api_url":
         stm.config["hs_api_url"] = value
     elif key == "oauth_base_url":
+        # Keep generic key and also update HiveSigner oauth base for consistency
         stm.config["oauth_base_url"] = value
+        stm.config["hs_oauth_base_url"] = value
     elif key == "default_path":
         stm.config["default_path"] = value
     elif key == "default_canonical_url":
@@ -623,21 +573,13 @@ def currentnode(version, url):
         t.add_row(["Version", stm.get_blockchain_version()])
         t.add_row(["Chain", stm.get_blockchain_name()])
     else:
-        t.add_row(["Version", "steempy is in offline mode..."])
+        t.add_row(["Version", "hive-nectar is in offline mode..."])
     print(t)
 
 
 @cli.command()
 @click.option("--show", "-s", is_flag=True, default=False, help="Prints the updated nodes")
-@click.option(
-    "--hive", "-h", is_flag=True, default=False, help="Switch to HIVE blockchain, when set to true."
-)
-@click.option(
-    "--steem", "-e", is_flag=True, default=False, help="Switch to STEEM nodes, when set to true."
-)
-@click.option(
-    "--blurt", "-b", is_flag=True, default=False, help="Switch to BLURT nodes, when set to true."
-)
+# Hive-only node updates
 @click.option(
     "--test",
     "-t",
@@ -647,44 +589,18 @@ def currentnode(version, url):
 )
 @click.option("--only-https", is_flag=True, default=False, help="Use only https nodes.")
 @click.option("--only-wss", is_flag=True, default=False, help="Use only websocket nodes.")
-def updatenodes(show, hive, steem, blurt, test, only_https, only_wss):
+def updatenodes(show, test, only_https, only_wss):
     """Update the nodelist from @fullnodeupdate"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
-    if steem and hive:
-        print("hive and steem cannot be active both")
-        return
     t = PrettyTable(["node", "Version", "score"])
     t.align = "l"
-    if steem:
-        blockchain = "steem"
-    elif hive:
-        blockchain = "hive"
-    elif blurt:
-        blockchain = "blurt"
-    else:
-        blockchain = stm.config["default_chain"]
     nodelist = NodeList()
     nodelist.update_nodes(blockchain_instance=stm)
-    if hive:
-        nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
-        if stm.config["default_chain"] != "hive":
-            stm.config["default_chain"] = "hive"
-    elif steem:
-        nodes = nodelist.get_steem_nodes(wss=not only_https, https=not only_wss)
-        if stm.config["default_chain"] != "steem":
-            stm.config["default_chain"] = "steem"
-    elif blurt:
-        nodes = ["https://rpc.blurt.world", "https://blurt-rpc.steem.buzz"]
-        if stm.config["default_chain"] != "blurt":
-            stm.config["default_chain"] = "blurt"
-    elif stm.config["default_chain"] == "steem":
-        nodes = nodelist.get_steem_nodes(wss=not only_https, https=not only_wss)
-    elif stm.config["default_chain"] == "blurt":
-        nodes = ["https://rpc.blurt.world", "https://blurt-rpc.steem.buzz"]
-    else:
-        nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+    nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+    if stm.config["default_chain"] != "hive":
+        stm.config["default_chain"] = "hive"
     if show or test:
         sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
         for node in sorted_nodes:
@@ -913,7 +829,7 @@ def delkey(confirm, pub):
 @click.option(
     "--network",
     "-n",
-    help="Network index, when using BIP39, 0 for steem and 13 for hive, (default is 13)",
+    help="Network index for BIP39 (default is 13 for Hive)",
     default=13,
 )
 @click.option(
@@ -1410,9 +1326,7 @@ def upvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=stm)
         tx = post.upvote(weight, voter=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+        if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
             tx = stm.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not upvote.")
@@ -1442,9 +1356,7 @@ def delete(post, account, export):
     try:
         post = Comment(post, blockchain_instance=stm)
         tx = post.delete(account=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+        if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
             tx = stm.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Could not delete post.")
@@ -1481,9 +1393,7 @@ def downvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=stm)
         tx = post.downvote(weight, voter=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+        if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
             tx = stm.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not downvote.")
@@ -1501,7 +1411,7 @@ def downvote(post, account, weight, export):
 @click.option("--account", "-a", help="Transfer from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def transfer(to, amount, asset, memo, account, export):
-    """Transfer SBD/HBD or STEEM/HIVE"""
+    """Transfer HBD or HIVE"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
@@ -1513,9 +1423,7 @@ def transfer(to, amount, asset, memo, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.transfer(to, amount, asset, memo)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1528,7 +1436,7 @@ def transfer(to, amount, asset, memo, account, export):
 @click.option("--to", "-t", help="Powerup this account", default=None)
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def powerup(amount, account, to, export):
-    """Power up (vest STEEM/HIVE as STEEM/HIVE POWER)"""
+    """Power up (vest HIVE into Hive Power)"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
@@ -1542,9 +1450,7 @@ def powerup(amount, account, to, export):
     except Exception:
         amount = str(amount)
     tx = acc.transfer_to_vesting(amount, to=to)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1556,7 +1462,7 @@ def powerup(amount, account, to, export):
 @click.option("--account", "-a", help="Powerup from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def powerdown(amount, account, export):
-    """Power down (start withdrawing VESTS from Steem POWER)
+    """Power down (start withdrawing VESTS from Hive Power)
 
     amount is in VESTS
     """
@@ -1573,9 +1479,7 @@ def powerdown(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.withdraw_vesting(amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1590,7 +1494,7 @@ def powerdown(amount, account, export):
 def delegate(amount, to_account, account, export):
     """Delegate (start delegating VESTS to another account)
 
-    amount is in VESTS / Steem
+    amount is in VESTS / HIVE Power
     """
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
@@ -1600,19 +1504,16 @@ def delegate(amount, to_account, account, export):
     if not unlock_wallet(stm):
         return
     acc = Account(account, blockchain_instance=stm)
-    try:
-        amount = float(amount)
-    except Exception:
-        amount = Amount(str(amount), blockchain_instance=stm)
-        if amount.symbol == stm.token_symbol and isinstance(stm, Steem):
-            amount = stm.sp_to_vests(float(amount))
-        elif amount.symbol == stm.token_symbol and isinstance(stm, Hive):
+    if stm.token_symbol is not None:
+        amount = Amount(amount, blockchain_instance=stm)
+    else:
+        amount = Amount(amount, blockchain_instance=stm)
+    if isinstance(amount, Amount):
+        if amount.symbol == stm.token_symbol:
             amount = stm.hp_to_vests(float(amount))
 
     tx = acc.delegate_vesting_shares(to_account, amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1662,7 +1563,7 @@ def listdelegations(account):
 @click.option(
     "--auto_vest",
     help="Set to true if the from account should receive the VESTS as"
-    "VESTS, or false if it should receive them as STEEM/HIVE.",
+    "VESTS, or false if it should receive them as HIVE.",
     is_flag=True,
 )
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
@@ -1677,9 +1578,7 @@ def powerdownroute(to, percentage, account, auto_vest, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.set_withdraw_vesting_route(to, percentage, auto_vest=auto_vest)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1722,9 +1621,7 @@ def changerecovery(new_recovery_account, account, export):
         tb.appendWif(str(owner_key))
         tb.sign()
         tx = tb.broadcast()
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -1736,7 +1633,7 @@ def changerecovery(new_recovery_account, account, export):
 @click.option("--account", "-a", help="Powerup from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def convert(amount, account, export):
-    """Convert SBD/HBD to Steem/Hive (takes a week to settle)"""
+    """Convert HBD to HIVE (takes ~1 week to settle)"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
         stm.rpc.rpcconnect()
@@ -1750,9 +1647,7 @@ def convert(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.convert(amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2128,9 +2023,7 @@ def allow(foreign_account, permission, account, weight, threshold, export):
     if threshold is not None:
         threshold = int(threshold)
     tx = acc.allow(foreign_account, weight=weight, permission=permission, threshold=threshold)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2170,9 +2063,7 @@ def disallow(foreign_account, permission, account, threshold, export):
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
         foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), stm.prefix)]
     tx = acc.disallow(foreign_account, permission=permission, threshold=threshold)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2189,7 +2080,7 @@ def disallow(foreign_account, permission, account, threshold, export):
 @click.option(
     "--number",
     "-n",
-    help="Number of subsidized accounts to be claimed (default = 1), when fee = 0 STEEM",
+    help="Number of subsidized accounts to be claimed (default = 1), when fee = 0 HIVE",
     default=1,
 )
 @click.option(
@@ -2209,10 +2100,7 @@ def claimaccount(creator, fee, number, export):
     creator = Account(creator, blockchain_instance=stm)
     fee = Amount("%.3f %s" % (float(fee), stm.token_symbol), blockchain_instance=stm)
     tx = None
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.claim_account(creator, fee=fee)
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.claim_account(creator, fee=fee)
         tx = stm.hivesigner.url_from_tx(tx)
     elif float(fee) == 0:
@@ -2312,9 +2200,7 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
         memo_key=memo,
         password=None,
     )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2430,9 +2316,7 @@ def newaccount(
                 memo_key=memo,
                 posting_key=posting,
             )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2472,9 +2356,7 @@ def setprofile(variable, value, account, pair, export):
     json_metadata = Profile(acc["json_metadata"] if acc["json_metadata"] else {})
     json_metadata.update(profile)
     tx = acc.update_account_profile(json_metadata)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2502,9 +2384,7 @@ def delprofile(variable, account, export):
         json_metadata.remove(var)
 
     tx = acc.update_account_profile(json_metadata)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2622,9 +2502,7 @@ def updatememokey(account, key, export):
         if not stm.nobroadcast:
             stm.wallet.addPrivateKey(memo_privkey)
     tx = acc.update_memo_key(key)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2655,10 +2533,11 @@ def beneficiaries(authorperm, beneficiaries, export):
         "allow_votes": c["allow_votes"],
         "allow_curation_rewards": c["allow_curation_rewards"],
     }
-    if "percent_steem_dollars" in c:
-        options["percent_steem_dollars"] = c["percent_steem_dollars"]
-    elif "percent_hbd" in c:
+    if "percent_hbd" in c:
         options["percent_hbd"] = c["percent_hbd"]
+    elif "percent_steem_dollars" in c:
+        # Backward-compat: map legacy field to Hive's percent_hbd
+        options["percent_hbd"] = c["percent_steem_dollars"]
 
     if isinstance(beneficiaries, tuple) and len(beneficiaries) == 1:
         beneficiaries = beneficiaries[0].split(",")
@@ -2666,9 +2545,7 @@ def beneficiaries(authorperm, beneficiaries, export):
     for b in beneficiaries_list_sorted:
         Account(b["account"], blockchain_instance=stm)
     tx = stm.comment_options(options, authorperm, beneficiaries_list_sorted, account=account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2946,10 +2823,11 @@ def download(permlink, account, save, export):
         else:
             yaml_prefix += "last_update: %s\n" % comment.json()["updated"]
         yaml_prefix += "max_accepted_payout: %s\n" % str(comment["max_accepted_payout"])
-        if "percent_steem_dollars" in comment:
-            yaml_prefix += "percent_steem_dollars: %s\n" % str(comment["percent_steem_dollars"])
-        elif "percent_hbd" in comment:
+        if "percent_hbd" in comment:
             yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_hbd"])
+        elif "percent_steem_dollars" in comment:
+            # Backward-compat: normalize to percent_hbd in YAML
+            yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_steem_dollars"])
         if "tags" in comment.json_metadata:
             if (
                 len(comment.json_metadata["tags"]) > 0
@@ -2991,10 +2869,12 @@ def download(permlink, account, save, export):
     "--beneficiaries", "-b", help="Post beneficiaries (komma separated, e.g. a:10%,b:20%)"
 )
 @click.option(
-    "--percent-steem-dollars", "-d", help="50% SBD /50% SP is 10000 (default), 100% SP is 0"
+    "--percent-steem-dollars",
+    "-d",
+    help="LEGACY: alias for --percent-hbd (50% HBD/50% HP is 10000, 100% HP is 0)",
 )
-@click.option("--percent-hbd", "-h", help="50% HBD /50% HP is 10000 (default), 100% HP is 0")
-@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [SBD]")
+@click.option("--percent-hbd", "-h", help="50% HBD/50% HP is 10000 (default), 100% HP is 0")
+@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [HBD]")
 @click.option(
     "--no-parse-body",
     "-n",
@@ -3056,7 +2936,7 @@ def createpost(
     if percent_steem_dollars is None and percent_hbd is None:
         ret = None
         while ret is None:
-            ret = input("50% or 100% Steem/Hive Power as post reward [50 or 100]? ")
+            ret = input("50% or 100% Hive Power as post reward [50 or 100]? ")
             if ret not in ["50", "100"]:
                 ret = None
         if ret == "50":
@@ -3078,10 +2958,10 @@ def createpost(
     yaml_prefix += 'title: "%s"\n' % title
     yaml_prefix += "author: %s\n" % account
     yaml_prefix += "tags: %s\n" % tags
-    if stm.is_hive:
-        yaml_prefix += "percent_hbd: %d\n" % percent_hbd
-    else:
-        yaml_prefix += "percent_steem_dollars: %d\n" % percent_steem_dollars
+    # Hive-only: always write percent_hbd (map legacy if needed)
+    yaml_prefix += "percent_hbd: %d\n" % (
+        percent_hbd if percent_hbd is not None else percent_steem_dollars
+    )
     if community is not None and community != "":
         yaml_prefix += "community: %s\n" % community
     if beneficiaries is not None and beneficiaries != "":
@@ -3114,10 +2994,12 @@ def createpost(
     "--beneficiaries", "-b", help="Post beneficiaries (komma separated, e.g. a:10%,b:20%)"
 )
 @click.option(
-    "--percent-steem-dollars", "-d", help="50% SBD /50% SP is 10000 (default), 100% SP is 0"
+    "--percent-steem-dollars",
+    "-d",
+    help="LEGACY: alias for --percent-hbd (50% HBD/50% HP is 10000, 100% HP is 0)",
 )
-@click.option("--percent-hbd", "-h", help="50% SBD /50% SP is 10000 (default), 100% SP is 0")
-@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [SBD]")
+@click.option("--percent-hbd", "-h", help="50% HBD/50% HP is 10000 (default), 100% HP is 0")
+@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [HBD]")
 @click.option(
     "--no-parse-body",
     "-n",
@@ -3183,9 +3065,11 @@ def post(
     if reply_identifier is not None:
         parameter["reply_identifier"] = reply_identifier
     if percent_steem_dollars is not None:
-        parameter["percent_steem_dollars"] = percent_steem_dollars
+        # Map legacy CLI arg to Hive's percent_hbd
+        parameter["percent_hbd"] = percent_steem_dollars
     elif "percent-steem-dollars" in parameter:
-        parameter["percent_steem_dollars"] = parameter["percent-steem-dollars"]
+        # Map legacy YAML key to Hive's percent_hbd
+        parameter["percent_hbd"] = parameter["percent-steem-dollars"]
     if percent_hbd is not None:
         parameter["percent_hbd"] = percent_hbd
     elif "percent-hbd" in parameter:
@@ -3247,14 +3131,10 @@ def post(
                 Amount(float(max_accepted_payout), stm.backed_token_symbol, blockchain_instance=stm)
             )
         comment_options["max_accepted_payout"] = max_accepted_payout
-    if percent_hbd is not None and stm.is_hive:
-        comment_options["percent_hbd"] = percent_hbd
-    elif percent_steem_dollars is not None and stm.is_hive:
-        comment_options["percent_hbd"] = percent_steem_dollars
-    elif percent_steem_dollars is not None:
-        comment_options["percent_steem_dollars"] = percent_steem_dollars
-    elif percent_hbd is not None:
-        comment_options["percent_steem_dollars"] = percent_hbd
+    # Hive-only: set percent_hbd from either explicit percent_hbd or legacy alias
+    unified_percent = percent_hbd if percent_hbd is not None else percent_steem_dollars
+    if unified_percent is not None:
+        comment_options["percent_hbd"] = unified_percent
     beneficiaries = None
     if "beneficiaries" in parameter:
         beneficiaries = derive_beneficiaries(parameter["beneficiaries"])
@@ -3354,9 +3234,7 @@ def post(
             parse_body=False,
             app="hive-nectar/%s" % (__version__),
         )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3390,9 +3268,7 @@ def reply(authorperm, body, account, title, export):
         reply_identifier=authorperm,
         app="hive-nectar/%s" % (__version__),
     )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3414,9 +3290,7 @@ def approvewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.approvewitness(witness, approve=True)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3438,9 +3312,7 @@ def disapprovewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.disapprovewitness(witness)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3462,9 +3334,7 @@ def setproxy(proxy, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.setproxy(proxy, account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3485,9 +3355,7 @@ def delproxy(account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.setproxy("", account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3631,9 +3499,7 @@ def stream(lines, head, table, follow):
 
 
 @cli.command()
-@click.option("--sbd-to-steem", help="Show ticker in SBD/STEEM", is_flag=True, default=False)
-@click.option("--hbd-to-hive", "-i", help="Show ticker in HBD/HIVE", is_flag=True, default=False)
-def ticker(sbd_to_steem, hbd_to_hive):
+def ticker():
     """Show ticker"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
@@ -3643,11 +3509,7 @@ def ticker(sbd_to_steem, hbd_to_hive):
     market = Market(blockchain_instance=stm)
     ticker = market.ticker()
     for key in ticker:
-        if key in ["highest_bid", "latest", "lowest_ask"] and (sbd_to_steem or hbd_to_hive):
-            t.add_row([key, str(ticker[key].as_base(stm.backed_token_symbol))])
-        elif key in "percent_change" and (sbd_to_steem or hbd_to_hive):
-            t.add_row([key, "%.2f %%" % -ticker[key]])
-        elif key in "percent_change":
+        if key in "percent_change":
             t.add_row([key, "%.2f %%" % ticker[key]])
         else:
             t.add_row([key, str(ticker[key])])
@@ -3703,8 +3565,6 @@ def pricehistory(width, height, ascii):
 @click.option(
     "--hours", help="Limit the intervall history intervall (default 2 hours)", default=2.0
 )
-@click.option("--sbd-to-steem", help="Show ticker in SBD/STEEM", is_flag=True, default=False)
-@click.option("--hbd-to-hive", "-i", help="Show ticker in HBD/HIVE", is_flag=True, default=False)
 @click.option(
     "--limit",
     "-l",
@@ -3714,7 +3574,7 @@ def pricehistory(width, height, ascii):
 @click.option("--width", "-w", help="Plot width (default 75)", default=75)
 @click.option("--height", "-h", help="Plot height (default 15)", default=15)
 @click.option("--ascii", help="Use only ascii symbols", is_flag=True, default=False)
-def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, ascii):
+def tradehistory(days, hours, limit, width, height, ascii):
     """Show price history"""
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
@@ -3726,10 +3586,8 @@ def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, a
     intervall = timedelta(hours=hours)
     trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
     price = []
-    if sbd_to_steem or hbd_to_hive:
-        base_str = stm.token_symbol
-    else:
-        base_str = stm.backed_token_symbol
+    # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
+    base_str = stm.token_symbol
     for trade in trades:
         base = 0
         quote = 0
@@ -3744,26 +3602,15 @@ def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, a
     chart = AsciiChart(
         height=height, width=width, offset=3, placeholder="{:6.2f} ", charset=charset
     )
-    if sbd_to_steem or hbd_to_hive:
-        print(
-            "\n     Trade history %s - %s \n\n%s/%s"
-            % (
-                formatTimeString(start),
-                formatTimeString(stop),
-                stm.backed_token_symbol,
-                stm.token_symbol,
-            )
+    print(
+        "\n     Trade history %s - %s \n\n%s/%s"
+        % (
+            formatTimeString(start),
+            formatTimeString(stop),
+            stm.token_symbol,
+            stm.backed_token_symbol,
         )
-    else:
-        print(
-            "\n     Trade history %s - %s \n\n%s/%s"
-            % (
-                formatTimeString(start),
-                formatTimeString(stop),
-                stm.token_symbol,
-                stm.backed_token_symbol,
-            )
-        )
+    )
     chart.adapt_on_series(price)
     chart.new_chart()
     chart.add_axis()
@@ -3884,9 +3731,9 @@ def orderbook(chart, limit, show_date, width, height, ascii):
 @click.option("--orderid", help="Set an orderid")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def buy(amount, asset, price, account, orderid, export):
-    """Buy STEEM/HIVE or SBD/HBD from the internal market
+    """Buy HIVE or HBD from the internal market
 
-    Limit buy price denoted in (SBD per STEEM or HBD per HIVE)
+    Limit buy price denoted in (HBD per HIVE)
     """
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
@@ -3932,9 +3779,7 @@ def buy(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=stm)
     acc = Account(account, blockchain_instance=stm)
     tx = market.buy(p, a, account=acc, orderid=orderid)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -3949,9 +3794,9 @@ def buy(amount, asset, price, account, orderid, export):
 @click.option("--orderid", help="Set an orderid")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def sell(amount, asset, price, account, orderid, export):
-    """Sell STEEM/HIVE or SBD/HBD from the internal market
+    """Sell HIVE or HBD from the internal market
 
-    Limit sell price denoted in (SBD per STEEM) or (HBD per HIVE)
+    Limit sell price denoted in (HBD per HIVE)
     """
     stm = shared_blockchain_instance()
     if stm.rpc is not None:
@@ -3996,9 +3841,7 @@ def sell(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=stm)
     acc = Account(account, blockchain_instance=stm)
     tx = market.sell(p, a, account=acc, orderid=orderid)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4021,9 +3864,7 @@ def cancel(orderid, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = market.cancel(orderid, account=acc)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4066,9 +3907,7 @@ def reblog(identifier, account):
     acc = Account(account, blockchain_instance=stm)
     post = Comment(identifier, blockchain_instance=stm)
     tx = post.resteem(account=acc)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4095,9 +3934,7 @@ def follow(follow, account, what, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.follow(follow, what=what)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4122,9 +3959,7 @@ def mute(mute, account, what, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.follow(mute, what=what)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4146,9 +3981,7 @@ def unfollow(unfollow, account, export):
         return
     acc = Account(account, blockchain_instance=stm)
     tx = acc.unfollow(unfollow)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4159,7 +3992,6 @@ def unfollow(unfollow, account, export):
 @click.option("--witness", help="Witness name")
 @click.option("--maximum_block_size", help="Max block size")
 @click.option("--account_creation_fee", help="Account creation fee")
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent")
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent")
 @click.option("--url", help="Witness URL")
 @click.option("--signing_key", help="Signing Key")
@@ -4168,7 +4000,6 @@ def witnessupdate(
     witness,
     maximum_block_size,
     account_creation_fee,
-    sbd_interest_rate,
     hbd_interest_rate,
     url,
     signing_key,
@@ -4192,14 +4023,10 @@ def witnessupdate(
         )
     if maximum_block_size is not None:
         props["maximum_block_size"] = int(maximum_block_size)
-    if sbd_interest_rate is not None:
-        props["sbd_interest_rate"] = int(float(sbd_interest_rate) * 100)
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     tx = witness.update(signing_key or witness["signing_key"], url or witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4223,10 +4050,9 @@ def witnessdisable(witness, export):
         print("Cannot disable a disabled witness!")
         return
     props = witness["props"]
-    tx = witness.update("STM1111111111111111111111111111111114T1Anm", witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % stm.prefix
+    tx = witness.update(null_key, witness["url"], props)
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4249,9 +4075,7 @@ def witnessenable(witness, signing_key, export):
     witness = Witness(witness, blockchain_instance=stm)
     props = witness["props"]
     tx = witness.update(signing_key, witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4263,7 +4087,6 @@ def witnessenable(witness, signing_key, export):
 @click.argument("pub_signing_key", nargs=1)
 @click.option("--maximum_block_size", help="Max block size", default=65536)
 @click.option("--account_creation_fee", help="Account creation fee", default=0.1)
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent", default=0.0)
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent", default=0.0)
 @click.option("--url", help="Witness URL", default="")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
@@ -4272,7 +4095,6 @@ def witnesscreate(
     pub_signing_key,
     maximum_block_size,
     account_creation_fee,
-    sbd_interest_rate,
     hbd_interest_rate,
     url,
     export,
@@ -4283,27 +4105,16 @@ def witnesscreate(
         stm.rpc.rpcconnect()
     if not unlock_wallet(stm):
         return
-    if stm.is_hive and stm.hardfork >= 24:
-        props = {
-            "account_creation_fee": Amount(
-                "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
-            ),
-            "maximum_block_size": int(maximum_block_size),
-            "hbd_interest_rate": int(hbd_interest_rate * 100),
-        }
-    else:
-        props = {
-            "account_creation_fee": Amount(
-                "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
-            ),
-            "maximum_block_size": int(maximum_block_size),
-            "sbd_interest_rate": int(sbd_interest_rate * 100),
-        }
+    props = {
+        "account_creation_fee": Amount(
+            "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
+        ),
+        "maximum_block_size": int(maximum_block_size),
+        "hbd_interest_rate": int(hbd_interest_rate * 100),
+    }
 
     tx = stm.witness_update(pub_signing_key, url, props, account=witness)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -4317,7 +4128,6 @@ def witnesscreate(
 @click.option("--account_subsidy_budget", help="Account subisidy per block")
 @click.option("--account_subsidy_decay", help="Per block decay of the account subsidy pool")
 @click.option("--maximum_block_size", help="Max block size")
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent")
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent")
 @click.option("--new_signing_key", help="Set new signing key (pubkey)")
 @click.option("--url", help="Witness URL")
@@ -4328,7 +4138,6 @@ def witnessproperties(
     account_subsidy_budget,
     account_subsidy_decay,
     maximum_block_size,
-    sbd_interest_rate,
     hbd_interest_rate,
     new_signing_key,
     url,
@@ -4350,8 +4159,6 @@ def witnessproperties(
         props["account_subsidy_decay"] = int(account_subsidy_decay)
     if maximum_block_size is not None:
         props["maximum_block_size"] = int(maximum_block_size)
-    if sbd_interest_rate is not None:
-        props["sbd_interest_rate"] = int(float(sbd_interest_rate) * 100)
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     if new_signing_key is not None:
@@ -4360,9 +4167,7 @@ def witnessproperties(
         props["url"] = url
 
     tx = stm.witness_set_properties(wif, witness, props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4375,7 +4180,9 @@ def witnessproperties(
     "--base", "-b", help="Set base manually, when not set the base is automatically calculated."
 )
 @click.option(
-    "--quote", "-q", help="Steem quote manually, when not set the base is automatically calculated."
+    "--quote",
+    "-q",
+    help="HBD/HIVE quote manually; when not set, the base is automatically calculated.",
 )
 @click.option(
     "--support-peg",
@@ -4393,31 +4200,25 @@ def witnessfeed(witness, wif, base, quote, support_peg):
             return
     witness = Witness(witness, blockchain_instance=stm)
     market = Market(blockchain_instance=stm)
-    use_hbd = False
+    # Prefer HBD exchange rate (Hive-only)
     if "hbd_exchange_rate" in witness:
-        use_hbd = True
         old_base = witness["hbd_exchange_rate"]["base"]
         old_quote = witness["hbd_exchange_rate"]["quote"]
         last_published_price = Price(witness["hbd_exchange_rate"], blockchain_instance=stm)
     else:
-        old_base = witness["sbd_exchange_rate"]["base"]
-        old_quote = witness["sbd_exchange_rate"]["quote"]
-        last_published_price = Price(witness["sbd_exchange_rate"], blockchain_instance=stm)
+        # Fallback to current median price if no prior feed
+        median = stm.get_current_median_history()
+        old_base = median["base"]
+        old_quote = median["quote"]
+        last_published_price = Price(median, blockchain_instance=stm)
 
-    steem_usd = None
     hive_usd = None
     print(
         "Old price %.3f (base: %s, quote %s)" % (float(last_published_price), old_base, old_quote)
     )
     if quote is None and not support_peg:
         quote = Amount("1.000 %s" % stm.token_symbol, blockchain_instance=stm)
-    elif quote is None and not stm.is_hive:
-        latest_price = market.ticker()["latest"]
-        if steem_usd is None:
-            steem_usd = market.steem_usd_implied()
-        sbd_usd = float(latest_price.as_base(stm.backed_token_symbol)) * steem_usd
-        quote = Amount(1.0 / sbd_usd, stm.token_symbol, blockchain_instance=stm)
-    elif quote is None and stm.is_hive:
+    elif quote is None:
         latest_price = market.ticker()["latest"]
         if hive_usd is None:
             hive_usd = market.hive_usd_implied()
@@ -4428,11 +4229,7 @@ def witnessfeed(witness, wif, base, quote, support_peg):
             quote = Amount(quote, blockchain_instance=stm)
         else:
             quote = Amount(quote, stm.token_symbol, blockchain_instance=stm)
-    if base is None and not stm.is_hive:
-        if steem_usd is None:
-            steem_usd = market.steem_usd_implied()
-        base = Amount(steem_usd, stm.backed_token_symbol, blockchain_instance=stm)
-    elif base is None and stm.is_hive:
+    if base is None:
         if hive_usd is None:
             hive_usd = market.hive_usd_implied()
         base = Amount(hive_usd, stm.backed_token_symbol, blockchain_instance=stm)
@@ -4443,17 +4240,12 @@ def witnessfeed(witness, wif, base, quote, support_peg):
             base = Amount(base, stm.backed_token_symbol, blockchain_instance=stm)
     new_price = Price(base=base, quote=quote, blockchain_instance=stm)
     print("New price %.3f (base: %s, quote %s)" % (float(new_price), base, quote))
-    if wif is not None and use_hbd:
+    if wif is not None:
         props = {"hbd_exchange_rate": new_price}
-        tx = stm.witness_set_properties(wif, witness["owner"], props)
-    elif wif is not None:
-        props = {"sbd_exchange_rate": new_price}
         tx = stm.witness_set_properties(wif, witness["owner"], props)
     else:
         tx = witness.feed_publish(base, quote=quote)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4475,7 +4267,12 @@ def witness(witness):
     elif "HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2" in config:
         lap_length = int(config["HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
     else:
-        lap_length = int(config["STEEM_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
+        # Hive-only default; avoid STEEM fallback
+        lap_length = int(
+            config.get(
+                "HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2", config.get("VIRTUAL_SCHEDULE_LAP_LENGTH2")
+            )
+        )
     rank = 0
     active_rank = 0
     found = False
@@ -4495,7 +4292,7 @@ def witness(witness):
     t.align = "l"
     for key in sorted(witness_json):
         value = witness_json[key]
-        if key in ["props", "sbd_exchange_rate"]:
+        if key in ["props", "hbd_exchange_rate"]:
             value = json.dumps(value, indent=4)
         t.add_row([key, value])
     if found:
@@ -4601,15 +4398,15 @@ def votes(account, direction, outgoing, incoming, days, export):
 @click.option(
     "--min-performance",
     "-x",
-    help="Show only votes with performance higher than the given value in HBD/SBD",
+    help="Show only votes with performance higher than the given value in HBD",
 )
 @click.option(
     "--max-performance",
     "-y",
-    help="Show only votes with performance lower than the given value in HBD/SBD",
+    help="Show only votes with performance lower than the given value in HBD",
 )
 @click.option(
-    "--payout", default=None, help="Show the curation for a potential payout in SBD as float"
+    "--payout", default=None, help="Show the curation for a potential payout in HBD as float"
 )
 @click.option("--export", "-e", default=None, help="Export results to HTML-file")
 @click.option("--short", "-s", is_flag=True, default=False, help="Show only Curation without sum")
@@ -5599,9 +5396,7 @@ def claimreward(
         reward_vests = r[2]
 
     tx = acc.claim_reward_balance(reward_steem, reward_sbd, reward_vests)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
+    if stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
         tx = stm.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -5640,7 +5435,7 @@ def customjson(jsonid, json_data, account, active, export):
         account = stm.config["default_account"]
     if not unlock_wallet(stm):
         return
-    acc = Account(account, blockchain_instance=stm)
+    _acc = Account(account, blockchain_instance=stm)
     if active:
         tx = stm.custom_json(jsonid, data, required_auths=[account])
     else:
@@ -5866,7 +5661,7 @@ def info(objects):
                 t.align = "l"
                 for key in sorted(witness_json):
                     value = witness_json[key]
-                    if key in ["props", "sbd_exchange_rate"]:
+                    if key in ["props", "hbd_exchange_rate"]:
                         value = json.dumps(value, indent=4)
                     t.add_row([key, value])
                 print(t)

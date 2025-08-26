@@ -4,9 +4,9 @@ import logging
 import sys
 import time
 
+from nectar import Hive as Steem
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
-from nectar.steem import Steem
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

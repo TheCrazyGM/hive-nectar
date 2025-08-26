@@ -5,14 +5,14 @@ from builtins import str
 
 from prettytable import PrettyTable
 
-from nectar.steem import Steem
+from nectar import Hive as Steem
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == "__main__":
-    stm = Steem(node="https://api.steemit.com")
+    stm = Steem(node="https://api.hive.blog")
     # stm = Steem(node="https://testnet.steemitdev.com")
     # stm = Steem(node="wss://appbasetest.timcliff.com")
     # stm = Steem(node="https://api.steemitstage.com")

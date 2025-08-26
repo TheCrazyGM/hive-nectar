@@ -4,7 +4,7 @@ import math
 from datetime import date, datetime, timezone
 
 from nectar.blockchaininstance import BlockChainInstance
-from nectar.constants import STEEM_100_PERCENT
+from nectar.constants import HIVE_100_PERCENT
 from nectargraphenebase.chains import known_chains
 
 from .amount import Amount
@@ -220,8 +220,8 @@ class Hive(BlockChainInstance):
         self,
         token_power,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
@@ -238,8 +238,8 @@ class Hive(BlockChainInstance):
         self,
         hp,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
@@ -268,8 +268,8 @@ class Hive(BlockChainInstance):
         self,
         vests,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
@@ -295,8 +295,8 @@ class Hive(BlockChainInstance):
         self,
         hive_power,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         use_stored_data=True,
     ):
         """Obtain the r-shares from Hive power
@@ -322,8 +322,8 @@ class Hive(BlockChainInstance):
         self,
         vests,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         subtract_dust_threshold=True,
         use_stored_data=True,
     ):
@@ -339,7 +339,7 @@ class Hive(BlockChainInstance):
             voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
         )
         # calculate vote rshares
-        rshares = int(math.copysign(vests * 1e6 * used_power / STEEM_100_PERCENT, vote_pct))
+        rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
         if subtract_dust_threshold:
             if abs(rshares) <= self.get_dust_threshold(use_stored_data=use_stored_data):
                 return 0
@@ -404,7 +404,7 @@ class Hive(BlockChainInstance):
         post_rshares=0,
         hive_power=None,
         vests=None,
-        voting_power=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
         use_stored_data=True,
     ):
         """Obtain the voting percentage for a desired rshares value
@@ -450,10 +450,10 @@ class Hive(BlockChainInstance):
 
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
 
-        used_power = int(math.ceil(abs(rshares) * STEEM_100_PERCENT / vests))
+        used_power = int(math.ceil(abs(rshares) * HIVE_100_PERCENT / vests))
         used_power = used_power * max_vote_denom
 
-        vote_pct = used_power * STEEM_100_PERCENT / (60 * 60 * 24) / voting_power
+        vote_pct = used_power * HIVE_100_PERCENT / (60 * 60 * 24) / voting_power
         return int(math.copysign(vote_pct, rshares))
 
     def hbd_to_vote_pct(
@@ -462,7 +462,7 @@ class Hive(BlockChainInstance):
         post_rshares=0,
         hive_power=None,
         vests=None,
-        voting_power=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):

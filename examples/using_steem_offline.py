@@ -2,7 +2,7 @@ from __future__ import division, print_function, unicode_literals
 
 import logging
 
-from nectar.steem import Steem
+from nectar import Hive as Steem
 from nectar.transactionbuilder import TransactionBuilder
 from nectarbase import operations
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     stm = Steem(offline=True)
 
     op = operations.Transfer(
-        {"from": "thecrazygm", "to": "thecrazygm", "amount": "0.001 SBD", "memo": ""}
+        {"from": "thecrazygm", "to": "thecrazygm", "amount": "0.001 HBD", "memo": ""}
     )
     tb = TransactionBuilder(steem_instance=stm)
 

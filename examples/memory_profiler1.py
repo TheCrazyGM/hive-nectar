@@ -5,10 +5,10 @@ from datetime import datetime
 
 from memory_profiler import profile
 
+from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.blockchain import Blockchain
 from nectar.instance import set_shared_steem_instance
-from nectar.steem import Steem
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

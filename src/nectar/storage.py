@@ -18,9 +18,8 @@ def generate_config_store(config, blockchain="hive"):
     nodelist = NodeList()
     if blockchain == "hive":
         nodes = nodelist.get_hive_nodes(testnet=False)
-    elif blockchain == "steem":
-        nodes = nodelist.get_steem_nodes(testnet=False)
     else:
+        # Hive-only
         nodes = []
 
     config.setdefault("node", nodes)
@@ -30,13 +29,13 @@ def generate_config_store(config, blockchain="hive"):
     config.setdefault("rpcuser", "")
     config.setdefault("order-expiration", 7 * 24 * 60 * 60)
     config.setdefault("client_id", "")
-    config.setdefault("sc2_client_id", None)
     config.setdefault("hs_client_id", None)
     config.setdefault("hot_sign_redirect_uri", None)
-    config.setdefault("sc2_api_url", "https://api.steemconnect.com/api/")
-    config.setdefault("oauth_base_url", "https://api.steemconnect.com/oauth2/")
+    # HiveSigner defaults
     config.setdefault("hs_api_url", "https://hivesigner.com/api/")
     config.setdefault("hs_oauth_base_url", "https://hivesigner.com/oauth2/")
+    # Backward-compat key used elsewhere; keep but point to HiveSigner
+    config.setdefault("oauth_base_url", config["hs_oauth_base_url"])
     config.setdefault("default_canonical_url", "https://hive.blog")
     config.setdefault("default_path", "48'/13'/0'/0'/0'")
     config.setdefault("use_condenser", True)

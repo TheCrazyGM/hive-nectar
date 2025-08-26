@@ -46,7 +46,7 @@ class NodeRPC(GrapheneRPC):
     def rpcexec(self, payload):
         """Execute a call by sending the payload.
         It makes use of the GrapheneRPC library.
-        In here, we mostly deal with Steem specific error handling
+        In here, we mostly deal with node-specific/Hive error handling
 
         :param json payload: Payload data
         :raises ValueError: if the server does not respond in proper JSON format

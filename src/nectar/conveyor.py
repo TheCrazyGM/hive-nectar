@@ -21,7 +21,12 @@ except ImportError:
 
 
 class Conveyor(object):
-    """Class to access Steemit Conveyor instances:
+    """Class to access Conveyor instances used by condenser-style apps
+
+    Note: Conveyor is a legacy service from the Steemit stack. The references and
+    URLs below are retained for compatibility with Hive frontends that still use
+    this pattern. Functionality and behavior remain unchanged.
+
     https://github.com/steemit/conveyor
 
     Description from the official documentation:
@@ -41,25 +46,22 @@ class Conveyor(object):
       consisting of a post title and a body.
 
     The underlying RPC authentication and request signing procedure is
-    described here: https://github.com/steemit/rpc-auth
+    described here (legacy reference): https://github.com/steemit/rpc-auth
 
     """
 
-    def __init__(self, url="https://conveyor.steemit.com", blockchain_instance=None, **kwargs):
+    def __init__(self, url="https://conveyor.steemit.com", blockchain_instance=None):
         """Initialize a Conveyor instance
-        :param str url: (optional) URL to the Conveyor API, defaults to
-            https://conveyor.steemit.com
-        :param nectar.steem.Steem blockchain_instance: Steem instance
+        :param str url: (optional) URL to the Conveyor API (legacy Steemit service),
+            defaults to https://conveyor.steemit.com
+        :param Blockchain blockchain_instance: Hive Blockchain instance
 
         """
-
+        raise NotImplementedError(
+            "Conveyor is a legacy Steem service and is not supported in the Hive-only build."
+        )
         self.url = url
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
-        self.steem = blockchain_instance or shared_blockchain_instance()
+        self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.id = 0
         self.ENCODING = "utf-8"
         self.TIMEFORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -71,7 +73,7 @@ class Conveyor(object):
         Hashing of `second` is then done inside `ecdsasig.sign_message()`.
 
         :param str timestamp: valid iso8601 datetime ending in "Z"
-        :param str account: valid steem blockchain account name
+        :param str account: valid Hive blockchain account name
         :param str method: Conveyor method name to be called
         :param bytes param: base64 encoded request parameters
         :param bytes nonce: random 8 bytes
@@ -87,7 +89,7 @@ class Conveyor(object):
         :param str account: account name
         :param str method: Conveyor method name to be called
         :param dict params: request parameters as `dict`
-        :param str key: Steem posting key for signing
+        :param str key: Hive posting key for signing
 
         """
         params_bytes = bytes(json.dumps(params), self.ENCODING)
@@ -128,17 +130,17 @@ class Conveyor(object):
         :params dict params: request parameters as `dict`
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         if signing_account is None:
             signer = account
         else:
-            signer = Account(signing_account, blockchain_instance=self.steem)
+            signer = Account(signing_account, blockchain_instance=self.blockchain)
         if "posting" not in signer:
             signer.refresh()
         if "posting" not in signer:
             raise AssertionError("Could not access posting permission")
         for authority in signer["posting"]["key_auths"]:
-            posting_wif = self.steem.wallet.getPrivateKeyForPublicKey(authority[0])
+            posting_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(authority[0])
         return self._request(account["name"], method, params, posting_wif)
 
     def get_user_data(self, account, signing_account=None):
@@ -153,14 +155,14 @@ class Conveyor(object):
 
         .. code-block:: python
 
-            from nectar import Steem
+            from nectar import Hive
             from nectar.conveyor import Conveyor
-            s = Steem(keys=["5JPOSTINGKEY"])
-            c = Conveyor(blockchain_instance=s)
+            h = Hive(keys=["5JPOSTINGKEY"])
+            c = Conveyor(blockchain_instance=h)
             print(c.get_user_data('accountname'))
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         user_data = self._conveyor_method(
             account, signing_account, "conveyor.get_user_data", [account["name"]]
         )
@@ -182,10 +184,10 @@ class Conveyor(object):
 
         .. code-block:: python
 
-            from nectar import Steem
+            from nectar import Hive
             from nectar.conveyor import Conveyor
-            s = Steem(keys=["5JADMINPOSTINGKEY"])
-            c = Conveyor(blockchain_instance=s)
+            h = Hive(keys=["5JADMINPOSTINGKEY"])
+            c = Conveyor(blockchain_instance=h)
             userdata = {'email': 'foo@bar.com', 'phone':'+123456789'}
             c.set_user_data('accountname', userdata, 'adminaccountname')
 
@@ -204,14 +206,14 @@ class Conveyor(object):
 
         .. code-block:: python
 
-            from nectar import Steem
+            from nectar import Hive
             from nectar.conveyor import Conveyor
-            s = Steem(keys=["5JPOSTINGKEY"])
-            c = Conveyor(blockchain_instance=s)
+            h = Hive(keys=["5JPOSTINGKEY"])
+            c = Conveyor(blockchain_instance=h)
             print(c.get_feature_flags('accountname'))
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         feature_flags = self._conveyor_method(
             account, signing_account, "conveyor.get_feature_flags", [account["name"]]
         )
@@ -233,14 +235,14 @@ class Conveyor(object):
 
         .. code-block:: python
 
-            from nectar import Steem
+            from nectar import Hive
             from nectar.conveyor import Conveyor
-            s = Steem(keys=["5JPOSTINGKEY"])
-            c = Conveyor(blockchain_instance=s)
+            h = Hive(keys=["5JPOSTINGKEY"])
+            c = Conveyor(blockchain_instance=h)
             print(c.get_feature_flag('accountname', 'accepted_tos'))
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         return self._conveyor_method(
             account, signing_account, "conveyor.get_feature_flag", [account["name"], flag]
         )
@@ -253,7 +255,7 @@ class Conveyor(object):
         :param str body: draft post body
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         draft = {"title": title, "body": body}
         return self._conveyor_method(account, None, "conveyor.save_draft", [account["name"], draft])
 
@@ -274,7 +276,7 @@ class Conveyor(object):
             }
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         return self._conveyor_method(account, None, "conveyor.list_drafts", [account["name"]])
 
     def remove_draft(self, account, uuid):
@@ -285,7 +287,7 @@ class Conveyor(object):
             `list_drafts`
 
         """
-        account = Account(account, blockchain_instance=self.steem)
+        account = Account(account, blockchain_instance=self.blockchain)
         return self._conveyor_method(
             account, None, "conveyor.remove_draft", [account["name"], uuid]
         )

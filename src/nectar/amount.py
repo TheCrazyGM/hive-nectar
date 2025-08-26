@@ -31,16 +31,16 @@ class Amount(dict):
     :param list args: Allows to deal with different representations of an amount
     :param float amount: Let's create an instance with a specific amount
     :param str asset: Let's you create an instance with a specific asset (symbol)
-    :param boolean fixed_point_arithmetic: when set to True, all operation are fixed
+    :param boolean fixed_point_arithmetic: when set to True, all operations are fixed
         point operations and the amount is always be rounded down to the precision
-    :param Steem steem_instance: Steem instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :returns: All data required to represent an Amount/Asset
     :rtype: dict
     :raises ValueError: if the data provided is not recognized
 
     Way to obtain a proper instance:
 
-        * ``args`` can be a string, e.g.:  "1 SBD"
+        * ``args`` can be a string, e.g.:  "1 HBD"
         * ``args`` can be a dictionary containing ``amount`` and ``asset_id``
         * ``args`` can be a dictionary containing ``amount`` and ``asset``
         * ``args`` can be a list of a ``float`` and ``str`` (symbol)
@@ -60,9 +60,9 @@ class Amount(dict):
 
         from nectar.amount import Amount
         from nectar.asset import Asset
-        a = Amount("1 STEEM")
-        b = Amount(1, "STEEM")
-        c = Amount("20", Asset("STEEM"))
+        a = Amount("1 HIVE")
+        b = Amount(1, "HIVE")
+        c = Amount("20", Asset("HIVE"))
         a + b
         a * 2
         a += b
@@ -70,8 +70,8 @@ class Amount(dict):
 
     .. testoutput::
 
-        2.000 STEEM
-        2.000 STEEM
+        2.000 HIVE
+        2.000 HIVE
 
     """
 
@@ -88,11 +88,6 @@ class Amount(dict):
         self.new_appbase_format = new_appbase_format
         self.fixed_point_arithmetic = fixed_point_arithmetic
 
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if amount and asset is None and isinstance(amount, Amount):
@@ -221,7 +216,7 @@ class Amount(dict):
 
     @property
     def asset(self):
-        """Returns the asset as instance of :class:`steem.asset.Asset`"""
+        """Returns the asset as instance of :class:`nectar.asset.Asset`"""
         if not self["asset"]:
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
         return self["asset"]

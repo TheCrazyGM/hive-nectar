@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 
 from prettytable import PrettyTable
 
+from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
-from nectar.steem import Steem
 from nectar.utils import formatTimedelta, parse_time
 from nectarapi.exceptions import NumRetriesReached
 

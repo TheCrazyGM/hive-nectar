@@ -81,7 +81,11 @@ class Testcases(unittest.TestCase):
             resolve_authorpermvoter(
                 "thecrazygm/virtuelle-cloud-mining-ponzi-schemen-auch-bekannt-als-hypt|thecrazygm"
             ),
-            ("thecrazygm", "virtuelle-cloud-mining-ponzi-schemen-auch-bekannt-als-hypt", "thecrazygm"),
+            (
+                "thecrazygm",
+                "virtuelle-cloud-mining-ponzi-schemen-auch-bekannt-als-hypt",
+                "thecrazygm",
+            ),
         )
 
     def test_sanitizePermlink(self):
@@ -175,27 +179,32 @@ class Testcases(unittest.TestCase):
         t = "thecrazygm:30,thecrazygm:40"
         b = derive_beneficiaries(t)
         self.assertEqual(
-            b, [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}]
+            b,
+            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
         )
         t = "thecrazygm:30.00%,thecrazygm:40.00%"
         b = derive_beneficiaries(t)
         self.assertEqual(
-            b, [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}]
+            b,
+            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
         )
         t = "thecrazygm:30%, thecrazygm:40%"
         b = derive_beneficiaries(t)
         self.assertEqual(
-            b, [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}]
+            b,
+            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
         )
         t = "thecrazygm:30,thecrazygm"
         b = derive_beneficiaries(t)
         self.assertEqual(
-            b, [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}]
+            b,
+            [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}],
         )
         t = ["thecrazygm:30", "thecrazygm"]
         b = derive_beneficiaries(t)
         self.assertEqual(
-            b, [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}]
+            b,
+            [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}],
         )
 
     def test_derive_tags(self):

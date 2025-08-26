@@ -7,7 +7,7 @@ from datetime import date, datetime, time, timedelta, timezone
 
 from nectar.account import Account
 from nectar.amount import Amount
-from nectar.constants import STEEM_100_PERCENT, STEEM_VOTE_REGENERATION_SECONDS
+from nectar.constants import HIVE_100_PERCENT, HIVE_VOTE_REGENERATION_SECONDS
 from nectar.instance import shared_blockchain_instance
 from nectar.utils import (
     addTzInfo,
@@ -24,16 +24,10 @@ class AccountSnapshot(list):
     """This class allows to easily access Account history
 
     :param str account_name: Name of the account
-    :param Steem blockchain_instance: Steem
-           instance
+    :param Hive blockchain_instance: Hive instance
     """
 
-    def __init__(self, account, account_history=[], blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+    def __init__(self, account, account_history=[], blockchain_instance=None):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
@@ -154,16 +148,9 @@ class AccountSnapshot(list):
         sbd = self.own_sbd[index]
         sum_in = sum([din[key].amount for key in din])
         sum_out = sum([dout[key].amount for key in dout])
-        from nectar import Steem
-
-        if isinstance(self.blockchain, Steem):
-            sp_in = self.blockchain.vests_to_sp(sum_in, timestamp=ts)
-            sp_out = self.blockchain.vests_to_sp(sum_out, timestamp=ts)
-            sp_own = self.blockchain.vests_to_sp(own, timestamp=ts)
-        else:
-            sp_in = self.blockchain.vests_to_hp(sum_in, timestamp=ts)
-            sp_out = self.blockchain.vests_to_hp(sum_out, timestamp=ts)
-            sp_own = self.blockchain.vests_to_hp(own, timestamp=ts)
+        sp_in = self.blockchain.vests_to_hp(sum_in, timestamp=ts)
+        sp_out = self.blockchain.vests_to_hp(sum_out, timestamp=ts)
+        sp_own = self.blockchain.vests_to_hp(own, timestamp=ts)
         sp_eff = sp_own + sp_in - sp_out
         return {
             "timestamp": ts,
@@ -225,9 +212,9 @@ class AccountSnapshot(list):
         :type own: amount.Amount, float
         :param dict delegated_in: Incoming delegation
         :param dict delegated_out: Outgoing delegation
-        :param steem: steem
+        :param steem: liquid token amount (e.g., HIVE)
         :type steem: amount.Amount, float
-        :param sbd: sbd
+        :param sbd: backed token amount (e.g., HBD)
         :type sbd: amount.Amount, float
 
         """
@@ -326,16 +313,9 @@ class AccountSnapshot(list):
 
         elif op["type"] == "account_create_with_delegation":
             fee_steem = Amount(op["fee"], blockchain_instance=self.blockchain).amount
-            from nectar import Steem
-
-            if isinstance(self.blockchain, Steem):
-                fee_vests = self.blockchain.sp_to_vests(
-                    Amount(op["fee"], blockchain_instance=self.blockchain).amount, timestamp=ts
-                )
-            else:
-                fee_vests = self.blockchain.hp_to_vests(
-                    Amount(op["fee"], blockchain_instance=self.blockchain).amount, timestamp=ts
-                )
+            fee_vests = self.blockchain.hp_to_vests(
+                Amount(op["fee"], blockchain_instance=self.blockchain).amount, timestamp=ts
+            )
             if op["new_account_name"] == self.account["name"]:
                 if Amount(op["delegation"], blockchain_instance=self.blockchain).amount > 0:
                     delegation = {
@@ -397,12 +377,7 @@ class AccountSnapshot(list):
 
         elif op["type"] == "transfer_to_vesting":
             steem = Amount(op["amount"], blockchain_instance=self.blockchain)
-            from nectar import Steem
-
-            if isinstance(self.blockchain, Steem):
-                vests = self.blockchain.sp_to_vests(steem.amount, timestamp=ts)
-            else:
-                vests = self.blockchain.hp_to_vests(steem.amount, timestamp=ts)
+            vests = self.blockchain.hp_to_vests(steem.amount, timestamp=ts)
             if op["from"] == self.account["name"] and op["to"] == self.account["name"]:
                 self.update(ts, vests, 0, 0, steem * (-1), 0)  # power up from and to given account
             elif op["from"] != self.account["name"] and op["to"] == self.account["name"]:
@@ -530,16 +505,9 @@ class AccountSnapshot(list):
         ):
             sum_in = sum([din[key].amount for key in din])
             sum_out = sum([dout[key].amount for key in dout])
-            from nectar import Steem
-
-            if isinstance(self.blockchain, Steem):
-                sp_in = self.blockchain.vests_to_sp(sum_in, timestamp=ts)
-                sp_out = self.blockchain.vests_to_sp(sum_out, timestamp=ts)
-                sp_own = self.blockchain.vests_to_sp(own, timestamp=ts)
-            else:
-                sp_in = self.blockchain.vests_to_hp(sum_in, timestamp=ts)
-                sp_out = self.blockchain.vests_to_hp(sum_out, timestamp=ts)
-                sp_own = self.blockchain.vests_to_hp(own, timestamp=ts)
+            sp_in = self.blockchain.vests_to_hp(sum_in, timestamp=ts)
+            sp_out = self.blockchain.vests_to_hp(sum_out, timestamp=ts)
+            sp_own = self.blockchain.vests_to_hp(own, timestamp=ts)
 
             sp_eff = sp_own + sp_in - sp_out
             self.own_sp.append(sp_own)
@@ -560,28 +528,28 @@ class AccountSnapshot(list):
     def build_vp_arrays(self):
         """Build vote power arrays"""
         self.vp_timestamp = [self.timestamps[1]]
-        self.vp = [STEEM_100_PERCENT]
+        self.vp = [HIVE_100_PERCENT]
         HF_21 = datetime(2019, 8, 27, 15, tzinfo=timezone.utc)
         if self.timestamps[1] > HF_21:
             self.downvote_vp_timestamp = [self.timestamps[1]]
         else:
             self.downvote_vp_timestamp = [HF_21]
-        self.downvote_vp = [STEEM_100_PERCENT]
+        self.downvote_vp = [HIVE_100_PERCENT]
 
         for ts, weight in zip(self.out_vote_timestamp, self.out_vote_weight):
             regenerated_vp = 0
             if ts > HF_21 and weight < 0:
                 self.downvote_vp.append(self.downvote_vp[-1])
-                if self.downvote_vp[-1] < STEEM_100_PERCENT:
+                if self.downvote_vp[-1] < HIVE_100_PERCENT:
                     regenerated_vp = (
                         ((ts - self.downvote_vp_timestamp[-1]).total_seconds())
-                        * STEEM_100_PERCENT
-                        / STEEM_VOTE_REGENERATION_SECONDS
+                        * HIVE_100_PERCENT
+                        / HIVE_VOTE_REGENERATION_SECONDS
                     )
                     self.downvote_vp[-1] += int(regenerated_vp)
 
-                if self.downvote_vp[-1] > STEEM_100_PERCENT:
-                    self.downvote_vp[-1] = STEEM_100_PERCENT
+                if self.downvote_vp[-1] > HIVE_100_PERCENT:
+                    self.downvote_vp[-1] = HIVE_100_PERCENT
                     recharge_time = self.account.get_manabar_recharge_timedelta(
                         {"current_mana_pct": self.downvote_vp[-2] / 100}
                     )
@@ -589,44 +557,44 @@ class AccountSnapshot(list):
                     self.downvote_vp_timestamp.append(
                         self.downvote_vp_timestamp[-1] + recharge_time
                     )
-                    self.downvote_vp.append(STEEM_100_PERCENT)
+                    self.downvote_vp.append(HIVE_100_PERCENT)
 
                 # Add charged downvote VP just before new Vote
                 self.downvote_vp_timestamp.append(ts - timedelta(seconds=1))
                 self.downvote_vp.append(
-                    min([STEEM_100_PERCENT, self.downvote_vp[-1] + regenerated_vp])
+                    min([HIVE_100_PERCENT, self.downvote_vp[-1] + regenerated_vp])
                 )
 
                 self.downvote_vp[-1] -= (
-                    self.blockchain._calc_resulting_vote(STEEM_100_PERCENT, weight) * 4
+                    self.blockchain._calc_resulting_vote(HIVE_100_PERCENT, weight) * 4
                 )
                 # Downvote mana pool is 1/4th of the upvote mana pool, so it gets drained 4 times as quick
                 if self.downvote_vp[-1] < 0:
                     # There's most likely a better solution to this that what I did here
                     self.vp.append(self.vp[-1])
 
-                    if self.vp[-1] < STEEM_100_PERCENT:
+                    if self.vp[-1] < HIVE_100_PERCENT:
                         regenerated_vp = (
                             ((ts - self.vp_timestamp[-1]).total_seconds())
-                            * STEEM_100_PERCENT
-                            / STEEM_VOTE_REGENERATION_SECONDS
+                            * HIVE_100_PERCENT
+                            / HIVE_VOTE_REGENERATION_SECONDS
                         )
                         self.vp[-1] += int(regenerated_vp)
 
-                    if self.vp[-1] > STEEM_100_PERCENT:
-                        self.vp[-1] = STEEM_100_PERCENT
+                    if self.vp[-1] > HIVE_100_PERCENT:
+                        self.vp[-1] = HIVE_100_PERCENT
                         recharge_time = self.account.get_manabar_recharge_timedelta(
                             {"current_mana_pct": self.vp[-2] / 100}
                         )
                         # Add full VP once fully charged
                         self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                        self.vp.append(STEEM_100_PERCENT)
-                    if self.vp[-1] == STEEM_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
+                        self.vp.append(HIVE_100_PERCENT)
+                    if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                         seconds=1
                     ):
                         # Add charged VP just before new Vote
                         self.vp_timestamp.append(ts - timedelta(seconds=1))
-                        self.vp.append(min([STEEM_100_PERCENT, self.vp[-1] + regenerated_vp]))
+                        self.vp.append(min([HIVE_100_PERCENT, self.vp[-1] + regenerated_vp]))
                     self.vp[-1] += self.downvote_vp[-1] / 4
                     if self.vp[-1] < 0:
                         self.vp[-1] = 0
@@ -638,28 +606,28 @@ class AccountSnapshot(list):
             else:
                 self.vp.append(self.vp[-1])
 
-                if self.vp[-1] < STEEM_100_PERCENT:
+                if self.vp[-1] < HIVE_100_PERCENT:
                     regenerated_vp = (
                         ((ts - self.vp_timestamp[-1]).total_seconds())
-                        * STEEM_100_PERCENT
-                        / STEEM_VOTE_REGENERATION_SECONDS
+                        * HIVE_100_PERCENT
+                        / HIVE_VOTE_REGENERATION_SECONDS
                     )
                     self.vp[-1] += int(regenerated_vp)
 
-                if self.vp[-1] > STEEM_100_PERCENT:
-                    self.vp[-1] = STEEM_100_PERCENT
+                if self.vp[-1] > HIVE_100_PERCENT:
+                    self.vp[-1] = HIVE_100_PERCENT
                     recharge_time = self.account.get_manabar_recharge_timedelta(
                         {"current_mana_pct": self.vp[-2] / 100}
                     )
                     # Add full VP once fully charged
                     self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                    self.vp.append(STEEM_100_PERCENT)
-                if self.vp[-1] == STEEM_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
+                    self.vp.append(HIVE_100_PERCENT)
+                if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                     seconds=1
                 ):
                     # Add charged VP just before new Vote
                     self.vp_timestamp.append(ts - timedelta(seconds=1))
-                    self.vp.append(min([STEEM_100_PERCENT, self.vp[-1] + regenerated_vp]))
+                    self.vp.append(min([HIVE_100_PERCENT, self.vp[-1] + regenerated_vp]))
                 self.vp[-1] -= self.blockchain._calc_resulting_vote(self.vp[-1], weight)
                 if self.vp[-1] < 0:
                     self.vp[-1] = 0

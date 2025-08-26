@@ -7,8 +7,8 @@ from steembase import operations as steemOperations
 from steembase.account import PrivateKey as steemPrivateKey
 from steembase.transactions import SignedTransaction as steemSignedTransaction
 
+from nectar import Hive as Steem
 from nectar.amount import Amount
-from nectar.steem import Steem
 from nectarbase import operations
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
@@ -103,7 +103,9 @@ if __name__ == "__main__":
         nectar_dt[1] += nectar_times[i][1]
     print("steem vs nectar:\n")
     print("steem: sign: %.2f s, verification %.2f s" % (steem_dt[0] / loops, steem_dt[1] / loops))
-    print("nectar:  sign: %.2f s, verification %.2f s" % (nectar_dt[0] / loops, nectar_dt[1] / loops))
+    print(
+        "nectar:  sign: %.2f s, verification %.2f s" % (nectar_dt[0] / loops, nectar_dt[1] / loops)
+    )
     print("------------------------------------")
     print(
         "nectar is %.2f %% (sign) and %.2f %% (verify) faster than steem"
