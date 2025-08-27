@@ -4783,9 +4783,12 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                         continue
                     if not comment and c.is_comment():
                         continue
-                    if "sbd_payout" in v:
-                        payout_HBD = Amount(v["sbd_payout"], blockchain_instance=hv)
-                    else:
+                    # Initialize to zero to avoid UnboundLocalError and support missing fields
+                    payout_HBD = Amount("0.000 HBD", blockchain_instance=hv)
+                    payout_HIVE = Amount("0.000 HIVE", blockchain_instance=hv)
+                    if "hbd_payout" in v:
+                        payout_HBD = Amount(v["hbd_payout"], blockchain_instance=hv)
+                    if "hive_payout" in v:
                         payout_HIVE = Amount(v["hive_payout"], blockchain_instance=hv)
                     sum_reward[0] += float(payout_HBD)
                     sum_reward[1] += float(payout_HIVE)
