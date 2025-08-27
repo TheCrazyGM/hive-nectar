@@ -103,7 +103,12 @@ class Amount(object):
 
     def __bytes__(self):
         # padding
-        symbol = self.symbol + "\x00" * (7 - len(self.symbol))
+        # Some nodes still serialize the legacy symbol name for HBD as 'SBD' in wire format.
+        # To match node get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' on serialization.
+        _sym = self.symbol
+        if _sym == "HBD":
+            _sym = "SBD"
+        symbol = _sym + "\x00" * (7 - len(_sym))
         return (
             struct.pack("<q", int(self.amount))
             + struct.pack("<b", self.precision)

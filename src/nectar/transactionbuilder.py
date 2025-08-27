@@ -7,7 +7,7 @@ from binascii import unhexlify
 from datetime import timedelta
 
 from nectar.instance import shared_blockchain_instance
-from nectarbase import operations  # removed deprecated transactions module
+from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
