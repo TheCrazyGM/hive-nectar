@@ -108,6 +108,8 @@ class Amount(object):
         _sym = self.symbol
         if _sym == "HBD":
             _sym = "SBD"
+        elif _sym == "HIVE":
+            _sym = "STEEM"
         symbol = _sym + "\x00" * (7 - len(_sym))
         return (
             struct.pack("<q", int(self.amount))
