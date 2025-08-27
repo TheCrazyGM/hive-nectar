@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0b - 2025-08-27
+
+- **Breaking Change**: Killed everything that was not specifcally HIVE related. If you used this for STEEM and / or Blurt, they are no longer supported.
+
 ## 0.0.11 - 2025-07-25
 
 - Fixed handling of missing `community` field in comments (`Comment`) and improved `weighted_score` type check in node list ranking (`NodeList`).
