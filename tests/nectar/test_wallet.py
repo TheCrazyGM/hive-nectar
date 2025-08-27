@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Steem, exceptions
+from nectar import Hive, exceptions
 from nectar.account import Account
-from nectar.instance import set_shared_steem_instance, shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance, shared_blockchain_instance
 from nectar.wallet import Wallet
 
 from .nodes import get_hive_nodes
@@ -14,10 +14,10 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        stm = shared_steem_instance()
-        stm.config.refreshBackup()
+        hv = shared_blockchain_instance()
+        hv.config.refreshBackup()
 
-        cls.stm = Steem(
+        cls.hv = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
             # We want to bundle many operations into a single transaction
@@ -25,11 +25,11 @@ class Testcases(unittest.TestCase):
             num_retries=10,
             # Overwrite wallet to use this list of wifs only
         )
-        cls.stm.set_default_account("test")
-        set_shared_steem_instance(cls.stm)
-        # self.stm.newWallet("TestingOneTwoThree")
+        cls.hv.set_default_account("test")
+        set_shared_blockchain_instance(cls.hv)
+        # self.hv.newWallet("TestingOneTwoThree")
 
-        cls.wallet = Wallet(steem_instance=cls.stm)
+        cls.wallet = Wallet(blockchain_instance=cls.hv)
         cls.wallet.wipe(True)
         cls.wallet.newWallet(pwd="TestingOneTwoThree")
         cls.wallet.unlock(pwd="TestingOneTwoThree")
@@ -37,12 +37,12 @@ class Testcases(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        stm = shared_steem_instance()
-        stm.config.recover_with_latest_backup()
+        hv = shared_blockchain_instance()
+        hv.config.recover_with_latest_backup()
 
     def test_wallet_lock(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         self.assertTrue(self.wallet.unlocked())
         self.assertFalse(self.wallet.locked())
@@ -50,8 +50,8 @@ class Testcases(unittest.TestCase):
         self.assertTrue(self.wallet.locked())
 
     def test_change_masterpassword(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         self.assertTrue(self.wallet.unlocked())
         self.wallet.changePassphrase("newPass")
@@ -63,8 +63,8 @@ class Testcases(unittest.TestCase):
         self.wallet.lock()
 
     def test_Keys(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         keys = self.wallet.getPublicKeys()
         self.assertTrue(len(keys) > 0)
@@ -73,8 +73,8 @@ class Testcases(unittest.TestCase):
         self.assertEqual(private, wif)
 
     def test_account_by_pub(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         acc = Account("gtg")
         pub = acc["owner"]["key_auths"][0][0]
@@ -93,8 +93,8 @@ class Testcases(unittest.TestCase):
         self.assertEqual(pub, acc_by_pub_list[0]["pubkey"])
 
     def test_pub_lookup(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         with self.assertRaises(exceptions.MissingKeyError):
             self.wallet.getOwnerKeyForAccount("test")
@@ -106,8 +106,8 @@ class Testcases(unittest.TestCase):
             self.wallet.getPostingKeyForAccount("test")
 
     def test_pub_lookup_keys(self):
-        stm = self.stm
-        self.wallet.steem = stm
+        hv = self.hv
+        self.wallet.hive = hv
         self.wallet.unlock(pwd="TestingOneTwoThree")
         with self.assertRaises(exceptions.MissingKeyError):
             self.wallet.getOwnerKeysForAccount("test")

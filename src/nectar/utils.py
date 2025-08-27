@@ -417,9 +417,6 @@ def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
     yaml_prefix += "max_accepted_payout: %s\n" % str(comment["max_accepted_payout"])
     if "percent_hbd" in comment:
         yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_hbd"])
-    elif "percent_steem_dollars" in comment:
-        # Backward-compat: normalize to percent_hbd in YAML
-        yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_steem_dollars"])
     if "tags" in json_metadata:
         if (
             len(json_metadata["tags"]) > 0

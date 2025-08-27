@@ -12,10 +12,8 @@ from nectarapi.rpcutils import (
 
 class Testcases(unittest.TestCase):
     def test_is_network_appbase_ready(self):
-        self.assertTrue(is_network_appbase_ready({"STEEM_BLOCKCHAIN_VERSION": "0.19.10"}))
-        self.assertTrue(is_network_appbase_ready({"STEEM_BLOCKCHAIN_VERSION": "0.19.10"}))
-        self.assertFalse(is_network_appbase_ready({"STEEMIT_BLOCKCHAIN_VERSION": "0.19.2"}))
-        self.assertFalse(is_network_appbase_ready({"STEEMIT_BLOCKCHAIN_VERSION": "0.19.2"}))
+        self.assertTrue(is_network_appbase_ready({"HIVE_BLOCKCHAIN_VERSION": "0.19.10"}))
+        self.assertTrue(is_network_appbase_ready({"HIVE_BLOCKCHAIN_VERSION": "0.19.10"}))
 
     def test_get_api_name(self):
         self.assertEqual(get_api_name(True, api="test"), "test_api")

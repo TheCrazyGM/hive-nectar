@@ -2,7 +2,7 @@ Installation
 ============
 The minimal working python version is 3.5.x
 
-nectar can be installed parallel to python-steem.
+nectar can be installed parallel to python-steem/beem.
 
 For Debian and Ubuntu, please ensure that the following packages are installed:
         

@@ -43,8 +43,8 @@ class Comment(BlockchainObject):
     >>> from nectar.account import Account
     >>> # Create a Hive blockchain instance
     >>> from nectar.blockchain import Blockchain as Hive
-    >>> stm = Hive()
-    >>> acc = Account("gtg", blockchain_instance=stm)
+    >>> hv = Hive()
+    >>> acc = Account("gtg", blockchain_instance=hv)
     >>> authorperm = acc.get_blog(limit=1)[0]["authorperm"]
     >>> c = Comment(authorperm)
     >>> postdate = c["created"]
@@ -416,10 +416,6 @@ class Comment(BlockchainObject):
             / ((self.time_elapsed()).total_seconds() / 60) ** 2
         )
 
-    # Deprecated: kept for backward compatibility
-    def curation_penalty_compensation_SBD(self):
-        return self.curation_penalty_compensation_hbd()
-
     def estimate_curation_hbd(self, vote_value_hbd, estimated_value_hbd=None):
         """Estimate curation reward (in HBD).
 
@@ -433,10 +429,6 @@ class Comment(BlockchainObject):
         k = vote_value_hbd / (vote_value_hbd + float(self.reward))
         K = (1 - math.sqrt(1 - k)) / 4 / k
         return K * vote_value_hbd * t * math.sqrt(estimated_value_hbd)
-
-    # Deprecated: kept for backward compatibility
-    def estimate_curation_SBD(self, vote_value_SBD, estimated_value_SBD=None):
-        return self.estimate_curation_hbd(vote_value_SBD, estimated_value_SBD)
 
     def get_curation_penalty(self, vote_time=None):
         """If post is less than 5 minutes old, it will incur a curation
@@ -560,9 +552,9 @@ class Comment(BlockchainObject):
 
             {
                 'pending_rewards': True,
-                'payout_SP': 0.912 HIVE,  # HP (Hive Power) equivalent in HIVE terms
-                'payout_SBD': 3.583 HBD,
-                'total_payout_SBD': 7.166 HBD
+                'payout_HP': 0.912 HIVE,  # HP (Hive Power) equivalent in HIVE terms
+                'payout_HBD': 3.583 HBD,
+                'total_payout_HBD': 7.166 HBD
             }
 
         """
@@ -608,8 +600,10 @@ class Comment(BlockchainObject):
             return {
                 "pending_rewards": True,
                 "total_payout": author_tokens,
-                "payout_SBD": None,
-                "total_payout_SBD": None,
+                # HBD/HP primary fields
+                "total_payout_HBD": author_tokens,
+                "payout_HBD": None,
+                "payout_HP": None,
             }
 
     def get_curation_rewards(self, pending_payout_hbd=False, pending_payout_value=None):
@@ -636,7 +630,7 @@ class Comment(BlockchainObject):
                     'qustodian': 0.123 HIVE, 'jpphotography': 0.002 HIVE, 'thinkingmind': 0.001 HIVE,
                     'oups': 0.006 HIVE, 'mattockfs': 0.001 HIVE, 'thecrazygm': 0.003 HIVE, 'michaelizer': 0.004 HIVE,
                     'flugschwein': 0.010 HIVE, 'ulisessabeque': 0.000 HIVE, 'hakancelik': 0.002 HIVE, 'sbi2': 0.008 HIVE,
-                    'zcool': 0.000 HIVE, 'steemhq': 0.002 HIVE, 'rowdiya': 0.000 HIVE, 'qurator-tier-1-2': 0.012 HIVE
+                    'zcool': 0.000 HIVE, 'hiveio': 0.002 HIVE, 'rowdiya': 0.000 HIVE, 'qurator-tier-1-2': 0.012 HIVE
                 }
             }
 
@@ -946,8 +940,8 @@ class Comment(BlockchainObject):
         op = operations.Delete_comment(**{"author": post_author, "permlink": post_permlink})
         return self.blockchain.finalizeOp(op, account, "posting")
 
-    def resteem(self, identifier=None, account=None):
-        """Resteem a post
+    def reblog(self, identifier=None, account=None):
+        """Reblog a post
 
         :param str identifier: post identifier (@<account>/<permlink>)
         :param str account: (optional) the account to allow access

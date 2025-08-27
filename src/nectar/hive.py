@@ -94,7 +94,7 @@ class Hive(BlockChainInstance):
     .. code-block:: python
 
         from nectar import Hive
-        stm = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
+        hv = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
             {'chain_assets': [{'asset': 'HBD', 'id': 0, 'precision': 3, 'symbol': 'HBD'},
                               {'asset': 'HIVE', 'id': 1, 'precision': 3, 'symbol': 'HIVE'},
                               {'asset': 'VESTS', 'id': 2, 'precision': 6, 'symbol': 'VESTS'}],

@@ -298,8 +298,8 @@ class GrapheneRPC(object):
             sorted_prefix_count = sorted(prefix_count.items(), key=lambda x: x[1], reverse=True)
             if sorted_prefix_count[0][1] > 1:
                 blockchain_name = sorted_prefix_count[0][0]
-        if blockchain_name is None and "HIVE_CHAIN_ID" in props and "STEEM_CHAIN_ID" in props:
-            del props["STEEM_CHAIN_ID"]
+        if blockchain_name is None and "HIVE_CHAIN_ID" in props:
+            del props["HIVE_CHAIN_ID"]
 
         for key in props:
             if key[-8:] == "CHAIN_ID" and blockchain_name is None:
@@ -364,7 +364,6 @@ class GrapheneRPC(object):
             if (
                 blockchain_name is not None
                 and blockchain_name not in k
-                and blockchain_name != "STEEMIT"
                 and blockchain_name != "CHAIN"
             ):
                 continue

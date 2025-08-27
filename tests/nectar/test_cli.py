@@ -5,7 +5,7 @@ import unittest
 from click.testing import CliRunner
 
 from nectar.cli import cli
-from nectar.instance import shared_steem_instance
+from nectar.instance import shared_blockchain_instance
 from nectar.utils import import_pubkeys
 
 from .nodes import get_hive_nodes
@@ -21,8 +21,8 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         cls.node_list = get_hive_nodes()
 
-        # stm = shared_steem_instance()
-        # stm.config.refreshBackup()
+        # hv = shared_blockchain_instance()
+        # hv.config.refreshBackup()
         runner = CliRunner()
         result = runner.invoke(cli, ["-o", "set", "default_vote_weight", "100"])
         if result.exit_code != 0:
@@ -48,8 +48,8 @@ class Testcases(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        stm = shared_steem_instance()
-        stm.config.recover_with_latest_backup()
+        hv = shared_blockchain_instance()
+        hv.config.recover_with_latest_backup()
         runner = CliRunner()
         result = runner.invoke(cli, ["updatenodes", "--hive"])
 
@@ -192,11 +192,11 @@ class Testcases(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_transfer(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["-dx", "transfer", "thecrazygm", "1", stm.backed_token_symbol, "test"],
+            ["-dx", "transfer", "thecrazygm", "1", hv.backed_token_symbol, "test"],
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
@@ -401,38 +401,38 @@ class Testcases(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_buy(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "buy", "1", hv.token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dt", "-x", "buy", "1", stm.token_symbol], input="y\ntest\n")
+        result = runner.invoke(cli, ["-dt", "-x", "buy", "1", hv.token_symbol], input="y\ntest\n")
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.backed_token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.backed_token_symbol], input="y\ntest\n"
+            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol], input="y\ntest\n"
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_sell(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "sell", "1", hv.token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.backed_token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "sell", "1", hv.backed_token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dt", "-x", "sell", "1", stm.token_symbol], input="y\ntest\n")
+        result = runner.invoke(cli, ["-dt", "-x", "sell", "1", hv.token_symbol], input="y\ntest\n")
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.backed_token_symbol], input="y\ntest\n"
+            cli, ["-dt", "-x", "sell", "1", hv.backed_token_symbol], input="y\ntest\n"
         )
         self.assertEqual(result.exit_code, 0)
 

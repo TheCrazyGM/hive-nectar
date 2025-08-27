@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Hive, Steem
+from nectar import Hive
 from nectar.instance import set_shared_blockchain_instance
 from nectar.nodelist import NodeList
 
@@ -30,13 +30,13 @@ class Testcases(unittest.TestCase):
             blockchainobject = Hive(node=node)
             assert blockchainobject.is_hive
 
-    def test_steem_nodes(self):
+    def test_hive_nodes(self):
         nodelist = NodeList()
         nodelist.update_nodes()
-        steem_nodes = nodelist.get_steem_nodes()
-        for node in steem_nodes:
-            blockchainobject = Steem(node=node)
-            assert blockchainobject.is_steem
+        hive_nodes = nodelist.get_hive_nodes()
+        for node in hive_nodes:
+            blockchainobject = Hive(node=node)
+            assert blockchainobject.is_hive
 
     def test_nodes_update(self):
         nodelist = NodeList()
@@ -45,7 +45,7 @@ class Testcases(unittest.TestCase):
         nodes = nodelist.get_hive_nodes()
         self.assertIn(nodes[0], all_nodes)
 
-        all_nodes = nodelist.get_steem_nodes()
+        all_nodes = nodelist.get_hive_nodes()
         nodelist.update_nodes(blockchain_instance=self.bts)
-        nodes = nodelist.get_steem_nodes()
+        nodes = nodelist.get_hive_nodes()
         self.assertIn(nodes[0], all_nodes)

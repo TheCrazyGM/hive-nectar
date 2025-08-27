@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Steem
+from nectar import Hive
 from nectar.blockchain import Blockchain
-from nectar.instance import set_shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance
 
 from .nodes import get_hive_nodes
 
@@ -13,7 +13,7 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bts = Steem(
+        cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
             num_retries=10,
@@ -23,10 +23,10 @@ class Testcases(unittest.TestCase):
         )
         # from getpass import getpass
         # self.bts.wallet.unlock(getpass())
-        set_shared_steem_instance(cls.bts)
+        set_shared_blockchain_instance(cls.bts)
         cls.bts.set_default_account("test")
 
-        b = Blockchain(steem_instance=cls.bts)
+        b = Blockchain(blockchain_instance=cls.bts)
         num = b.get_current_block_num()
         cls.start = num - 20
         cls.stop = num
@@ -36,7 +36,7 @@ class Testcases(unittest.TestCase):
 
     def test_stream_batch(self):
         bts = self.bts
-        b = Blockchain(steem_instance=bts)
+        b = Blockchain(blockchain_instance=bts)
         ops_stream = []
         opNames = ["transfer", "vote"]
         for op in b.stream(
@@ -76,7 +76,7 @@ class Testcases(unittest.TestCase):
 
     def test_stream_batch2(self):
         bts = self.bts
-        b = Blockchain(steem_instance=bts)
+        b = Blockchain(blockchain_instance=bts)
         ops_stream = []
         start_block = 25097000
         stop_block = 25097100

@@ -40,8 +40,8 @@ class Community(BlockchainObject):
         >>> from nectar.nodelist import NodeList
         >>> nodelist = NodeList()
         >>> nodelist.update_nodes()
-        >>> stm = Hive(node=nodelist.get_hive_nodes())
-        >>> community = Community("hive-139531", blockchain_instance=stm)
+        >>> hv = Hive(node=nodelist.get_hive_nodes())
+        >>> community = Community("hive-139531", blockchain_instance=hv)
         >>> print(community)
         <Community hive-139531>
 

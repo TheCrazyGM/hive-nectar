@@ -2,7 +2,7 @@
 import sys
 from time import sleep
 
-from nectar import Steem
+from nectar import Hive
 from nectar.witness import Witness, WitnessesRankedByVote
 
 
@@ -28,16 +28,16 @@ if __name__ == "__main__":
         witness = "thecrazygm"
     else:
         witness = sys.argv[1]
-    stm = Steem()
-    witness = Witness(witness, steem_instance=stm)
+    hv = Hive()
+    witness = Witness(witness, blockchain_instance=hv)
 
-    witness_schedule = stm.get_witness_schedule()
-    config = stm.get_config()
+    witness_schedule = hv.get_witness_schedule()
+    config = hv.get_config()
     if "VIRTUAL_SCHEDULE_LAP_LENGTH2" in config:
         lap_length = int(config["VIRTUAL_SCHEDULE_LAP_LENGTH2"])
     else:
-        lap_length = int(config["STEEM_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
-    witnesses = WitnessesRankedByVote(limit=250, steem_instance=stm)
+        lap_length = int(config["HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
+    witnesses = WitnessesRankedByVote(limit=250, blockchain_instance=hv)
     vote_sum = witnesses.get_votes_sum()
 
     virtual_time_to_block_num = int(witness_schedule["num_scheduled_witnesses"]) / (
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     )
     while True:
         witness.refresh()
-        witness_schedule = stm.get_witness_schedule(use_stored_data=False)
+        witness_schedule = hv.get_witness_schedule(use_stored_data=False)
 
         witness_json = witness.json()
         virtual_diff = int(witness_json["virtual_scheduled_time"]) - int(

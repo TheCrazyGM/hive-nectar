@@ -6,11 +6,11 @@ import string
 import sys
 import unittest
 
-from nectar import Steem
+from nectar import Hive
 from nectar.account import Account
 from nectar.amount import Amount
 from nectar.exceptions import InvalidWifError, MissingKeyError
-from nectar.instance import shared_steem_instance
+from nectar.instance import shared_blockchain_instance
 from nectar.memo import Memo
 from nectar.nodelist import NodeList
 from nectar.transactionbuilder import TransactionBuilder
@@ -25,11 +25,11 @@ class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         nodelist = NodeList()
-        # stm = shared_steem_instance()
-        # stm.config.refreshBackup()
+        # hv = shared_blockchain_instance()
+        # hv.config.refreshBackup()
         # nodes = nodelist.get_testnet()
         cls.nodes = nodelist.get_nodes()
-        cls.bts = Steem(
+        cls.bts = Hive(
             node=cls.nodes,
             nobroadcast=True,
             num_retries=10,
@@ -56,51 +56,51 @@ class Testcases(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
         raise unittest.SkipTest()
-        stm = self.bts
-        stm.nobroadcast = True
-        stm.wallet.wipe(True)
-        stm.wallet.create("123")
-        stm.wallet.unlock("123")
+        hv = self.bts
+        hv.nobroadcast = True
+        hv.wallet.wipe(True)
+        hv.wallet.create("123")
+        hv.wallet.unlock("123")
 
-        stm.wallet.addPrivateKey(self.active_key1)
-        stm.wallet.addPrivateKey(self.memo_key1)
-        stm.wallet.addPrivateKey(self.posting_key1)
+        hv.wallet.addPrivateKey(self.active_key1)
+        hv.wallet.addPrivateKey(self.memo_key1)
+        hv.wallet.addPrivateKey(self.posting_key1)
 
-        stm.wallet.addPrivateKey(self.active_key)
-        stm.wallet.addPrivateKey(self.memo_key)
-        stm.wallet.addPrivateKey(self.posting_key)
-        stm.wallet.addPrivateKey(self.active_private_key_of_nectar4)
-        stm.wallet.addPrivateKey(self.active_private_key_of_nectar5)
+        hv.wallet.addPrivateKey(self.active_key)
+        hv.wallet.addPrivateKey(self.memo_key)
+        hv.wallet.addPrivateKey(self.posting_key)
+        hv.wallet.addPrivateKey(self.active_private_key_of_nectar4)
+        hv.wallet.addPrivateKey(self.active_private_key_of_nectar5)
 
     @classmethod
     def tearDownClass(cls):
-        stm = shared_steem_instance()
-        stm.config.recover_with_latest_backup()
+        hv = shared_blockchain_instance()
+        hv.config.recover_with_latest_backup()
 
     def test_wallet_keys(self):
-        stm = self.bts
-        stm.wallet.unlock("123")
-        priv_key = stm.wallet.getPrivateKeyForPublicKey(
-            str(PrivateKey(self.posting_key, prefix=stm.prefix).pubkey)
+        hv = self.bts
+        hv.wallet.unlock("123")
+        priv_key = hv.wallet.getPrivateKeyForPublicKey(
+            str(PrivateKey(self.posting_key, prefix=hv.prefix).pubkey)
         )
         self.assertEqual(str(priv_key), self.posting_key)
-        priv_key = stm.wallet.getKeyForAccount("nectar", "active")
+        priv_key = hv.wallet.getKeyForAccount("nectar", "active")
         self.assertEqual(str(priv_key), self.active_key)
-        priv_key = stm.wallet.getKeyForAccount("nectar1", "posting")
+        priv_key = hv.wallet.getKeyForAccount("nectar1", "posting")
         self.assertEqual(str(priv_key), self.posting_key1)
 
-        priv_key = stm.wallet.getPrivateKeyForPublicKey(
-            str(PrivateKey(self.active_private_key_of_nectar4, prefix=stm.prefix).pubkey)
+        priv_key = hv.wallet.getPrivateKeyForPublicKey(
+            str(PrivateKey(self.active_private_key_of_nectar4, prefix=hv.prefix).pubkey)
         )
         self.assertEqual(str(priv_key), self.active_private_key_of_nectar4)
-        priv_key = stm.wallet.getKeyForAccount("nectar4", "active")
+        priv_key = hv.wallet.getKeyForAccount("nectar4", "active")
         self.assertEqual(str(priv_key), self.active_private_key_of_nectar4)
 
-        priv_key = stm.wallet.getPrivateKeyForPublicKey(
-            str(PrivateKey(self.active_private_key_of_nectar5, prefix=stm.prefix).pubkey)
+        priv_key = hv.wallet.getPrivateKeyForPublicKey(
+            str(PrivateKey(self.active_private_key_of_nectar5, prefix=hv.prefix).pubkey)
         )
         self.assertEqual(str(priv_key), self.active_private_key_of_nectar5)
-        priv_key = stm.wallet.getKeyForAccount("nectar5", "active")
+        priv_key = hv.wallet.getKeyForAccount("nectar5", "active")
         self.assertEqual(str(priv_key), self.active_private_key_of_nectar5)
 
     def test_transfer(self):
@@ -109,15 +109,15 @@ class Testcases(unittest.TestCase):
         bts.wallet.unlock("123")
         # bts.wallet.addPrivateKey(self.active_key)
         # bts.prefix ="STX"
-        acc = Account("nectar", steem_instance=bts)
-        tx = acc.transfer("nectar1", 1.33, "SBD", memo="Foobar")
+        acc = Account("nectar", blockchain_instance=bts)
+        tx = acc.transfer("nectar1", 1.33, "HBD", memo="Foobar")
         self.assertEqual(tx["operations"][0][0], "transfer")
         self.assertEqual(len(tx["signatures"]), 1)
         op = tx["operations"][0][1]
         self.assertIn("memo", op)
         self.assertEqual(op["from"], "nectar")
         self.assertEqual(op["to"], "nectar1")
-        amount = Amount(op["amount"], steem_instance=bts)
+        amount = Amount(op["amount"], blockchain_instance=bts)
         self.assertEqual(float(amount), 1.33)
         bts.nobroadcast = True
 
@@ -125,32 +125,32 @@ class Testcases(unittest.TestCase):
         bts = self.bts
         bts.nobroadcast = False
         bts.wallet.unlock("123")
-        acc = Account("nectar", steem_instance=bts)
-        tx = acc.transfer("nectar1", 1.33, "SBD", memo="#Foobar")
+        acc = Account("nectar", blockchain_instance=bts)
+        tx = acc.transfer("nectar1", 1.33, "HBD", memo="#Foobar")
         self.assertEqual(tx["operations"][0][0], "transfer")
         op = tx["operations"][0][1]
         self.assertIn("memo", op)
         self.assertIn("#", op["memo"])
-        m = Memo(from_account=op["from"], to_account=op["to"], steem_instance=bts)
+        m = Memo(from_account=op["from"], to_account=op["to"], blockchain_instance=bts)
         memo = m.decrypt(op["memo"])
         self.assertEqual(memo, "Foobar")
 
         self.assertEqual(op["from"], "nectar")
         self.assertEqual(op["to"], "nectar1")
-        amount = Amount(op["amount"], steem_instance=bts)
+        amount = Amount(op["amount"], blockchain_instance=bts)
         self.assertEqual(float(amount), 1.33)
         bts.nobroadcast = True
 
     def test_transfer_1of1(self):
-        steem = self.bts
-        steem.nobroadcast = False
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        hive = self.bts
+        hive.nobroadcast = False
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 STEEM", blockchain_instance=hive),
                     "memo": "1 of 1 transaction",
                 }
             )
@@ -161,19 +161,19 @@ class Testcases(unittest.TestCase):
         tx.sign()
         self.assertEqual(len(tx["signatures"]), 1)
         tx.broadcast()
-        steem.nobroadcast = True
+        hive.nobroadcast = True
 
     def test_transfer_2of2_simple(self):
         # Send a 2 of 2 transaction from elf which needs nectar4's cosign to send funds
-        steem = self.bts
-        steem.nobroadcast = False
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        hive = self.bts
+        hive.nobroadcast = False
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar5",
                     "to": "nectar1",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 HIVE", blockchain_instance=hive),
                     "memo": "2 of 2 simple transaction",
                 }
             )
@@ -186,23 +186,23 @@ class Testcases(unittest.TestCase):
         tx.sign(reconstruct_tx=False)
         self.assertEqual(len(tx["signatures"]), 2)
         tx.broadcast()
-        steem.nobroadcast = True
+        hive.nobroadcast = True
 
     def test_transfer_2of2_wallet(self):
         # Send a 2 of 2 transaction from nectar5 which needs nectar4's cosign to send
         # priv key of nectar5 and nectar4 are stored in the wallet
         # appendSigner fetches both keys and signs automatically with both keys.
-        steem = self.bts
-        steem.nobroadcast = False
-        steem.wallet.unlock("123")
+        hive = self.bts
+        hive.nobroadcast = False
+        hive.wallet.unlock("123")
 
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar5",
                     "to": "nectar1",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 HIVE", blockchain_instance=hive),
                     "memo": "2 of 2 serialized/deserialized transaction",
                 }
             )
@@ -212,27 +212,27 @@ class Testcases(unittest.TestCase):
         tx.sign()
         self.assertEqual(len(tx["signatures"]), 2)
         tx.broadcast()
-        steem.nobroadcast = True
+        hive.nobroadcast = True
 
     def test_transfer_2of2_serialized_deserialized(self):
         # Send a 2 of 2 transaction from nectar5 which needs nectar4's cosign to send
         # funds but sign the transaction with nectar5's key and then serialize the transaction
         # and deserialize the transaction.  After that, sign with nectar4's key.
-        steem = self.bts
-        steem.nobroadcast = False
-        steem.wallet.unlock("123")
-        # steem.wallet.removeAccount("nectar4")
-        steem.wallet.removePrivateKeyFromPublicKey(
+        hive = self.bts
+        hive.nobroadcast = False
+        hive.wallet.unlock("123")
+        # hive.wallet.removeAccount("nectar4")
+        hive.wallet.removePrivateKeyFromPublicKey(
             str(PublicKey(self.active_private_key_of_nectar4, prefix=core_unit))
         )
 
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar5",
                     "to": "nectar1",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 STEEM", blockchain_instance=hive),
                     "memo": "2 of 2 serialized/deserialized transaction",
                 }
             )
@@ -243,40 +243,40 @@ class Testcases(unittest.TestCase):
         tx.sign()
         tx.clearWifs()
         self.assertEqual(len(tx["signatures"]), 1)
-        # steem.wallet.removeAccount("nectar5")
-        steem.wallet.removePrivateKeyFromPublicKey(
+        # hive.wallet.removeAccount("nectar5")
+        hive.wallet.removePrivateKeyFromPublicKey(
             str(PublicKey(self.active_private_key_of_nectar5, prefix=core_unit))
         )
         tx_json = tx.json()
         del tx
-        new_tx = TransactionBuilder(tx=tx_json, steem_instance=steem)
+        new_tx = TransactionBuilder(tx=tx_json, blockchain_instance=hive)
         self.assertEqual(len(new_tx["signatures"]), 1)
-        steem.wallet.addPrivateKey(self.active_private_key_of_nectar4)
+        hive.wallet.addPrivateKey(self.active_private_key_of_nectar4)
         new_tx.appendMissingSignatures()
         new_tx.sign(reconstruct_tx=False)
         self.assertEqual(len(new_tx["signatures"]), 2)
         new_tx.broadcast()
-        steem.nobroadcast = True
+        hive.nobroadcast = True
 
     def test_transfer_2of2_offline(self):
         # Send a 2 of 2 transaction from nectar5 which needs nectar4's cosign to send
         # funds but sign the transaction with nectar5's key and then serialize the transaction
         # and deserialize the transaction.  After that, sign with nectar4's key.
-        steem = self.bts
-        steem.nobroadcast = False
-        steem.wallet.unlock("123")
-        # steem.wallet.removeAccount("nectar4")
-        steem.wallet.removePrivateKeyFromPublicKey(
+        hive = self.bts
+        hive.nobroadcast = False
+        hive.wallet.unlock("123")
+        # hive.wallet.removeAccount("nectar4")
+        hive.wallet.removePrivateKeyFromPublicKey(
             str(PublicKey(self.active_private_key_of_nectar4, prefix=core_unit))
         )
 
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar5",
                     "to": "nectar",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 STEEM", blockchain_instance=hive),
                     "memo": "2 of 2 serialized/deserialized transaction",
                 }
             )
@@ -287,37 +287,37 @@ class Testcases(unittest.TestCase):
         tx.sign()
         tx.clearWifs()
         self.assertEqual(len(tx["signatures"]), 1)
-        # steem.wallet.removeAccount("nectar5")
-        steem.wallet.removePrivateKeyFromPublicKey(
+        # hive.wallet.removeAccount("nectar5")
+        hive.wallet.removePrivateKeyFromPublicKey(
             str(PublicKey(self.active_private_key_of_nectar5, prefix=core_unit))
         )
-        steem.wallet.addPrivateKey(self.active_private_key_of_nectar4)
+        hive.wallet.addPrivateKey(self.active_private_key_of_nectar4)
         tx.appendMissingSignatures()
         tx.sign(reconstruct_tx=False)
         self.assertEqual(len(tx["signatures"]), 2)
         tx.broadcast()
-        steem.nobroadcast = True
-        steem.wallet.addPrivateKey(self.active_private_key_of_nectar5)
+        hive.nobroadcast = True
+        hive.wallet.addPrivateKey(self.active_private_key_of_nectar5)
 
     def test_transfer_2of2_wif(self):
         nodelist = NodeList()
         # Send a 2 of 2 transaction from elf which needs nectar4's cosign to send
         # funds but sign the transaction with elf's key and then serialize the transaction
         # and deserialize the transaction.  After that, sign with nectar4's key.
-        steem = Steem(
+        hive = Hive(
             node=self.nodes,
             num_retries=10,
             keys=[self.active_private_key_of_nectar5],
             expiration=360,
         )
 
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=steem)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hive)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar5",
                     "to": "nectar",
-                    "amount": Amount("0.01 STEEM", steem_instance=steem),
+                    "amount": Amount("0.01 HIVE", blockchain_instance=hive),
                     "memo": "2 of 2 serialized/deserialized transaction",
                 }
             )
@@ -329,36 +329,36 @@ class Testcases(unittest.TestCase):
         tx.clearWifs()
         self.assertEqual(len(tx["signatures"]), 1)
         tx_json = tx.json()
-        del steem
+        del hive
         del tx
 
-        steem = Steem(
+        hive = Hive(
             node=self.nodes,
             num_retries=10,
             keys=[self.active_private_key_of_nectar4],
             expiration=360,
         )
-        new_tx = TransactionBuilder(tx=tx_json, steem_instance=steem)
+        new_tx = TransactionBuilder(tx=tx_json, blockchain_instance=hive)
         new_tx.appendMissingSignatures()
         new_tx.sign(reconstruct_tx=False)
         self.assertEqual(len(new_tx["signatures"]), 2)
         new_tx.broadcast()
 
     def test_verifyAuthority(self):
-        stm = self.bts
-        stm.wallet.unlock("123")
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=stm)
+        hv = self.bts
+        hv.wallet.unlock("123")
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("1.300 SBD", steem_instance=stm),
+                    "amount": Amount("1.300 HBD", blockchain_instance=hv),
                     "memo": "Foobar",
                 }
             )
         )
-        account = Account("nectar", steem_instance=stm)
+        account = Account("nectar", blockchain_instance=hv)
         tx.appendSigner(account, "active")
         self.assertTrue(len(tx.wifs) > 0)
         tx.sign()
@@ -426,7 +426,7 @@ class Testcases(unittest.TestCase):
         tx1 = bts.new_tx()
         tx2 = bts.new_tx()
 
-        acc = Account("nectar", steem_instance=bts)
+        acc = Account("nectar", blockchain_instance=bts)
         acc.transfer("nectar1", 1, "STEEM", append_to=tx1)
         acc.transfer("nectar1", 2, "STEEM", append_to=tx2)
         acc.transfer("nectar1", 3, "STEEM", append_to=tx1)
@@ -465,8 +465,8 @@ class Testcases(unittest.TestCase):
     def test_allow(self):
         bts = self.bts
         self.assertIn(bts.prefix, "STX")
-        acc = Account("nectar", steem_instance=bts)
-        self.assertIn(acc.steem.prefix, "STX")
+        acc = Account("nectar", blockchain_instance=bts)
+        self.assertIn(acc.hive.prefix, "STX")
         tx = acc.allow(
             "STX55VCzsb47NZwWe5F3qyQKedX9iHBHMVVFSc96PDvV7wuj7W86n",
             account="nectar",
@@ -485,7 +485,7 @@ class Testcases(unittest.TestCase):
 
     def test_disallow(self):
         bts = self.bts
-        acc = Account("nectar", steem_instance=bts)
+        acc = Account("nectar", blockchain_instance=bts)
         if sys.version > "3":
             _assertRaisesRegex = self.assertRaisesRegex
         else:
@@ -509,7 +509,7 @@ class Testcases(unittest.TestCase):
         bts = self.bts
         bts.wallet.unlock("123")
         self.assertEqual(bts.prefix, "STX")
-        acc = Account("nectar", steem_instance=bts)
+        acc = Account("nectar", blockchain_instance=bts)
         tx = acc.update_memo_key("STX55VCzsb47NZwWe5F3qyQKedX9iHBHMVVFSc96PDvV7wuj7W86n")
         self.assertEqual((tx["operations"][0][0]), "account_update")
         op = tx["operations"][0][1]
@@ -517,7 +517,7 @@ class Testcases(unittest.TestCase):
 
     def test_approvewitness(self):
         bts = self.bts
-        w = Account("nectar", steem_instance=bts)
+        w = Account("nectar", blockchain_instance=bts)
         tx = w.approvewitness("nectar1")
         self.assertEqual((tx["operations"][0][0]), "account_witness_vote")
         op = tx["operations"][0][1]
@@ -525,14 +525,14 @@ class Testcases(unittest.TestCase):
 
     def test_appendWif(self):
         nodelist = NodeList()
-        stm = Steem(node=self.nodes, nobroadcast=True, expiration=120, num_retries=10)
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=stm)
+        hv = Hive(node=self.nodes, nobroadcast=True, expiration=120, num_retries=10)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("1 STEEM", steem_instance=stm),
+                    "amount": Amount("1 STEEM", blockchain_instance=hv),
                     "memo": "",
                 }
             )
@@ -547,25 +547,25 @@ class Testcases(unittest.TestCase):
 
     def test_appendSigner(self):
         nodelist = NodeList()
-        stm = Steem(
+        hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
             nobroadcast=True,
             expiration=120,
             num_retries=10,
         )
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=stm)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("1 STEEM", steem_instance=stm),
+                    "amount": Amount("1 STEEM", blockchain_instance=hv),
                     "memo": "",
                 }
             )
         )
-        account = Account("nectar", steem_instance=stm)
+        account = Account("nectar", blockchain_instance=hv)
         with self.assertRaises(AssertionError):
             tx.appendSigner(account, "abcdefg")
         tx.appendSigner(account, "active")
@@ -575,25 +575,25 @@ class Testcases(unittest.TestCase):
 
     def test_verifyAuthorityException(self):
         nodelist = NodeList()
-        stm = Steem(
+        hv = Hive(
             node=self.nodes,
             keys=[self.posting_key],
             nobroadcast=True,
             expiration=120,
             num_retries=10,
         )
-        tx = TransactionBuilder(use_condenser_api=True, steem_instance=stm)
+        tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("1 STEEM", steem_instance=stm),
+                    "amount": Amount("1 STEEM", blockchain_instance=hv),
                     "memo": "",
                 }
             )
         )
-        account = Account("nectar2", steem_instance=stm)
+        account = Account("nectar2", blockchain_instance=hv)
         tx.appendSigner(account, "active")
         tx.appendWif(self.posting_key)
         self.assertTrue(len(tx.wifs) > 0)
@@ -604,7 +604,7 @@ class Testcases(unittest.TestCase):
 
     def test_Transfer_broadcast(self):
         nodelist = NodeList()
-        stm = Steem(
+        hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
             nobroadcast=True,
@@ -612,13 +612,13 @@ class Testcases(unittest.TestCase):
             num_retries=10,
         )
 
-        tx = TransactionBuilder(use_condenser_api=True, expiration=10, steem_instance=stm)
+        tx = TransactionBuilder(use_condenser_api=True, expiration=10, blockchain_instance=hv)
         tx.appendOps(
             Transfer(
                 **{
                     "from": "nectar",
                     "to": "nectar1",
-                    "amount": Amount("1 STEEM", steem_instance=stm),
+                    "amount": Amount("1 STEEM", blockchain_instance=hv),
                     "memo": "",
                 }
             )
@@ -628,23 +628,23 @@ class Testcases(unittest.TestCase):
         tx.broadcast()
 
     def test_TransactionConstructor(self):
-        stm = self.bts
+        hv = self.bts
         opTransfer = Transfer(
             **{
                 "from": "nectar",
                 "to": "nectar1",
-                "amount": Amount("1 STEEM", steem_instance=stm),
+                "amount": Amount("1 STEEM", blockchain_instance=hv),
                 "memo": "",
             }
         )
-        tx1 = TransactionBuilder(use_condenser_api=True, steem_instance=stm)
+        tx1 = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx1.appendOps(opTransfer)
-        tx = TransactionBuilder(tx1, steem_instance=stm)
+        tx = TransactionBuilder(tx1, blockchain_instance=hv)
         self.assertFalse(tx.is_empty())
         self.assertTrue(len(tx.list_operations()) == 1)
         self.assertTrue(repr(tx) is not None)
         self.assertTrue(str(tx) is not None)
-        account = Account("nectar", steem_instance=stm)
+        account = Account("nectar", blockchain_instance=hv)
         tx.appendSigner(account, "active")
         self.assertTrue(len(tx.wifs) > 0)
         tx.sign()
@@ -652,24 +652,24 @@ class Testcases(unittest.TestCase):
 
     def test_follow_active_key(self):
         nodelist = NodeList()
-        stm = Steem(
+        hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
             nobroadcast=True,
             expiration=120,
             num_retries=10,
         )
-        account = Account("nectar", steem_instance=stm)
+        account = Account("nectar", blockchain_instance=hv)
         account.follow("nectar1")
 
     def test_follow_posting_key(self):
         nodelist = NodeList()
-        stm = Steem(
+        hv = Hive(
             node=self.nodes,
             keys=[self.posting_key],
             nobroadcast=True,
             expiration=120,
             num_retries=10,
         )
-        account = Account("nectar", steem_instance=stm)
+        account = Account("nectar", blockchain_instance=hv)
         account.follow("nectar1")

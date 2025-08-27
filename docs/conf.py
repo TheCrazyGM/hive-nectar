@@ -272,7 +272,7 @@ texinfo_documents = [
         "hive-nectar Documentation",
         author,
         "hive-nectar",
-        "python library for steem",
+        "python library for hive",
         "Miscellaneous",
     ),
 ]

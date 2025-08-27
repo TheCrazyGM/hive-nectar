@@ -5,10 +5,10 @@ from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
 
 
-def check_asset(other, self, stm):
+def check_asset(other, self, hv):
     if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
-        if not Asset(other["asset"], blockchain_instance=stm) == Asset(
-            self["asset"], blockchain_instance=stm
+        if not Asset(other["asset"], blockchain_instance=hv) == Asset(
+            self["asset"], blockchain_instance=hv
         ):
             raise AssertionError()
     else:

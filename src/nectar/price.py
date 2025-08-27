@@ -10,10 +10,10 @@ from .exceptions import InvalidAssetException
 from .utils import assets_from_string, formatTimeString
 
 
-def check_asset(other, self, stm):
+def check_asset(other, self, hv):
     if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
-        if not Asset(other["asset"], blockchain_instance=stm) == Asset(
-            self["asset"], blockchain_instance=stm
+        if not Asset(other["asset"], blockchain_instance=hv) == Asset(
+            self["asset"], blockchain_instance=hv
         ):
             raise AssertionError()
     else:
@@ -71,10 +71,10 @@ class Price(dict):
 
         >>> from nectar.price import Price
         >>> from nectar import Hive
-        >>> stm = Hive("https://api.hive.blog")
-        >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm) * 2
+        >>> hv = Hive("https://api.hive.blog")
+        >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv) * 2
         0.662804 HBD/HIVE
-        >>> Price(0.3314, "HBD", "HIVE", blockchain_instance=stm)
+        >>> Price(0.3314, "HBD", "HIVE", blockchain_instance=hv)
         0.331402 HBD/HIVE
 
     """
@@ -203,8 +203,8 @@ class Price(dict):
 
             >>> from nectar.price import Price
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).as_base("HIVE")
+            >>> hv = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).as_base("HIVE")
             3.017483 HIVE/HBD
 
         """
@@ -224,8 +224,8 @@ class Price(dict):
 
             >>> from nectar.price import Price
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).as_quote("HBD")
+            >>> hv = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).as_quote("HBD")
             3.017483 HIVE/HBD
 
         """
@@ -243,8 +243,8 @@ class Price(dict):
 
             >>> from nectar.price import Price
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> Price("0.3314 HBD/HIVE", blockchain_instance=stm).invert()
+            >>> hv = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).invert()
             3.017483 HIVE/HBD
 
         """

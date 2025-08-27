@@ -27,16 +27,6 @@ def set_shared_blockchain_instance(blockchain_instance):
     SharedInstance.instance = blockchain_instance
 
 
-def shared_steem_instance():
-    """LEGACY alias. Returns the shared Hive instance (Hive-only)."""
-    return shared_blockchain_instance()
-
-
-def set_shared_steem_instance(steem_instance):
-    """LEGACY alias. Redirects to set the shared Hive instance (Hive-only)."""
-    set_shared_blockchain_instance(steem_instance)
-
-
 def shared_hive_instance():
     """Initialize (if needed) and return the shared Hive instance."""
     return shared_blockchain_instance()

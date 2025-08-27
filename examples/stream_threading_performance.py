@@ -4,7 +4,7 @@ import logging
 import sys
 import time
 
-from nectar import Hive as Steem
+from nectar import Hive as Hive
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
 
@@ -12,8 +12,8 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def stream_votes(stm, threading, thread_num):
-    b = Blockchain(steem_instance=stm)
+def stream_votes(hv, threading, thread_num):
+    b = Blockchain(blockchain_instance=hv)
     opcount = 0
     start_time = time.time()
     for op in b.stream(
@@ -39,18 +39,18 @@ if __name__ == "__main__":
 
     vote_result = []
     duration = []
-    stm_wss = Steem(node=node_list_wss, timeout=timeout)
-    stm_https = Steem(node=node_list_https, timeout=timeout)
+    hv_wss = Hive(node=node_list_wss, timeout=timeout)
+    hv_https = Hive(node=node_list_https, timeout=timeout)
     print("Without threading wss")
-    opcount_wot_wss, total_duration_wot_wss = stream_votes(stm_wss, False, 8)
+    opcount_wot_wss, total_duration_wot_wss = stream_votes(hv_wss, False, 8)
     print("Without threading https")
-    opcount_wot_https, total_duration_wot_https = stream_votes(stm_https, False, 8)
+    opcount_wot_https, total_duration_wot_https = stream_votes(hv_https, False, 8)
     if threading:
         print("\n Threading with %d threads is activated now." % thread_num)
 
-    stm = Steem(node=node_list_wss, timeout=timeout)
-    opcount_wss, total_duration_wss = stream_votes(stm, threading, thread_num)
-    opcount_https, total_duration_https = stream_votes(stm, threading, thread_num)
+    hv = Hive(node=node_list_wss, timeout=timeout)
+    opcount_wss, total_duration_wss = stream_votes(hv, threading, thread_num)
+    opcount_https, total_duration_https = stream_votes(hv, threading, thread_num)
     print("Finished!")
 
     print("Results:")

@@ -2,14 +2,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
-from nectar import Hive as Steem
+from nectar import Hive as Hive
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == "__main__":
-    stm = Steem(
+    hv = Hive(
         node=["https://api.hive.blog"],
         custom_chains={
             "TESTNETHF20": {
@@ -24,5 +24,5 @@ if __name__ == "__main__":
             }
         },
     )
-    print(stm.get_blockchain_version())
-    print(stm.get_config()["HIVE_CHAIN_ID"])
+    print(hv.get_blockchain_version())
+    print(hv.get_config()["HIVE_CHAIN_ID"])

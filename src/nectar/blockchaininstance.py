@@ -121,7 +121,7 @@ class BlockChainInstance(object):
     .. code-block:: python
 
         from nectar import Hive
-        stm = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
+        hv = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
             {'chain_assets': [{'asset': 'HBD', 'id': 0, 'precision': 3, 'symbol': 'HBD'},
                               {'asset': 'HIVE', 'id': 1, 'precision': 3, 'symbol': 'HIVE'},
                               {'asset': 'VESTS', 'id': 2, 'precision': 6, 'symbol': 'VESTS'}],
@@ -215,16 +215,6 @@ class BlockChainInstance(object):
             self.hivesigner = HiveSigner(blockchain_instance=self, **kwargs)
         elif self.hivesigner is not None and not self.use_hs:
             self.use_hs = True
-
-        # Hive-only compatibility flags (legacy steem fields)
-        # Some parts of the code/tests still reference these. Keep them defined to avoid AttributeErrors.
-        # Do NOT assign to `self.is_hive` here: `Hive.is_hive` is a read-only @property.
-        # If a boolean flag is needed internally, use a non-conflicting name.
-        self._is_hive_compat = True
-        self.is_steem = False
-        # Legacy SteemConnect flags/refs kept for compatibility; Hive uses HiveSigner instead
-        self.use_sc2 = False
-        self.steemconnect = None
 
     # -------------------------------------------------------------------------
     # Basic Calls
@@ -2241,7 +2231,7 @@ class BlockChainInstance(object):
     @property
     def backed_token_symbol(self):
         """get the current chains symbol for HBD (e.g. "TBD" on testnet)"""
-        # some networks (e.g. whaleshares) do not have SBD
+        # some networks (e.g. whaleshares) do not have HBD
         try:
             symbol = self._get_asset_symbol(0)
         except KeyError:

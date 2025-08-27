@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Steem
+from nectar import Hive
 from nectar.account import Account
 from nectar.hivesigner import HiveSigner
 
@@ -14,7 +14,7 @@ core_unit = "STM"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bts = Steem(
+        cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
             unsigned=True,
@@ -22,14 +22,14 @@ class Testcases(unittest.TestCase):
             num_retries=10,
         )
 
-        cls.account = Account("test", full=True, steem_instance=cls.bts)
+        cls.account = Account("test", full=True, blockchain_instance=cls.bts)
 
     def test_transfer(self):
         bts = self.bts
         acc = self.account
         acc.blockchain.txbuffer.clear()
         tx = acc.transfer("test1", 1.000, "HIVE", memo="test")
-        sc2 = HiveSigner(steem_instance=bts)
+        sc2 = HiveSigner(blockchain_instance=bts)
         url = sc2.url_from_tx(tx)
         url_test = (
             "https://hivesigner.com/sign/transfer?from=test&to=test1&amount=1.000+HIVE&memo=test"
@@ -46,7 +46,7 @@ class Testcases(unittest.TestCase):
 
     def test_login_url(self):
         bts = self.bts
-        sc2 = HiveSigner(steem_instance=bts)
+        sc2 = HiveSigner(blockchain_instance=bts)
         url = sc2.get_login_url("localhost", scope="login,vote")
         url_test = "https://hivesigner.com/oauth2/authorize?client_id=None&redirect_uri=localhost&scope=login,vote"
         self.assertEqual(len(url), len(url_test))

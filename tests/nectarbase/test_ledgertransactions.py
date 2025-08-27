@@ -1,8 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import pytest
 
 pytest.skip(
-    "Skipping legacy Steem ledger serialization tests (migrated to Hive)", allow_module_level=True
+    "Skipping legacy Hive ledger serialization tests (migrated to Hive)", allow_module_level=True
 )
 
 import unittest
@@ -10,7 +11,7 @@ from binascii import hexlify
 from builtins import range, super
 
 from nectar.amount import Amount
-from nectar.steem import Steem
+from nectar.hive import Hive
 from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
 from nectarbase.objects import Operation
@@ -29,7 +30,7 @@ class Testcases(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.stm = Steem(offline=True)
+        self.hv = Hive(offline=True)
 
     def doit(self, printWire=False, ops=None):
         if ops is None:
@@ -58,7 +59,7 @@ class Testcases(unittest.TestCase):
             **{
                 "from": "nettybot",
                 "to": "netuoso",
-                "amount": Amount("0.001 STEEM", steem_instance=self.stm),
+                "amount": Amount("0.001 STEEM", blockchain_instance=self.hv),
                 "memo": "",
                 "prefix": default_prefix,
             }

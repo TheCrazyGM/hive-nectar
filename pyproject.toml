@@ -4,46 +4,42 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hive-nectar"
-version = "0.0.11"
+version = "0.1.0b"
 description = "Unofficial Python library for HIVE"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE.txt"}
-authors = [
-    {name = "Michael Garcia", email = "thecrazygm@gmail.com"}
-]
-maintainers = [
-    {name = "Michael Garcia", email = "thecrazygm@gmail.com"}
-]
+license = { file = "LICENSE.txt" }
+authors = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
+maintainers = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 keywords = ["hive", "library", "api", "rpc"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Financial and Insurance Industry",
-    "Topic :: Office/Business :: Financial",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
-    "ecdsa",
-    "requests",
-    "websocket-client",
-    "appdirs",
-    "scrypt",
-    "pycryptodomex",
-    "Click",
-    "click_shell",
-    "prettytable",
-    "ruamel.yaml",
-    "diff_match_patch",
-    "asn1crypto",
-    "types-requests>=2.32.0.20250328",
+  "ecdsa",
+  "requests",
+  "websocket-client",
+  "appdirs",
+  "scrypt",
+  "pycryptodomex",
+  "Click",
+  "click_shell",
+  "prettytable",
+  "ruamel.yaml",
+  "diff_match_patch",
+  "asn1crypto",
+  "types-requests>=2.32.0.20250328",
 ]
 
 [project.urls]
@@ -55,10 +51,17 @@ dependencies = [
 hive-nectar = "nectar.cli:cli"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nectar", "src/nectarapi", "src/nectarbase", "src/nectargraphenebase", "src/nectargrapheneapi", "src/nectarstorage"]
+packages = [
+  "src/nectar",
+  "src/nectarapi",
+  "src/nectarbase",
+  "src/nectargraphenebase",
+  "src/nectargrapheneapi",
+  "src/nectarstorage",
+]
 
 [tool.uv]
-default-groups = [ ]
+default-groups = []
 
 [[tool.uv.index]]
 name = "testpypi"
@@ -83,17 +86,17 @@ indent-style = "space"
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]
 exclude = [
-    ".tox",
-    ".git",
-    "__pycache__",
-    "docs/source/conf.py",
-    "build",
-    "dist",
-    "tests/fixtures/*",
-    "*.pyc",
-    "*.egg-info",
-    ".cache",
-    ".eggs",
+  ".tox",
+  ".git",
+  "__pycache__",
+  "docs/source/conf.py",
+  "build",
+  "dist",
+  "tests/fixtures/*",
+  "*.pyc",
+  "*.egg-info",
+  ".cache",
+  ".eggs",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -110,21 +113,21 @@ disallow_incomplete_defs = false
 
 [dependency-groups]
 dev = [
-    "mock",
-    "pytest",
-    "pytest-mock",
-    "pytest-cov",
-    "parameterized",
-    "coverage",
-    "tox",
-    "sphinx",
-    "sphinx-rtd-theme",
-    "doc8",
-    "ruff",
-    "readme_renderer",
-    "sphinx-click",
-    "codacy-coverage",
-    "codecov",
-    "build",
-    "tomli",
+  "mock",
+  "pytest",
+  "pytest-mock",
+  "pytest-cov",
+  "parameterized",
+  "coverage",
+  "tox",
+  "sphinx",
+  "sphinx-rtd-theme",
+  "doc8",
+  "ruff",
+  "readme_renderer",
+  "sphinx-click",
+  "codacy-coverage",
+  "codecov",
+  "build",
+  "tomli",
 ]

@@ -26,15 +26,15 @@ class Testcases(unittest.TestCase):
             keys={"active": wif},
             num_retries=10,
         )
-        cls.account = Account("thecrazygm", steem_instance=cls.bts)
+        cls.account = Account("thecrazygm", blockchain_instance=cls.bts)
         set_shared_blockchain_instance(cls.bts)
 
     def test_account(self):
-        stm = self.bts
+        hv = self.bts
         account = self.account
-        Account("thecrazygm", steem_instance=stm)
+        Account("thecrazygm", blockchain_instance=hv)
         with self.assertRaises(exceptions.AccountDoesNotExistsException):
-            Account("DoesNotExistsXXX", steem_instance=stm)
+            Account("DoesNotExistsXXX", blockchain_instance=hv)
         # asset = Asset("1.3.0")
         # symbol = asset["symbol"]
         self.assertEqual(account.name, "thecrazygm")
@@ -184,8 +184,8 @@ class Testcases(unittest.TestCase):
         self.assertEqual(h_list[-1][1]["block"], h_all_raw[-2 + zero_element][1]["block"])
 
     def test_history2(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         h_list = []
         max_index = account.virtual_op_count()
         for h in account.history(
@@ -226,8 +226,8 @@ class Testcases(unittest.TestCase):
             self.assertEqual(h_list[i][0] - h_list[i - 1][0], 1)
 
     def test_history_index(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         h_list = []
         for h in account.history(
             start=1, stop=10, use_block_num=False, batch_size=10, raw_output=True
@@ -245,8 +245,8 @@ class Testcases(unittest.TestCase):
             self.assertEqual(h_list[i][0], i + 1)
 
     def test_history_reverse2(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         h_list = []
         max_index = account.virtual_op_count()
         for h in account.history_reverse(
@@ -285,8 +285,8 @@ class Testcases(unittest.TestCase):
             self.assertEqual(h_list[i][0] - h_list[i - 1][0], -1)
 
     def test_history_block_num(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         h_all_raw = []
         for h in account.history_reverse(use_block_num=False, stop=-15, raw_output=True):
             h_all_raw.append(h)
@@ -329,7 +329,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(vp <= 100)
         sp = account.get_token_power()
         self.assertTrue(sp >= 0)
-        vv = account.get_voting_value_SBD()
+        vv = account.get_voting_value_HBD()
         self.assertTrue(vv >= 0)
         # bw = account.get_bandwidth()
         # self.assertTrue(bw['used'] <= bw['allocated'])
@@ -443,7 +443,7 @@ class Testcases(unittest.TestCase):
         self.assertIn("thecrazygm", op["to"])
 
     def test_json_export(self):
-        account = Account("thecrazygm", steem_instance=self.bts)
+        account = Account("thecrazygm", blockchain_instance=self.bts)
         if account.blockchain.rpc.get_use_appbase():
             content = self.bts.rpc.find_accounts({"accounts": [account["name"]]}, api="database")[
                 "accounts"
@@ -469,10 +469,10 @@ class Testcases(unittest.TestCase):
                     self.assertEqual(content[k], json_content[k])
 
     def test_estimate_virtual_op_num(self):
-        stm = self.bts
-        account = Account("gtg", steem_instance=stm)
+        hv = self.bts
+        account = Account("gtg", blockchain_instance=hv)
         block_num = 21248120
-        block = Block(block_num, steem_instance=stm)
+        block = Block(block_num, blockchain_instance=hv)
         op_num1 = account.estimate_virtual_op_num(block.time(), stop_diff=1, max_count=100)
         op_num2 = account.estimate_virtual_op_num(block_num, stop_diff=1, max_count=100)
         op_num3 = account.estimate_virtual_op_num(block_num, stop_diff=100, max_count=100)
@@ -513,8 +513,8 @@ class Testcases(unittest.TestCase):
             last_block = new_block
 
     def test_history_votes(self):
-        stm = self.bts
-        account = Account("gtg", steem_instance=stm)
+        hv = self.bts
+        account = Account("gtg", blockchain_instance=hv)
         limit_time = datetime.now(timezone.utc) - timedelta(days=2)
         votes_list = []
         for v in account.history(start=limit_time, only_ops=["vote"]):
@@ -525,7 +525,7 @@ class Testcases(unittest.TestCase):
             votes_list2.append(v)
         self.assertTrue(abs(len(votes_list) - len(votes_list2)) < 2)
 
-        account = Account("thecrazygm", blockchain_instance=stm)
+        account = Account("thecrazygm", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"]))
         votes_list2 = list(account.history_reverse(only_ops=["vote"]))
         self.assertEqual(len(votes_list), len(votes_list2))
@@ -533,8 +533,8 @@ class Testcases(unittest.TestCase):
         self.assertEqual(votes_list[-1]["voter"], votes_list2[0]["voter"])
 
     def test_history_op_filter(self):
-        stm = Hive("https://api.hive.blog")
-        account = Account("thecrazygm", blockchain_instance=stm)
+        hv = Hive("https://api.hive.blog")
+        account = Account("thecrazygm", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"]))
         other_list = list(account.history(exclude_ops=["vote"]))
         all_list = list(account.history())
@@ -553,9 +553,9 @@ class Testcases(unittest.TestCase):
             index += 1
 
     def test_history_op_filter2(self):
-        stm = Hive("https://api.hive.blog")
+        hv = Hive("https://api.hive.blog")
         batch_size = 100
-        account = Account("thecrazygm", blockchain_instance=stm)
+        account = Account("thecrazygm", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"], batch_size=batch_size))
         other_list = list(account.history(exclude_ops=["vote"], batch_size=batch_size))
         all_list = list(account.history(batch_size=batch_size))
@@ -584,7 +584,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(comments[0].depth > 0)
 
     def test_blog_history(self):
-        account = Account("thecrazygm", steem_instance=self.bts)
+        account = Account("thecrazygm", blockchain_instance=self.bts)
         posts = []
         for p in account.blog_history(limit=5):
             if p["author"] != account["name"]:
@@ -617,31 +617,31 @@ class Testcases(unittest.TestCase):
             )
 
     def test_list_subscriptions(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         assert len(account.list_all_subscriptions()) > 0
 
     def test_account_feeds(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         assert len(account.get_account_posts()) > 0
 
     def test_notifications(self):
-        stm = self.bts
-        account = Account("gtg", steem_instance=stm)
+        hv = self.bts
+        account = Account("gtg", blockchain_instance=hv)
         assert isinstance(account.get_notifications(), list)
 
     def test_extract_account_name(self):
-        stm = self.bts
-        account = Account("thecrazygm", steem_instance=stm)
+        hv = self.bts
+        account = Account("thecrazygm", blockchain_instance=hv)
         self.assertEqual(extract_account_name(account), "thecrazygm")
         self.assertEqual(extract_account_name("thecrazygm"), "thecrazygm")
         self.assertEqual(extract_account_name({"name": "thecrazygm"}), "thecrazygm")
         self.assertEqual(extract_account_name(""), "")
 
     def test_get_blocknum_from_hist(self):
-        stm = Hive("https://api.hive.blog")
-        account = Account("thecrazygm", blockchain_instance=stm)
+        hv = Hive("https://api.hive.blog")
+        account = Account("thecrazygm", blockchain_instance=hv)
         created, min_index = account._get_first_blocknum()
         if min_index == 0:
             self.assertEqual(created, 11675061)

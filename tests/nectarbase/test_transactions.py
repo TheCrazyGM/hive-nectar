@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import pytest
 
-pytest.skip("Skipping legacy Steem serialization tests (migrated to Hive)", allow_module_level=True)
+pytest.skip("Skipping legacy Hive serialization tests (migrated to Hive)", allow_module_level=True)
 
 import unittest
 from binascii import hexlify
@@ -9,7 +10,7 @@ from builtins import chr, range, super
 from collections import OrderedDict
 
 from nectar.amount import Amount
-from nectar.steem import Steem
+from nectar.hive import Hive
 from nectarbase import operations
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
@@ -29,7 +30,7 @@ class Testcases(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.stm = Steem(offline=True)
+        self.hv = Hive(offline=True)
 
     def doit(self, printWire=False, ops=None):
         if ops is None:
@@ -72,7 +73,7 @@ class Testcases(unittest.TestCase):
             **{
                 "from": "foo",
                 "to": "baar",
-                "amount": Amount("111.110 STEEM", steem_instance=self.stm),
+                "amount": Amount("111.110 STEEM", blockchain_instance=self.hv),
                 "memo": "Fooo",
                 "prefix": default_prefix,
             }
@@ -233,7 +234,7 @@ class Testcases(unittest.TestCase):
                 "from": "testuser",
                 "request_id": 9001,
                 "to": "testser",
-                "amount": "100.000 SBD",
+                "amount": "100.000 HBD",
                 "memo": "memohere",
                 "prefix": default_prefix,
             }
@@ -395,7 +396,7 @@ class Testcases(unittest.TestCase):
             **{
                 "owner": "xeroc",
                 "requestid": 2342343235,
-                "amount": "100.000 SBD",
+                "amount": "100.000 HBD",
                 "prefix": default_prefix,
             }
         )
@@ -582,7 +583,7 @@ class Testcases(unittest.TestCase):
         self.op = operations.Feed_publish(
             **{
                 "publisher": "xeroc",
-                "exchange_rate": {"base": "1.000 SBD", "quote": "4.123 STEEM"},
+                "exchange_rate": {"base": "1.000 HBD", "quote": "4.123 STEEM"},
                 "prefix": default_prefix,
             }
         )
@@ -763,8 +764,8 @@ class Testcases(unittest.TestCase):
             **{
                 "author": "xeroc",
                 "permlink": "piston",
-                "max_accepted_payout": "1000000.000 SBD",
-                "percent_steem_dollars": 10000,
+                "max_accepted_payout": "1000000.000 HBD",
+                "percent_hive_dollars": 10000,
                 "allow_votes": True,
                 "allow_curation_rewards": True,
                 "beneficiaries": [
@@ -862,7 +863,7 @@ class Testcases(unittest.TestCase):
                 "from": "alice",
                 "to": "bob",
                 "sbd_amount": {"amount": "1000", "precision": 3, "nai": "@@000000013"},
-                "steem_amount": {"amount": "0", "precision": 3, "nai": "@@000000021"},
+                "hive_amount": {"amount": "0", "precision": 3, "nai": "@@000000021"},
                 "escrow_id": 23456789,
                 "agent": "charlie",
                 "fee": {"amount": "100", "precision": 3, "nai": "@@000000013"},
@@ -910,7 +911,7 @@ class Testcases(unittest.TestCase):
                 "who": "charlie",
                 "escrow_id": 72526562,
                 "sbd_amount": {"amount": "5000", "precision": 3, "nai": "@@000000013"},
-                "steem_amount": {"amount": "0", "precision": 3, "nai": "@@000000021"},
+                "hive_amount": {"amount": "0", "precision": 3, "nai": "@@000000021"},
                 "prefix": default_prefix,
             }
         )
@@ -965,8 +966,8 @@ class Testcases(unittest.TestCase):
         self.op = operations.Claim_reward_balance(
             **{
                 "account": "alice",
-                "reward_steem": {"amount": "17", "precision": 3, "nai": "@@000000021"},
-                "reward_sbd": {"amount": "11", "precision": 3, "nai": "@@000000013"},
+                "reward_hive": {"amount": "17", "precision": 3, "nai": "@@000000021"},
+                "reward_hbd": {"amount": "11", "precision": 3, "nai": "@@000000013"},
                 "reward_vests": {"amount": "185025103", "precision": 6, "nai": "@@000000037"},
                 "prefix": default_prefix,
             }
@@ -1053,10 +1054,10 @@ class Testcases(unittest.TestCase):
                     },
             "seller": "1.2.29",
             "amount_to_sell": {"amount": 100000,
-                               "asset_id": "SBD"
+                               "asset_id": "HBD"
                                },
             "min_to_receive": {"amount": 10000,
-                               "asset_id": "SBD"
+                               "asset_id": "HBD"
                                },
             "expiration": "2016-05-18T09:22:05",
             "fill_or_kill": False,
@@ -1074,11 +1075,11 @@ class Testcases(unittest.TestCase):
         from_account_id = "test"
         to_account_id = "test1"
         amount = 1000000
-        asset_id = "SBD"
+        asset_id = "HBD"
         message = "abcdefgABCDEFG0123456789"
         nonce = "5862723643998573708"
 
-        fee = objects.Asset(amount=0, asset_id="SBD")
+        fee = objects.Asset(amount=0, asset_id="HBD")
         amount = objects.Asset(amount=int(amount), asset_id=asset_id)
         encrypted_memo = memo.encode_memo(
             account.PrivateKey(wif),

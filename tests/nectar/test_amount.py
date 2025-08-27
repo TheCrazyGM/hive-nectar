@@ -2,7 +2,7 @@
 import unittest
 from decimal import Decimal
 
-from nectar import Steem
+from nectar import Hive
 from nectar.amount import Amount
 from nectar.asset import Asset
 from nectar.instance import set_shared_blockchain_instance
@@ -13,7 +13,7 @@ from .nodes import get_hive_nodes
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bts = Steem(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
+        cls.bts = Hive(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
         set_shared_blockchain_instance(cls.bts)
         cls.asset = Asset("HBD")
         cls.symbol = cls.asset["symbol"]
@@ -27,68 +27,68 @@ class Testcases(unittest.TestCase):
         self.assertIsInstance(ret["amount"], Decimal)
 
     def test_init(self):
-        stm = self.bts
+        hv = self.bts
         # String init
-        asset = Asset("HBD", blockchain_instance=stm)
+        asset = Asset("HBD", blockchain_instance=hv)
         symbol = asset["symbol"]
         precision = asset["precision"]
-        amount = Amount("1 {}".format(symbol), blockchain_instance=stm)
+        amount = Amount("1 {}".format(symbol), blockchain_instance=hv)
         self.dotest(amount, 1, symbol)
 
         # Amount init
-        amount = Amount(amount, blockchain_instance=stm)
+        amount = Amount(amount, blockchain_instance=hv)
         self.dotest(amount, 1, symbol)
 
         # blockchain dict init
         amount = Amount(
-            {"amount": 1 * 10**precision, "asset_id": asset["id"]}, blockchain_instance=stm
+            {"amount": 1 * 10**precision, "asset_id": asset["id"]}, blockchain_instance=hv
         )
         self.dotest(amount, 1, symbol)
 
         # API dict init
         amount = Amount(
-            {"amount": 1.3 * 10**precision, "asset": asset["id"]}, blockchain_instance=stm
+            {"amount": 1.3 * 10**precision, "asset": asset["id"]}, blockchain_instance=hv
         )
         self.dotest(amount, 1.3, symbol)
 
         # Asset as symbol
-        amount = Amount(1.3, Asset("HBD"), blockchain_instance=stm)
+        amount = Amount(1.3, Asset("HBD"), blockchain_instance=hv)
         self.dotest(amount, 1.3, symbol)
 
         # Asset as symbol
-        amount = Amount(1.3, symbol, blockchain_instance=stm)
+        amount = Amount(1.3, symbol, blockchain_instance=hv)
         self.dotest(amount, 1.3, symbol)
 
         # keyword inits
         amount = Amount(
-            amount=1.3, asset=Asset("HBD", blockchain_instance=stm), blockchain_instance=stm
+            amount=1.3, asset=Asset("HBD", blockchain_instance=hv), blockchain_instance=hv
         )
         self.dotest(amount, 1.3, symbol)
 
         amount = Amount(
-            amount=1.3001, asset=Asset("HBD", blockchain_instance=stm), blockchain_instance=stm
+            amount=1.3001, asset=Asset("HBD", blockchain_instance=hv), blockchain_instance=hv
         )
         self.dotest(amount, 1.3001, symbol)
 
         amount = Amount(
             amount=1.3001,
-            asset=Asset("HBD", blockchain_instance=stm),
+            asset=Asset("HBD", blockchain_instance=hv),
             fixed_point_arithmetic=True,
-            blockchain_instance=stm,
+            blockchain_instance=hv,
         )
         self.dotest(amount, 1.3, symbol)
 
         # keyword inits
         amount = Amount(
-            amount=1.3, asset=dict(Asset("HBD", blockchain_instance=stm)), blockchain_instance=stm
+            amount=1.3, asset=dict(Asset("HBD", blockchain_instance=hv)), blockchain_instance=hv
         )
         self.dotest(amount, 1.3, symbol)
 
         # keyword inits
-        amount = Amount(amount=1.3, asset=symbol, blockchain_instance=stm)
+        amount = Amount(amount=1.3, asset=symbol, blockchain_instance=hv)
         self.dotest(amount, 1.3, symbol)
 
-        amount = Amount(amount=8.190, asset=symbol, blockchain_instance=stm)
+        amount = Amount(amount=8.190, asset=symbol, blockchain_instance=hv)
         self.dotest(amount, 8.190, symbol)
 
     def test_copy(self):

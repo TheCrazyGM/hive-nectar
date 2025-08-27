@@ -9,7 +9,6 @@ from queue import Queue
 from threading import Event, Thread
 from time import sleep
 
-import nectar as stm
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import UnknownTransaction
 
@@ -462,7 +461,7 @@ class Blockchain(object):
             nodelist = self.blockchain.rpc.nodes.export_working_nodes()
             for i in range(thread_num - 1):
                 blockchain_instance.append(
-                    stm.Hive(
+                    hv.Hive(
                         node=nodelist,
                         num_retries=self.blockchain.rpc.num_retries,
                         num_retries_call=self.blockchain.rpc.num_retries_call,
@@ -1058,8 +1057,8 @@ class Blockchain(object):
 
             >>> from nectar.blockchain import Blockchain
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
+            >>> hv = Hive(node="https://api.hive.blog")
+            >>> blockchain = Blockchain(blockchain_instance=hv)
             >>> ret = blockchain.get_similar_account_names("test", limit=5)
             >>> len(ret) == 5
             True
@@ -1088,8 +1087,8 @@ class Blockchain(object):
 
             >>> from nectar.blockchain import Blockchain
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
+            >>> hv = Hive(node="https://api.hive.blog")
+            >>> blockchain = Blockchain(blockchain_instance=hv)
             >>> ret = blockchain.find_rc_accounts(["test"])
             >>> len(ret) == 1
             True
@@ -1127,8 +1126,8 @@ class Blockchain(object):
 
             >>> from nectar.blockchain import Blockchain
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
+            >>> hv = Hive("https://api.hive.blog")
+            >>> blockchain = Blockchain(blockchain_instance=hv)
             >>> ret = blockchain.list_change_recovery_account_requests(limit=1)
 
         """
@@ -1155,8 +1154,8 @@ class Blockchain(object):
 
             >>> from nectar.blockchain import Blockchain
             >>> from nectar import Hive
-            >>> stm = Hive("https://api.hive.blog")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
+            >>> hv = Hive("https://api.hive.blog")
+            >>> blockchain = Blockchain(blockchain_instance=hv)
             >>> ret = blockchain.find_change_recovery_account_requests('bott')
 
         """

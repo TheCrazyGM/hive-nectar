@@ -4,7 +4,7 @@ import sys
 from datetime import timedelta
 from timeit import default_timer as timer
 
-from nectar import Blurt, Hive, Steem
+from nectar import Hive
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
@@ -22,7 +22,7 @@ def parse_args(args=None):
         type=str,
         nargs="?",
         default=sys.stdin,
-        help="Blockchain (hive, blurt or steem)",
+        help="Blockchain (hive)",
     )
     return parser.parse_args(args)
 
@@ -42,26 +42,8 @@ def main(args=None):
 
         nodes = nodelist.get_hive_nodes()
         blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "blurt":
-        max_batch_size = None
-        threading = False
-        thread_num = 8
-        block_debug = 20
-        nodes = [
-            "https://api.blurt.blog",
-            "https://rpc.blurtworld.com",
-            "https://rpc.blurtworld.com",
-        ]
-        blk_inst = Blurt(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "steem":
-        max_batch_size = 50
-        threading = False
-        thread_num = 16
-        block_debug = 1000
-        nodes = nodelist.get_steem_nodes()
-        blk_inst = Steem(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
     else:
-        raise Exception("Wrong parameter, can be hive, blurt or steem")
+        raise Exception("Wrong parameter, can be hive")
     print(blk_inst)
     block_count = 0
     total_ops = 0

@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 
 from prettytable import PrettyTable
 
-from nectar import Hive as Steem
 from nectar.account import Account
 from nectar.block import Block
 from nectar.blockchain import Blockchain
+from nectar.hive import Hive
 from nectar.nodelist import NodeList
 from nectar.utils import formatTimedelta, parse_time
 from nectarapi.exceptions import NumRetriesReached
@@ -31,14 +31,14 @@ if __name__ == "__main__":
     for node in nodes:
         print("Current node:", node)
         try:
-            stm = Steem(node=node, num_retries=3)
-            blockchain = Blockchain(steem_instance=stm)
-            account = Account("gtg", steem_instance=stm)
+            hv = Hive(node=node, num_retries=3)
+            blockchain = Blockchain(blockchain_instance=hv)
+            account = Account("gtg", blockchain_instance=hv)
             virtual_op_count = account.virtual_op_count()
-            blockchain_version = stm.get_blockchain_version()
+            blockchain_version = hv.get_blockchain_version()
 
             last_block_id = 19273700
-            last_block = Block(last_block_id, steem_instance=stm)
+            last_block = Block(last_block_id, blockchain_instance=hv)
             startTime = datetime.now()
 
             stopTime = last_block.time() + timedelta(seconds=how_many_minutes * 60)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             total_transaction = 0
 
             start_time = time.time()
-            last_node = blockchain.steem.rpc.url
+            last_node = blockchain.hive.rpc.url
 
             for entry in blockchain.blocks(
                 start=last_block_id,

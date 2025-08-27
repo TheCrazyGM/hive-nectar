@@ -691,12 +691,9 @@ class Comment_options(GrapheneObject):
         extensions = Array([])
         if "extensions" in kwargs and kwargs["extensions"]:
             extensions = Array([CommentOptionExtensions(o) for o in kwargs["extensions"]])
-        # Hive-only: normalize legacy percent_steem_dollars to percent_hbd
-        percent_value = kwargs.get("percent_hbd", kwargs.get("percent_steem_dollars"))
+        percent_value = kwargs.get("percent_hbd")
         if percent_value is None:
-            raise ValueError(
-                "Comment_options requires 'percent_hbd' (or legacy 'percent_steem_dollars')"
-            )
+            raise ValueError("Comment_options requires 'percent_hbd'")
         super(Comment_options, self).__init__(
             OrderedDict(
                 [
@@ -1013,29 +1010,11 @@ class Claim_reward_balance(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        if "reward_sbd" in kwargs and "reward_steem" in kwargs:
+        if "reward_hbd" in kwargs:
             super(Claim_reward_balance, self).__init__(
                 OrderedDict(
                     [
                         ("account", String(kwargs["account"])),
-                        (
-                            "reward_steem",
-                            Amount(kwargs["reward_steem"], prefix=prefix, json_str=json_str),
-                        ),
-                        (
-                            "reward_sbd",
-                            Amount(kwargs["reward_sbd"], prefix=prefix, json_str=json_str),
-                        ),
-                        ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
-                    ]
-                )
-            )
-        elif "reward_hbd" in kwargs and "reward_hive" in kwargs:
-            super(Claim_reward_balance, self).__init__(
-                OrderedDict(
-                    [
-                        ("account", String(kwargs["account"])),
-                        ("reward_hive", Amount(kwargs["reward_hive"], prefix=prefix)),
                         ("reward_hbd", Amount(kwargs["reward_hbd"], prefix=prefix)),
                         ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
                     ]
@@ -1059,7 +1038,7 @@ class Claim_reward_balance(GrapheneObject):
                 OrderedDict(
                     [
                         ("account", String(kwargs["account"])),
-                        ("reward_steem", Amount(kwargs["reward_steem"], prefix=prefix)),
+                        ("reward_hive", Amount(kwargs["reward_hive"], prefix=prefix)),
                         ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
                     ]
                 )
@@ -1174,8 +1153,8 @@ class Escrow_transfer(GrapheneObject):
                         ("to", String(kwargs["to"])),
                         ("agent", String(kwargs["agent"])),
                         ("escrow_id", Uint32(kwargs["escrow_id"])),
-                        ("sbd_amount", Amount(kwargs["sbd_amount"], prefix=prefix)),
-                        ("steem_amount", Amount(kwargs["steem_amount"], prefix=prefix)),
+                        ("hbd_amount", Amount(kwargs["hbd_amount"], prefix=prefix)),
+                        ("hive_amount", Amount(kwargs["hive_amount"], prefix=prefix)),
                         ("fee", Amount(kwargs["fee"], prefix=prefix)),
                         ("ratification_deadline", PointInTime(kwargs["ratification_deadline"])),
                         ("escrow_expiration", PointInTime(kwargs["escrow_expiration"])),
@@ -1238,8 +1217,8 @@ class Escrow_release(GrapheneObject):
                         ("to", String(kwargs["to"])),
                         ("who", String(kwargs["who"])),
                         ("escrow_id", Uint32(kwargs["escrow_id"])),
-                        ("sbd_amount", Amount(kwargs["sbd_amount"], prefix=prefix)),
-                        ("steem_amount", Amount(kwargs["steem_amount"], prefix=prefix)),
+                        ("hbd_amount", Amount(kwargs["hbd_amount"], prefix=prefix)),
+                        ("hive_amount", Amount(kwargs["hive_amount"], prefix=prefix)),
                     ]
                 )
             )

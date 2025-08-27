@@ -33,8 +33,8 @@ class ImageUploader(object):
 
             from nectar import Hive
             from nectar.imageuploader import ImageUploader
-            stm = Hive(keys=["5xxx"])  # private posting key (posting)
-            iu = ImageUploader(blockchain_instance=stm)
+            hv = Hive(keys=["5xxx"])  # private posting key (posting)
+            iu = ImageUploader(blockchain_instance=hv)
             iu.upload("path/to/image.png", "account_name")  # posting key must belong to account_name
 
         """

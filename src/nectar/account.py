@@ -2,7 +2,6 @@
 import json
 import logging
 import random
-import warnings
 from datetime import date, datetime, time, timedelta, timezone
 
 from prettytable import PrettyTable
@@ -74,8 +73,8 @@ class Account(BlockchainObject):
         >>> from nectar.nodelist import NodeList
         >>> nodelist = NodeList()
         >>> nodelist.update_nodes()
-        >>> stm = Hive(node=nodelist.get_hive_nodes())
-        >>> account = Account("gtg", blockchain_instance=stm)
+        >>> hv = Hive(node=nodelist.get_hive_nodes())
+        >>> account = Account("gtg", blockchain_instance=hv)
         >>> print(account)
         <Account gtg>
         >>> print(account.balances) # doctest: +SKIP
@@ -731,15 +730,6 @@ class Account(BlockchainObject):
             self.get_vests(only_own_vests=only_own_vests), use_stored_data=use_stored_data
         )
 
-    def get_steem_power(self, onlyOwnSP=False):
-        """Deprecated; use get_token_power() for Hive Power"""
-        warnings.warn(
-            "get_steem_power() is deprecated; use get_token_power()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_token_power(only_own_vests=onlyOwnSP)
-
     def get_voting_value(
         self,
         post_rshares=0,
@@ -961,8 +951,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("hiveio", blockchain_instance=stm)
+            >>> hv =(node=nodelist.get_hive_nodes())
+            >>> account = Account("hiveio", blockchain_instance=hv)
             >>> account.get_feed_entries(0, 1)
             []
 
@@ -992,8 +982,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("hiveio", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("hiveio", blockchain_instance=hv)
             >>> entry = account.get_blog_entries(0, 1, raw_data=True)[0]
             >>> print("%s - %s - %s" % (entry["author"], entry["permlink"], entry["blog"]))
             hiveio - firstpost - hiveio
@@ -1027,8 +1017,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("hiveio", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("hiveio", blockchain_instance=hv)
             >>> account.get_blog(0, 1)
             [<Comment @hiveio/firstpost>]
 
@@ -1179,8 +1169,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("gtg", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("gtg", blockchain_instance=hv)
             >>> account.get_blog_authors() # doctest: +SKIP
 
         """
@@ -1475,8 +1465,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_balance("rewards", "HBD")
             0.000 HBD
 
@@ -1660,8 +1650,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_owner_history()
             []
 
@@ -1693,8 +1683,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_conversion_requests()
             []
 
@@ -1731,8 +1721,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_vesting_delegations()
             []
 
@@ -1766,8 +1756,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_withdraw_routes()
             []
 
@@ -1800,8 +1790,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_savings_withdrawals()
             []
 
@@ -1835,8 +1825,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_recovery_request()
             []
 
@@ -1869,8 +1859,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_escrow(1234)
             []
 
@@ -1901,8 +1891,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("hiveio", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("hiveio", blockchain_instance=hv)
             >>> print(account.verify_account_authority(["STM7Q2rLBqzPzFeteQZewv9Lu3NLE69fZoLeL6YK59t7UmssCBNTU"])["valid"])
             False
 
@@ -1962,8 +1952,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_expiring_vesting_delegations()
             []
 
@@ -1999,8 +1989,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_account_votes()  # doctest: +SKIP
 
         """
@@ -3266,8 +3256,8 @@ class Account(BlockchainObject):
             from nectar.account import Account
             from nectar import Hive
             active_wif = "5xxxx"
-            stm = Hive(keys=[active_wif])
-            acc = Account("test", blockchain_instance=stm)
+            hv = Hive(keys=[active_wif])
+            acc = Account("test", blockchain_instance=hv)
             acc.transfer("test1", 1, "HIVE", "test")
 
         """
@@ -3337,8 +3327,8 @@ class Account(BlockchainObject):
             from nectar.account import Account
             from nectar import Hive
             active_wif = "5xxxx"
-            stm = Hive(keys=[active_wif])
-            acc = Account("test", blockchain_instance=stm)
+            hv = Hive(keys=[active_wif])
+            acc = Account("test", blockchain_instance=hv)
             acc.transfer("test1", 1, "HIVE", 48, 5, "test")
 
         """
@@ -3663,7 +3653,7 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "posting", **kwargs)
 
     def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs):
-        """Delegate SP to another account.
+        """Delegate HP to another account.
 
         :param str to_account: Account we are delegating shares to
             (delegatee).
@@ -3916,8 +3906,8 @@ class Account(BlockchainObject):
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Hive(node=nodelist.get_hive_nodes())
-            acc = Account("gtg", blockchain_instance=stm)
+            hv = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("gtg", blockchain_instance=hv)
             for reply in acc.feed_history(limit=10):
                 print(reply)
 
@@ -3990,8 +3980,8 @@ class Account(BlockchainObject):
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Hive(node=nodelist.get_hive_nodes())
-            acc = Account("ecency", blockchain_instance=stm)
+            hv = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("ecency", blockchain_instance=hv)
             for post in acc.blog_history(limit=10):
                 print(post)
 
@@ -4062,8 +4052,8 @@ class Account(BlockchainObject):
             from nectar.nodelist import NodeList
             nodelist = NodeList()
             nodelist.update_nodes()
-            stm = Hive(node=nodelist.get_hive_nodes())
-            acc = Account("gtg", blockchain_instance=stm)
+            hv = Hive(node=nodelist.get_hive_nodes())
+            acc = Account("gtg", blockchain_instance=hv)
             for comment in acc.comment_history(limit=10):
                 print(comment)
 
@@ -4220,9 +4210,9 @@ class AccountsObject(list):
             t.add_row(["Mean Rep.", "%.2f" % (sum(rep) / len(rep))])
             t.add_row(["Max Rep.", "%.2f" % (max(rep))])
         if len(eff_sp) > 0:
-            t.add_row(["Summed eff. SP", "%.2f" % sum(eff_sp)])
-            t.add_row(["Mean eff. SP", "%.2f" % (sum(eff_sp) / len(eff_sp))])
-            t.add_row(["Max eff. SP", "%.2f" % max(eff_sp)])
+            t.add_row(["Summed eff. HP", "%.2f" % sum(eff_sp)])
+            t.add_row(["Mean eff. HP", "%.2f" % (sum(eff_sp) / len(eff_sp))])
+            t.add_row(["Max eff. HP", "%.2f" % max(eff_sp)])
         if len(last_vote_h) > 0:
             t.add_row(
                 ["Mean last vote diff in hours", "%.2f" % (sum(last_vote_h) / len(last_vote_h))]

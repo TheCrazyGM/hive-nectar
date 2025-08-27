@@ -1,5 +1,5 @@
-hive-nectar
-===========
+src
+===
 
 .. toctree::
    :maxdepth: 4

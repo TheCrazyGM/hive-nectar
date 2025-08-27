@@ -15,7 +15,7 @@ Goal: Remove all references to Steem and Blurt and make the project Hive-only wh
 
 ### 1) Core modules and APIs
 
-- [ ] Remove `src/nectar/steem.py` and `src/nectar/blurt.py` (or mark deprecated with runtime error if a soft removal is preferred initially).
+- [x] Remove `src/nectar/steem.py` and `src/nectar/blurt.py` (hard removal: importing now raises ImportError).
 - [ ] Ensure all imports referencing `nectar.steem` and `nectar.blurt` are removed or redirected. Example: `src/nectar/cli.py` imports `Steem` and `Blurt`.
 - [ ] Audit utility/constants referencing Steem names (e.g., `STEEM_100_PERCENT`, `STEEM_VOTE_REGENERATION_SECONDS`) and rename to chain-neutral or Hive-specific (`HIVE_100_PERCENT`, etc.). Update call sites.
 - [ ] In `src/nectar/blockchaininstance.py` and dependent types, remove any multi-chain logic that’s only for Steem/Blurt; keep Hive logic and neutral abstractions.
@@ -95,11 +95,11 @@ Use this checklist to verify each file has been audited and updated (or removed)
 - [x] `src/nectar/blockchain.py`
 - [x] `src/nectar/blockchaininstance.py`
 - [x] `src/nectar/blockchainobject.py`
-- [ ] `src/nectar/blurt.py`  (remove or replace)
+- [x] `src/nectar/blurt.py`  (removed; import now raises ImportError)
 - [x] `src/nectar/cli.py`
 - [ ] `src/nectar/comment.py`
 - [ ] `src/nectar/community.py`
-- [ ] `src/nectar/conveyor.py` ( remove, legacy st)
+- [x] `src/nectar/conveyor.py` (removed; import now raises ImportError)
 - [x] `src/nectar/constants.py`
 - [ ] `src/nectar/discussions.py`
 - [x] `src/nectar/exceptions.py`
@@ -115,12 +115,12 @@ Use this checklist to verify each file has been audited and updated (or removed)
 - [x] `src/nectar/profile.py`
 - [x] `src/nectar/rc.py`
 - [x] `src/nectar/snapshot.py`
-- [ ] `src/nectar/steem.py`  (remove or replace)
+- [x] `src/nectar/steem.py`  (removed; import now raises ImportError)
 - [x] `src/nectar/transactionbuilder.py`
-- [ ] `src/nectar/utils.py`
+- [x] `src/nectar/utils.py`
 - [ ] `src/nectar/version.py`
 - [x] `src/nectar/vote.py`
-- [ ] `src/nectar/wallet.py`
+- [x] `src/nectar/wallet.py`
 - [x] `src/nectar/witness.py`
 
 - [ ] `src/nectarapi/__init__.py`
@@ -286,7 +286,7 @@ Use this checklist to verify each file has been audited and updated (or removed)
 
 - 2025-08-26 15:07:15 -0400: Purged Steem aliases and APIs from core utils.
   - `src/nectar/constants.py`: Removed all `STEEM_*` alias constants; Hive-only constants remain.
-  - `src/nectar/nodelist.py`: Removed `get_steem_nodes()` and `steem_instance` fallback; standardized to Hive-only instance and naming.
+  - `src/nectar/nodelist.py`: Removed `get_steem_nodes()` and `blockchain_instance` fallback; standardized to Hive-only instance and naming.
   - `src/nectar/witness.py`: Audited; no Steem/Blurt references present.
 
 - 2025-08-26 15:15:53 -0400: CLI audited and cleaned for Hive-only.
@@ -296,25 +296,25 @@ Use this checklist to verify each file has been audited and updated (or removed)
 
 - 2025-08-26 15:16:56 -0400: Dual audit complete for blockchain instance modules.
   - `src/nectar/blockchaininstance.py`: Hive-only; no Steem/Blurt logic remains. Retained benign compatibility attributes (`is_steem=False`, `use_sc2=False`, `steemconnect=None`) to avoid AttributeErrors; `hivesigner` is the only signing flow.
-  - `src/nectar/instance.py`: Hive-only shared instance. Legacy functions `shared_steem_instance()`/`set_shared_steem_instance()` are aliases redirecting to Hive for backward compatibility. No Blurt references found. No code changes required.
+  - `src/nectar/instance.py`: Hive-only shared instance. Legacy functions `shared_blockchain_instance()`/`set_shared_blockchain_instance()` are aliases redirecting to Hive for backward compatibility. No Blurt references found. No code changes required.
 
 - 2025-08-26 15:18:49 -0400: Audited blockchain modules; enforced Hive-only.
   - `src/nectar/blockchain.py`: Replaced legacy `stm.Steem(...)` threading instantiation with `stm.Hive(...)`. No other Steem/Blurt references found.
   - `src/nectar/blockchainobject.py`: Audit complete; legacy kwargs fallback removed. Only `blockchain_instance` is supported now.
 
 - 2025-08-26 15:21:30 -0400: Enforced blockchain_instance-only in BlockchainObject.
-  - Removed acceptance of `steem_instance`/`hive_instance` kwargs in `src/nectar/blockchainobject.py` constructor. Callers must pass `blockchain_instance` or rely on `shared_blockchain_instance()`.
+  - Removed acceptance of `blockchain_instance`/`hive_instance` kwargs in `src/nectar/blockchainobject.py` constructor. Callers must pass `blockchain_instance` or rely on `shared_blockchain_instance()`.
 
 - 2025-08-26 15:21:56 -0400: Audited and cleaned Hive docstrings/examples.
   - `src/nectar/hive.py`: Replaced Steem-era mentions in docs (e.g., `Steem()` -> `Hive()`) and updated custom chain example asset symbol from `STEEM` to `HIVE`.
 
 - 2025-08-26 15:30:30 -0400: Market module Hive-only cleanup.
-  - `src/nectar/market.py`: Removed legacy `steem_instance`/`hive_instance` kwargs; Hive-only `blockchain_instance` remains.
+  - `src/nectar/market.py`: Removed legacy `blockchain_instance`/`hive_instance` kwargs; Hive-only `blockchain_instance` remains.
   - Removed deprecated Steem-related functions (`steem_btc_ticker`, `steem_usd_implied`) and all SBD/STEEM references in docstrings/logic.
   - Resolved duplicate `hive_btc_ticker()` definition to fix lint; ensured ticker/volume are HIVE/HBD only.
 
 - 2025-08-26 15:36:30 -0400: Memo module Hive-only cleanup.
-  - `src/nectar/memo.py`: Updated docstrings from Steem to Hive; removed `steem_instance`/`hive_instance` kwargs fallback in `Memo.__init__()`.
+  - `src/nectar/memo.py`: Updated docstrings from Steem to Hive; removed `blockchain_instance`/`hive_instance` kwargs fallback in `Memo.__init__()`.
   - Verified no remaining Steem/Blurt mentions.
 
 - 2025-08-26 15:37:27 -0400: Message module audited; Hive-only confirmed.
@@ -324,7 +324,7 @@ Use this checklist to verify each file has been audited and updated (or removed)
   - `src/nectar/profile.py`: Removed Steem link in docstring and reworded to Hive profile metadata conventions. No functional changes.
 
 - 2025-08-26 15:39:21 -0400: RC module Hive-only cleanup.
-  - `src/nectar/rc.py`: Removed legacy `steem_instance`/`hive_instance` kwargs fallback in `RC.__init__()`; now only `blockchain_instance` or `shared_blockchain_instance()`.
+  - `src/nectar/rc.py`: Removed legacy `blockchain_instance`/`hive_instance` kwargs fallback in `RC.__init__()`; now only `blockchain_instance` or `shared_blockchain_instance()`.
   - Updated transfer example to use `Amount("111.110 HIVE")` instead of STEEM.
 
 - 2025-08-26 15:41:54 -0400: Snapshot module Hive-only cleanup.
@@ -333,9 +333,18 @@ Use this checklist to verify each file has been audited and updated (or removed)
   - Removed Steem-specific logic in `build_curation_arrays()`; always uses `vests_to_hp`.
 
 - 2025-08-26 16:26:49 -0400: TransactionBuilder module Hive-only cleanup.
-  - `src/nectar/transactionbuilder.py`: Removed legacy `steem_instance`/`hive_instance` kwargs fallback; enforce `blockchain_instance` or `shared_blockchain_instance()` only.
+  - `src/nectar/transactionbuilder.py`: Removed legacy `blockchain_instance`/`hive_instance` kwargs fallback; enforce `blockchain_instance` or `shared_blockchain_instance()` only.
   - Updated broadcast docstring to Hive and removed SteemConnect branch; broadcasting uses RPC only.
   - Docstrings updated to refer to Hive exclusively.
 
 - 2025-08-26 16:26:49 -0400: Vote module Hive-only cleanup.
   - `src/nectar/vote.py`: Made payout conversions Hive-only. `token_backed_dollar` always returns HBD.
+
+- 2025-08-27 00:34:41 -0400: Utils module audited; Hive-only confirmed.
+  - `src/nectar/utils.py`: No functional Steem/SBD logic remaining. Keeps backward-compatible YAML mapping from `percent_steem_dollars` to `percent_hbd`.
+
+- 2025-08-27 00:34:41 -0400: Wallet module audited; Hive-only confirmed.
+  - `src/nectar/wallet.py`: Docs/examples reference Hive only. Prefix fallback remains (`STM`) for key format compatibility; no SBD/STEEM logic present.
+
+- 2025-08-27 00:40:51 -0400: Hard removal of Steem/Blurt/conveyor modules.
+  - `src/nectar/steem.py`, `src/nectar/blurt.py`, `src/nectar/conveyor.py`: Modules now raise ImportError on import to enforce Hive-only library.

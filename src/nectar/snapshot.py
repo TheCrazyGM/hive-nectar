@@ -53,8 +53,8 @@ class AccountSnapshot(list):
         self.reward_timestamps = []
         self.author_rewards = []
         self.curation_rewards = []
-        self.curation_per_1000_SP_timestamp = []
-        self.curation_per_1000_SP = []
+        self.curation_per_1000_HP_timestamp = []
+        self.curation_per_1000_HP = []
         self.out_vote_timestamp = []
         self.out_vote_weight = []
         self.in_vote_timestamp = []
@@ -184,9 +184,7 @@ class AccountSnapshot(list):
     def update_rewards(self, timestamp, curation_reward, author_vests, author_hive, author_hbd):
         self.reward_timestamps.append(timestamp)
         self.curation_rewards.append(curation_reward)
-        self.author_rewards.append(
-            {"vests": author_vests, "hive": author_hive, "hbd": author_hbd}
-        )
+        self.author_rewards.append({"vests": author_vests, "hive": author_hive, "hbd": author_hbd})
 
     def update_out_vote(self, timestamp, weight):
         self.out_vote_timestamp.append(timestamp)
@@ -379,7 +377,9 @@ class AccountSnapshot(list):
             hive_amt = Amount(op["amount"], blockchain_instance=self.blockchain)
             vests = self.blockchain.hp_to_vests(hive_amt.amount, timestamp=ts)
             if op["from"] == self.account["name"] and op["to"] == self.account["name"]:
-                self.update(ts, vests, 0, 0, hive_amt * (-1), 0)  # power up from and to given account
+                self.update(
+                    ts, vests, 0, 0, hive_amt * (-1), 0
+                )  # power up from and to given account
             elif op["from"] != self.account["name"] and op["to"] == self.account["name"]:
                 self.update(ts, vests, 0, 0, 0, 0)  # power up from another account
             else:  # op['from'] == self.account["name"] and op['to'] != self.account["name"]
@@ -469,8 +469,8 @@ class AccountSnapshot(list):
 
         elif op["type"] == "hardfork_hive":
             vests = Amount(op["vests_converted"])
-            hbd = Amount(op["steem_transferred"])
-            hive = Amount(op["sbd_transferred"])
+            hbd = Amount(op["hbd_transferred"])
+            hive = Amount(op["hive_transferred"])
             self.update(ts, vests * (-1), 0, 0, hive * (-1), hbd * (-1))
 
         elif op["type"] in [
@@ -655,8 +655,8 @@ class AccountSnapshot(list):
 
     def build_curation_arrays(self, end_date=None, sum_days=7):
         """Build curation arrays"""
-        self.curation_per_1000_SP_timestamp = []
-        self.curation_per_1000_SP = []
+        self.curation_per_1000_HP_timestamp = []
+        self.curation_per_1000_HP = []
         if sum_days <= 0:
             raise ValueError("sum_days must be greater than 0")
         index = 0
@@ -677,8 +677,8 @@ class AccountSnapshot(list):
             if ts < end_date:
                 curation_sum += curation_1k_sp
             else:
-                self.curation_per_1000_SP_timestamp.append(end_date)
-                self.curation_per_1000_SP.append(curation_sum)
+                self.curation_per_1000_HP_timestamp.append(end_date)
+                self.curation_per_1000_HP.append(curation_sum)
                 end_date = end_date + timedelta(days=sum_days)
                 curation_sum = 0
 

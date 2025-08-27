@@ -13,9 +13,9 @@ def node_answer_time(node):
     try:
         from nectar.blockchaininstance import BlockChainInstance
 
-        stm_local = BlockChainInstance(node=node, num_retries=2, num_retries_call=2, timeout=10)
+        hv_local = BlockChainInstance(node=node, num_retries=2, num_retries_call=2, timeout=10)
         start = timer()
-        stm_local.get_network(use_stored_data=False)
+        hv_local.get_network(use_stored_data=False)
         stop = timer()
         rpc_answer_time = stop - start
     except KeyboardInterrupt:
@@ -477,7 +477,6 @@ class NodeList(list):
         return [
             node["url"] for node in sorted(node_list, key=lambda self: self["score"], reverse=True)
         ]
-
 
     def get_testnet(self, testnet=True, testnetdev=False):
         """Returns testnet nodes"""

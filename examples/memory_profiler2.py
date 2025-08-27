@@ -4,10 +4,10 @@ import logging
 
 from memory_profiler import profile
 
-from nectar import Hive as Steem
+from nectar import Hive as Hive
 from nectar.account import Account
 from nectar.blockchain import Blockchain
-from nectar.instance import clear_cache, set_shared_steem_instance
+from nectar.instance import clear_cache, set_shared_blockchain_instance
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +20,13 @@ def profiling(node, name_list, shared_instance=True, clear_acc_cache=False, clea
         % (shared_instance, clear_acc_cache, clear_all_cache)
     )
     if not shared_instance:
-        stm = Steem(node=node)
-        print(str(stm))
+        hv = Hive(node=node)
+        print(str(hv))
     else:
-        stm = None
+        hv = None
     acc_dict = {}
     for name in name_list:
-        acc = Account(name, steem_instance=stm)
+        acc = Account(name, blockchain_instance=hv)
         acc_dict[name] = acc
         if clear_acc_cache:
             acc.clear_cache()
@@ -34,13 +34,13 @@ def profiling(node, name_list, shared_instance=True, clear_acc_cache=False, clea
     if clear_all_cache:
         clear_cache()
     if not shared_instance:
-        del stm.rpc
+        del hv.rpc
 
 
 if __name__ == "__main__":
-    stm = Steem()
-    print("Shared instance: " + str(stm))
-    set_shared_steem_instance(stm)
+    hv = Hive()
+    print("Shared instance: " + str(hv))
+    set_shared_blockchain_instance(hv)
     b = Blockchain()
     account_list = []
     for a in b.get_all_accounts(limit=500):

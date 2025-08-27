@@ -50,7 +50,7 @@ get_account_history
 .. code-block:: python
 
     from nectar.account import Account
-    acc = Account("steemit")
+    acc = Account("thecrazygm")
     for h in acc.get_account_history(1,0):
         print(h)
 
@@ -145,9 +145,9 @@ get_chain_properties
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_chain_properties())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_chain_properties())
 
 get_comment_discussions_by_payout
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,9 +164,9 @@ get_config
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_config())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_config())
 
 get_content
 ~~~~~~~~~~~
@@ -207,9 +207,9 @@ get_current_median_history_price
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_current_median_history())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_current_median_history())
 
 
 get_discussions_by_active
@@ -267,7 +267,7 @@ get_discussions_by_comments
 .. code-block:: python
 
     from nectar.discussions import Query, Discussions_by_comments
-    q = Query(limit=10, start_author="steemit", start_permlink="firstpost")
+    q = Query(limit=10, start_author="thecrazygm", start_permlink="firstpost")
     for h in Discussions_by_comments(q):
         print(h)
 
@@ -287,7 +287,7 @@ get_discussions_by_feed
 .. code-block:: python
 
     from nectar.discussions import Query, Discussions_by_feed
-    q = Query(limit=10, tag="steem")
+    q = Query(limit=10, tag="hive")
     for h in Discussions_by_feed(q):
         print(h)
 
@@ -297,7 +297,7 @@ get_discussions_by_hot
 .. code-block:: python
 
     from nectar.discussions import Query, Discussions_by_hot
-    q = Query(limit=10, tag="steem")
+    q = Query(limit=10, tag="hive")
     for h in Discussions_by_hot(q):
         print(h)
 
@@ -307,7 +307,7 @@ get_discussions_by_promoted
 .. code-block:: python
 
     from nectar.discussions import Query, Discussions_by_promoted
-    q = Query(limit=10, tag="steem")
+    q = Query(limit=10, tag="hive")
     for h in Discussions_by_promoted(q):
         print(h)
 
@@ -317,7 +317,7 @@ get_discussions_by_trending
 .. code-block:: python
 
     from nectar.discussions import Query, Discussions_by_trending
-    q = Query(limit=10, tag="steem")
+    q = Query(limit=10, tag="hive")
     for h in Discussions_by_trending(q):
         print(h)
 
@@ -336,9 +336,9 @@ get_dynamic_global_properties
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_dynamic_global_properties())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_dynamic_global_properties())
 
 get_escrow
 ~~~~~~~~~~
@@ -383,9 +383,9 @@ get_feed_history
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_feed_history())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_feed_history())
     
 get_follow_count
 ~~~~~~~~~~~~~~~~
@@ -421,9 +421,9 @@ get_hardfork_version
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_hardfork_properties()["hf_version"])
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_hardfork_properties()["hf_version"])
 
 get_key_references
 ~~~~~~~~~~~~~~~~~~
@@ -461,9 +461,9 @@ get_next_scheduled_hardfork
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_hardfork_properties())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_hardfork_properties())
 
 get_open_orders
 ~~~~~~~~~~~~~~~
@@ -563,7 +563,7 @@ get_replies_by_last_update
 .. code-block:: python
 
     from nectar.discussions import Query, Replies_by_last_update
-    q = Query(limit=10, start_author="steemit", start_permlink="firstpost")
+    q = Query(limit=10, start_author="thecrazygm", start_permlink="firstpost")
     for h in Replies_by_last_update(q):
         print(h)
 
@@ -585,9 +585,9 @@ get_reward_fund
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_reward_funds())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_reward_funds())
 
 get_savings_withdraw_from
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -670,7 +670,7 @@ get_trending_tags
 .. code-block:: python
 
     from nectar.discussions import Query, Trending_tags
-    q = Query(limit=10, start_tag="steemit")
+    q = Query(limit=10, start_tag="hive")
     for h in Trending_tags(q):
         print(h)
 
@@ -729,9 +729,9 @@ get_witness_schedule
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem()
-    print(stm.get_witness_schedule())
+    from nectar import Hive
+    hv = Hive()
+    print(hv.get_witness_schedule())
 
 get_witnesses
 ~~~~~~~~~~~~~

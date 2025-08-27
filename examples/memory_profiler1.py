@@ -5,10 +5,10 @@ from datetime import datetime
 
 from memory_profiler import profile
 
-from nectar import Hive as Steem
+from nectar import Hive as Hive
 from nectar.account import Account
 from nectar.blockchain import Blockchain
-from nectar.instance import set_shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -16,9 +16,9 @@ logging.basicConfig(level=logging.INFO)
 
 @profile
 def profiling(name_list):
-    stm = Steem()
-    set_shared_steem_instance(stm)
-    del stm
+    hv = Hive()
+    set_shared_blockchain_instance(hv)
+    del hv
     print("start")
     for name in name_list:
         print("account: %s" % (name))
