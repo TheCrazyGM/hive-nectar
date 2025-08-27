@@ -103,8 +103,8 @@ class Amount(object):
 
     def __bytes__(self):
         # padding
-        # Some nodes still serialize the legacy symbol name for HBD as 'SBD' in wire format.
-        # To match node get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' on serialization.
+        # The nodes still serialize the legacy symbol name for HBD as 'SBD' and HIVE as 'STEEM' in wire format.
+        # To match get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' and 'HIVE' -> 'STEEM' on serialization.
         _sym = self.symbol
         if _sym == "HBD":
             _sym = "SBD"
