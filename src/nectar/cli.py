@@ -185,7 +185,7 @@ def unlock_wallet(hv, password=None, allow_wif=True):
                             "entered password is not a valid password"
                         )
 
-    if hv.allet.locked():
+    if hv.wallet.locked():
         if password_storage == "keyring" or password_storage == "environment":
             print("Wallet could not be unlocked with %s!" % password_storage)
             password = click.prompt(
