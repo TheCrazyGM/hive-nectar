@@ -34,7 +34,7 @@ A complete library documentation is available at [ReadTheDocs](https://hive-nect
 
 # Installation
 
-The minimal working python version is 3.12.x
+The minimal working Python version is >=3.10
 
 nectar can be installed parallel to beem.
 

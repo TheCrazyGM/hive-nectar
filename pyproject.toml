@@ -44,7 +44,7 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "http://www.github.com/thecrazygm/hive-nectar"
-"Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.0.7"
+"Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.1.0b"
 "Bug Tracker" = "https://github.com/thecrazygm/hive-nectar/issues"
 
 [project.scripts]
