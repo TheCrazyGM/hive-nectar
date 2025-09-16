@@ -3,6 +3,7 @@ import json
 import logging
 import random
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union
 
 from prettytable import PrettyTable
 
@@ -1238,38 +1239,49 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_follow_list(self, follow_type, starting_account=None, limit=100, raw_name_list=True):
+    def get_follow_list(
+        self,
+        follow_type: str,
+        starting_account: Optional[str] = None,
+        raw_name_list: bool = True,
+    ) -> Union[List[Dict[str, Any]], "Accounts"]:
         """Returns the follow list for the specified follow_type (Only HIVE with HF >= 24)
 
-        :param list follow_type: follow_type can be `blacklisted`, `follow_blacklist` `muted`, or `follow_muted`
+        :param str follow_type: follow_type can be `blacklisted`, `follow_blacklist` `muted`, or `follow_muted`
+        :param Optional[str] starting_account: optional start cursor for pagination
+        :param bool raw_name_list: when True, returns raw dicts from bridge; when False, returns `Accounts`
         """
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        limit_reached = True
-        cnt = 0
-        while limit_reached:
-            self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            query = {
-                "observer": self.name,
-                "follow_type": follow_type,
-                "starting_account": starting_account,
-                "limit": limit,
-            }
-            followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
-            if cnt == 0:
-                name_list = followers
-            elif followers is not None and len(followers) > 1:
-                name_list += followers[1:]
-            if followers is not None and len(followers) >= limit:
-                starting_account = followers[-1]
-                limit_reached = True
-                cnt += 1
-            else:
-                limit_reached = False
+        # Normalize follow_type to canonical values accepted by all nodes
+        alias_map = {
+            "blacklisted": "follow_blacklist",
+            "muted": "follow_muted",
+        }
+        normalized_follow_type = alias_map.get(follow_type, follow_type)
+        valid_types = {"follow_blacklist", "follow_muted"}
+        if normalized_follow_type not in valid_types:
+            raise ValueError(
+                "Invalid follow_type. Use one of: 'blacklisted', 'muted', 'follow_blacklist', 'follow_muted'"
+            )
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        query = {
+            "observer": self.name,
+            "follow_type": normalized_follow_type,
+        }
+        if starting_account is not None:
+            query["start"] = starting_account
+
+        followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
+
+        name_list: List[Dict[str, Any]] = followers or []
         if raw_name_list:
             return name_list
         else:
-            return Accounts(name_list, blockchain_instance=self.blockchain)
+            # Convert list of dicts to list of account names for Accounts initializer
+            account_names: List[str] = [x["name"] for x in name_list if "name" in x]
+            return Accounts(account_names, blockchain_instance=self.blockchain)
 
     def _get_followers(self, direction="follower", last_user="", what="blog", limit=100):
         """Help function, used in get_followers and get_following"""
