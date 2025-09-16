@@ -23,8 +23,6 @@ from nectargraphenebase.chains import known_chains
 
 from .account import Account
 from .amount import Amount
-from .exceptions import AccountDoesNotExistsException, AccountExistsException
-from .hivesigner import HiveSigner
 from .price import Price
 from .storage import get_default_config_store
 from .transactionbuilder import TransactionBuilder
@@ -184,8 +182,6 @@ class BlockChainInstance(object):
         self.unsigned = bool(kwargs.get("unsigned", False))
         self.expiration = int(kwargs.get("expiration", 30))
         self.bundle = bool(kwargs.get("bundle", False))
-        self.hivesigner = kwargs.get("hivesigner", None)
-        self.use_hs = bool(kwargs.get("use_hs", False))
         self.blocking = kwargs.get("blocking", False)
         self.custom_chains = kwargs.get("custom_chains", {})
         self.use_ledger = bool(kwargs.get("use_ledger", False))
@@ -208,13 +204,7 @@ class BlockChainInstance(object):
 
         self.wallet = Wallet(blockchain_instance=self, **kwargs)
 
-        # set hivesigner
-        if self.hivesigner is not None and not isinstance(self.hivesigner, (HiveSigner)):
-            raise ValueError("hivesigner musst be HiveSigner object")
-        if self.hivesigner is None and self.use_hs:
-            self.hivesigner = HiveSigner(blockchain_instance=self, **kwargs)
-        elif self.hivesigner is not None and not self.use_hs:
-            self.use_hs = True
+        
 
     # -------------------------------------------------------------------------
     # Basic Calls

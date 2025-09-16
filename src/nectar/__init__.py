@@ -26,5 +26,4 @@ __all__ = [
     "nodelist",
     "imageuploader",
     "snapshot",
-    "hivesigner",
 ]

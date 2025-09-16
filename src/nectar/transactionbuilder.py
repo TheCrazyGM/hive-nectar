@@ -238,9 +238,6 @@ class TransactionBuilder(dict):
 
         if self.blockchain.wallet.locked():
             raise WalletLocked()
-        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
-            self.blockchain.hivesigner.set_username(account["name"], permission)
-            return
 
         if account["name"] not in self.signing_accounts:
             # is the account an instance of public key?
@@ -408,8 +405,6 @@ class TransactionBuilder(dict):
         if not self._is_constructed() or (self._is_constructed() and reconstruct_tx):
             self.constructTx()
         if "operations" not in self or not self["operations"]:
-            return
-        if self.blockchain.use_hs:
             return
         # We need to set the default prefix, otherwise pubkeys are
         # presented wrongly!
