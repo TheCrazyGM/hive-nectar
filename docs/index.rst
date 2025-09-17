@@ -115,6 +115,7 @@ General
 
    installation
    quickstart
+   changelog
    tutorials
    cli
    configuration
