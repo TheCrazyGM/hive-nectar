@@ -10,6 +10,8 @@ nectar includes [python-graphenelib](https://github.com/xeroc/python-graphenelib
 
 [![Python Versions](https://img.shields.io/pypi/pyversions/hive-nectar.svg)](https://pypi.python.org/pypi/hive-nectar/)
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TheCrazyGM/hive-nectar)
+
 ## Current build status
 
 # Support & Documentation
