@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2025-09-17
+
+- **Fix**: Added support for `only_ops` and `only_virtual_ops` parameters in `Blocks` constructor.
+
 ## 0.1.0b - 2025-09-17
 
 - **Breaking Change**: Killed everything that was not specifcally HIVE related. If you used this for STEEM and / or Blurt, they are no longer supported.
@@ -23,12 +27,12 @@
   - Updated to always serialize all four fields in canonical order: account, reward_hive, reward_hbd, reward_vests
   - Added proper zero-amount defaults ("0.000 HIVE"/"0.000 HBD") for missing reward fields
   - Updated docstring to reflect correct behavior and field requirements
- - **Fix**: Convert beneficiary weights from `HIVE_100_PERCENT` units (10000) to percentages in `Comment.get_beneficiaries_pct()` to ensure accurate outputs.
- - **Fix**: Improve ECDSA signing to correctly handle prehashed messages and tighten signature canonicalization checks for better interoperability.
- - **Refactor**: Reorder wallet lock verification to run after HiveSigner validation in `TransactionBuilder`, preventing premature lock errors for HiveSigner flows.
- - **Refactor**: Replace implicit stdin default with an explicit blockchain selection in the CLI argument parser to avoid ambiguous behavior.
- - **Refactor**: Update default Hive node configuration to use HTTPS endpoints instead of WSS.
- - **Feature**: Add a pure-Python fallback for public key derivation when the `ecdsa` library is unavailable, improving portability.
+- **Fix**: Convert beneficiary weights from `HIVE_100_PERCENT` units (10000) to percentages in `Comment.get_beneficiaries_pct()` to ensure accurate outputs.
+- **Fix**: Improve ECDSA signing to correctly handle prehashed messages and tighten signature canonicalization checks for better interoperability.
+- **Refactor**: Reorder wallet lock verification to run after HiveSigner validation in `TransactionBuilder`, preventing premature lock errors for HiveSigner flows.
+- **Refactor**: Replace implicit stdin default with an explicit blockchain selection in the CLI argument parser to avoid ambiguous behavior.
+- **Refactor**: Update default Hive node configuration to use HTTPS endpoints instead of WSS.
+- **Feature**: Add a pure-Python fallback for public key derivation when the `ecdsa` library is unavailable, improving portability.
 
 ## 0.0.11 - 2025-07-25
 
