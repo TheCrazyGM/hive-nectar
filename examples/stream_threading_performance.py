@@ -13,6 +13,18 @@ logging.basicConfig(level=logging.INFO)
 
 
 def stream_votes(hv, threading, thread_num):
+    """
+    Stream "vote" operations from the blockchain over a fixed block range, count them, and measure duration.
+    
+    This function creates a Blockchain bound to the provided Hive client and iterates over "vote" operations between blocks 23,483,000 and 23,483,200. For each operation it writes the operation's block number to stdout (overwriting the current line), increments a counter, and after completion prints a summary line with the total votes and elapsed time.
+    
+    Parameters:
+        threading (bool): If True, enable multi-threaded streaming.
+        thread_num (int): Number of threads to use when threading is enabled.
+    
+    Returns:
+        tuple: (opcount, total_duration) where opcount is the number of "vote" operations seen and total_duration is the elapsed time in seconds.
+    """
     b = Blockchain(blockchain_instance=hv)
     opcount = 0
     start_time = time.time()

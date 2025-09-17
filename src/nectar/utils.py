@@ -174,21 +174,12 @@ def derive_permlink(
 
 
 def resolve_authorperm(identifier):
-    """Correctly split a string containing an authorperm.
-
-    Splits the string into author and permlink with the
-    following separator: ``/``.
-
-    Examples:
-
-        .. code-block:: python
-
-            >>> from nectar.utils import resolve_authorperm
-            >>> author, permlink = resolve_authorperm('https://d.tube/#!/v/pottlund/m5cqkd1a')
-            >>> author, permlink = resolve_authorperm("https://hive.blog/witness-category/@gtg/24lfrm-gtg-witness-log")
-            >>> author, permlink = resolve_authorperm("@gtg/24lfrm-gtg-witness-log")
-            >>> author, permlink = resolve_authorperm("https://peakd.com/@gtg/24lfrm-gtg-witness-log")
-
+    """
+    Parse an author/permlink identifier and return (author, permlink).
+    
+    Accepts plain "author/permlink" or "@author/permlink", site URLs containing "/@author/permlink",
+    and dtube-style URLs containing "#!/v/<author>/<permlink>". Returns a 2-tuple of strings
+    (author, permlink). Raises ValueError if the identifier cannot be parsed.
     """
     # without any http(s)
     match = re.match(r"@?([\w\-\.]*)/([\w\-]*)", identifier)
@@ -396,6 +387,37 @@ def seperate_yaml_dict_from_body(content):
 
 
 def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
+    """
+    Create a YAML front-matter header string from post/comment data and metadata.
+    
+    Builds a YAML block (string) beginning and ending with '---' that includes selected fields when present:
+    - title (quoted)
+    - permlink
+    - author
+    - "authored by" (from json_metadata["author"])
+    - description (quoted)
+    - canonical_url
+    - app
+    - last_update (from comment["last_update"] or comment["updated"])
+    - max_accepted_payout
+    - percent_hbd
+    - community (added when json_metadata["tags"] exists and comment["category"] differs from the first tag)
+    - tags (comma-separated list)
+    - beneficiaries (comma-separated entries formatted as "account:XX.XX%"; weights are converted from parts-per-10000 to percent with two decimals)
+    - reply_identifier
+    
+    Parameters:
+        comment (dict): Source post/comment data. Expected keys used include
+            "title", "permlink", "author", "last_update" or "updated",
+            "max_accepted_payout", optional "percent_hbd", optional "category",
+            and optional "beneficiaries" (list of {"account": str, "weight": int}).
+        json_metadata (dict, optional): Parsed JSON metadata; may contain "author",
+            "description", "canonical_url", "app", and "tags" (list of strings).
+        reply_identifier (str or None, optional): If provided, added as "reply_identifier".
+    
+    Returns:
+        str: The composed YAML front-matter block as a string.
+    """
     yaml_prefix = "---\n"
     if comment["title"] != "":
         yaml_prefix += 'title: "%s"\n' % comment["title"]

@@ -35,7 +35,15 @@ def set_session_instance(instance):
 
 
 def shared_session_instance():
-    """Get session instance"""
+    """
+    Return a singleton requests.Session instance, creating it if necessary.
+    
+    Ensures a single shared HTTP session is reused across the process to take advantage
+    of connection pooling and shared session state (headers, cookies, adapters).
+    
+    Returns:
+        requests.Session: The shared session object.
+    """
     if not SessionInstance.instance:
         SessionInstance.instance = requests.Session()
     return SessionInstance.instance
@@ -60,7 +68,25 @@ class GrapheneRPC(object):
     """
 
     def __init__(self, urls, user=None, password=None, **kwargs):
-        """Initialize the RPC client."""
+        """
+        Create a synchronous HTTP RPC client for Graphene-based nodes.
+        
+        Initializes RPC mode, retry/timeouts, node management, optional credentials, and feature flags. Supported keyword arguments (with defaults) control behavior:
+        - timeout (int): request timeout in seconds (default 60).
+        - num_retries (int): number of node-retry attempts for node selection (default 100).
+        - num_retries_call (int): per-call retry attempts before switching nodes (default 5).
+        - use_condenser (bool): prefer condenser API compatibility (default False).
+        - use_tor (bool): enable Tor proxies for the shared HTTP session (default False).
+        - disable_chain_detection (bool): skip automatic chain/appbase detection (default False).
+        - custom_chains (dict): mapping of additional known chain configurations to merge into the client's known_chains.
+        - autoconnect (bool): if True (default), attempts to connect to a working node immediately via rpcconnect().
+        
+        Credentials:
+        - user, password: optional basic-auth credentials applied to HTTP requests.
+        
+        Side effects:
+        - Builds a Nodes instance for node tracking and may call rpcconnect() when autoconnect is True.
+        """
         self.rpc_methods = {"offline": -1, "appbase": 3}
         self.current_rpc = self.rpc_methods["appbase"]
         self._request_id = 0
@@ -111,7 +137,9 @@ class GrapheneRPC(object):
         return self._request_id
 
     def next(self):
-        """Switches to the next node url"""
+        """
+        Advance to the next available RPC node and attempt to (re)connect.
+        """
         self.rpcconnect()
 
     def is_appbase_ready(self):
@@ -119,11 +147,27 @@ class GrapheneRPC(object):
         return self.current_rpc == self.rpc_methods["appbase"]
 
     def get_use_appbase(self):
-        """Returns True if appbase ready and appbase calls are set"""
+        """
+        Return True if AppBase RPC calls should be used.
+        
+        Returns:
+            bool: True when AppBase is ready (is_appbase_ready()) and the instance is not configured to use the condenser API (use_condenser is False).
+        """
         return not self.use_condenser and self.is_appbase_ready()
 
     def rpcconnect(self, next_url=True):
-        """Connect to next url in a loop."""
+        """
+        Selects and establishes connection to an available RPC node.
+        
+        Attempts to connect to the next available node (or reuse the current one) and initializes per-instance HTTP session state needed for subsequent RPC calls. On a successful connection this method sets: self.url, self.session (shared session reused), self._proxies (Tor proxies when configured), self.headers, and self.current_rpc (appbase mode by default). It also probes the node using get_config to detect whether the node supports appbase RPC format unless chain detection is disabled.
+        
+        Parameters:
+            next_url (bool): If True, advance to the next node before attempting connection; if False, retry the current node.
+        
+        Raises:
+            RPCError: When a get_config probe returns no properties (connection reached but no config received).
+            KeyboardInterrupt: Propagated if the operation is interrupted by the user.
+        """
         if self.nodes.working_nodes_count == 0:
             return
         while True:
@@ -177,6 +221,20 @@ class GrapheneRPC(object):
                 next_url = True
 
     def request_send(self, payload):
+        """
+        Send the prepared RPC payload to the currently connected node via HTTP POST.
+        
+        Sends `payload` to the client's active URL using the shared HTTP session. If username and password were provided to the client, HTTP basic auth is applied. Raises UnauthorizedError when the node responds with HTTP 401.
+        
+        Parameters:
+            payload (str | bytes): The JSON-RPC payload (string or bytes) to send in the POST body.
+        
+        Returns:
+            requests.Response: The raw HTTP response object from the node.
+        
+        Raises:
+            UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
+        """
         if self.user is not None and self.password is not None:
             response = self.session.post(
                 self.url,
@@ -194,12 +252,48 @@ class GrapheneRPC(object):
         return response
 
     def version_string_to_int(self, network_version):
+        """
+        Convert a dotted version string "MAJOR.MINOR.PATCH" into a single integer for easy comparison.
+        
+        The integer is computed as: major * 10^8 + minor * 10^4 + patch. For example, "2.3.15" -> 200030015.
+        
+        Parameters:
+            network_version (str): Version string in the form "major.minor.patch".
+        
+        Returns:
+            int: Integer representation suitable for numeric comparisons.
+        
+        Raises:
+            ValueError: If any version component is not an integer.
+            IndexError: If the version string does not contain three components.
+        """
         version_list = network_version.split(".")
         return int(int(version_list[0]) * 1e8 + int(version_list[1]) * 1e4 + int(version_list[2]))
 
     def get_network(self, props=None):
-        """Identify the connected network. This call returns a
-        dictionary with keys chain_id, core_symbol and prefix
+        """
+        Detects and returns the network/chain configuration for the connected node.
+        
+        If props is not provided, this call fetches node configuration via get_config(api="database") and inspects property keys to determine the chain identifier, address prefix, network/version, and core asset definitions. It builds a chain configuration dict with keys:
+        - chain_id: canonical chain identifier string
+        - prefix: account/address prefix for the network
+        - min_version: reported chain version string
+        - chain_assets: list of asset dicts (each with keys "asset" (NAI), "precision", "symbol", and "id")
+        
+        If the detected chain matches an entry in self.known_chains (preferring the highest compatible known min_version), that known_chains entry is returned instead of the freshly built config.
+        
+        Special behaviors:
+        - When props is None, get_config(api="database") is called.
+        - If detection finds conflicting blockchain prefixes, the most frequent prefix is used.
+        - A legacy fallback removes STEEM_CHAIN_ID from props if no blockchain name is inferred, logging a warning to prefer HIVE.
+        - Test-network asset NAIs are mapped to "TBD" or "TESTS" symbols when appropriate.
+        - Asset entries are assigned stable incremental ids based on sorted NAI order.
+        
+        Returns:
+            dict: A chain configuration (either a matching entry from self.known_chains or a freshly constructed chain_config) with keys described above.
+        
+        Raises:
+            RPCError: If chain_id cannot be determined or no compatible known chain is found.
         """
         if props is None:
             props = self.get_config(api="database")
@@ -351,11 +445,21 @@ class GrapheneRPC(object):
 
     def rpcexec(self, payload):
         """
-        Execute a call by sending the payload.
-
-        :param json payload: Payload data
-        :raises ValueError: if the server does not respond in proper JSON format
-        :raises RPCError: if the server returns an error
+        Execute the given JSON-RPC payload against the currently selected node and return the RPC result.
+        
+        Sends an HTTP POST with `payload` to the connected node, handling empty responses, retries, node rotation, and JSON parsing. On success returns either the `result` field for single-response RPC calls or a list of results when the server returns a JSON-RPC batch/array. Resets per-call error counters on successful responses.
+        
+        Parameters:
+            payload (dict or list): JSON-serializable RPC request object or a list of request objects (batch).
+        
+        Returns:
+            The RPC `result` (any) for a single request, or a list of results for a batch response.
+        
+        Raises:
+            WorkingNodeMissing: if no working nodes are available.
+            RPCConnection: if the client is not connected to any node.
+            RPCError: for server-reported errors or unexpected / non-JSON responses that indicate an RPC failure.
+            KeyboardInterrupt: if execution is interrupted by the user.
         """
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:

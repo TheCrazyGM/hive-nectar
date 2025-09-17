@@ -15,6 +15,18 @@ timeformat = "%Y%m%d-%H%M%S"
 
 def generate_config_store(config, blockchain="hive"):
     #: Default configuration
+    """
+    Populate a configuration mapping with sensible defaults for Hive-related settings and return it.
+    
+    This function mutates the provided mapping in-place by ensuring a set of default configuration keys exist and returns the same mapping. When `blockchain` is "hive" it fills the "node" entry with a current list of Hive nodes; for other values "node" is set to an empty list. Defaults include client and RPC placeholders, order expiration (7 days), HiveSigner endpoints (`hs_api_url`, `hs_oauth_base_url`) and a backward-compatible `oauth_base_url` pointing to the HiveSigner OAuth base URL, canonical URL, default derivation path, and boolean switches for `use_condenser` and `use_tor`.
+    
+    Parameters:
+        config (MutableMapping): A dict-like configuration object to populate. It will be modified in place.
+        blockchain (str): Chain identifier; "hive" populates Hive nodes, any other value leaves the node list empty.
+    
+    Returns:
+        MutableMapping: The same `config` mapping after defaults have been set.
+    """
     nodelist = NodeList()
     if blockchain == "hive":
         nodes = nodelist.get_hive_nodes(testnet=False)

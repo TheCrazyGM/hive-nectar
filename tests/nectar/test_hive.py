@@ -23,6 +23,11 @@ wif3 = "5K1daXjehgPZgUHz6kvm55ahEArBHfCHLy6ew8sT7sjDb76PU2P"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Set up shared test fixtures for the test class.
+        
+        Creates a Hive blockchain client configured for offline/no-broadcast testing and a populated Account instance named "test" bound to that client. The Hive client is stored on the class as `bts` and the Account as `account`, making them available to all test methods.
+        """
         cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,

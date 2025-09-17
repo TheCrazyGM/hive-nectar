@@ -14,6 +14,11 @@ core_unit = "STM"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Set up class-wide test fixtures: create a Hive blockchain instance and a test Account.
+        
+        Initializes a Hive client configured for local testing (no broadcast, unsigned transactions, long refresh interval, and retry settings) using get_hive_nodes(), and attaches an Account named "test" (full access) to that blockchain instance as class attributes.
+        """
         cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,

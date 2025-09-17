@@ -11,6 +11,19 @@ from .utils import assets_from_string, formatTimeString
 
 
 def check_asset(other, self, hv):
+    """
+    Assert that two assets are the same.
+    
+    If both inputs are dict-like and contain an "asset" key, compares Asset(...) instances constructed with the provided blockchain instance; otherwise compares the inputs directly. Raises AssertionError when the two assets (or values) do not match.
+    
+    Parameters:
+        other: A value or dict with an "asset" key representing the first asset/value.
+        self: A value or dict with an "asset" key representing the second asset/value.
+        hv: Blockchain instance used when constructing Asset objects (omitted from parameter docs for service clients in callers).
+    
+    Raises:
+        AssertionError: If the compared assets or values are not equal.
+    """
     if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
         if not Asset(other["asset"], blockchain_instance=hv) == Asset(
             self["asset"], blockchain_instance=hv
@@ -87,6 +100,37 @@ class Price(dict):
         base_asset=None,  # to identify sell/buy
         blockchain_instance=None,
     ):
+        """
+        Initialize a Price object representing a ratio between a base and quote asset.
+        
+        This constructor accepts multiple input forms and normalizes them into internal
+        "base" and "quote" Amount entries. Supported usages:
+        - price: str like "X BASE/QUOTE" with no base/quote: parses symbols and creates
+          Amounts from the fractional representation of X.
+        - price: dict with "base" and "quote": loads Amounts directly (raises AssertionError
+          if a top-level "price" key is present).
+        - price: numeric (float/int/Decimal) with base and quote provided as Asset or
+          symbol strings: converts the numeric value to a Fraction and builds Amounts.
+        - price: str representing an Amount and base: when price is a string and base is
+          a symbol string, price and base are used to build quote/base Amounts.
+        - price and base as Amount instances: accepts Amount objects directly.
+        - price is None with base and quote as symbol strings or Amounts: loads assets
+          or Amounts respectively.
+        
+        Parameters (not exhaustive):
+        - price: numeric, str, dict, or Amount — the price or a representation used to
+          derive base/quote Amounts.
+        - base: Asset, Amount, or str — identifies the base side (or a symbol string
+          used to parse both symbols when combined with a numeric price).
+        - quote: Asset, Amount, or str — identifies the quote side.
+        - base_asset: optional; used only as an identifier flag for buy/sell contexts.
+        - blockchain_instance: blockchain context used to construct Asset/Amount (omitted
+          from param listing as a shared service).
+        
+        Raises:
+        - AssertionError: if a dict `price` includes a top-level "price" key.
+        - ValueError: if the combination of inputs cannot be parsed into base and quote.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if price == "":
             price = None
@@ -195,18 +239,18 @@ class Price(dict):
         return self["base"]["symbol"], self["quote"]["symbol"]
 
     def as_base(self, base):
-        """Returns the price instance so that the base asset is ``base``.
-
-        .. note:: This makes a copy of the object!
-
-        .. code-block:: python
-
-            >>> from nectar.price import Price
-            >>> from nectar import Hive
-            >>> hv = Hive("https://api.hive.blog")
-            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).as_base("HIVE")
-            3.017483 HIVE/HBD
-
+        """
+        Return a copy of this Price expressed with the given asset as the base.
+        
+        If `base` matches the current base symbol this returns a shallow copy.
+        If `base` matches the current quote symbol this returns a copy with base and quote inverted.
+        Raises InvalidAssetException if `base` is neither the base nor the quote of this price.
+        
+        Parameters:
+            base (str): Asset symbol to use as the base (e.g., "HIVE" or "HBD").
+        
+        Returns:
+            Price: A new Price instance whose base asset is `base`.
         """
         if base == self["base"]["symbol"]:
             return self.copy()
@@ -216,18 +260,21 @@ class Price(dict):
             raise InvalidAssetException
 
     def as_quote(self, quote):
-        """Returns the price instance so that the quote asset is ``quote``.
-
-        .. note:: This makes a copy of the object!
-
-        .. code-block:: python
-
-            >>> from nectar.price import Price
-            >>> from nectar import Hive
-            >>> hv = Hive("https://api.hive.blog")
-            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).as_quote("HBD")
-            3.017483 HIVE/HBD
-
+        """
+        Return a Price instance expressed with the given quote asset symbol.
+        
+        If `quote` matches the current quote symbol, returns a copy of this Price.
+        If `quote` matches the current base symbol, returns a copied, inverted Price.
+        A new object is always returned (the original is not modified).
+        
+        Parameters:
+            quote (str): Asset symbol to use as the quote (e.g., "HBD" or "HIVE").
+        
+        Returns:
+            Price: A Price object with `quote` as the quote asset.
+        
+        Raises:
+            InvalidAssetException: If `quote` does not match either the current base or quote symbol.
         """
         if quote == self["quote"]["symbol"]:
             return self.copy()
@@ -237,16 +284,18 @@ class Price(dict):
             raise InvalidAssetException
 
     def invert(self):
-        """Invert the price (e.g. go from ``HBD/HIVE`` into ``HIVE/HBD``)
-
-        .. code-block:: python
-
+        """
+        Invert the price in place, swapping base and quote assets (e.g., HBD/HIVE -> HIVE/HBD).
+        
+        Returns:
+            self: The same Price instance after inversion.
+        
+        Example:
             >>> from nectar.price import Price
             >>> from nectar import Hive
             >>> hv = Hive("https://api.hive.blog")
             >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).invert()
             3.017483 HIVE/HBD
-
         """
         tmp = self["quote"]
         self["quote"] = self["base"]
