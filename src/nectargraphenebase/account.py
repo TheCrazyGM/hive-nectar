@@ -501,8 +501,7 @@ class Mnemonic(object):
     @classmethod
     def normalize_string(cls, txt):
         """Normalizes strings"""
-        utxt = txt.decode("utf8")
-        return unicodedata.normalize("NFKD", utxt)
+        return unicodedata.normalize("NFKD", txt)
 
     @classmethod
     def to_seed(cls, mnemonic, passphrase=""):

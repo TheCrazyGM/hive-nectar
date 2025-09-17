@@ -14,7 +14,7 @@ class Testcases(unittest.TestCase):
         self.assertEqual(j, j2.data)
         self.assertEqual(json.loads(j2.__str__()), j2.json())
 
-        a = objects.Array(["1000", 3, "@@000000013"])
+        a = types.Array(["1000", 3, "@@000000013"])
         j = {"a": a}
         j2 = objects.GrapheneObject(j)
         self.assertEqual(j, j2.data)

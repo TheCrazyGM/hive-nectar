@@ -586,7 +586,7 @@ class Testcases(unittest.TestCase):
                 "ffffffffffffffffffffffffffffffffffffffffffffffff",
                 "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo when",
                 "0cd6e5d827bb62eb8fc1e262254223817fd068a74b5b449cc2f667c3f1f985a76379b43348d952e2265b4cd129090758b3e3c2c49103b5051aac2eaeb890a528",
-                "xprv9s21ZrQH143K36Ao5jHRVhFGDbLP6FCx8nectarpru77ef3bmA928BxsqvVM27WnvvyfWywiFN8K6yToqMaGYfzS6Db1EHAXT5TuyCLBXUfdm",
+                "xprv9s21ZrQH143K36Ao5jHRVhFGDbLP6FCx8BEEmpru77ef3bmA928BxsqvVM27WnvvyfWywiFN8K6yToqMaGYfzS6Db1EHAXT5TuyCLBXUfdm",
             ],
             [
                 "0000000000000000000000000000000000000000000000000000000000000000",

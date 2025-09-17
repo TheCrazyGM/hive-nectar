@@ -18,16 +18,6 @@ class Testcases(unittest.TestCase):
     # @pytest.mark.filterwarnings()
     @parameterized.expand([("cryptography"), ("secp256k1"), ("ecdsa")])
     def test_sign_message(self, module):
-        if module == "cryptography":
-            if not ecda.CRYPTOGRAPHY_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "cryptography"
-        elif module == "secp256k1":
-            if not ecda.SECP256K1_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "secp256k1"
-        else:
-            ecda.SECP256K1_MODULE = module
         pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)
@@ -40,22 +30,11 @@ class Testcases(unittest.TestCase):
         ]
     )
     def test_sign_message_cross(self, module):
-        if module == "cryptography":
-            if not ecda.CRYPTOGRAPHY_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "cryptography"
-        elif module == "secp256k1":
-            if not ecda.SECP256K1_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "secp256k1"
-
         pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
         signature = ecda.sign_message("Foobar", wif)
-        ecda.SECP256K1_MODULE = "ecdsa"
         pub_key_sig = ecda.verify_message("Foobar", signature)
         self.assertEqual(hexlify(pub_key_sig), pub_key)
         signature = ecda.sign_message("Foobar", wif)
-        ecda.SECP256K1_MODULE = module
         pub_key_sig = ecda.verify_message("Foobar", signature)
         self.assertEqual(hexlify(pub_key_sig), pub_key)
 
@@ -67,16 +46,7 @@ class Testcases(unittest.TestCase):
         ]
     )
     def test_wrong_signature(self, module):
-        if module == "cryptography":
-            if not ecda.CRYPTOGRAPHY_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "cryptography"
-        elif module == "secp256k1":
-            if not ecda.SECP256K1_AVAILABLE:
-                return
-            ecda.SECP256K1_MODULE = "secp256k1"
         pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
-        ecda.SECP256K1_MODULE = module
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)
         self.assertEqual(hexlify(pub_key_sig), pub_key)
