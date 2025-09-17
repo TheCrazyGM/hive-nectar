@@ -38,7 +38,9 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     def sign(self, wifkeys, chain="HIVE"):
         return super(Signed_Transaction, self).sign(wifkeys, chain)
 
-    def verify(self, pubkeys=[], chain="HIVE", recover_parameter=False):
+    def verify(self, pubkeys=None, chain="HIVE", recover_parameter=False):
+        if pubkeys is None:
+            pubkeys = []
         return super(Signed_Transaction, self).verify(pubkeys, chain, recover_parameter)
 
     def getOperationKlass(self):
