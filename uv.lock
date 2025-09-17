@@ -545,7 +545,7 @@ requires-dist = [
     { name = "asn1crypto" },
     { name = "click" },
     { name = "click-shell" },
-    { name = "cryptography", specifier = ">=46.0.1" },
+    { name = "cryptography" },
     { name = "diff-match-patch" },
     { name = "ecdsa" },
     { name = "prettytable" },
@@ -553,7 +553,7 @@ requires-dist = [
     { name = "requests" },
     { name = "ruamel-yaml" },
     { name = "scrypt" },
-    { name = "types-requests", specifier = ">=2.32.0.20250328" },
+    { name = "types-requests" },
     { name = "websocket-client" },
 ]
 
