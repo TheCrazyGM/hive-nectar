@@ -52,9 +52,9 @@ class Query(dict):
     ):
         """
         Initialize a Query mapping for discussion fetches.
-        
+
         Creates a dict-like Query object containing normalized discussion query parameters used by the Discussions fetchers. List-valued parameters default to empty lists when None. Values are stored as keys on self (e.g. self["limit"], self["tag"], etc.).
-        
+
         Parameters:
             limit (int): Maximum number of items requested (0 means no explicit client-side limit).
             tag (str): Topic tag or account (used by feed/blog where appropriate).
@@ -98,11 +98,11 @@ class Discussions(object):
         # Handle legacy parameters
         """
         Initialize the Discussions orchestrator.
-        
+
         Parameters:
             lazy (bool): If True, wrap fetched items in lazy-loading Comment objects.
             use_appbase (bool): If True, prefer appbase/condenser-style endpoints when available.
-        
+
         Notes:
             - Accepts a blockchain instance via `blockchain_instance`. For backward compatibility this initializer also accepts the deprecated keyword arguments `steem_instance` and `hive_instance`; if one of those is provided it will be used when `blockchain_instance` is not set. Using the deprecated keys emits a DeprecationWarning.
             - If both deprecated legacy instance keys are provided simultaneously, a ValueError is raised.
@@ -113,12 +113,14 @@ class Discussions(object):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -132,11 +134,11 @@ class Discussions(object):
     def get_discussions(self, discussion_type, discussion_query, limit=1000, raw_data=False):
         """
         Yield discussions of a given type according to a Query, handling pagination.
-        
+
         This generator fetches discussions in pages from the appropriate per-type helper
         and yields individual discussion entries until `limit` items have been yielded
         or no more results are available.
-        
+
         Parameters:
             discussion_type (str): One of:
                 "trending", "author_before_date", "payout", "post_payout", "created",
@@ -151,13 +153,13 @@ class Discussions(object):
             limit (int): Maximum number of discussion items to yield (default 1000).
             raw_data (bool): If True, helpers are requested to return raw dict data;
                 if False, helpers may return wrapped Comment objects when supported.
-        
+
         Yields:
             Individual discussion items as returned by the selected helper:
             - For post/comment helpers: dicts when `raw_data=True`, or Comment objects
               when `raw_data=False` and wrapping is supported.
             - For "tags": tag dictionaries.
-        
+
         Behavior and notes:
             - This function mutates `discussion_query` for pagination (start_* fields)
               and may update `discussion_query["limit"]` and `before_date` as described.
@@ -391,23 +393,23 @@ class Discussions_by_trending(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_trending iterator that fetches trending discussions and stores results (raw or wrapped).
-        
+
         Builds a reduced query from discussion_query, prefers a provided blockchain_instance (or a legacy instance passed via the deprecated kwargs "steem_instance" or "hive_instance"), configures RPC node selection based on appbase usage, and tries a bridge API call first with fallbacks to appbase or legacy RPC endpoints. Results are stored by calling the superclass initializer with either raw post dicts or Comment-wrapped objects.
-        
+
         Parameters:
             discussion_query (dict): Full query dict; only a subset keys are used here (e.g., "tag", "limit", "start_author", "start_permlink").
             lazy (bool): If False, Comment objects are fully initialized; if True, they are created for lazy loading.
             use_appbase (bool): Prefer appbase/tag endpoints when falling back from the bridge API.
             raw_data (bool): If True, store raw post dicts; otherwise wrap posts in Comment objects.
-        
+
         Side effects:
             - Sets self.blockchain to the resolved blockchain instance.
             - Calls self.blockchain.rpc.set_next_node_on_empty_reply(...) to influence RPC node selection.
             - Calls RPC methods to fetch posts and initializes the superclass with the fetched items.
-        
+
         Raises:
             ValueError: If more than one legacy instance key is provided in kwargs.
-        
+
         Notes:
             - Passing "steem_instance" or "hive_instance" in kwargs is supported for backwards compatibility but emits a DeprecationWarning and is mapped to blockchain_instance.
             - No return value; the instance is populated via the superclass initializer.
@@ -417,12 +419,14 @@ class Discussions_by_trending(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -519,9 +523,9 @@ class Discussions_by_author_before_date(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_author_before_date container of posts by a specific author before a given date.
-        
+
         Creates an ordered list of posts (either raw dicts or wrapped Comment objects) for the specified author published before `before_date`. Attempts to fetch via the bridge API and falls back to appbase/legacy RPC methods when necessary.
-        
+
         Parameters:
             author (str): Account name whose posts to retrieve.
             start_permlink (str): Permlink to start pagination from (exclusive); empty means start from newest.
@@ -531,7 +535,7 @@ class Discussions_by_author_before_date(list):
             use_appbase (bool): Prefer appbase/tag APIs when falling back from the bridge API.
             raw_data (bool): If True, store raw post dicts; if False, store Comment-wrapped objects.
             blockchain_instance: (omitted — treated as the blockchain service/client).
-        
+
         Notes:
             - Legacy kwargs "steem_instance" and "hive_instance" are accepted but deprecated; specifying more than one legacy instance raises ValueError. A DeprecationWarning is emitted when either is used.
             - The instance records the resolved blockchain client on self.blockchain and adjusts RPC next-node behavior based on `use_appbase`.
@@ -541,12 +545,14 @@ class Discussions_by_author_before_date(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -632,21 +638,21 @@ class Comment_discussions_by_payout(list):
         # Handle legacy parameters
         """
         Initialize a Comment_discussions_by_payout iterator that fetches comment discussions sorted by payout.
-        
+
         This constructor:
         - Accepts a discussion_query (dict) and reduces it to the supported keys: "tag", "limit", "filter_tags", "select_authors", "select_tags", "truncate_body", "start_author", "start_permlink".
         - Handles legacy keyword arguments "steem_instance" and "hive_instance": if present, the provided legacy instance is used as the blockchain instance and a DeprecationWarning is emitted; specifying more than one legacy key raises ValueError. An explicit blockchain_instance argument takes precedence over any legacy instance.
         - Configures the blockchain RPC node selection based on the blockchain instance's get_use_appbase() and the use_appbase flag.
         - Attempts to fetch posts via the bridge API (get_ranked_posts with sort "payout_comments"); on failure it falls back to the appbase "tags" path or the legacy get_comment_discussions_by_payout RPC. If the RPC returns None, it is treated as an empty list.
         - If raw_data is True, the underlying list is initialized with the raw post dicts; otherwise each post is wrapped in a Comment object (created with the lazy flag and the resolved blockchain instance) before initializing the superclass.
-        
+
         Parameters:
             discussion_query (dict): Query parameters; expected keys include "tag", "limit", "start_author", "start_permlink", and related filters.
             lazy (bool): If True, Comment wrappers are created in lazy mode (defer loading of full data).
             use_appbase (bool): Prefer appbase/tag-based endpoints when True (affects RPC node selection and fallback behavior).
             raw_data (bool): If True, return raw post dicts instead of Comment objects.
             blockchain_instance: (optional) Blockchain client instance to use; if omitted a shared instance or a legacy instance (if provided via kwargs) will be used.
-        
+
         Side effects:
             - May emit DeprecationWarning when "steem_instance" or "hive_instance" kwargs are used.
             - Raises ValueError if multiple legacy instance kwargs are provided.
@@ -657,12 +663,14 @@ class Comment_discussions_by_payout(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -751,14 +759,14 @@ class Post_discussions_by_payout(list):
         # Handle legacy parameters
         """
         Initialize Post_discussions_by_payout: fetches post discussions sorted by payout and populates the list (raw dicts or Comment objects).
-        
+
         Parameters:
             discussion_query (dict): Query parameters; relevant keys: 'tag', 'limit', 'filter_tags', 'select_authors',
                 'select_tags', 'truncate_body', 'start_author', 'start_permlink'. Only these keys are used from the dict.
             lazy (bool): If False, wrap results immediately in Comment objects; if True, create Comment objects with lazy loading.
             use_appbase (bool): When True, prefer appbase/tag-based RPC fallbacks if the bridge API is unavailable.
             raw_data (bool): If True, store raw post dicts instead of wrapping them in Comment objects.
-        
+
         Notes and side effects:
             - Accepts legacy keyword args 'steem_instance' or 'hive_instance' in kwargs; if provided, emits a DeprecationWarning and uses the given instance as the blockchain instance. Supplying more than one legacy instance parameter raises ValueError.
             - The explicit 'blockchain_instance' argument overrides any legacy instance.
@@ -766,7 +774,7 @@ class Post_discussions_by_payout(list):
             - Configures the blockchain RPC's next-node behavior based on appbase usage and use_appbase.
             - Attempts to fetch posts via the bridge API first, then falls back to appbase/tag endpoints, and finally to legacy RPC calls.
             - Populates the instance by calling the superclass constructor with either raw post dicts or Comment-wrapped posts.
-        
+
         Raises:
             ValueError: If more than one legacy instance parameter is provided in kwargs.
         """
@@ -775,12 +783,14 @@ class Post_discussions_by_payout(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -869,9 +879,9 @@ class Discussions_by_created(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_created fetcher and populate it with posts matching the query.
-        
+
         Builds a reduced query from `discussion_query`, resolves the blockchain instance (accepting the deprecated legacy kwargs "steem_instance" or "hive_instance" with a DeprecationWarning), configures RPC node selection, attempts to fetch posts via the bridge API and falls back to appbase/legacy RPC endpoints. The instance is initialized (as a list) with raw post dicts when `raw_data` is True or with wrapped Comment objects otherwise.
-        
+
         Parameters:
             discussion_query (dict): Incoming query dict; keys used include "tag", "limit", "filter_tags",
                 "select_authors", "select_tags", "truncate_body", "start_author", and "start_permlink".
@@ -881,11 +891,11 @@ class Discussions_by_created(list):
             raw_data (bool): When True, populate the instance with raw post dictionaries instead of Comment objects.
             blockchain_instance: Omitted from param docs as a shared/blockchain client service; if None, a shared
                 instance is used. Legacy kwargs "steem_instance" and "hive_instance" are accepted but deprecated.
-        
+
         Raises:
             ValueError: If more than one legacy instance parameter is provided via kwargs.
             DeprecationWarning: Emitted when a legacy instance kwarg is used (not an exception).
-        
+
         Side effects:
             - Calls `self.blockchain.rpc.set_next_node_on_empty_reply(...)`.
             - Performs remote RPC calls which may raise exceptions that trigger fallback behavior.
@@ -895,12 +905,14 @@ class Discussions_by_created(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -989,13 +1001,13 @@ class Discussions_by_active(list):
         # Handle legacy parameters
         """
         Initialize Discussions_by_active: fetch discussions sorted by "active" and populate the sequence.
-        
+
         This initializer reduces the provided discussion_query to the subset of keys used by the active discussion endpoint,
         configures the blockchain RPC node selection behavior, attempts to fetch posts from the bridge API (preferred),
         and falls back to appbase/tags or legacy RPC endpoints when needed. Results are stored in the underlying sequence
         as raw dicts if raw_data is True, otherwise each post is wrapped in a Comment object with the supplied lazy flag
         and resolved blockchain instance.
-        
+
         Parameters:
             discussion_query (dict): Query parameters (may include tag, limit, filter_tags, select_authors,
                 select_tags, truncate_body, start_author, start_permlink, and others).
@@ -1004,12 +1016,12 @@ class Discussions_by_active(list):
             use_appbase (bool): Prefer appbase/tags endpoints when falling back from the bridge API.
             raw_data (bool): If True, keep fetched posts as raw data dicts instead of wrapping in Comment objects.
             blockchain_instance: Optional blockchain client/instance to use; if omitted a shared instance is used.
-        
+
         Legacy behavior:
             Accepts deprecated kwargs "steem_instance" and "hive_instance". If either is provided it will be used as the
             blockchain instance and a DeprecationWarning is emitted. Providing more than one legacy instance parameter
             raises ValueError.
-        
+
         Raises:
             ValueError: If more than one legacy instance parameter is supplied (e.g., both "steem_instance" and "hive_instance").
         """
@@ -1018,12 +1030,14 @@ class Discussions_by_active(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1113,15 +1127,15 @@ class Discussions_by_cashout(list):
         # Handle legacy parameters
         """
         Initialize Discussions_by_cashout fetcher.
-        
+
         Sets up internal blockchain instance (accepting deprecated `steem_instance`/`hive_instance` in kwargs with a DeprecationWarning; specifying more than one legacy key raises ValueError), configures RPC pagination behavior, and loads a page of discussions using the bridge API (sort "payout") with fallbacks to appbase (`get_discussions_by_cashout(..., api="tags")`) or legacy RPC. Results are stored as raw dicts when `raw_data` is True, otherwise wrapped into Comment objects created with the resolved blockchain instance and `lazy` flag.
-        
+
         Parameters:
             discussion_query: dict-like query containing keys such as "tag", "limit", "start_author", and "start_permlink". Only these keys are used from the provided query.
             lazy: bool — if False, Comment wrappers are created eagerly; if True, they are created in lazy mode.
             use_appbase: bool — when True and the RPC supports appbase, prefer appbase ("tags") fallback endpoints.
             raw_data: bool — when True, do not wrap results into Comment objects.
-        
+
         Side effects:
             - Emits DeprecationWarning when `steem_instance` or `hive_instance` is provided in kwargs.
             - May raise ValueError if multiple legacy instance kwargs are supplied.
@@ -1132,12 +1146,14 @@ class Discussions_by_cashout(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1227,9 +1243,9 @@ class Discussions_by_votes(list):
         # Handle legacy parameters
         """
         Initialize Discussions_by_votes: fetch discussions approximating "votes" and store results.
-        
+
         This initializer prepares and executes a query for discussions ordered by votes. Because the bridge API does not provide a direct "votes" sort, it attempts a bridge query using the "trending" sort, then falls back to appbase (`get_discussions_by_votes` with api="tags") and finally to the legacy RPC method. Results are normalized to an empty list on failure. If raw_data is False, each result is wrapped in a Comment object with the resolved blockchain instance; if True, raw post dicts are kept.
-        
+
         Parameters:
             discussion_query (dict): Original query parameters; only a reduced subset is used:
                 tag, limit, filter_tags, select_authors, select_tags, truncate_body,
@@ -1239,11 +1255,11 @@ class Discussions_by_votes(list):
             raw_data (bool): If True, keep raw post dicts instead of wrapping them in Comment objects.
             blockchain_instance: Blockchain client instance to use. If not provided, a shared instance is used.
             **kwargs: Accepts legacy parameters "steem_instance" or "hive_instance" (deprecated). If a legacy instance is supplied and blockchain_instance is not provided, it will be used. Supplying more than one legacy instance raises ValueError and emits a DeprecationWarning for each used legacy key.
-        
+
         Side effects:
             - Resolves and stores self.blockchain.
             - Calls self.blockchain.rpc.set_next_node_on_empty_reply(...) to influence RPC node selection.
-        
+
         Raises:
             ValueError: If multiple legacy instance kwargs are provided at once.
         """
@@ -1252,12 +1268,14 @@ class Discussions_by_votes(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1347,17 +1365,17 @@ class Discussions_by_children(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_children fetcher that yields child (reply) discussions for a tag/post.
-        
+
         Builds a reduced query from the provided discussion_query, prefers an explicit blockchain_instance (or a legacy
         steem_instance/hive_instance passed via kwargs), and attempts to fetch discussions via the bridge API before
         falling back to appbase or legacy RPC methods. Results are stored as raw dicts when raw_data is True or wrapped
         as Comment objects otherwise.
-        
+
         Parameters documented only when non-obvious:
             discussion_query: dict-like query containing keys such as "tag", "limit", "filter_tags",
                 "select_authors", "select_tags", "truncate_body", "start_author", and "start_permlink".
                 Only those keys are preserved for the reduced query used to fetch discussions.
-        
+
         Behavior and side effects:
             - If blockchain_instance is None, a shared blockchain instance is used.
             - Accepts legacy kwargs "steem_instance" or "hive_instance"; if present and blockchain_instance is not
@@ -1370,7 +1388,7 @@ class Discussions_by_children(list):
               sort). Falls back to get_discussions_by_children via appbase ("tags" API) or the legacy RPC call as needed.
             - Normalizes None responses to an empty list.
             - Populates the instance with raw posts when raw_data is True, or with Comment-wrapped posts when False.
-        
+
         Does not return a value.
         """
         legacy_keys = {"steem_instance", "hive_instance"}
@@ -1378,12 +1396,14 @@ class Discussions_by_children(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1474,10 +1494,10 @@ class Discussions_by_hot(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_hot iterator that fetches "hot" discussions.
-        
+
         Builds a reduced query from the provided discussion_query, prefers the bridge API for fetching ranked posts
         with a fallback to appbase or legacy RPC methods, and stores results either as raw dicts or wrapped Comment objects.
-        
+
         Parameters:
             discussion_query (dict): Query parameters (e.g., tag, limit, start_author, start_permlink). Only a subset is used.
             lazy (bool): If False, Comment objects will be fully initialized; if True, they are created for lazy loading.
@@ -1485,12 +1505,12 @@ class Discussions_by_hot(list):
             raw_data (bool): If True store and return raw post dicts; if False wrap posts in Comment objects.
             kwargs: Deprecated-only legacy parameters `steem_instance` or `hive_instance` may be provided; if present they are used
                 as the blockchain instance and a DeprecationWarning is emitted.
-        
+
         Side effects:
             - Resolves and assigns self.blockchain (from blockchain_instance, legacy kwargs, or shared instance).
             - Calls self.blockchain.rpc.set_next_node_on_empty_reply(...) to influence RPC backend selection.
             - Performs RPC calls (bridge get_ranked_posts or fallback get_discussions_by_hot), which may raise RPC-related exceptions.
-        
+
         Raises:
             ValueError: If multiple legacy instance keys are provided in kwargs (e.g., both `steem_instance` and `hive_instance`).
         """
@@ -1499,12 +1519,14 @@ class Discussions_by_hot(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1593,11 +1615,11 @@ class Discussions_by_feed(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_feed instance that fetches a user's feed discussions.
-        
+
         Builds an internal, reduced query from discussion_query, prefers the bridge API to fetch account feed posts
         (using discussion_query["tag"] as the account), falls back to appbase or legacy RPCs on error, and stores
         results as raw dicts (if raw_data=True) or wrapped Comment objects.
-        
+
         Parameters:
             discussion_query (dict): Query parameters. Must include "tag" to specify the account; supported keys
                 copied into the internal query are: "tag", "limit", "filter_tags", "select_authors",
@@ -1609,7 +1631,7 @@ class Discussions_by_feed(list):
                 in a Comment object with the resolved blockchain instance.
             blockchain_instance: If provided, used for RPC calls; otherwise a shared blockchain instance is used.
                 (This parameter is a blockchain client and is intentionally not documented as a conventional param.)
-        
+
         Behavior:
             - Accepts deprecated legacy kwargs "steem_instance" or "hive_instance"; if provided, they are mapped to
               the blockchain instance and a DeprecationWarning is emitted. Supplying more than one legacy instance
@@ -1620,7 +1642,7 @@ class Discussions_by_feed(list):
             - On any bridge error, falls back to get_discussions_by_feed(...) using appbase/tags when available,
               then to legacy RPC if necessary.
             - Ensures posts is always a list (never None) before populating the base list.
-        
+
         Raises:
             ValueError: If more than one legacy instance parameter (e.g., both "steem_instance" and "hive_instance")
                 is provided in kwargs.
@@ -1630,12 +1652,14 @@ class Discussions_by_feed(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1724,13 +1748,13 @@ class Discussions_by_blog(list):
         # Handle legacy parameters
         """
         Initialize a Discussions_by_blog fetcher that retrieves a user's blog posts.
-        
+
         Builds a reduced query from discussion_query (accepts keys like "tag" (account), "limit",
         "start_author", "start_permlink", "filter_tags", "select_authors", "select_tags",
         "truncate_body"), resolves the blockchain instance to use, and attempts to fetch posts
         via the bridge API (get_account_posts) falling back to appbase/legacy RPCs (get_discussions_by_blog).
         Results are stored as raw dicts when raw_data is True, or wrapped as Comment objects when False.
-        
+
         Parameters:
             discussion_query (dict): Query parameters that may include "tag" (the account name),
                 "limit", "start_author", "start_permlink", and other optional filter/select keys.
@@ -1738,7 +1762,7 @@ class Discussions_by_blog(list):
             use_appbase (bool): When True prefer appbase/tag APIs where available (affects RPC routing).
             raw_data (bool): If True, keep fetched posts as raw dicts instead of Comment instances.
             blockchain_instance: Optional blockchain client to use; if not provided, a shared instance is used.
-        
+
         Notes:
             - Legacy keyword arguments "steem_instance" and "hive_instance" are accepted via kwargs,
               will emit a DeprecationWarning and be mapped to blockchain_instance. Supplying more than
@@ -1751,12 +1775,14 @@ class Discussions_by_blog(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -1845,15 +1871,15 @@ class Discussions_by_comments(list):
     ):
         """
         Initialize Discussions_by_comments.
-        
+
         Uses the provided discussion_query (expects at minimum `start_author` and `start_permlink`, optional `limit`) to fetch a discussion thread and produce a flattened list of the root post plus replies. Attempts to use the bridge API (`get_discussion`) first and, on failure, falls back to older endpoints (`get_discussions_by_comments`). If `raw_data` is False, each post is wrapped as a Comment; otherwise raw post dicts are kept.
-        
+
         Parameters:
             discussion_query (dict): Query containing `start_author`, `start_permlink`, and optional `limit`.
             lazy (bool): If False, Comment objects are fully available; if True, they are created in lazy mode.
             use_appbase (bool): Prefers appbase/tag API paths when True (used to select RPC backend).
             raw_data (bool): When True, yields raw post dicts instead of Comment objects.
-        
+
         Side effects:
             Adjusts the blockchain RPC node selection via `set_next_node_on_empty_reply` based on the `use_appbase` flag and the RPC's appbase setting.
         """
@@ -1948,7 +1974,7 @@ class Discussions_by_promoted(list):
     ):
         """
         Initialize Discussions_by_promoted: fetch promoted discussions and populate the sequence.
-        
+
         This constructor extracts a reduced set of keys from `discussion_query` (tag, limit, filter_tags,
         select_authors, select_tags, truncate_body, start_author, start_permlink), configures the RPC
         client to switch nodes on empty replies when appbase is in use, then attempts to fetch promoted
@@ -1956,14 +1982,14 @@ class Discussions_by_promoted(list):
         with `api="tags"`) and then to the legacy RPC method. Results are normalized to an empty list
         if None. If `raw_data` is True the raw post dictionaries are stored; otherwise each post is wrapped
         in a `Comment` object with the provided `lazy` and resolved blockchain instance.
-        
+
         Parameters:
             discussion_query (dict): Query parameters; only the keys listed above are used.
             lazy (bool): If False, Comment wrappers are fully initialized; if True, wrappers use lazy loading.
             use_appbase (bool): Prefer appbase/tag endpoints when True (used to decide fallback behavior).
             raw_data (bool): If True, store raw post dicts instead of `Comment` instances.
             blockchain_instance: Blockchain client to use; if None the shared instance is used.
-        
+
         Side effects:
             - Calls RPC methods on the resolved blockchain instance (may contact external APIs).
             - Sets RPC behavior via `set_next_node_on_empty_reply`.
@@ -2050,20 +2076,20 @@ class Discussions_by_replies(list):
         # Handle legacy parameters
         """
         Initialize the Discussions_by_replies fetcher and populate it with replies to a specified post.
-        
+
         This constructor accepts a discussion_query that should include `start_parent_author` and `start_permlink` to identify the post whose replies are requested. It normalizes legacy kwargs `steem_instance` / `hive_instance` (emitting a DeprecationWarning and mapping to `blockchain_instance`) and will raise ValueError if multiple legacy instance keys are provided. The RPC's next-node behavior is configured according to the blockchain's appbase usage and the `use_appbase` flag.
-        
+
         Behavior:
         - Attempts the bridge API (`get_discussion`) first to obtain a discussion tree and extracts all replies (every item except the main post).
         - On any bridge/error path, falls back to `get_replies_by_last_update` (appbase `api="tags"` when appropriate), using `limit` from the query or a default of 100.
         - If `raw_data` is True, initializes the base list with raw reply dicts; otherwise wraps each reply in a Comment(lazy=..., blockchain_instance=...).
-        
+
         Parameters:
         - discussion_query (dict): Query values; `start_parent_author` and `start_permlink` are required to target a post. `limit` controls the maximum replies returned; if absent a default of 100 is used when falling back.
         - lazy (bool): Whether wrapped Comment objects should be lazy-loaded.
         - use_appbase (bool): Prefer appbase/tag API paths when True (when supported by the blockchain RPC).
         - raw_data (bool): If True, return raw reply dicts instead of Comment instances.
-        
+
         Note: `blockchain_instance` may be provided explicitly or implied via deprecated legacy kwargs; it is used to access the RPC and is not documented here as a parameter description for services/clients.
         """
         legacy_keys = {"steem_instance", "hive_instance"}
@@ -2071,12 +2097,14 @@ class Discussions_by_replies(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -2187,7 +2215,7 @@ class Replies_by_last_update(list):
         # Handle legacy parameters
         """
         Initialize a Replies_by_last_update iterator that loads replies to a specific post, using appbase/tags APIs when available and falling back to legacy RPC calls.
-        
+
         This constructor:
         - Accepts a discussion_query dict containing at minimum "start_author", "start_permlink", and "limit".
         - Accepts legacy kwargs "steem_instance" or "hive_instance"; if provided they are treated as deprecated aliases for `blockchain_instance` and emit a DeprecationWarning. Specifying more than one legacy key raises ValueError.
@@ -2196,7 +2224,7 @@ class Replies_by_last_update(list):
         - Normalizes missing or None responses to an empty list.
         - If raw_data is False (default), wraps each result in a Comment with the provided lazy and blockchain_instance settings; otherwise returns raw post dicts.
         - Calls the superclass initializer with the resulting list (so the object becomes an iterable/sequence of replies).
-        
+
         Parameters:
             discussion_query (dict): Query parameters; must include "start_author", "start_permlink", and "limit".
             lazy (bool): If False, Comment objects are fully initialized; if True, Comments are created with lazy-loading enabled.
@@ -2209,12 +2237,14 @@ class Replies_by_last_update(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -2275,21 +2305,21 @@ class Trending_tags(list):
         # Handle legacy parameters
         """
         Initialize a Trending_tags iterator by fetching trending tags from the blockchain RPC.
-        
+
         Fetches trending tags according to discussion_query["limit"], preferring a bridge/appbase (condenser) path when available and falling back to the legacy RPC. Resolves and stores the blockchain instance, configures RPC next-node behavior based on the use_appbase flag, and initializes the base sequence with the retrieved tag list.
-        
+
         Parameters:
             discussion_query (dict): Query parameters; only 'limit' is used (defaults to 0 if absent).
             lazy (bool): Unused by this initializer but preserved for API compatibility.
             use_appbase (bool): When True, prefer appbase/condenser endpoints when the RPC reports appbase support.
             blockchain_instance: Optional blockchain client; if not provided, a shared instance is used.
             **kwargs: May contain deprecated legacy keys 'steem_instance' or 'hive_instance'. If present, the single legacy key is accepted (mapped to blockchain_instance) and a DeprecationWarning is emitted. Supplying more than one legacy key raises ValueError.
-        
+
         Side effects:
             - Sets self.blockchain to the resolved blockchain instance.
             - Calls self.blockchain.rpc.set_next_node_on_empty_reply(...) to control backend selection.
             - Emits DeprecationWarning when a legacy instance key is used.
-        
+
         Raises:
             ValueError: If more than one legacy instance key is provided.
         """
@@ -2298,12 +2328,14 @@ class Trending_tags(list):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy

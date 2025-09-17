@@ -45,7 +45,7 @@ class Profile(DotDict):
     def __init__(self, *args, **kwargs):
         """
         Initialize a Profile by delegating to the DotDict initializer.
-        
+
         This constructor accepts the same arguments as DotDict (e.g., dot-separated key/value pairs, a dict, or a JSON string) and performs no additional processing.
         """
         super(Profile, self).__init__(*args, **kwargs)

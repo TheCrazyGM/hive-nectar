@@ -74,3 +74,4 @@ target/
 __pypackages__/
 .ruff_cache/
 .mypy_cache/
+.pre-commit-cache/

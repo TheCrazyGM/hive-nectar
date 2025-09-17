@@ -15,14 +15,14 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Initialize class-level test fixtures.
-        
+
         Creates a Hive blockchain instance configured for testing (no network broadcast, with retries), registers it as the shared blockchain instance, and prepares Asset objects used across tests. Sets the following class attributes for use by tests:
         - bts: Hive instance
         - asset: Asset("HBD")
         - symbol: symbol string for the HBD asset
         - precision: precision (integer) for the HBD asset
         - asset2: Asset("HIVE")
-        
+
         This method has the side effect of modifying global/shared blockchain state via set_shared_blockchain_instance.
         """
         cls.bts = Hive(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
@@ -35,18 +35,18 @@ class Testcases(unittest.TestCase):
     def dotest(self, ret, amount, symbol):
         """
         Helper assertion for tests that validates an Amount-like result.
-        
+
         Asserts that `ret` represents the expected numeric value and asset:
         - numeric value matches `amount` when converted to float,
         - `ret["symbol"]` equals `symbol`,
         - `ret["asset"]` is a dict,
         - `ret["amount"]` is a Decimal.
-        
+
         Parameters:
             ret: Mapping-like object returned by Amount.json() or similar representation.
             amount: Expected numeric amount (numeric or Decimal-compatible).
             symbol: Expected asset symbol string.
-        
+
         Raises:
             AssertionError: If any of the assertions fail.
         """

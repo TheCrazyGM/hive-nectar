@@ -47,7 +47,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
     def getKnownChains(self):
         """
         Return the mapping of known blockchain chains available to this transaction.
-        
+
         Returns:
             dict: A mapping where keys are chain identifiers (e.g., "HIVE", "STEEM" or custom names)
             and values are the chain metadata/configuration that was registered with this transaction.
@@ -57,16 +57,16 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
     def sign(self, path="48'/13'/0'/0'/0'", chain="HIVE"):
         """
         Sign the transaction using a Ledger device and attach the resulting signature to this transaction.
-        
+
         Builds APDUs for the given BIP32 path and blockchain chain identifier, sends them to a connected Ledger dongle, collects the final signature returned by the device, and stores it as the transaction's "signatures" entry.
-        
+
         Parameters:
             path (str): BIP32 derivation path to use on the Ledger (default "48'/13'/0'/0'/0'").
             chain (str): Chain identifier used when building APDUs (e.g., "HIVE" or "STEEM").
-        
+
         Returns:
             Ledger_Transaction: self with `self.data["signatures"]` set to an Array containing the Ledger-produced Signature.
-        
+
         Notes:
             - This method opens a connection to the Ledger device and closes it before returning.
             - Any exceptions raised by the Ledger communication layer are not handled here and will propagate to the caller.

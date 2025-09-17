@@ -160,8 +160,8 @@ not_enough_padding = [
 
 class Testcases(unittest.TestCase):
     def test_padding(self):
-        for l in range(0, 255):
-            s = bytes(l * chr(l), "utf-8")
+        for length in range(0, 255):
+            s = bytes(length * chr(length), "utf-8")
             padded = _pad(s, 16)
             self.assertEqual(s, _unpad(padded, 16))
 

@@ -15,12 +15,12 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Prepare class-level Hive test fixtures.
-        
+
         Initializes a Hive client configured for testing (no broadcasting, retries, timeout, condenser disabled,
         and an active key), registers it as the shared blockchain instance, sets the default account to "test",
         and computes a short block range to use in tests (start = current_block - 20, stop = current_block).
         Also sets max_batch_size to 1 due to appbase batch-RPC limitations.
-        
+
         Creates the following class attributes:
         - bts: configured Hive client instance
         - start (int): first block to include in test ranges
@@ -91,11 +91,11 @@ class Testcases(unittest.TestCase):
     def test_stream_batch2(self):
         """
         Test streaming of specific operation types over a fixed block range and verify counts match aggregated statistics.
-        
+
         Streams "account_create" and "custom_json" operations from block 25097000 to 25097100 (inclusive) using the Blockchain.stream API with a batch size of 50 and single-threaded iteration, collects streamed operations, and asserts:
         - the first streamed operation's block number is >= start block and the last is <= stop block,
         - the sum of the operation counts returned by ops_statistics for "account_create" and "custom_json" equals the number of streamed operations.
-        
+
         This is a functional test and relies on the shared Hive blockchain instance configured in the test class.
         """
         bts = self.bts

@@ -107,7 +107,7 @@ class Amount(object):
         # To match get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' and 'HIVE' -> 'STEEM' on serialization.
         """
         Serialize the Amount into its wire-format byte representation.
-        
+
         Returns:
             bytes: 8-byte little-endian signed integer amount, followed by a 1-byte precision,
                    followed by a 7-byte ASCII symbol padded with null bytes. On serialization,

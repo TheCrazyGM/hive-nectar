@@ -21,13 +21,13 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Prepare the test environment for the suite by configuring the CLI and initializing a wallet with test keys.
-        
+
         This class-level setup:
         - Retrieves the hive node list and stores it on the class.
         - Uses Click's CliRunner to set default CLI options (default vote weight, default account, nodes).
         - Creates a new test wallet (wiping any existing wallet) and imports three predefined keys (WIF, posting, memo).
         - Raises AssertionError if any CLI invocation exits with a non-zero code, including the CliRunner result in the error.
-        
+
         Side effects:
         - Modifies global CLI configuration and the on-disk wallet state via the Nectar CLI.
         - Relies on module-level key constants and get_hive_nodes().
@@ -63,13 +63,13 @@ class Testcases(unittest.TestCase):
     def tearDownClass(cls):
         """
         Restore shared blockchain state and refresh CLI node list after tests.
-        
+
         This class teardown recovers the shared blockchain instance from the latest backup to restore global state modified by the tests, then invokes the CLI's `updatenodes --hive` command to refresh the configured node list.
         """
         hv = shared_blockchain_instance()
         hv.config.recover_with_latest_backup()
         runner = CliRunner()
-        result = runner.invoke(cli, ["updatenodes", "--hive"])
+        _ = runner.invoke(cli, ["updatenodes", "--hive"])
 
     def test_balance(self):
         runner = CliRunner()
@@ -485,7 +485,7 @@ class Testcases(unittest.TestCase):
 
     def test_witnesscreate(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "witnesscreate", "nectar", pub_key], input="test\n")
+        _ = runner.invoke(cli, ["-dx", "witnesscreate", "nectar", pub_key], input="test\n")
 
     def test_witnessupdate(self):
         runner = CliRunner()

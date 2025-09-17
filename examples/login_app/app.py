@@ -17,9 +17,9 @@ c.hive.wallet.unlock(wallet_password)
 def index():
     """
     Render a link to start the HiveConnect OAuth login flow.
-    
+
     Generates a HiveConnect login URL that redirects to the app's /welcome endpoint and returns a simple HTML anchor users can click to begin authentication.
-    
+
     Returns:
         str: An HTML string with an anchor linking to the HiveConnect login URL.
     """
@@ -33,14 +33,14 @@ def index():
 def welcome():
     """
     Handle the post-login callback: obtain the user's access token and username, store the token in the Hive wallet under the user's public name, and return a simple welcome message.
-    
+
     This route reads parameters from the incoming request:
     - If `c.get_refresh_token` is truthy, exchanges the provided `code` for tokens via `c.get_access_token(code)` and uses the returned `access_token` and `username`.
     - Otherwise, it uses `access_token` and `username` query parameters; if `username` is missing it sets the current access token on the client and queries the authenticated account with `c.me()`.
-    
+
     Side effects:
     - Removes any existing wallet entry for the resolved username and then saves the new access token with `c.hive.wallet.addToken(name, access_token)`.
-    
+
     Returns:
         A plain HTML string welcoming the user, e.g. "Welcome <strong>{name}</strong>!".
     """

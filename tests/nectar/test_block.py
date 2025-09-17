@@ -16,7 +16,7 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Set up class-level Hive blockchain test fixture.
-        
+
         Creates a Hive instance (nobroadcast=True, provided active key, retries=10), stores it on the class as `bts`, sets `test_block_id` to 19273700, registers the instance as the shared blockchain instance, and sets the default account to "test".
         """
         cls.bts = Hive(

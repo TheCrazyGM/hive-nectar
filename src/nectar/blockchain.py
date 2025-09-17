@@ -236,13 +236,13 @@ class Blockchain(object):
     ):
         """
         Initialize the Blockchain helper.
-        
+
         Sets the underlying blockchain connection (uses shared instance if none provided), configures mode to map to the underlying RPC key ("last_irreversible_block_num" or "head_block_number"), sets max_block_wait_repetition (default 3), and reads the chain's block interval.
-        
+
         Parameters:
             mode (str): "irreversible" to operate against the last irreversible block, or "head" to operate against the chain head.
             max_block_wait_repetition (int, optional): Number of times to retry waiting for a block before giving up; defaults to 3.
-        
+
         Raises:
             ValueError: If `mode` is not "irreversible" or "head".
         """
@@ -442,12 +442,12 @@ class Blockchain(object):
     ):
         """
         Yield Block objects from `start` up to `stop` (or the chain head).
-        
+
         This generator retrieves blocks from the connected blockchain instance and yields them as Block objects. It supports three retrieval modes:
         - Single-threaded sequential fetching (default).
         - Threaded parallel fetching across multiple blockchain instances when `threading=True`.
         - Batched RPC calls for appbase-compatible nodes when `max_batch_size` is set (cannot be combined with `threading`).
-        
+
         Parameters:
             start (int, optional): First block number to fetch. If omitted, defaults to the current block.
             stop (int, optional): Last block number to fetch. If omitted, the generator follows the chain head indefinitely.
@@ -457,14 +457,14 @@ class Blockchain(object):
             only_ops (bool): If True, blocks will contain only regular operations (no block metadata).
                 Mutually exclusive with `only_virtual_ops=True`.
             only_virtual_ops (bool): If True, yield only virtual operations.
-        
+
         Yields:
             Block: A Block object for each fetched block (may contain only ops or only virtual ops depending on flags).
-        
+
         Exceptions:
             OfflineHasNoRPCException: Raised if batched mode is requested while offline (no RPC available).
             BatchedCallsNotSupported: Raised if the node does not support batched calls when `max_batch_size` is used.
-        
+
         Notes:
             - For instant (non-irreversible) confirmations, initialize the Blockchain with mode="head"; otherwise this method will wait for irreversible blocks.
             - `max_batch_size` requires appbase-compatible RPC; threaded mode creates additional blockchain instances for parallel RPC calls.
@@ -813,12 +813,12 @@ class Blockchain(object):
     def stream(self, opNames=[], raw_ops=False, *args, **kwargs):
         """
         Yield blockchain operations filtered by type, normalizing several node event formats into a consistent output.
-        
+
         Parameters:
             opNames (list): Operation type names to filter for (e.g., ['transfer', 'comment']). If empty, all operations are yielded.
             raw_ops (bool): If True, yield raw operation tuples with minimal metadata; if False (default), yield a flattened dict with operation fields and metadata.
             *args, **kwargs: Passed through to self.blocks(...) (e.g., start, stop, max_batch_size, threading, thread_num, only_ops, only_virtual_ops).
-        
+
         Yields:
             dict: When raw_ops is False, yields a dictionary with at least:
                 - 'type': operation name
@@ -828,13 +828,13 @@ class Blockchain(object):
                 - 'block_num': block number
                 - 'trx_num': transaction index within the block
                 - 'trx_id': transaction id
-        
+
             dict: When raw_ops is True, yields a compact dictionary:
                 - 'block_num': block number
                 - 'trx_num': transaction index
                 - 'op': [op_type, op_payload]
                 - 'timestamp': block timestamp
-        
+
         Notes:
             - The method accepts the same control parameters as blocks(...) via kwargs. The block stream determines timestamps and block-related metadata.
             - Operation events from different node formats (lists, legacy dicts, appbase-style dicts) are normalized by this method before yielding.
@@ -1041,16 +1041,16 @@ class Blockchain(object):
     def get_similar_account_names(self, name, limit=5):
         """
         Return a list of accounts with names similar to the given name.
-        
+
         Performs an RPC call to fetch accounts starting at `name`. If the underlying node uses the
         appbase API this returns the raw `accounts` list from the `list_accounts` response (list of
         account objects/dicts). If using the legacy API this returns the list of account names
         returned by `lookup_accounts`. If the local blockchain connection is offline, returns None.
-        
+
         Parameters:
             name (str): Prefix or starting account name to search for.
             limit (int): Maximum number of accounts to return.
-        
+
         Returns:
             list or None: A list of account names or account objects (depending on RPC), or None if offline.
         """
@@ -1069,14 +1069,14 @@ class Blockchain(object):
     def find_rc_accounts(self, name):
         """
         Return resource credit (RC) parameters for one or more accounts.
-        
+
         If given a single account name (str), returns the RC parameters for that account as a dict.
         If given a list of account names, returns a list of RC-parameter dicts in the same order.
         Returns None when the underlying blockchain RPC is not connected or if the RPC returns no data.
-        
+
         Parameters:
             name (str | list): An account name or a list of account names.
-        
+
         Returns:
             dict | list | None: RC parameters for the account(s), or None if offline or no result.
         """
@@ -1095,9 +1095,9 @@ class Blockchain(object):
     def list_change_recovery_account_requests(self, start="", limit=1000, order="by_account"):
         """
         Return pending change_recovery_account requests from the blockchain.
-        
+
         If the local blockchain connection is offline, returns None.
-        
+
         Parameters:
             start (str or list): Starting point for the listing.
                 - For order="by_account": an account name (string).
@@ -1105,7 +1105,7 @@ class Blockchain(object):
                   e.g. ['2018-12-18T01:46:24', 'bott'].
             limit (int): Maximum number of results to return (default and max: 1000).
             order (str): Index to iterate: "by_account" (default) or "by_effective_date".
-        
+
         Returns:
             list or None: A list of change_recovery_account request entries, or None if offline.
         """
@@ -1121,14 +1121,14 @@ class Blockchain(object):
     def find_change_recovery_account_requests(self, accounts):
         """
         Find pending change_recovery_account requests for one or more accounts.
-        
+
         Accepts a single account name or a list of account names and queries the connected node for pending
         change_recovery_account requests. Returns the list of matching request entries, or None if the
         local blockchain instance is not connected or the RPC returned no data.
-        
+
         Parameters:
             accounts (str | list): Account name or list of account names to search for.
-        
+
         Returns:
             list | None: List of change_recovery_account request objects for the given account(s), or
             None if offline or no requests were returned.

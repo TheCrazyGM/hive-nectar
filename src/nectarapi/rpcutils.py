@@ -8,12 +8,12 @@ log = logging.getLogger(__name__)
 def is_network_appbase_ready(props):
     """
     Return True if the provided network/node properties indicate an appbase-ready node.
-    
+
     Checks for the presence of the "HIVE_BLOCKCHAIN_VERSION" key in props.
-    
+
     Parameters:
         props (Mapping): Mapping (e.g., dict) of network or node properties.
-    
+
     Returns:
         bool: True if "HIVE_BLOCKCHAIN_VERSION" exists in props, otherwise False.
     """

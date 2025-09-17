@@ -11,7 +11,6 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from nectar.transactionbuilder import TransactionBuilder
-from nectargraphenebase.account import PublicKey
 
 
 class TestHiveSignerIntegration(unittest.TestCase):
@@ -42,7 +41,7 @@ class TestHiveSignerIntegration(unittest.TestCase):
         mock_account = Mock()
         mock_account.__getitem__ = Mock(return_value={"name": "testuser"})
 
-        with patch('nectar.transactionbuilder.Account', return_value=mock_account):
+        with patch("nectar.transactionbuilder.Account", return_value=mock_account):
             # Should work with posting permission
             self.tx_builder.appendSigner("testuser", "posting")
             self.mock_blockchain.hivesigner.set_username.assert_called_with("testuser", "posting")
@@ -94,7 +93,9 @@ class TestHiveSignerIntegration(unittest.TestCase):
 
         # Verify HiveSigner.broadcast was called with operations list and username
         expected_operations = self.tx_builder.json()["operations"]
-        self.mock_blockchain.hivesigner.broadcast.assert_called_once_with(expected_operations, username="testuser")
+        self.mock_blockchain.hivesigner.broadcast.assert_called_once_with(
+            expected_operations, username="testuser"
+        )
         self.assertTrue(self.tx_builder.clear.called)
 
     def test_fallback_to_regular_signing_when_hivesigner_fails(self):
@@ -115,7 +116,7 @@ class TestHiveSignerIntegration(unittest.TestCase):
         self.tx_builder._is_constructed = Mock(return_value=True)
 
         # Call sign method
-        result = self.tx_builder.sign()
+        _ = self.tx_builder.sign()
 
         # Verify regular signing was used as fallback
         self.tx_builder.tx.sign.assert_called_once()

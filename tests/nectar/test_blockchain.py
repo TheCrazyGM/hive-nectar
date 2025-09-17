@@ -19,7 +19,7 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Set up shared test fixtures for the Testcases class.
-        
+
         Initializes a Hive client configured for testing (no broadcast, provided active key, retry policy), creates a Blockchain wrapper from that client, computes a short test block window (start = current_block - 5, stop = current_block), and registers the Hive client as the shared blockchain instance used by the tests.
         """
         cls.bts = Hive(

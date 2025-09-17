@@ -13,12 +13,12 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Set up shared Hive test fixture for the test class.
-        
+
         Creates a Hive client configured for offline testing, registers it as the shared blockchain instance, sets the default account to "test", and computes a block range window used by tests. Sets the following class attributes:
         - bts: the Hive client instance
         - start: current block number minus 25
         - stop: current block number
-        
+
         This method has side effects on global/shared state by calling set_shared_blockchain_instance(cls.bts).
         """
         cls.bts = Hive(

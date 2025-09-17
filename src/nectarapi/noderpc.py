@@ -46,12 +46,12 @@ class NodeRPC(GrapheneRPC):
     def rpcexec(self, payload):
         """
         Execute an RPC call with node-aware retry and Hive-specific error handling.
-        
+
         Sends the given JSON-RPC payload via the underlying GrapheneRPC implementation and handles node-level failures, automatic retries, and node switching when appropriate. If the instance flag `next_node_on_empty_reply` is set, an empty reply may trigger switching to the next node (when multiple nodes are available). Retries are governed by the node manager's retry policy.
-        
+
         Parameters:
             payload (dict or list): JSON-RPC payload to send (method, params, id, etc.).
-        
+
         Raises:
             RPCConnection: if no RPC URL is configured (connection not established).
             CallRetriesReached: when the node-manager's retry budget is exhausted and no alternative node can be used.

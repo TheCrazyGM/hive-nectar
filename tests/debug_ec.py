@@ -20,13 +20,13 @@ from nectargraphenebase.account import (
 def debug_curve():
     """
     Run a set of diagnostic checks and print human-readable outputs to verify the SECP256K1 curve constants and curve equation.
-    
+
     Performs:
     - Prints imported SECP256K1 constants (P, B, Gx, Gy) in decimal and hex.
     - Verifies the curve equation y^2 ≡ x^3 + b (mod p) using the imported generator coordinates and via the helper _is_on_curve.
     - Compares the imported constants against canonical secp256k1 generator literals and re-evaluates the curve equation using the literal values.
     - If a mismatch is found, prints the modular difference and performs a small-number arithmetic sanity check.
-    
+
     This function is purely diagnostic and has no return value; it writes results to stdout.
     """
     print("=== Elliptic Curve Debug ===")

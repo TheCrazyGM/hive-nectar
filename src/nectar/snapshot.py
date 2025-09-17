@@ -33,13 +33,13 @@ class AccountSnapshot(list):
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize an AccountSnapshot for the given account.
-        
+
         Creates an Account object for the target account (using the provided blockchain instance or the shared instance), resets internal snapshot state, and populates the snapshot list with any provided account_history. Any unexpected keyword arguments are accepted but ignored; a DeprecationWarning is emitted for each.
-         
+
         Parameters:
             account (str or Account): Account identifier or existing Account object to build the snapshot for.
             account_history (iterable, optional): Pre-fetched sequence of account operations to initialize the snapshot with. Defaults to an empty list.
-        
+
         Notes:
             - blockchain_instance is accepted but not documented here as a service-like parameter; if provided it overrides the shared blockchain instance used to construct the Account.
             - This initializer mutates internal state (calls reset) and appends account_history into the snapshot's underlying list.

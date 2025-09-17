@@ -17,13 +17,13 @@ logging.basicConfig(level=logging.INFO)
 def profiling(node, name_list, shared_instance=True, clear_acc_cache=False, clear_all_cache=True):
     """
     Profile memory usage while instantiating Account objects against a Hive node.
-    
+
     Creates Account instances for each name in name_list using either a new Hive(node)
     instance (when shared_instance is False) or the shared blockchain instance
     (when True). Optionally clears each account's cache and/or the module-wide cache.
     Prints brief flags and the Hive instance (when created). If a non-shared Hive
     instance is created, its `rpc` attribute is deleted at the end to help cleanup.
-    
+
     Parameters:
         node (str): URL of the Hive RPC node to connect to when creating a non-shared Hive instance.
         name_list (iterable): Iterable of account names (strings) to instantiate as Account objects.
@@ -31,7 +31,7 @@ def profiling(node, name_list, shared_instance=True, clear_acc_cache=False, clea
             if True, the shared blockchain instance is used (default True).
         clear_acc_cache (bool): If True, calls `clear_cache()` on each created Account (default False).
         clear_all_cache (bool): If True, calls the module-level `clear_cache()` after creating accounts (default True).
-    
+
     Returns:
         None
     """

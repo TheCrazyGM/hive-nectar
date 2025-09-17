@@ -30,14 +30,6 @@ class Testcases(unittest.TestCase):
             blockchainobject = Hive(node=node)
             assert blockchainobject.is_hive
 
-    def test_hive_nodes(self):
-        nodelist = NodeList()
-        nodelist.update_nodes()
-        hive_nodes = nodelist.get_hive_nodes()
-        for node in hive_nodes:
-            blockchainobject = Hive(node=node)
-            assert blockchainobject.is_hive
-
     def test_nodes_update(self):
         nodelist = NodeList()
         all_nodes = nodelist.get_hive_nodes()

@@ -32,7 +32,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     def add_custom_chains(self, custom_chain):
         """
         Add entries from custom_chain into this transaction's known chains without overwriting existing entries.
-        
+
         Accepts a mapping of chain identifiers to chain configuration values and merges any keys not already present into self.known_chains. Existing known chains are left unchanged.
         Parameters:
             custom_chain (Mapping): Mapping of chain name -> chain data (e.g., RPC URL or chain parameters); keys present in self.known_chains are not replaced.
@@ -45,10 +45,10 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     def sign(self, wifkeys, chain="HIVE"):
         """
         Sign the transaction using one or more WIF-format private keys.
-        
+
         wifkeys: Single WIF string or iterable of WIF private key strings used to produce signatures.
         chain: Chain identifier to use for signing (defaults to "HIVE").
-        
+
         Returns:
             The value returned by the superclass `sign` implementation.
         """
@@ -57,13 +57,13 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     def verify(self, pubkeys=None, chain="HIVE", recover_parameter=False):
         """
         Verify this transaction's signatures.
-        
+
         Parameters:
             pubkeys (list[str] | None): Public keys to verify against. If None, an empty list is used (all signatures will be checked
                 without restricting expected pubkeys).
             chain (str): Chain identifier to use for verification (defaults to "HIVE").
             recover_parameter (bool): If True, return signature recovery parameters alongside verification results.
-        
+
         Returns:
             Any: The result returned by the superclass verify method (verification outcome as defined by the base implementation).
         """
@@ -74,7 +74,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     def getOperationKlass(self):
         """
         Return the Operation class used to construct operations for this transaction.
-        
+
         Returns:
             type: The Operation class used by this Signed_Transaction.
         """

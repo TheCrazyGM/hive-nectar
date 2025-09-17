@@ -93,15 +93,15 @@ class Account(BlockchainObject):
     def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
         """
         Create an Account wrapper for a blockchain account.
-        
+
         Parameters:
             account (str | dict): Account name or raw account object/dict. If a dict is provided it will be parsed into the internal account representation.
             full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
             lazy (bool): If True, defer fetching/processing of some fields until needed.
-        
+
         Description:
             Optionally accepts an explicit blockchain instance via the `blockchain_instance` argument; if not provided a shared instance is used. For backward compatibility the deprecated kwargs `steem_instance` and `hive_instance` are accepted (they emit a DeprecationWarning and are mapped to `blockchain_instance`), but specifying more than one legacy instance raises ValueError.
-        
+
         Returns:
             None
         """
@@ -111,12 +111,14 @@ class Account(BlockchainObject):
         for key in legacy_keys:
             if key in kwargs:
                 if legacy_instance is not None:
-                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
                 legacy_instance = kwargs.pop(key)
                 warnings.warn(
                     f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
         # Prefer explicit blockchain_instance, then legacy
@@ -169,12 +171,12 @@ class Account(BlockchainObject):
     def _parse_json_data(self, account):
         """
         Normalize and convert raw account JSON fields into proper Python types.
-        
+
         Converts certain string-encoded integer fields to int, parses timestamp strings to datetime via formatTimeString, converts proxied_vsf_votes entries to ints, and wraps balance/vesting fields in Amount objects using the instance's blockchain. The input dict is modified in-place and also returned.
-        
+
         Parameters:
             account (dict): Raw account JSON as returned by the node; keys like balances, timestamps, and counters will be normalized.
-        
+
         Returns:
             dict: The same account dict after in-place normalization.
         """
@@ -245,13 +247,13 @@ class Account(BlockchainObject):
     def json(self):
         """
         Return a JSON-serializable representation of the account data with normalized field types.
-        
+
         Converts internal Python objects to plain JSON-friendly types:
         - Specific integer fields are converted to strings (to preserve large integers) or to strings only when non-zero.
         - Elements of `proxied_vsf_votes` are converted to strings when they are non-zero integers; other elements are left unchanged.
         - Datetime, date, and time objects listed in time fields are converted to ISO-like strings via `formatTimeString`; non-datetime values are passed through.
         - Amount-like fields (e.g., balances, vesting shares) are converted by calling their `.json()` method.
-        
+
         Returns:
             dict: A JSON-serializable dictionary representing the account suitable for serialization.
         """
@@ -339,10 +341,10 @@ class Account(BlockchainObject):
     def get_rc_manabar(self):
         """
         Return the account's current and maximum Resource Credit (RC) mana.
-        
+
         Calculates RC mana regeneration since the stored `rc_manabar.last_update_time` and returns
         both raw and computed values.
-        
+
         Returns:
             dict: {
                 "last_mana" (int): stored mana at the last update (raw value from account data),
@@ -419,7 +421,7 @@ class Account(BlockchainObject):
     def sp(self):
         """
         Return the account's Hive Power (HP).
-        
+
         This is a compatibility alias that delegates to `get_token_power()` and returns the account's effective Hive Power as computed by that method.
         """
         return self.get_token_power()
@@ -449,17 +451,17 @@ class Account(BlockchainObject):
     def print_info(self, force_refresh=False, return_str=False, use_table=False, **kwargs):
         """
         Print account summary information, either printed or returned as a string.
-        
+
         If force_refresh is True the account data and shared blockchain data are refreshed before computing values.
         The summary includes reputation, voting/downvoting power and recharge times, estimated vote value (HBD),
         token power (HP), balances, and (when available) RC manabar estimates and approximate RC costs for common ops.
-        
+
         Parameters:
             force_refresh (bool): If True, refresh account and blockchain data before generating the summary.
             return_str (bool): If True, return the formatted summary string instead of printing it.
             use_table (bool): If True, format the output as a two-column PrettyTable; otherwise produce a plain text block.
             **kwargs: Forwarded to PrettyTable.get_string when use_table is True (e.g., sortby, border). These are ignored for plain text output.
-        
+
         Returns:
             str | None: The formatted summary string when return_str is True; otherwise None (the summary is printed).
         """
@@ -610,7 +612,7 @@ class Account(BlockchainObject):
     def get_reputation(self):
         """
         Return the account's normalized reputation score.
-        
+
         If the node is offline, returns None. When connected, prefers the appbase `reputation` API to fetch the latest reputation; if that call fails or is unavailable, falls back to the account's cached `reputation` field. The returned value is the normalized reputation computed by `reputation_to_score`.
         """
         if not self.blockchain.is_connected():
@@ -635,11 +637,11 @@ class Account(BlockchainObject):
     def get_manabar(self):
         """
         Return the account's voting manabar state.
-        
+
         Calculates current voting mana from the stored voting_manabar using the account's
         effective vesting shares as `max_mana`. If effective vesting shares are zero,
         a fallback is computed from the chain's account creation fee converted to vests.
-        
+
         Returns:
             dict: Manabar values with the following keys:
                 - last_mana (int): Stored `current_mana` at the last update.
@@ -647,7 +649,7 @@ class Account(BlockchainObject):
                 - current_mana (int): Estimated current mana (capped at `max_mana`).
                 - max_mana (int): Maximum mana derived from effective vesting shares.
                 - current_mana_pct (float): Current mana as a percentage of `max_mana`.
-        
+
         Notes:
             - Regeneration uses HIVE_VOTING_MANA_REGENERATION_SECONDS to convert elapsed
               seconds since `last_update_time` into regenerated mana.
@@ -686,9 +688,9 @@ class Account(BlockchainObject):
     def get_downvote_manabar(self):
         """
         Return the account's downvote manabar state and regeneration progress.
-        
+
         If the account has no 'downvote_manabar' field returns None.
-        
+
         Returns a dict with:
             - last_mana (int): stored mana at last update.
             - last_update_time (int): POSIX timestamp of the last update.
@@ -732,12 +734,12 @@ class Account(BlockchainObject):
     def get_voting_power(self, with_regeneration=True):
         """
         Return the account's current voting power as a percentage (0–100).
-        
+
         If the account stores a `voting_manabar`, the result is derived from that manabar and optionally includes regeneration. If the legacy `voting_power` field is present, the method uses that value and, when `with_regeneration` is True, adds the amount regenerated since `last_vote_time`.
-        
+
         Parameters:
             with_regeneration (bool): If True (default), include regenerated voting power since the last update.
-        
+
         Returns:
             float: Voting power percentage in the range 0 to 100 (clamped).
         """
@@ -810,13 +812,13 @@ class Account(BlockchainObject):
     def get_effective_vesting_shares(self):
         """
         Return the account's effective vesting shares as an integer.
-        
+
         Calculates vesting shares adjusted for active delegations and pending withdrawals:
         - Starts from `vesting_shares`.
         - Subtracts `delegated_vesting_shares` and adds `received_vesting_shares` when present.
         - If a future `next_vesting_withdrawal` exists and withdrawal fields are present,
           subtracts the remaining amount that will be withdrawn (bounded by `vesting_withdraw_rate`).
-        
+
         Returns:
             int: Effective vesting shares in the same internal units stored on the account.
         """
@@ -845,11 +847,11 @@ class Account(BlockchainObject):
     def get_token_power(self, only_own_vests=False, use_stored_data=True):
         """
         Return the account's Hive Power (HP), including staked tokens and delegated amounts.
-        
+
         Parameters:
             only_own_vests (bool): If True, only the account's owned vesting shares are considered (delegations excluded).
             use_stored_data (bool): If False, fetch the current vests-to-token-power conversion from the chain; if True, use cached conversion values.
-        
+
         Returns:
             float: Hive Power (HP) equivalent for the account's vesting shares.
         """
@@ -867,10 +869,10 @@ class Account(BlockchainObject):
     ):
         """
         Estimate the vote value expressed in HBD for a potential vote by this account.
-        
+
         Detailed description:
         Computes the HBD value that a vote would produce given post rshares and voting settings. Uses the account's token power (HP) by default and delegates the numeric conversion to the blockchain instance.
-        
+
         Parameters:
             post_rshares (int): The post's rshares contribution (can be 0 for an upvote-only estimate).
             voting_weight (float|int, optional): The vote weight as a percentage in the range 0–100 (default 100).
@@ -878,7 +880,7 @@ class Account(BlockchainObject):
                 If omitted, the account's current voting power is used.
             token_power (float|int, optional): Token power (HP) to use for the calculation. If omitted, the account's current HP is used.
             not_broadcasted_vote (bool, optional): If True, treat the vote as not yet broadcast when estimating (affects regeneration logic).
-        
+
         Returns:
             Amount: Estimated vote value denominated in HBD.
         """
@@ -907,16 +909,16 @@ class Account(BlockchainObject):
     ):
         """
         Return the estimated voting value expressed in HBD for the account.
-        
+
         This is a thin wrapper around `get_voting_value` that maps `hive_power` to the underlying `token_power` parameter.
-        
+
         Parameters:
             post_rshares (int): Total rshares for the target post (default 0).
             voting_weight (int): Weight of the vote as a percentage (0-100, default 100).
             voting_power (int | None): Current voting power percentage to use; if None the account's current power is used.
             hive_power (float | None): Token power (Hive Power / HP) to use for the calculation; if None the account's current token power is used.
             not_broadcasted_vote (bool): If True, calculate value as if the vote is not yet broadcast (default True).
-        
+
         Returns:
             Estimated vote value expressed in HBD.
         """
@@ -933,14 +935,14 @@ class Account(BlockchainObject):
     ):
         """
         Return the voting percentage (weight) required for this account to produce a vote worth the given HBD amount.
-        
+
         Parameters:
             hbd (str | int | Amount): Desired vote value in HBD (can be numeric, string, or an Amount).
             post_rshares (int): Current rshares of the post; used in the vote value calculation. Defaults to 0.
             voting_power (int | None): Current voting power to use (in internal units). If None, the account's current voting power is used.
             hive_power (Amount | None): Token power (HP) to use for the calculation. If None, the account's current HP is used.
             not_broadcasted_vote (bool): If True, accounts for a non-broadcasted (simulated) vote when estimating required percentage.
-        
+
         Returns:
             int: Vote weight as an integer in the range -10000..10000 (where 10000 == 100%). Values outside that range indicate the requested HBD value is unattainable with this account (e.g., greater than 10000 or less than -10000).
         """
@@ -962,19 +964,19 @@ class Account(BlockchainObject):
     ):
         """
         Return the voting percentage required to produce a specified vote value in the blockchain's backed token (HBD).
-        
+
         Given a desired token-backed amount (token_units), compute the internal vote percentage (in the same scale used by the chain, e.g. 10000 == 100%) required to yield that payout for a post with post_rshares. If the returned value is larger than 10000 or smaller than -10000, the requested value is outside what the account can reasonably produce.
-        
+
         Parameters:
             token_units (str|int|Amount): Desired vote value expressed in the blockchain's backed token (HBD). Strings and numbers will be converted to an Amount using the account's blockchain context.
             post_rshares (int, optional): Current rshares for the post; used when converting rshares to a percentage. Default 0.
             voting_power (float|int, optional): Account voting power as returned by get_voting_power (expected on a 0–100 scale). If omitted, the account's current voting power is used.
             token_power (float|int, optional): Account token power (HP). If omitted, the account's current token power is used.
             not_broadcasted_vote (bool, optional): Passed to the conversion routine when estimating rshares from HBD; controls whether broadcast-specific adjustments are applied. Default True.
-        
+
         Returns:
             int: The vote percentage in chain units (e.g., 10000 == 100%). May exceed ±10000 when the requested value is unattainable.
-        
+
         Raises:
             AssertionError: If token_units is not expressed in the blockchain's backed token symbol (HBD).
         """
@@ -1032,20 +1034,20 @@ class Account(BlockchainObject):
     def get_recharge_timedelta(self, voting_power_goal=100, starting_voting_power=None):
         """
         Return the timedelta required to recharge the account's voting power to a target percentage.
-        
+
         If `starting_voting_power` is omitted, the current voting power is used. `voting_power_goal`
         and `starting_voting_power` are percentages (e.g., 100 for full power). If the starting
         power already meets or exceeds the goal, the function returns 0.
-        
+
         Parameters:
             voting_power_goal (float): Target voting power percentage (default 100).
             starting_voting_power (float | int | None): Optional starting voting power percentage to
                 use instead of the account's current voting power.
-        
+
         Returns:
             datetime.timedelta | int: Time required to recharge to the goal as a timedelta, or 0 if
             the starting power is already at or above the goal.
-        
+
         Raises:
             ValueError: If `starting_voting_power` is provided but is not a number.
         """
@@ -1089,12 +1091,12 @@ class Account(BlockchainObject):
     def get_manabar_recharge_timedelta(self, manabar, recharge_pct_goal=100):
         """
         Return the time remaining for a manabar to recharge to a target percentage.
-        
+
         Parameters:
             manabar (dict): Manabar structure returned by get_manabar() or get_rc_manabar().
                 Expected to contain either 'current_mana_pct' or 'current_pct' (value in percent).
             recharge_pct_goal (float): Target recharge percentage (0–100). Defaults to 100.
-        
+
         Returns:
             datetime.timedelta or int: Time required to reach the target as a timedelta. If the
             manabar is already at or above the target, returns 0.
@@ -1113,12 +1115,12 @@ class Account(BlockchainObject):
     def get_manabar_recharge_time(self, manabar, recharge_pct_goal=100):
         """
         Return the UTC datetime when the given manabar will reach the specified recovery percentage.
-        
+
         Parameters:
             manabar (dict): Manabar state as returned by get_manabar() or get_rc_manabar().
                 Expected keys include 'current_mana' (int), 'max_mana' (int) and 'last_update_time' (datetime or ISO string).
             recharge_pct_goal (float): Target recovery level as a percentage (0–100). Defaults to 100.
-        
+
         Returns:
             datetime: Timezone-aware UTC datetime when the manabar is expected to reach the target percentage.
         """
@@ -1129,15 +1131,15 @@ class Account(BlockchainObject):
     def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
         """
         Return a list of feed entries for the account.
-        
+
         If `account` is provided, entries for that account are returned; otherwise uses this Account's name. This method delegates to the internal feed retrieval implementation and requests short-form entries.
-        
+
         Parameters:
             start_entry_id (int): Entry index to start from (default 0).
             limit (int): Maximum number of entries to return (default 100).
             raw_data (bool): If True, return raw API dictionaries; if False, return wrapped objects (default True).
             account (str, optional): Override account name to fetch feed for (default uses this Account).
-        
+
         Returns:
             list: A list of feed entries (raw dicts or wrapped objects depending on `raw_data`).
         """
@@ -1152,15 +1154,15 @@ class Account(BlockchainObject):
     def get_blog_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
         """
         Return the account's blog entries.
-        
+
         By default returns up to `limit` entries starting at `start_entry_id` for this account. When `raw_data` is True the entries are returned as raw dictionaries from the RPC; when False they are returned as processed Comment objects.
-        
+
         Parameters:
             start_entry_id (int): Entry index to start from (default 0).
             limit (int): Maximum number of entries to return (default 100).
             raw_data (bool): If True return raw RPC dicts; if False return Comment objects (default True).
             account (str): Optional account name to fetch entries for (default is this Account's name).
-        
+
         Returns:
             list: A list of entries (dicts when `raw_data` is True, Comment objects when False).
         """
@@ -1177,19 +1179,19 @@ class Account(BlockchainObject):
     ):
         """
         Return the blog entries for an account.
-        
+
         By default this returns a list of Comment objects for the account's blog. If raw_data=True the raw API dicts are returned instead. When both raw_data and short_entries are True the `get_blog_entries` API is used (returns shorter entry objects). If account is None the current Account's name is used.
-        
+
         Parameters:
             start_entry_id (int): ID offset to start from (default 0).
             limit (int): Maximum number of entries to return (default 100).
             raw_data (bool): If True, return raw API dictionaries instead of Comment objects.
             short_entries (bool): When True and raw_data is True, use the shorter `get_blog_entries` API.
             account (str|Account|dict|None): Account to query; if None uses this Account.
-        
+
         Returns:
             list: A list of Comment objects (when raw_data is False) or raw entry dictionaries (when raw_data is True).
-        
+
         Raises:
             OfflineHasNoRPCException: If called while offline (no RPC available).
         """
@@ -1328,7 +1330,7 @@ class Account(BlockchainObject):
     def get_blog_authors(self, account=None):
         """
         Return a list of author account names whose posts have been reblogged on the specified blog account.
-        
+
         If `account` is omitted, uses this Account object's name. Raises OfflineHasNoRPCException if called while offline. Returns a list of strings (author account names).
         """
         if account is None:
@@ -1395,11 +1397,11 @@ class Account(BlockchainObject):
     def get_mutings(self, raw_name_list=True, limit=100):
         """
         Return the list of accounts this account has muted.
-        
+
         Parameters:
             raw_name_list (bool): If True (default), return a list of account names (str). If False, return an Accounts collection of Account objects.
             limit (int): Maximum number of muted accounts to fetch (default 100).
-        
+
         Returns:
             list[str] | Accounts: Either a list of account names or an Accounts object containing the muted accounts.
         """
@@ -1420,21 +1422,21 @@ class Account(BlockchainObject):
     ) -> Union[List[Dict[str, Any]], "Accounts"]:
         """
         Return the account follow list for a given follow_type (requires Hive HF >= 24).
-        
+
         Normalizes legacy aliases ('blacklisted' -> 'follow_blacklist', 'muted' -> 'follow_muted')
         and queries the blockchain bridge API for the observer's follow list. Supports pagination
         via an optional starting_account cursor.
-        
+
         Parameters:
             follow_type (str): One of 'follow_blacklist' or 'follow_muted' (aliases 'blacklisted' and 'muted' accepted).
             starting_account (Optional[str]): Optional pagination start cursor (name of the account to start from).
             raw_name_list (bool): If True, return the raw list of dicts from the bridge API (each dict typically contains a 'name' key).
                                   If False, return an Accounts collection built from the returned names.
-        
+
         Returns:
             Union[List[Dict[str, Any]], Accounts]: Raw list of follow entries (dicts) when raw_name_list is True,
                                                   otherwise an Accounts instance containing the followed account names.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is in offline mode (no RPC available).
             ValueError: If follow_type is not one of the supported values or aliases.
@@ -1474,18 +1476,18 @@ class Account(BlockchainObject):
     def _get_followers(self, direction="follower", last_user="", what="blog", limit=100):
         """
         Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
-        
+
         This helper paginates through get_followers/get_following RPC calls (appbase and legacy modes supported) until no more pages are returned, concatenating results into a single list. When batching, duplicate leading entries from subsequent pages are skipped so entries are not repeated.
-        
+
         Parameters:
             direction (str): "follower" to fetch followers, "following" to fetch accounts this account follows.
             last_user (str): Starting username for pagination (inclusive start for the first call); subsequent pages are continued internally.
             what (str): Relationship type filter passed to the RPC (commonly "blog" or "ignore").
             limit (int): Maximum number of entries to request per RPC call (page size).
-        
+
         Returns:
             list: A list of follower/following records as returned by the condenser API.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is offline.
         """
@@ -1575,7 +1577,7 @@ class Account(BlockchainObject):
     def available_balances(self):
         """
         Return a list of the account's available balances as Amount objects.
-        
+
         Includes liquid HIVE ("balance"), HBD ("hbd_balance") when present, and vesting shares ("vesting_shares").
         Balances are returned in that order when available and are shallow copies of the stored Amount objects.
         """
@@ -1593,7 +1595,7 @@ class Account(BlockchainObject):
     def saving_balances(self):
         """
         Return the account's savings balances.
-        
+
         Returns a list of Amount objects representing savings balances present on the account.
         Includes "savings_balance" and, if present, "savings_hbd_balance". Returns an empty list if no
         savings balances are available.
@@ -1612,9 +1614,9 @@ class Account(BlockchainObject):
     def reward_balances(self):
         """
         Return the account's reward balances as a list of Amount objects.
-        
+
         Checks for reward-related fields ('reward_hive_balance', 'reward_hbd_balance', 'reward_vesting_balance') on the account and returns copies of any that exist, preserving the original stored Amount objects. The list order is: reward_hive_balance, reward_hbd_balance, reward_vesting_balance (when present).
-        
+
         Returns:
             list: A list of Amount instances (copies) for each available reward balance.
         """
@@ -1649,13 +1651,13 @@ class Account(BlockchainObject):
     def get_balances(self):
         """
         Return the account's balances grouped by category.
-        
+
         Returns a dictionary with keys:
         - "available": list of Amounts currently spendable (e.g., HIVE, HBD, VESTS)
         - "savings": list of Amounts held in savings
         - "rewards": list of pending reward Amounts
         - "total": list of total Amounts combining available, savings, and rewards
-        
+
         Returns:
             dict: Mapping of balance category to a list of Amount objects (or empty list for absent symbols).
         """
@@ -1669,13 +1671,13 @@ class Account(BlockchainObject):
     def get_balance(self, balances, symbol):
         """
         Return a specific balance Amount for this account.
-        
+
         Accepts either a list of balance dicts or a balance category name and returns the Amount for the requested symbol. Valid balance category names are "available", "savings", "rewards", and "total". The symbol may be a string (e.g., "HBD", "HIVE", "VESTS") or a dict containing a "symbol" key.
-        
+
         Parameters:
             balances (str | list[dict]): A balance category name or a list of balance dicts (each with keys "amount" and "symbol").
             symbol (str | dict): The asset symbol to look up, or a dict containing {"symbol": <str>}.
-        
+
         Returns:
             nectar.amount.Amount: The matching Amount from the provided balances, or Amount(0, symbol) if no matching entry is found.
         """
@@ -1847,16 +1849,16 @@ class Account(BlockchainObject):
     def get_owner_history(self, account=None):
         """
         Return the owner authority history for an account.
-        
+
         If `account` is provided, fetches the owner history for that account; otherwise uses this Account's name.
         Returns a list of owner-authority history entries (RPC dicts, typically those under the `owner_auths` key).
-        
+
         Parameters:
             account (str, optional): Account name or Account-like object to query. Defaults to this Account's name.
-        
+
         Returns:
             list: Owner history entries as returned by the node RPC.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain is in offline mode (no RPC available).
         """
@@ -1876,15 +1878,15 @@ class Account(BlockchainObject):
     def get_conversion_requests(self, account=None):
         """
         Return the list of pending HBD conversion requests for an account.
-        
+
         If `account` is omitted, the method queries conversion requests for this Account instance.
-        
+
         Parameters:
             account (str, optional): Account name or Account-like object. Defaults to this account's name.
-        
+
         Returns:
             list: A list of conversion request dictionaries (empty list if none).
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain is in offline mode (no RPC available).
         """
@@ -1908,17 +1910,17 @@ class Account(BlockchainObject):
     def get_vesting_delegations(self, start_account="", limit=100, account=None):
         """
         Return the list of vesting delegations made by an account.
-        
+
         If `account` is omitted, the method uses this Account object's name. Results can be paginated by specifying `start_account` (delegatee name to start from) and `limit` (maximum number of entries returned). In appbase mode the call filters returned delegations to those where the delegator matches `account`.
-        
+
         Parameters:
             start_account (str): Delegatee name to start listing from (for pagination). Default is empty string (start from first).
             limit (int): Maximum number of results to return. Default is 100.
             account (str | Account, optional): Account to query; accepts an account name or Account-like object. If None, uses this Account.
-        
+
         Returns:
             list: A list of delegation dictionaries as returned by the node RPC.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is offline (no RPC available).
         """
@@ -1940,16 +1942,16 @@ class Account(BlockchainObject):
     def get_withdraw_routes(self, account=None):
         """
         Return the account's withdraw vesting routes.
-        
+
         If `account` is omitted, uses this Account object's name. Each route is returned as a dict
         in the format provided by the node RPC (fields include destination account, percentage, auto_vest, etc.).
-        
+
         Parameters:
             account (str, optional): Account name to query. Defaults to this Account's name.
-        
+
         Returns:
             list: A list of withdraw-route dictionaries as returned by the node RPC.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is in offline mode.
         """
@@ -1969,16 +1971,16 @@ class Account(BlockchainObject):
     def get_savings_withdrawals(self, direction="from", account=None):
         """
         Return the list of savings withdrawal requests for an account.
-        
+
         If no account is provided, uses this Account's name. On nodes using the appbase/database API the node determines which withdrawals are returned; on legacy (non-appbase) nodes the `direction` parameter selects between withdrawals originating "from" the account or destined "to" the account.
-        
+
         Parameters:
             account (str, optional): Account name to query. Defaults to this account.
             direction (str, optional): "from" or "to" (default "from"). Only used on non-appbase RPC nodes.
-        
+
         Returns:
             list: A list of savings withdrawal records (each record is a dict as returned by the node).
-        
+
         Raises:
             OfflineHasNoRPCException: If called while in offline mode (no RPC available).
         """
@@ -2033,18 +2035,18 @@ class Account(BlockchainObject):
     def get_escrow(self, escrow_id=0, account=None):
         """
         Return escrow(s) related to this account.
-        
+
         If called in appbase mode, returns all escrows for the given account (the
         legacy escrow_id parameter is ignored). In legacy (pre-appbase) mode,
         returns the escrow with the specified escrow_id for the account.
-        
+
         Parameters:
             escrow_id (int): Escrow identifier used by legacy RPC (pre-appbase). Default 0.
             account (str | Account, optional): Account to query; defaults to this account's name.
-        
+
         Returns:
             list[dict]: A list of escrow objects (empty if none found).
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain client is offline.
         """
@@ -2062,7 +2064,7 @@ class Account(BlockchainObject):
     def verify_account_authority(self, keys, account=None):
         """
         Return whether the provided signers (public keys) are sufficient to authorize the specified account.
-        
+
         If `account` is omitted, uses this Account object's name. `keys` may be a single key or a list of public keys.
         Returns a dictionary as returned by the node RPC (e.g., {"valid": True} or {"valid": False}).
         Raises OfflineHasNoRPCException when the instance is offline. If the RPC raises MissingRequiredActiveAuthority
@@ -2110,19 +2112,19 @@ class Account(BlockchainObject):
     def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
         """
         Return upcoming vesting-delegation expirations for an account.
-        
+
         If `account` is None the current Account's name is used. On appbase-compatible nodes this queries the
         database API and returns the list under the "delegations" key; on legacy nodes it calls the
         legacy RPC which accepts `after` (a datetime) and `limit`.
-        
+
         Parameters:
             after (datetime, optional): Only used on pre-appbase nodes — include expirations after this time.
             limit (int, optional): Only used on pre-appbase nodes — maximum number of entries to return.
             account (str or object, optional): Account name or object to query. Defaults to the current account.
-        
+
         Returns:
             list: A list of vesting delegation expiration records.
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is offline.
         """
@@ -2148,19 +2150,19 @@ class Account(BlockchainObject):
     ):
         """
         Return a list of vote operations made by an account.
-        
+
         Retrieves votes by paging through the node's `list_votes` (database) API ordered by voter+comment. Returns vote objects (dicts) that include fields such as `voter`, `author`, `permlink`, `weight`, and `last_update`. Results are filtered so only votes cast by `account` are included and, if `start_date` is provided, only votes with `last_update >= start_date` are returned. Pagination state is advanced using `start_author` / `start_permlink`.
-        
+
         Parameters:
             account (str|dict|Account, optional): Account to query. If None, uses this Account's name.
             start_author (str, optional): Author permlink paging start key (used to continue from a previous page).
             start_permlink (str, optional): Permlink paging start key paired with `start_author`.
             limit (int, optional): Maximum number of votes to request per RPC call (page size).
             start_date (datetime.datetime, optional): If provided, stop and exclude votes older than this datetime.
-        
+
         Returns:
             list[dict]: List of vote dictionaries in descending retrieval order (newest first as returned by the node).
-        
+
         Raises:
             OfflineHasNoRPCException: If called while the blockchain instance is offline (no RPC available).
         """
@@ -2545,11 +2547,11 @@ class Account(BlockchainObject):
     ):
         """
         Yield account history operations for a single account.
-        
+
         Generates account history entries (one at a time) between a starting index and limit, optionally filtered
         and ordered. Each yielded item is either the raw RPC (index, event) tuple when raw_output is True,
         or an enriched dict containing operation fields plus metadata (account, type, index, _id).
-        
+
         Parameters:
             index (int): starting index for history retrieval (passed to underlying fetch).
             limit (int): maximum number of entries to request from the node.
@@ -2561,10 +2563,10 @@ class Account(BlockchainObject):
             only_ops (list[str]): if non-empty, only yield operations whose type is in this list.
             exclude_ops (list[str]): skip operations whose type is in this list.
             raw_output (bool): when True yield the raw (index, event) tuple from the RPC; when False yield an enriched dict.
-        
+
         Returns:
             generator: yields history entries as described above.
-        
+
         Raises:
             ValueError: if `order` is not 1 or -1.
         """
@@ -2635,16 +2637,16 @@ class Account(BlockchainObject):
                 # verbatim output from RPC node
                 """
                 Construct a normalized, immutable operation dictionary for an account.
-                
+
                 If `raw_output` is true (from outer scope), returns the original RPC `item` unchanged. Otherwise returns a copy of `op` merged with `block_props` and the following fields:
                 - "account": the provided account_name
                 - "type": operation type (from outer scope `op_type`)
                 - "_id": a deterministic hash computed via Blockchain.hash_op(immutable)
                 - "index": the operation index (from outer scope `item_index`)
-                
+
                 Parameters:
                     account_name (str): Account name to attach to the constructed operation.
-                
+
                 Returns:
                     dict: Either the raw RPC item (if `raw_output`) or an immutable operation dict augmented with account, type, _id, and index.
                 """
@@ -3419,9 +3421,9 @@ class Account(BlockchainObject):
     ):
         """
         Transfer an asset from this account to another account.
-        
+
         Creates and broadcasts a Transfer operation using the account's active authority.
-        
+
         Parameters:
             to (str | Account): Recipient account name or Account object.
             amount (int | float | str | Amount): Amount to transfer; will be normalized to an Amount with the given asset.
@@ -3430,7 +3432,7 @@ class Account(BlockchainObject):
             skip_account_check (bool, optional): If True, skip resolving the `to` and `account` parameters to Account objects (faster for repeated transfers).
             account (str | Account, optional): Source account name or Account object; defaults to this Account instance.
             **kwargs: Passed through to finalizeOp (e.g., broadcast options).
-        
+
         Returns:
             dict: Result from blockchain.finalizeOp (signed/broadcast transaction response).
         """
@@ -3480,9 +3482,9 @@ class Account(BlockchainObject):
     ):
         """
         Schedule a recurring transfer of a token from this account to another.
-        
+
         Schedules a recurring on-chain transfer operation that will execute `executions` times every `recurrence` hours.
-        
+
         Parameters:
             to (str | Account): Recipient account name or Account object.
             amount (int | float | str | Amount): Amount to transfer each occurrence. Must match the asset's precision (commonly 3 decimals).
@@ -3492,7 +3494,7 @@ class Account(BlockchainObject):
             memo (str, optional): Memo for the transfer. If it starts with '#', the remainder is encrypted to the recipient.
             skip_account_check (bool, optional): If True, skip resolving/checking Account objects for `to` and `account` (faster when making many calls).
             account (str | Account, optional): Source account name or Account object; defaults to this Account.
-        
+
         Returns:
             dict: The broadcasted transaction result returned by finalizeOp.
         """
@@ -3532,15 +3534,15 @@ class Account(BlockchainObject):
     ):
         """
         Power up HIVE by converting liquid HIVE into vesting shares (VESTS).
-        
+
         Performs a Transfer_to_vesting operation from the source account to the recipient (defaults to the account itself). The `amount` is normalized to the chain token symbol before broadcasting. Use `skip_account_check=True` to avoid resolving/validating Account objects for `to` or `account` when sending many transfers in a loop (faster but skips existence checks).
-        
+
         Parameters:
             amount: Amount to transfer; accepts numeric, string, or Amount-like inputs and will be normalized to the blockchain token symbol.
             to (str|Account, optional): Recipient account name or Account object. Defaults to the calling account.
             account (str|Account, optional): Source account name or Account object. If omitted, the caller account is used.
             skip_account_check (bool, optional): If True, do not resolve/validate account names to Account objects (speeds up bulk transfers).
-        
+
         Returns:
             The result of finalizeOp (broadcast/transaction result) for the Transfer_to_vesting operation.
         """
@@ -3572,12 +3574,12 @@ class Account(BlockchainObject):
     def convert(self, amount, account=None, request_id=None):
         """
         Convert HBD to HIVE (takes ~3.5 days to settle).
-        
+
         Parameters:
             amount: HBD amount to convert — accepts numeric, string, or Amount-compatible input; will be normalized to the chain's backed token symbol.
             account (str | Account, optional): Source account performing the conversion. If omitted, uses this account.
             request_id (int | str, optional): Numeric identifier for the conversion request. If omitted, a random request id is generated.
-        
+
         Returns:
             The result of broadcasting the Convert operation (as returned by blockchain.finalizeOp).
         """
@@ -3606,9 +3608,9 @@ class Account(BlockchainObject):
     def collateralized_convert(self, amount, account=None, request_id=None, **kwargs):
         """
         Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
-        
+
         This builds a Collateralized_convert operation for the specified HBD amount and finalizes it with the account's active authority. If `account` is omitted, the method uses the current Account object. If `request_id` is not provided, a random 32-bit id is generated.
-        
+
         Parameters:
             amount: Amount, str, int, or float
                 Amount of HBD to convert (symbol must match the chain's backed token symbol).
@@ -3616,7 +3618,7 @@ class Account(BlockchainObject):
                 Source account name or Account instance; defaults to the calling account.
             request_id: int, optional
                 Numeric identifier for the conversion request; if omitted a random id is used.
-        
+
         Returns:
             dict
                 Result of finalizeOp (the broadcasted operation response).
@@ -3645,7 +3647,7 @@ class Account(BlockchainObject):
     def transfer_to_savings(self, amount, asset, memo, to=None, account=None, **kwargs):
         """
         Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
-        
+
         Parameters:
             amount (float | str | Amount): Amount to transfer; may be numeric, string, or an Amount instance.
             asset (str): Asset symbol, must be the chain token or its backed token (e.g. "HIVE" or "HBD").
@@ -3655,10 +3657,10 @@ class Account(BlockchainObject):
             account (str | Account, optional): Source account name or Account performing the transfer.
                 If omitted, `self` is used.
             **kwargs: Additional keyword arguments passed to the underlying finalizeOp call.
-        
+
         Returns:
             dict: Result of finalizeOp (the broadcast/transaction result).
-        
+
         Raises:
             AssertionError: If `asset` is not one of the allowed symbols.
         """
@@ -3692,12 +3694,12 @@ class Account(BlockchainObject):
     ):
         """
         Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
-        
+
         Creates and broadcasts a `transfer_from_savings` operation. If `request_id` is not
         provided a random 32-bit id will be generated. If `account` is omitted the
         operation will be created for the current account; if `to` is omitted the funds
         are transferred back to the same account.
-        
+
         Parameters:
             amount (float|str|Amount): Amount to withdraw.
             asset (str): Symbol of the asset to withdraw, must be the chain token or its backed token (e.g., "HIVE" or "HBD").
@@ -3705,10 +3707,10 @@ class Account(BlockchainObject):
             request_id (int, optional): Identifier for this withdrawal request; used to cancel or track the withdrawal. If omitted one is generated.
             to (str|Account, optional): Destination account name or Account; defaults to the source account.
             account (str|Account, optional): Source account name or Account; defaults to the current account.
-        
+
         Returns:
             dict: Result of finalizeOp / broadcast (operation confirmation).
-        
+
         Raises:
             AssertionError: If `asset` is not a supported token symbol for this chain.
         """
@@ -3785,18 +3787,18 @@ class Account(BlockchainObject):
     ):
         """
         Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
-        
+
         If all reward amounts are left at their default (0), this will claim all outstanding rewards for the target account. Otherwise only the nonzero amounts will be claimed.
-        
+
         Parameters:
             reward_hive (str|float|Amount, optional): Amount of HIVE to claim (default: 0).
             reward_hbd (str|float|Amount, optional): Amount of HBD to claim (default: 0).
             reward_vests (str|float|Amount, optional): Amount of VESTS to claim (default: 0).
             account (str|Account, optional): Account to claim rewards for; if None, uses self. Must be a valid account.
-        
+
         Returns:
             dict: The broadcast/finalization result returned by the blockchain finalizeOp call.
-        
+
         Raises:
             ValueError: If no account is provided or the resolved account is falsy.
         """
@@ -3856,15 +3858,15 @@ class Account(BlockchainObject):
     def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs):
         """
         Delegate vesting shares (Hive Power) from one account to another.
-        
+
         Parameters:
             to_account (str or Account): Receiver of the delegated vesting shares (delegatee).
             vesting_shares (str|Amount): Amount to delegate, e.g. "10000 VESTS" or an Amount-like object.
             account (str or Account, optional): Source account (delegator). If omitted, uses this Account instance.
-        
+
         Returns:
             dict: Result of broadcasting the Delegate_vesting_shares operation (transaction/result object).
-        
+
         Raises:
             ValueError: If `to_account` is not provided or cannot be resolved.
         """
@@ -3917,18 +3919,18 @@ class Account(BlockchainObject):
     ):
         """
         Set or update a vesting withdraw route for an account.
-        
+
         When the source account withdraws vesting shares, a portion of the withdrawn amount is routed to `to` according to `percentage`. If `auto_vest` is True the recipient receives VESTS; otherwise the recipient receives liquid HIVE.
-        
+
         Parameters:
             to (str): Recipient account name.
             percentage (float): Percentage of each withdraw to route to `to` (0.0–100.0). Internally converted to protocol units (multiplied by HIVE_1_PERCENT).
             account (str|Account, optional): Source account performing the route change. If omitted, `self` is used.
             auto_vest (bool): If True route is added as VESTS; if False route is converted to HIVE.
-        
+
         Returns:
             dict: Result of broadcasting the `set_withdraw_vesting_route` operation (as returned by finalizeOp).
-        
+
         Notes:
             - Operation is broadcast with the source account's active authority.
         """
@@ -4089,18 +4091,18 @@ class Account(BlockchainObject):
     def feed_history(self, limit=None, start_author=None, start_permlink=None, account=None):
         """
         Yield feed entries for an account in reverse chronological order.
-        
+
         Streams discussion entries from the account's feed using paginated calls to the discussions API. Entries are yielded one at a time until the optional limit is reached or no more entries are available. Note that RPC nodes keep only a limited feed history, so older entries may be unavailable.
-        
+
         Parameters:
             limit (int, optional): Maximum number of entries to yield. If omitted, yields all available entries.
             start_author (str, optional): Author name to start from. Must be provided together with `start_permlink` to page from a specific position.
             start_permlink (str, optional): Permlink to start from. Must be provided together with `start_author`.
             account (str|Account, optional): Account whose feed to stream. If omitted, uses this Account instance.
-        
+
         Raises:
             AssertionError: If `limit` is not a positive integer, or if only one of `start_author` / `start_permlink` is provided.
-        
+
         Yields:
             dict or Comment-like object: Discussion/feed entries returned by the discussions API, in reverse time order.
         """
@@ -4147,18 +4149,18 @@ class Account(BlockchainObject):
     def blog_history(self, limit=None, start=-1, reblogs=True, account=None):
         """
         Yield blog entries for an account in reverse chronological order.
-        
+
         Streams Discussion entries from the account's blog (newest first). Results are limited by RPC node history and may not include very old posts.
-        
+
         Parameters:
             limit (int, optional): Maximum number of entries to yield. Must be > 0 if provided; otherwise all available entries are streamed.
             start (int, optional): (Currently ignored) kept for backward compatibility.
             reblogs (bool, optional): If True (default), include reblogs; if False, only original posts by the account are yielded.
             account (str|Account, optional): Account name or Account object to stream; defaults to this Account instance.
-        
+
         Returns:
             generator: Yields discussion dicts (post objects) as returned by Discussions_by_blog.
-        
+
         Raises:
             AssertionError: If limit is provided but is not an int > 0.
         """
@@ -4206,17 +4208,17 @@ class Account(BlockchainObject):
     def comment_history(self, limit=None, start_permlink=None, account=None):
         """
         Yield comments authored by an account in reverse chronological order.
-        
+
         Streams available comment entries from the node's discussions_by_comments index. Results are returned newest-first and may be truncated by RPC node history limits; older comments might not be available.
-        
+
         Parameters:
             limit (int, optional): Maximum number of comments to yield. If None, yields all available comments.
             start_permlink (str, optional): If set, start streaming from this permlink (inclusive). If None, starts from the latest available entry.
             account (str or Account, optional): Account name or Account instance to stream comments for. Defaults to the Account instance this method is called on.
-        
+
         Yields:
             dict: Discussion/comment dictionaries as returned by the Discussions_by_comments helper.
-        
+
         Raises:
             AssertionError: If `limit` is provided and is not a positive integer.
         """
@@ -4344,7 +4346,7 @@ class AccountsObject(list):
     def print_summarize_table(self, tag_type="Follower", return_str=False, **kwargs):
         """
         Print or return a one-line summary table aggregating metrics for the accounts in this collection.
-        
+
         Calculates and reports:
         - total count of accounts,
         - summed MVest value (own vesting shares / 1e6),
@@ -4352,12 +4354,12 @@ class AccountsObject(list):
         - summed, mean, and max effective HP (Hive Power) (if available),
         - mean time since last vote (hours) and mean time since last post (days) excluding accounts inactive >= 365 days,
         - counts of accounts without a vote or a post in the last 365 days.
-        
+
         Parameters:
             tag_type (str): Label used for counting rows (default "Follower").
             return_str (bool): If True, return the formatted table as a string; if False, print it.
             **kwargs: Passed through to PrettyTable.get_string (formatting options).
-        
+
         Returns:
             Optional[str]: The table string when return_str is True; otherwise None.
         """
@@ -4430,14 +4432,14 @@ class Accounts(AccountsObject):
     ):
         """
         Initialize an Accounts collection by batch-fetching account data and wrapping each result in an Account object.
-        
+
         Parameters:
             name_list (Iterable[str]): Sequence of account names to load.
             batch_limit (int): Maximum number of accounts fetched per RPC call (default 100).
             lazy (bool): Passed to each Account; if True, create lightweight Account objects (default False).
             full (bool): Passed to each Account; if True, request full account data when available (default True).
             blockchain_instance: Optional blockchain client; when omitted, a shared instance is used.
-        
+
         Behavior:
             - If the blockchain client is not connected, initialization returns early (creates an empty collection).
             - Accounts are fetched in batches via the blockchain RPC. When appbase is enabled the

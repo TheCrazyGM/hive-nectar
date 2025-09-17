@@ -12,13 +12,13 @@ log = logging.getLogger(__name__)
 def node_answer_time(node):
     """
     Measure the RPC/network response time to a Hive node.
-    
+
     Parameters:
         node (str): Node endpoint (URL or host) to ping.
-    
+
     Returns:
         float: Elapsed time in seconds for a single `get_network` call. Returns float('inf') if an error occurred while contacting the node.
-    
+
     Raises:
         KeyboardInterrupt: Re-raised if the operation is interrupted by the user.
     """
@@ -52,7 +52,7 @@ class NodeList(list):
     def __init__(self):
         """
         Initialize the NodeList with a built-in default set of Hive node metadata.
-        
+
         Creates the list with prepopulated node dictionaries (url, version, type, owner, hive, score)
         and passes them to the parent list constructor. The default entries are Hive-focused
         (appbase and testnet types) and intended as the initial internal node registry.
@@ -190,18 +190,18 @@ class NodeList(list):
     def get_node_answer_time(self, node_list=None, verbose=False):
         """
         Return a list of reachable node endpoints sorted by measured RPC latency.
-        
+
         Pings each URL in node_list (or every URL known to this NodeList if node_list is None)
         using node_answer_time and returns a list of dicts sorted by increasing latency.
         Each dict contains:
             - "url": the node endpoint string
             - "delay_ms": measured round-trip delay in milliseconds
-        
+
         Parameters:
             node_list (iterable[str] | None): Specific node URLs to test. If None, all URLs
                 from this NodeList are tested.
             verbose (bool): If True, logs each node's measured delay.
-        
+
         Behavior notes:
             - URLs not present in this NodeList are treated as unreachable and omitted from the result.
             - Nodes that fail measurement are treated as infinite latency and are excluded from the returned list.
@@ -238,12 +238,12 @@ class NodeList(list):
     def update_nodes(self, weights=None, blockchain_instance=None):
         """
         Update the internal node list and recalculated scores using nectarflower metadata.
-        
+
         Fetches the "nectarflower" account's json_metadata (up to 5 attempts) and uses its
         "report", "failing_nodes", and "parameter" sections to recalculate each node's
         score and metadata (version, hive). If metadata cannot be retrieved after
         retries, the method logs a warning and returns without modifying the list.
-        
+
         Weights:
         - weights may be None, a list, or a dict.
           - None: benchmarks are weighted uniformly.
@@ -251,7 +251,7 @@ class NodeList(list):
           - dict: keys are benchmark names; values are normalized by their sum. Any benchmark not present in the provided dict receives weight 0.
         The code derives benchmark names from metadata.parameters.benchmarks when available,
         otherwise from keys present in report entries (excluding obvious non-benchmark fields).
-        
+
         Scoring rules:
         - For each report entry, per-benchmark ranks are converted to scores (0–100),
           multiplied by the benchmark weights, and summed to produce a node score.
@@ -260,11 +260,11 @@ class NodeList(list):
         - Nodes present in the internal list but missing from the report receive score 0.
         - Nodes present in the report but missing from the internal list are appended to the final list (with fields populated from the report).
         - Nodes listed in failing_nodes but absent elsewhere are appended with score -1.
-        
+
         Side effects:
         - Replaces the NodeList contents (in-place) with the newly computed list of nodes.
         - Uses the provided blockchain_instance or a shared blockchain instance to fetch metadata and advance RPC state on transient errors.
-        
+
         No return value.
         """
         bc = blockchain_instance or shared_blockchain_instance()
@@ -458,9 +458,9 @@ class NodeList(list):
     ):
         """
         Return a list of node URLs filtered and sorted by score (descending).
-        
+
         Filters nodes by type (normal, appbase, appbase-dev, testnet, testnet-dev, appbase-limited), by whether they are Hive nodes, by protocol (https/wss), and by working status. Nodes with score < 0 are excluded unless not_working=True. The resulting list is sorted by each node's "score" in descending order.
-        
+
         Parameters that add non-obvious behavior:
             hive (bool): If True (default) return only nodes marked as Hive; set to False to include non-Hive entries (note: the bundled node data is Hive-focused).
             exclude_limited (bool): If True, exclude nodes of type "appbase-limited".
@@ -472,7 +472,7 @@ class NodeList(list):
             not_working (bool): If True, include nodes with negative scores (not working).
             normal (bool): Include "normal" nodes when True. (Deprecated)
             appbase (bool): Include "appbase" nodes when True. (Deprecated)
-        
+
         Returns:
             list[str]: Filtered node URLs sorted by node["score"] descending.
         """
@@ -508,15 +508,15 @@ class NodeList(list):
     def get_hive_nodes(self, testnet=False, not_working=False, wss=True, https=True):
         """
         Return a list of Hive node URLs filtered and ordered by score.
-        
+
         Filters internal nodes to Hive-only entries and returns their URLs sorted by score (highest first).
-        
+
         Parameters:
             testnet (bool): If True, include only nodes whose type is "testnet". If False, include only non-testnet nodes.
             not_working (bool): If True, include nodes with negative scores (typically non-working). If False, exclude them.
             wss (bool): If True, include nodes with WSS (wss://) URLs; if False, exclude WSS endpoints.
             https (bool): If True, include nodes with HTTPS (https://) URLs; if False, exclude HTTPS endpoints.
-        
+
         Returns:
             list[str]: Sorted list of node URLs (strings) matching the filters.
         """
@@ -543,13 +543,13 @@ class NodeList(list):
     def get_testnet(self, testnet=True, testnetdev=False):
         """
         Return a list of testnet node URLs.
-        
+
         Calls get_nodes with normal and appbase disabled to return nodes belonging to the testnet(s).
-        
+
         Parameters:
             testnet (bool): If True include nodes marked as `testnet`. If False, include non-testnet nodes.
             testnetdev (bool): If True include nodes marked as `testnet-dev` (development testnet).
-        
+
         Returns:
             list: Sorted list of node URL strings matching the requested testnet filters.
         """

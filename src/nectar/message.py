@@ -52,10 +52,10 @@ timestamp={meta[timestamp]}
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
         """
         Initialize the message handler, normalize line endings, and set up signing context.
-        
+
         Parameters:
             message (str): The raw message text to be signed or verified. Line endings are normalized to LF.
-        
+
         Description:
             - Assigns self.blockchain to the provided blockchain_instance or to shared_blockchain_instance() when none is given.
             - Normalizes CRLF ("\r\n") to LF ("\n") and stores the result in self.message.
@@ -191,10 +191,10 @@ class MessageV2(object):
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
         """
         Initialize the message handler and set up default signing context.
-        
+
         Parameters:
             message (str): The raw message text to be signed or verified.
-        
+
         Description:
             Stores the provided message and sets up the signing context attributes
             (signed_by_account, signed_by_name, meta, plain_message) to None.

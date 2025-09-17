@@ -11,6 +11,7 @@ from binascii import hexlify, unhexlify
 # Optional ecdsa import for backward compatibility
 try:
     import ecdsa
+
     ECDSA_AVAILABLE = True
 except ImportError:
     ecdsa = None
@@ -21,6 +22,7 @@ from .base58 import Base58, doublesha256, ripemd160
 # Optional bip32 import for BIP32 key derivation
 try:
     from .bip32 import BIP32Key, parse_path
+
     BIP32_AVAILABLE = True
 except ImportError:
     BIP32Key = None
@@ -42,17 +44,18 @@ SECP256K1_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F8179
 SECP256K1_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
 SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
+
 def _mod_inverse(a, m):
     """
     Return the modular inverse of a modulo m using the extended Euclidean algorithm.
-    
+
     Given integers a and m, compute x such that (a * x) % m == 1. The result is normalized
     to the range [0, m-1]. If m == 1 the function returns 0.
-    
+
     Parameters:
         a (int): The value to invert modulo m.
         m (int): The modulus.
-    
+
     Returns:
         int: The modular inverse of a modulo m, or 0 when m == 1.
     """
@@ -78,17 +81,17 @@ def _is_on_curve(x, y, p=SECP256K1_P, a=SECP256K1_A, b=SECP256K1_B):
 def _point_add(p1, p2, p=SECP256K1_P):
     """
     Add two points on an elliptic curve over a prime field.
-    
+
     Both p1 and p2 are either None (the point at infinity) or 2-tuples (x, y) of integers
     interpreted modulo p. Returns a 2-tuple (x, y) representing the sum (mod p), or None
     for the point at infinity. Uses the short Weierstrass group law (handles point
     doubling and addition, including the inverse/vertical-tangent cases).
-    
+
     Parameters:
         p1 (tuple|None): First point as (x, y) or None for infinity.
         p2 (tuple|None): Second point as (x, y) or None for infinity.
         p (int): Prime modulus of the field (defaults to SECP256K1_P).
-    
+
     Returns:
         tuple|None: Resulting point (x, y) modulo p, or None if the result is the
         point at infinity.
@@ -126,12 +129,12 @@ def _point_add(p1, p2, p=SECP256K1_P):
 def _scalar_mult(k, point, p=SECP256K1_P):
     """
     Compute k * point on the secp256k1 curve using the binary (double-and-add) method.
-    
+
     Parameters:
         k (int): Non-negative integer scalar.
         point (tuple|None): Elliptic-curve point as (x, y) or None to represent the point at infinity.
         p (int, optional): Prime modulus of the field (defaults to SECP256K1_P).
-    
+
     Returns:
         tuple|None: The resulting point (x, y) after scalar multiplication, or None for the point at infinity.
     """
@@ -155,11 +158,11 @@ def _scalar_mult(k, point, p=SECP256K1_P):
 def _point_to_compressed(point):
     """
     Return the 33-byte SEC compressed encoding of an EC point on secp256k1.
-    
+
     The input `point` must be a tuple (x, y) of integers representing coordinates on the curve.
     The result is a 33-byte bytes object: a 1-byte prefix 0x02 (even y) or 0x03 (odd y)
     followed by the 32-byte big-endian x coordinate.
-    
+
     Raises:
         ValueError: If `point` is None (the point at infinity cannot be compressed).
     """
@@ -168,19 +171,19 @@ def _point_to_compressed(point):
 
     x, y = point
     prefix = 0x02 if y % 2 == 0 else 0x03
-    return prefix.to_bytes(1, 'big') + x.to_bytes(32, 'big')
+    return prefix.to_bytes(1, "big") + x.to_bytes(32, "big")
 
 
 def _compressed_to_point(compressed):
     """
     Convert a 33-byte SEC compressed public key to an (x, y) point on the secp256k1 curve.
-    
+
     Parameters:
         compressed (bytes): 33-byte compressed point (prefix 0x02 or 0x03 followed by 32-byte big-endian x).
-    
+
     Returns:
         tuple[int, int]: The affine coordinates (x, y) of the corresponding point.
-    
+
     Raises:
         ValueError: If the input length is not 33 bytes, the prefix is not 0x02/0x03, or the recovered point is not on the secp256k1 curve.
     """
@@ -188,7 +191,7 @@ def _compressed_to_point(compressed):
         raise ValueError("Invalid compressed point length")
 
     prefix = compressed[0]
-    x = int.from_bytes(compressed[1:], 'big')
+    x = int.from_bytes(compressed[1:], "big")
 
     if prefix not in (0x02, 0x03):
         raise ValueError("Invalid compressed point prefix")
@@ -213,16 +216,16 @@ def _compressed_to_point(compressed):
 def binary_search(a, x, lo=0, hi=None):  # can't use a to specify default for hi
     """
     Locate the index of x in sorted sequence a using binary search.
-    
+
     Performs a binary search on the sorted sequence `a` and returns the lowest index i in [lo, hi)
     such that a[i] == x. If x is not present in that slice, returns -1.
-    
+
     Parameters:
         a (Sequence): Sorted sequence (ascending) to search.
         x: Value to locate.
         lo (int, optional): Lower bound (inclusive) index to search from. Defaults to 0.
         hi (int, optional): Upper bound (exclusive) index to search to. Defaults to len(a).
-    
+
     Returns:
         int: Index of the first matching element in [lo, hi), or -1 if not found.
     """
@@ -834,13 +837,13 @@ class PublicKey(Prefix):
     def add(self, digest256):
         """
         Return a new PublicKey obtained by adding a 32-byte tweak (interpreted as a big-endian scalar) times the curve generator to this public key.
-        
+
         Parameters:
             digest256 (bytes): A 32-byte SHA-256 digest used as the tweak scalar (big-endian). Must be length 32, non-zero, and less than the curve order.
-        
+
         Returns:
             PublicKey: A new PublicKey instance representing (tweak * G) + current_public_key, preserving this key's prefix.
-        
+
         Raises:
             ValueError: If `digest256` is not bytes, not 32 bytes long, is zero, is >= curve order, or if intermediate point multiplication/addition results in the point at infinity.
         """
@@ -850,7 +853,7 @@ class PublicKey(Prefix):
         if len(digest256) != 32:
             raise ValueError("Tweak must be exactly 32 bytes")
 
-        tweak = int.from_bytes(digest256, 'big')
+        tweak = int.from_bytes(digest256, "big")
         if tweak == 0:
             raise ValueError("Tweak cannot be zero")
         if tweak >= SECP256K1_N:
@@ -877,20 +880,20 @@ class PublicKey(Prefix):
         result_compressed = _point_to_compressed(result_point)
 
         # Create new PublicKey with same prefix
-        return PublicKey(hexlify(result_compressed).decode('ascii'), prefix=self.prefix)
+        return PublicKey(hexlify(result_compressed).decode("ascii"), prefix=self.prefix)
 
     @classmethod
     def from_privkey(cls, privkey, prefix=None):
         """
         Derive a compressed public key from a private key and return a PublicKey instance.
-        
+
         Parameters:
             privkey: The private key material to derive from — accepts a WIF/hex string or a PrivateKey instance.
             prefix (optional): Network/key prefix to use for the resulting PublicKey; if omitted the module default prefix is used.
-        
+
         Returns:
             PublicKey: A PublicKey (compressed form) constructed from the derived public key bytes.
-        
+
         Raises:
             ImportError: If the `ecdsa` library is not available.
         """
@@ -1029,10 +1032,10 @@ class PrivateKey(Prefix):
     def derive_from_seed(self, offset):
         """
         Derive a new PrivateKey by adding a 32-byte integer offset to this key's seed modulo the secp256k1 order.
-        
+
         Parameters:
             offset (bytes): A 32-byte SHA-256 digest interpreted as a big-endian integer offset to add to this key's secret.
-        
+
         Returns:
             PrivateKey: A new PrivateKey created from (seed + offset) mod SECP256K1_N, preserving this key's prefix.
         """

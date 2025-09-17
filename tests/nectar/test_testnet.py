@@ -300,7 +300,7 @@ class Testcases(unittest.TestCase):
         hive.wallet.addPrivateKey(self.active_private_key_of_nectar5)
 
     def test_transfer_2of2_wif(self):
-        nodelist = NodeList()
+        _ = NodeList()
         # Send a 2 of 2 transaction from elf which needs nectar4's cosign to send
         # funds but sign the transaction with elf's key and then serialize the transaction
         # and deserialize the transaction.  After that, sign with nectar4's key.
@@ -399,7 +399,7 @@ class Testcases(unittest.TestCase):
         self.assertEqual(op["creator"], "nectar")
 
     def test_connect(self):
-        nodelist = NodeList()
+        _ = NodeList()
         self.bts.connect(node=self.nodes)
         bts = self.bts
         self.assertEqual(bts.prefix, "STX")
@@ -524,7 +524,7 @@ class Testcases(unittest.TestCase):
         self.assertIn("nectar1", op["witness"])
 
     def test_appendWif(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(node=self.nodes, nobroadcast=True, expiration=120, num_retries=10)
         tx = TransactionBuilder(use_condenser_api=True, blockchain_instance=hv)
         tx.appendOps(
@@ -546,7 +546,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(tx["signatures"]) > 0)
 
     def test_appendSigner(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
@@ -574,7 +574,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(tx["signatures"]) > 0)
 
     def test_verifyAuthorityException(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(
             node=self.nodes,
             keys=[self.posting_key],
@@ -603,7 +603,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(tx["signatures"]) > 0)
 
     def test_Transfer_broadcast(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
@@ -651,7 +651,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(tx["signatures"]) > 0)
 
     def test_follow_active_key(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(
             node=self.nodes,
             keys=[self.active_key],
@@ -663,7 +663,7 @@ class Testcases(unittest.TestCase):
         account.follow("nectar1")
 
     def test_follow_posting_key(self):
-        nodelist = NodeList()
+        _ = NodeList()
         hv = Hive(
             node=self.nodes,
             keys=[self.posting_key],

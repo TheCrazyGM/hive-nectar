@@ -24,7 +24,7 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Initialize a Hive test client and register it for use by the test class.
-        
+
         Creates a Hive instance configured for appbase (use_condenser=False), non-broadcasting mode (nobroadcast=True),
         provides an active key, and sets retry behavior. The instance is stored on the class as `bts`, registered as the
         shared blockchain instance, and its default account is set to "test".
@@ -126,7 +126,7 @@ class Testcases(unittest.TestCase):
     def test_blog(self):
         """
         Unit test that retrieves blog discussions for a likely-active account and asserts the result count is within the requested limit.
-        
+
         Constructs a Query with limit=10 and tag="hiveio", calls Discussions_by_blog, and asserts the returned list length is between 0 and 10 inclusive. If the blog cannot be retrieved (for example the account or posts are absent), the test is skipped via self.skipTest with the underlying exception message.
         """
         bts = self.bts

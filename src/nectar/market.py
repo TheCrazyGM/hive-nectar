@@ -62,14 +62,14 @@ class Market(dict):
     def __init__(self, base=None, quote=None, blockchain_instance=None, **kwargs):
         """
         Create a Market mapping with "base" and "quote" Asset objects.
-        
+
         Supports three initialization modes:
         - Single-string market identifier (e.g., "HBD:HIVE" or "HIVE:HBD"): parsed into quote and base symbols and converted to Asset objects.
         - Explicit base and quote (either Asset instances or values accepted by Asset): each converted to an Asset.
         - No arguments: uses the blockchain instance's default token symbols (token_symbol as base, backed_token_symbol as quote).
-        
+
         The resolved Asset objects are stored in the instance as entries "base" and "quote". The blockchain instance used is the provided one or the shared global instance.
-        
+
         Raises:
             ValueError: if the combination of arguments does not match any supported initialization mode.
         """
@@ -100,10 +100,10 @@ class Market(dict):
     def get_string(self, separator=":"):
         """
         Return the market identifier as "QUOTE{separator}BASE" (e.g. "HIVE:HBD").
-        
+
         Parameters:
             separator (str): Token placed between quote and base symbols. Defaults to ":".
-        
+
         Returns:
             str: Formatted market string in the form "<quote><separator><base>".
         """
@@ -124,17 +124,17 @@ class Market(dict):
     def ticker(self, raw_data=False):
         """
         Return the market ticker for this Market (HIVE:HBD).
-        
+
         By default returns a dict with Price objects for 'highest_bid', 'latest', and 'lowest_ask',
         a float 'percent_change' (24h), and Amount objects for 'hbd_volume' and 'hive_volume' when present.
         If raw_data is True, returns the unprocessed RPC result.
-        
+
         Parameters:
             raw_data (bool): If True, return the raw market_history RPC response instead of mapped objects.
-        
+
         Returns:
             dict or Any: Mapped ticker dictionary (prices as Price, volumes as Amount) or raw RPC data.
-        
+
         Notes:
             Prices are expressed as HBD per HIVE.
         """
@@ -175,12 +175,12 @@ class Market(dict):
     def volume24h(self, raw_data=False):
         """
         Return 24-hour trading volume for this market.
-        
+
         If raw_data is True, returns the raw result from the blockchain `market_history` RPC.
         Otherwise, if the RPC result contains 'hbd_volume' and 'hive_volume', returns a dict mapping
         asset symbols to Amount objects, e.g. { "HBD": Amount(...), "HIVE": Amount(...) }.
         If the expected volume keys are not present, returns None.
-        
+
         Parameters:
             raw_data (bool): If True, return the unprocessed RPC response.
         """
@@ -292,13 +292,13 @@ class Market(dict):
     def recent_trades(self, limit=25, raw_data=False):
         """
         Return recent trades for this market.
-        
+
         By default returns up to `limit` most recent trades wrapped as FilledOrder objects; if `raw_data` is True the raw trade dictionaries from the market_history API are returned instead.
-        
+
         Parameters:
             limit (int): Maximum number of trades to retrieve (default: 25).
             raw_data (bool): If True, return raw API trade entries; if False, return a list of FilledOrder instances constructed with this market's blockchain instance.
-        
+
         Returns:
             list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
@@ -403,18 +403,18 @@ class Market(dict):
     def market_history(self, bucket_seconds=300, start_age=3600, end_age=0, raw_data=False):
         """
         Return market history buckets for a time window.
-        
+
         This fetches aggregated market history buckets (filled orders) for the market over a window defined by start_age and end_age and grouped by bucket_seconds. bucket_seconds may be provided either as a numeric bucket size (seconds) or as an index into available buckets returned by market_history_buckets(). When raw_data is False any bucket "open" timestamp strings are normalized to a consistent formatted datetime string.
-        
+
         Parameters:
             bucket_seconds (int): Bucket size in seconds or an index into market_history_buckets().
             start_age (int): Age in seconds from now to the start of the window (default 3600 seconds).
             end_age (int): Age in seconds from now to the end of the window (default 0 = now).
             raw_data (bool): If True, return the raw RPC response without normalizing timestamps.
-        
+
         Returns:
             list: A list of bucket dicts (or the raw RPC list when raw_data is True). Each bucket contains fields such as 'open', 'seconds', 'open_hbd', 'close_hbd', 'high_hbd', 'low_hbd', 'hbd_volume', 'open_hive', 'close_hive', 'high_hive', 'low_hive', 'hive_volume', and 'id' when available.
-        
+
         Raises:
             ValueError: If bucket_seconds is not a valid bucket size or valid index into available buckets.
         """
@@ -501,9 +501,9 @@ class Market(dict):
     ):
         """
         Place a buy order (limit order) on this market.
-        
+
         Prices are expressed in the market's base/quote orientation (HIVE per HBD in HBD_HIVE). This method submits a limit-order-create operation that effectively places a sell order of the base asset to acquire the requested amount of the quote asset.
-        
+
         Parameters:
             price (float or Price): Price expressed in base per quote (e.g., HIVE per HBD).
             amount (number or str or Amount): Amount of the quote asset to buy.
@@ -512,14 +512,14 @@ class Market(dict):
             account (str, optional): Account name that will own and broadcast the order. If omitted, default_account from config is used; a ValueError is raised if none is available.
             orderid (int, optional): Explicit client-side order id. If omitted one is randomly generated.
             returnOrderId (bool or str, optional): If truthy (or set to "head"/"irreversible"), the call will wait for the transaction and attach the assigned order id to the returned transaction under the "orderid" key.
-        
+
         Returns:
             dict: The finalized broadcast transaction object returned by the blockchain client. If returnOrderId was used, the dict includes an "orderid" field.
-        
+
         Raises:
             ValueError: If no account can be resolved.
             AssertionError: If an Amount is provided whose asset symbol does not match the market quote.
-        
+
         Notes:
             - Because buy orders are implemented as limit-sell orders of the base asset, the trade can result in receiving more of the quote asset than requested if matching orders exist at better prices.
         """
@@ -589,9 +589,9 @@ class Market(dict):
     ):
         """
         Place a limit sell order on this market, selling the market's quote asset for its base asset.
-        
+
         This creates a Limit_order_create operation where `amount_to_sell` is the provided `amount` in the market's quote asset and `min_to_receive` is `amount * price` in the market's base asset.
-        
+
         Parameters:
             price (float or Price): Price expressed as base per quote (e.g., in HBD_HIVE market, a price of 3 means 1 HBD = 3 HIVE).
             amount (number or str or Amount): Quantity of the quote asset to sell; may be an Amount instance, a string (e.g., "10.000 HBD"), or a numeric value.
@@ -600,10 +600,10 @@ class Market(dict):
             account (str, optional): Account name placing the order. If omitted, the configured default_account is used. Raises ValueError if no account is available.
             orderid (int, optional): Client-provided order identifier; a random 32-bit id is used if not supplied.
             returnOrderId (bool or str, optional): If truthy (or set to "head"/"irreversible"), the call will wait according to the blocking mode and the returned transaction will include an "orderid" field.
-        
+
         Returns:
             dict: The finalized transaction object returned by the blockchain finalizeOp call. If `returnOrderId` is used, the dict will include an "orderid" key.
-        
+
         Raises:
             ValueError: If no account is provided or available from configuration.
             AssertionError: If an Amount is provided whose asset symbol does not match the market's quote asset.
@@ -697,16 +697,16 @@ class Market(dict):
     def btc_usd_ticker(verbose=False):
         """
         Return the market-weighted BTC/USD price aggregated from multiple external sources.
-        
+
         Queries a set of public endpoints (currently CoinGecko; legacy support for Bitfinex, GDAX, Kraken, OKCoin, Bitstamp is present)
         and computes a volume-weighted average price (VWAP) across successful responses.
-        
+
         Parameters:
             verbose (bool): If True, prints the raw price/volume map collected from each source.
-        
+
         Returns:
             float: The VWAP of BTC in USD computed from available sources.
-        
+
         Raises:
             RuntimeError: If no valid price data could be obtained from any source after several attempts.
         """
@@ -786,12 +786,12 @@ class Market(dict):
     def hive_btc_ticker():
         """
         Return the HIVE/BTC price as a volume-weighted average from multiple public exchanges.
-        
+
         Queries several public APIs (CoinGecko and others) to collect recent HIVE/BTC prices and 24h volumes, then computes a volume-weighted average price (VWAP). The function retries up to 5 times if no valid responses are obtained.
-        
+
         Returns:
             float: VWAP price expressed in BTC per 1 HIVE.
-        
+
         Raises:
             RuntimeError: If no valid price data could be obtained from any source.
         """

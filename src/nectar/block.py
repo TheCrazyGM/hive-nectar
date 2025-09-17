@@ -53,13 +53,13 @@ class Block(BlockchainObject):
     ):
         """
         Initialize a Block object representing a single blockchain block.
-        
+
         block may be an integer (block number), a float (will be converted to int), or a dict containing block data (which will be parsed). Controls:
         - only_ops: load only operations from the block.
         - only_virtual_ops: load only virtual operations.
         - full: if True, populate full block data; if False, keep a minimal representation.
         - lazy: if True, defer fetching full data until needed.
-        
+
         If no identifier is present after initialization, the block's identifier is set to its numeric block number.
         """
         self.full = full
@@ -336,15 +336,15 @@ class BlockHeader(BlockchainObject):
     def __init__(self, block, full=True, lazy=False, blockchain_instance=None, **kwargs):
         """
         Initialize a BlockHeader.
-        
+
         One-line summary:
             Create a BlockHeader wrapper for a block header, optionally in lazy or full mode.
-        
+
         Parameters:
             block (int | float | dict): Block number (floats are converted to int) or a header dict.
             full (bool): If True, populate the object with full header data; otherwise keep a minimal representation.
             lazy (bool): If True, delay API fetching until data is accessed.
-        
+
         Notes:
             If no blockchain_instance is provided, the module's shared blockchain instance is used.
         """
@@ -431,9 +431,9 @@ class Blocks(list):
     ):
         """
         Initialize a Blocks collection by fetching a contiguous range of blocks from the chain and populating the list with Block objects.
-        
+
         If a blockchain_instance is provided it is used; otherwise the shared blockchain instance is used. If the chosen instance is not connected, the initializer returns early and the Blocks object remains empty.
-        
+
         Parameters:
             starting_block_num (int): First block number to retrieve.
             count (int, optional): Number of consecutive blocks to fetch. Defaults to 1000.

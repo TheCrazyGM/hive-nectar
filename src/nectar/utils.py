@@ -176,7 +176,7 @@ def derive_permlink(
 def resolve_authorperm(identifier):
     """
     Parse an author/permlink identifier and return (author, permlink).
-    
+
     Accepts plain "author/permlink" or "@author/permlink", site URLs containing "/@author/permlink",
     and dtube-style URLs containing "#!/v/<author>/<permlink>". Returns a 2-tuple of strings
     (author, permlink). Raises ValueError if the identifier cannot be parsed.
@@ -389,7 +389,7 @@ def seperate_yaml_dict_from_body(content):
 def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
     """
     Create a YAML front-matter header string from post/comment data and metadata.
-    
+
     Builds a YAML block (string) beginning and ending with '---' that includes selected fields when present:
     - title (quoted)
     - permlink
@@ -405,7 +405,7 @@ def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
     - tags (comma-separated list)
     - beneficiaries (comma-separated entries formatted as "account:XX.XX%"; weights are converted from parts-per-10000 to percent with two decimals)
     - reply_identifier
-    
+
     Parameters:
         comment (dict): Source post/comment data. Expected keys used include
             "title", "permlink", "author", "last_update" or "updated",
@@ -414,7 +414,7 @@ def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
         json_metadata (dict, optional): Parsed JSON metadata; may contain "author",
             "description", "canonical_url", "app", and "tags" (list of strings).
         reply_identifier (str or None, optional): If provided, added as "reply_identifier".
-    
+
     Returns:
         str: The composed YAML front-matter block as a string.
     """

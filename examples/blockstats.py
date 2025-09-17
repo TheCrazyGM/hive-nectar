@@ -19,19 +19,19 @@ logging.basicConfig(level=logging.INFO)
 def parse_args(args=None):
     """
     Parse command-line arguments for the script.
-    
+
     One-line summary:
         Parse CLI arguments and return the parsed Namespace.
-    
+
     Detailed:
         Accepts an optional list of argument strings (for testing). Parses a single optional
         positional argument "blockchain" which is a string specifying the blockchain to use;
         if omitted the parser will use standard input as the default value.
-    
+
     Parameters:
         args (list[str] | None): Optional list of argument strings to parse. If None, uses
             arguments from the environment (sys.argv).
-    
+
     Returns:
         argparse.Namespace: Parsed arguments with attribute `blockchain`.
     """
@@ -50,9 +50,9 @@ def parse_args(args=None):
 def main(args=None):
     """
     Compute and print operation-type statistics for recent Hive blocks.
-    
+
     Scans approximately one hour of recent Hive blocks (by default) and tallies operation types across all transactions found in that window. Results are printed as a table showing each operation type, its count, and its percentage of total operations.
-    
+
     Parameters:
         args (list|None): Optional argument list in the same format as sys.argv[1:] or None to use command-line arguments parsed by argparse. Recognized options include a single optional positional "blockchain" identifier (defaults to Hive).
     """
@@ -126,7 +126,7 @@ def main(args=None):
                 % (blocksperday - block_count, ops_per_day)
             )
 
-    duration = timer() - start
+    _duration = timer() - start
     t = PrettyTable(["Type", "Count", "percentage"])
     t.align = "l"
     op_list = []

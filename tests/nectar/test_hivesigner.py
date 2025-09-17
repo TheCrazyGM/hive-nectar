@@ -16,7 +16,7 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Set up class-wide test fixtures: create a Hive blockchain instance and a test Account.
-        
+
         Initializes a Hive client configured for local testing (no broadcast, unsigned transactions, long refresh interval, and retry settings) using get_hive_nodes(), and attaches an Account named "test" (full access) to that blockchain instance as class attributes.
         """
         cls.bts = Hive(
@@ -42,10 +42,9 @@ class Testcases(unittest.TestCase):
         self.assertEqual(len(url), len(url_test))
         self.assertEqual(len(url.split("?")), 2)
         self.assertEqual(url.split("?")[0], url_test.split("?")[0])
-
+        # Compare query components irrespective of order
         url_parts = (url.split("?")[1]).split("&")
         url_test_parts = (url_test.split("?")[1]).split("&")
-
         self.assertEqual(len(url_parts), 3)
         self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 3)
 
@@ -57,9 +56,6 @@ class Testcases(unittest.TestCase):
         self.assertEqual(len(url), len(url_test))
         self.assertEqual(len(url.split("?")), 2)
         self.assertEqual(url.split("?")[0], url_test.split("?")[0])
-
-        url_parts = (url.split("?")[1]).split("&")
-        url_test_parts = (url_test.split("?")[1]).split("&")
 
     def test_sign_method(self):
         """Test the sign method functionality"""
@@ -75,8 +71,8 @@ class Testcases(unittest.TestCase):
                         "voter": "test",
                         "author": "gtg",
                         "permlink": "hive-pressure-4-need-for-speed",
-                        "weight": 10000
-                    }
+                        "weight": 10000,
+                    },
                 ]
             ]
         }

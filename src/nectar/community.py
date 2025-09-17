@@ -62,12 +62,12 @@ class Community(BlockchainObject):
     ) -> None:
         """
         Create a Community wrapper for the given community identifier or raw data.
-        
+
         If `community` is a dict, it will be normalized via _parse_json_data before initialization.
         This sets instance flags (full, lazy, observer) and resolves the blockchain instance used
         for RPC calls (falls back to the shared global instance). The object is constructed with
         its identifier field set to "name".
-        
+
         Parameters:
             community: Community name (str) or a dict with community data.
             observer: Account name used to request personalized data (optional).
@@ -87,11 +87,11 @@ class Community(BlockchainObject):
     def refresh(self) -> None:
         """
         Refresh the community's data from the blockchain.
-        
+
         Fetches the latest community record for this community's name via the bridge RPC and
         reinitializes the Community object with the returned data (updating identifier and all fields).
         If the instance is offline, the method returns without performing any RPC call.
-        
+
         Raises:
             AccountDoesNotExistsException: If no community data is returned for this community name.
         """
@@ -785,9 +785,9 @@ class Communities(CommunityObject):
     ) -> None:
         """
         Initialize a Communities collection by querying the blockchain for community metadata.
-        
+
         Fetches up to `limit` communities from the resolved blockchain instance using paginated bridge RPC calls and constructs Community objects from the results.
-        
+
         Parameters:
             sort (str): Sort order for results (e.g., "rank"). Defaults to "rank".
             observer (str | None): Account used to personalize results; passed through to the RPC call.
@@ -795,7 +795,7 @@ class Communities(CommunityObject):
             limit (int): Maximum number of communities to fetch (clamped per-request to 100). Defaults to 100.
             lazy (bool): If True, created Community objects will use lazy loading. Defaults to False.
             full (bool): If True, created Community objects will request full data. Defaults to True.
-        
+
         Notes:
             - If no blockchain instance is connected, initialization returns early and yields an empty collection.
             - The constructor ensures at most `limit` Community objects are created.

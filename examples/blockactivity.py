@@ -17,19 +17,19 @@ logging.basicConfig(level=logging.INFO)
 def parse_args(args=None):
     """
     Parse command-line arguments for the blocktivity CLI.
-    
+
     One-line summary:
         Parse arguments and return the parsed namespace.
-    
+
     Detailed description:
         Recognizes a single optional positional argument "blockchain" (default: sys.stdin) which
         should be the target blockchain identifier (currently "hive"). The optional `args`
         parameter can be used to pass an argument list for testing or programmatic invocation.
-    
+
     Parameters:
         args (list or None): Optional list of argument strings to parse. If None, the parser
             reads from sys.argv.
-    
+
     Returns:
         argparse.Namespace: Parsed arguments with attribute `blockchain`.
     """
@@ -48,15 +48,15 @@ def parse_args(args=None):
 def main(args=None):
     """
     Run a block activity (blocktivity) check over the last 24 hours for the Hive blockchain and print a summary.
-    
+
     This function parses CLI arguments to select the blockchain (Hive only), builds a node/client, scans the most recent ~24 hours of blocks (assuming ~3s block interval) to count:
     - total transactions and operations (first pass),
     - virtual operations (second pass),
     and prints throughput and per-day totals.
-    
+
     Parameters:
         args (list or None): Optional list of command-line arguments to parse (passed to parse_args). If None, parse_args reads from sys.argv.
-    
+
     Raises:
         Exception: If the `blockchain` argument is provided and is not "hive".
     """

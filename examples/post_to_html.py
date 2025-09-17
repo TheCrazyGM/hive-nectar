@@ -3,7 +3,7 @@
 import argparse
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 import jinja2
 import markdown

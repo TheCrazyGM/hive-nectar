@@ -31,12 +31,12 @@ class Witness(BlockchainObject):
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize a Witness object representing a blockchain witness.
-        
+
         Parameters:
             owner (str | dict): Witness owner account name or a dictionary of witness fields. If a dict is provided, it will be parsed into the internal witness representation.
             full (bool): If True, load full witness data when available; otherwise keep a lighter representation.
             lazy (bool): If True, defer network loading until data is accessed.
-        
+
         Notes:
             - `blockchain_instance` defaults to the shared blockchain instance when not provided.
             - Any unexpected keyword arguments are accepted for backward compatibility but will trigger a DeprecationWarning and be ignored.
@@ -47,7 +47,7 @@ class Witness(BlockchainObject):
                     f"Unexpected keyword argument '{key}' passed to Witness.__init__. "
                     "This may be a deprecated parameter and will be ignored.",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
         self.full = full
         self.lazy = lazy
@@ -61,12 +61,12 @@ class Witness(BlockchainObject):
     def refresh(self):
         """
         Refresh the witness data from the blockchain and reinitialize this object.
-        
+
         If the witness identifier is empty or the blockchain is not connected, the method returns early.
         Fetches witness data via the configured RPC (supports both appbase and legacy RPC paths), parses
         timestamps and numeric fields via _parse_json_data, and reinitializes the Witness instance with the
         retrieved data (respecting this object's lazy/full flags and blockchain instance).
-        
+
         Raises:
             WitnessDoesNotExistsException: If no witness information is found for the current identifier.
         """
@@ -155,9 +155,9 @@ class Witness(BlockchainObject):
     def feed_publish(self, base, quote=None, account=None):
         """
         Publish a witness feed price (exchange rate) to the blockchain.
-        
+
         Accepts the base and quote as Amount objects, strings, or numeric values and submits a Feed_publish operation using the provided account (defaults to the witness owner).
-        
+
         Parameters:
             base: Amount | str | number
                 The base side of the exchange_rate (must use the blockchain's backed token symbol).
@@ -165,10 +165,10 @@ class Witness(BlockchainObject):
                 The quote side of the exchange_rate. Defaults to "1.000 <TOKEN>" where <TOKEN> is the blockchain token_symbol.
             account: str | Account, optional
                 Account name or Account object used to sign and publish the feed. If omitted, the witness owner is used.
-        
+
         Returns:
             The result returned by blockchain.finalizeOp (typically the broadcast/transaction result).
-        
+
         Raises:
             ValueError: If no account is provided and the witness has no owner.
             AssertionError: If the resolved base or quote symbols do not match the blockchain's expected backed_token_symbol and token_symbol, respectively.
@@ -411,9 +411,9 @@ class GetWitnesses(WitnessesObject):
     ):
         """
         Initialize the GetWitnesses collection by fetching witness objects for the given list of account names.
-        
+
         If the connected RPC backend uses appbase, names are fetched in batches (size controlled by `batch_limit`); otherwise each name is queried individually. If no blockchain connection is available the initializer returns early and the collection remains empty.
-        
+
         Parameters:
             name_list (Iterable[str]): Account names of witnesses to retrieve.
             batch_limit (int): Maximum number of names to request per batch when using appbase RPC.
@@ -461,11 +461,11 @@ class Witnesses(WitnessesObject):
     def __init__(self, lazy=False, full=True, blockchain_instance=None):
         """
         Initialize a Witnesses collection and load active witnesses from the configured blockchain.
-        
+
         Parameters:
             lazy (bool): If True, create Witness objects without fetching full data (deferred loading).
             full (bool): If True, eager-load full witness data when constructing each Witness.
-        
+
         Notes:
             Resolves the blockchain instance from `blockchain_instance` or the shared default and immediately calls `refresh()` to populate the list of active witnesses.
         """
@@ -519,14 +519,14 @@ class WitnessesVotedByAccount(WitnessesObject):
     def __init__(self, account, lazy=False, full=True, blockchain_instance=None):
         """
         Initialize a WitnessesVotedByAccount collection for the given account.
-        
+
         Resolves the provided account to a full Account object, reads the list of witnesses that the account voted for (using appbase or legacy RPC paths as appropriate), and populates the list with Witness objects created with the specified loading flags. If the account has no witness votes recorded the constructor returns early and the collection remains empty. The instance identifier is set to the account name.
-        
+
         Parameters:
             account (str|Account): Account name or Account-like object to inspect for witness votes.
             lazy (bool): If True, create Witness objects in lazy-loading mode. Defaults to False.
             full (bool): If True, request full witness data when constructing Witness objects. Defaults to True.
-        
+
         Note:
             The blockchain instance is taken from the optional `blockchain_instance` argument or the shared default; it is not documented here as a parameter.
         """
@@ -585,18 +585,18 @@ class WitnessesRankedByVote(WitnessesObject):
     ):
         """
         Initialize a list of witnesses ranked by vote, with optional pagination.
-        
+
         Builds a WitnessesRankedByVote list starting at `from_account` and returning up to `limit`
         entries. The constructor transparently pages RPC calls when the requested `limit`
         exceeds the per-call query limit, handles appbase vs legacy RPC paths and condenser
         mode, and wraps returned witness entries as Witness objects.
-        
+
         Parameters:
             from_account (str): Account name to start ranking from (inclusive). When empty, ranking starts from the top.
             limit (int): Maximum number of witnesses to return.
             lazy (bool): If True, create Witness objects in lazy-loading mode.
             full (bool): If True, fully load each Witness on creation.
-        
+
         Notes:
             - `blockchain_instance` is taken from the shared instance when not provided.
             - The method uses different RPC endpoints depending on the node configuration
@@ -685,12 +685,12 @@ class ListWitnesses(WitnessesObject):
     ):
         """
         Initialize a ListWitnesses collection starting from a given account name.
-        
+
         Creates a list of Witness objects beginning at `from_account` (lexicographic start)
         up to `limit` entries. If no witnesses are found the constructor returns early
         leaving the instance empty. The object uses the provided blockchain instance
         (or the shared default) to query the node and sets `identifier` to `from_account`.
-        
+
         Parameters:
             from_account (str): Account name to start listing witnesses from (inclusive).
             limit (int): Maximum number of witness entries to retrieve.

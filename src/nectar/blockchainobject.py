@@ -103,18 +103,18 @@ class BlockchainObject(dict):
     ):
         """
         Initialize a BlockchainObject, setting its identifier and optionally loading or caching its data.
-        
+
         This constructor accepts a variety of `data` forms:
         - dict or instance of `klass`: uses the mapping directly as the object's data.
         - int: treated as a block number (identifier) and stored under `id_item`.
         - str: treated as an object identifier string and stored under `id_item`.
         - other scalar identifiers: validated with test_valid_objectid and may trigger a lookup.
-        
+
         Behavioral notes:
         - If `lazy` is False the constructor may call refresh() to populate the object from the blockchain.
         - If `use_cache` is True and not lazy, the object will be stored in the class-level cache and marked as cached.
         - Raises ValueError if `data` is a list, set, or tuple (these collection types are not supported).
-        
+
         Parameters:
             data: dict, instance, int, str, or identifier
                 The source for the object's data or its identifier.
@@ -130,7 +130,7 @@ class BlockchainObject(dict):
                 If True and not lazy, store the constructed object in the class cache.
             id_item (str, optional):
                 Key name used to read/write the object's identifier in the underlying mapping (defaults to "id").
-        
+
         Raises:
             ValueError: if `data` is a list, set, or tuple.
         """

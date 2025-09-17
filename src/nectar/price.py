@@ -78,7 +78,7 @@ class Price(dict):
     ):
         """
         Initialize a Price object representing a ratio between a base and quote asset.
-        
+
         This constructor accepts multiple input forms and normalizes them into internal
         "base" and "quote" Amount entries. Supported usages:
         - price: str like "X BASE/QUOTE" with no base/quote: parses symbols and creates
@@ -92,7 +92,7 @@ class Price(dict):
         - price and base as Amount instances: accepts Amount objects directly.
         - price is None with base and quote as symbol strings or Amounts: loads assets
           or Amounts respectively.
-        
+
         Parameters (not exhaustive):
         - price: numeric, str, dict, or Amount — the price or a representation used to
           derive base/quote Amounts.
@@ -102,7 +102,7 @@ class Price(dict):
         - base_asset: optional; used only as an identifier flag for buy/sell contexts.
         - blockchain_instance: blockchain context used to construct Asset/Amount (omitted
           from param listing as a shared service).
-        
+
         Raises:
         - AssertionError: if a dict `price` includes a top-level "price" key.
         - ValueError: if the combination of inputs cannot be parsed into base and quote.
@@ -217,14 +217,14 @@ class Price(dict):
     def as_base(self, base):
         """
         Return a copy of this Price expressed with the given asset as the base.
-        
+
         If `base` matches the current base symbol this returns a shallow copy.
         If `base` matches the current quote symbol this returns a copy with base and quote inverted.
         Raises InvalidAssetException if `base` is neither the base nor the quote of this price.
-        
+
         Parameters:
             base (str): Asset symbol to use as the base (e.g., "HIVE" or "HBD").
-        
+
         Returns:
             Price: A new Price instance whose base asset is `base`.
         """
@@ -238,17 +238,17 @@ class Price(dict):
     def as_quote(self, quote):
         """
         Return a Price instance expressed with the given quote asset symbol.
-        
+
         If `quote` matches the current quote symbol, returns a copy of this Price.
         If `quote` matches the current base symbol, returns a copied, inverted Price.
         A new object is always returned (the original is not modified).
-        
+
         Parameters:
             quote (str): Asset symbol to use as the quote (e.g., "HBD" or "HIVE").
-        
+
         Returns:
             Price: A Price object with `quote` as the quote asset.
-        
+
         Raises:
             InvalidAssetException: If `quote` does not match either the current base or quote symbol.
         """
@@ -262,10 +262,10 @@ class Price(dict):
     def invert(self):
         """
         Invert the price in place, swapping base and quote assets (e.g., HBD/HIVE -> HIVE/HBD).
-        
+
         Returns:
             self: The same Price instance after inversion.
-        
+
         Example:
             >>> from nectar.price import Price
             >>> from nectar import Hive

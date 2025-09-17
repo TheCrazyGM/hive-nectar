@@ -82,9 +82,9 @@ class HiveSigner(object):
     def __init__(self, blockchain_instance=None, *args, **kwargs):
         """
         Initialize HiveSigner integration.
-        
+
         Sets up the blockchain client (uses provided instance or the shared global), OAuth/client configuration, and the token store.
-        
+
         Detailed behavior:
         - Resolves self.blockchain from blockchain_instance or shared_blockchain_instance().
         - Reads defaults from blockchain config for client_id, scope, OAuth base URL, API URL, and hot-sign redirect URI.
@@ -131,7 +131,7 @@ class HiveSigner(object):
     def headers(self):
         """
         Return the HTTP Authorization headers for the current access token.
-        
+
         Returns:
             dict: A headers dictionary with the "Authorization" key set to the current access token (may be None if no token is set).
         """
@@ -140,12 +140,12 @@ class HiveSigner(object):
     def setToken(self, loadtoken):
         """
         Force-add tokens into the token store from an in-memory mapping.
-        
+
         Accepts a mapping of public-name -> token and stores each entry into the configured token store. Intended for use when tokens are provided directly (e.g., via a `token` argument) and should be loaded into the in-memory store.
-        
+
         Parameters:
             loadtoken (dict): Mapping where keys are public names and values are the corresponding private token strings.
-        
+
         Raises:
             ValueError: If `loadtoken` is not a dict.
         """
@@ -280,12 +280,12 @@ class HiveSigner(object):
     def me(self, username=None):
         """
         Retrieve the current user's information from HiveSigner.
-        
+
         If a username is provided, sets the access token for that username (via set_username) before calling the HiveSigner "me" endpoint. Performs an authenticated POST to the HiveSigner me endpoint and returns the parsed JSON response.
-        
+
         Parameters:
             username (str, optional): Public account name whose token should be used for the request. If omitted, the currently configured access token is used.
-        
+
         Returns:
             dict: Parsed JSON response from the HiveSigner me endpoint.
         """
@@ -311,13 +311,13 @@ class HiveSigner(object):
     def broadcast(self, operations, username=None):
         """
         Broadcast a list of Hive operations via the HiveSigner API.
-        
+
         Sends a POST request to the HiveSigner broadcast endpoint with the provided operations. If `username` is given, the method will set the access token for that user before sending the request.
-        
+
         Parameters:
             operations (list): A list of operations in the form [[operation_name, operation_payload], ...].
             username (str, optional): Public account name whose stored token should be used for authorization.
-        
+
         Returns:
             dict or bytes: The parsed JSON response from the API, or raw response content if the body is not valid JSON.
         """
@@ -377,14 +377,14 @@ class HiveSigner(object):
     def url_from_tx(self, tx, redirect_uri=None):
         """
         Generate HiveSigner hot-sign URLs for each operation in a transaction.
-        
+
         Given a transaction dict (or an object with a .json() method returning such a dict), produce a HiveSigner "hot sign" URL for each operation. If the transaction has no operations an empty string is returned. For each operation the function normalizes parameter values before building the URL:
         - 3-element lists are treated as amounts and converted to the blockchain's Amount string when possible.
         - booleans are converted to 1 (True) or 0 (False).
         - other values are left as-is.
-        
+
         Returns either a single URL string when the transaction contains one operation, a list of URL strings for multiple operations, or an empty string when there are no operations.
-        
+
         Parameters:
             tx (dict | object): Transaction data or an object implementing .json() that returns a dict with an "operations" list.
             redirect_uri (str, optional): If provided, included in each generated hot-sign URL as the post-sign redirect target.
@@ -420,18 +420,18 @@ class HiveSigner(object):
     def sign(self, tx):
         """
         Create a transaction shaped as if signed by HiveSigner.
-        
+
         This method does not perform real cryptographic signing locally; instead it validates
         the transaction structure and returns a copy containing a mock signature entry so
         callers that expect a "signed" transaction can proceed (actual signing is performed
         server-side by HiveSigner during broadcasting).
-        
+
         Parameters:
             tx (dict): Transaction object that must include a non-empty "operations" list.
-        
+
         Returns:
             dict: A copy of `tx` with a "signatures" list containing a mock HiveSigner signature.
-        
+
         Raises:
             ValueError: If `tx` is not a dict or if it lacks a non-empty "operations" list.
         """

@@ -13,7 +13,7 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Create a class-level Hive client for tests and assign it to cls.appbase.
-        
+
         Initializes a Hive instance using get_hive_nodes() and configures it for local testing:
         nobroadcast=True (no real broadcasts), bundle=False, keys overridden to use the test
         private key for the "active" role, and num_retries=10.

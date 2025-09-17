@@ -3,6 +3,7 @@ import json
 import struct
 import time
 from binascii import hexlify, unhexlify
+
 # Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
 
@@ -268,11 +269,12 @@ class PointInTime(object):
     def __bytes__(self):
         """
         Return a 4-byte little-endian Unix timestamp for the stored point-in-time.
-        
+
         If the instance holds a datetime, it is converted to a POSIX timestamp using UTC. If it holds a string, the string is parsed (with the module-level `timeformat` and "UTC" appended) and converted to a POSIX timestamp. The timestamp is encoded as a signed 32-bit little-endian integer when negative, otherwise as an unsigned 32-bit little-endian integer.
         """
         # Import lazily to avoid import-time cycles
         from calendar import timegm
+
         if isinstance(self.data, datetime):
             # Use UTC, not local time
             unixtime = timegm(self.data.utctimetuple())

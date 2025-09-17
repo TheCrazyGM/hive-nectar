@@ -19,13 +19,13 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         """
         Initialize a shared test Hive blockchain instance and Account for the test class.
-        
+
         Sets up class-level fixtures:
         - Creates a Hive instance configured for testing (no broadcast, unsigned transactions, no bundling, retry attempts).
         - Stores the instance on `cls.bts`.
         - Constructs an Account for "thecrazygm" using that blockchain instance and stores it on `cls.account`.
         - Configures the module-wide shared blockchain instance to the created Hive instance.
-        
+
         This method has no return value; it mutates the test class and global shared instance used by tests.
         """
         cls.bts = Hive(

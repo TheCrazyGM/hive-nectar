@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from binascii import hexlify
 
 from nectar.constants import (
     EXEC_FOLLOW_CUSTOM_OP_SCALE,
@@ -17,7 +16,7 @@ class RC(object):
     def __init__(self, blockchain_instance=None, **kwargs):
         """
         Initialize the RC helper with a blockchain instance.
-        
+
         If `blockchain_instance` is provided it will be used for RC lookups and broadcasts;
         otherwise the module-wide shared_blockchain_instance() is used. Extra keyword
         arguments are accepted for compatibility but ignored.
@@ -27,12 +26,12 @@ class RC(object):
     def get_tx_size(self, op):
         """
         Estimate the serialized size (in bytes) of a signed transaction containing the given operation.
-        
+
         This constructs a dummy Signed_Transaction using fixed reference fields and a hard-coded private key, signs it on the "HIVE" chain, and returns the length of the resulting serialized transaction in bytes. The value is an estimate useful for RC sizing and does not represent a real broadcastable transaction.
-        
+
         Parameters:
             op: Operation or dict-like operation payload to include in the transaction.
-        
+
         Returns:
             int: Number of bytes in the serialized, signed transaction.
         """
@@ -62,14 +61,14 @@ class RC(object):
     ):
         """
         Build and return a resource_count mapping for RC cost calculation.
-        
+
         Parameters:
             tx_size (int): Transaction size in bytes; used for history bytes and for market bytes when applicable.
             execution_time_count (int): Execution time units for the operation.
             state_bytes_count (int, optional): Additional state bytes contributed by the operation (default 0).
             new_account_op_count (int, optional): Number of new-account operations included (default 0).
             market_op_count (int, optional): If > 0, marks the transaction as a market operation and sets market bytes to tx_size (default 0).
-        
+
         Returns:
             dict: A dictionary containing keys used by the RC pricing engine, including:
                 - resource_history_bytes
@@ -166,12 +165,12 @@ class RC(object):
     def transfer_dict(self, transfer_dict):
         """
         Calculate Resource Credit (RC) cost for a transfer operation represented as a dict.
-        
+
         The input dict must contain the fields required by a Transfer operation (for example: "from", "to", "amount", "memo"). This function builds a Transfer operation, estimates the signed transaction size, marks the operation as a market operation (market_op_count=1), and returns the RC cost computed by the blockchain instance.
-        
+
         Parameters:
             transfer_dict (dict): Fields for a Transfer operation compatible with operations.Transfer.
-        
+
         Returns:
             dict: RC cost structure as returned by the blockchain's get_rc_cost.
         """

@@ -13,13 +13,6 @@ from nectargraphenebase.account import PublicKey
 
 
 def test_basic_add_functionality():
-    """Test that PublicKey.add method works at basic level"""
-    print("Testing basic PublicKey.add functionality...")
-
-    # Create a PublicKey using a known valid key from test data
-    test_key = "STM6oVMzJJJgSu3hV1DZBcLdMUJYj3Cs6kGXf6WVLP3HhgLgNkA5J"
-
-def test_basic_add_functionality():
     """Basic assertions for PublicKey.add and .child"""
     test_key = "STM6oVMzJJJgSu3hV1DZBcLdMUJYj3Cs6kGXf6WVLP3HhgLgNkA5J"
     test_pub = PublicKey(test_key)
