@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import re
+import warnings
 from binascii import hexlify
 from collections import OrderedDict
 
@@ -693,7 +694,16 @@ class Comment_options(GrapheneObject):
             extensions = Array([CommentOptionExtensions(o) for o in kwargs["extensions"]])
         percent_value = kwargs.get("percent_hbd")
         if percent_value is None:
-            raise ValueError("Comment_options requires 'percent_hbd'")
+            # Backward compatibility: fall back to percent_steem_dollars
+            percent_value = kwargs.get("percent_steem_dollars")
+            if percent_value is not None:
+                warnings.warn(
+                    "Parameter 'percent_steem_dollars' is deprecated. Use 'percent_hbd' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+            else:
+                raise ValueError("Comment_options requires 'percent_hbd'")
         super(Comment_options, self).__init__(
             OrderedDict(
                 [

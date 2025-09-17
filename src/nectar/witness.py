@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -26,7 +27,16 @@ class Witness(BlockchainObject):
 
     type_id = 3
 
-    def __init__(self, owner, full=False, lazy=False, blockchain_instance=None):
+    def __init__(self, owner, full=False, lazy=False, blockchain_instance=None, **kwargs):
+        # Warn about any unused kwargs to maintain backward compatibility
+        if kwargs:
+            for key in kwargs:
+                warnings.warn(
+                    f"Unexpected keyword argument '{key}' passed to Witness.__init__. "
+                    "This may be a deprecated parameter and will be ignored.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()

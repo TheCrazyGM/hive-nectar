@@ -322,12 +322,8 @@ class Testcases(unittest.TestCase):
             op = tx["operations"][0]["value"]
 
         self.assertIn("gtg", op["author"])
-        if "percent_hive_dollars" in op:
-            self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
-            self.assertEqual(10000, op["percent_hive_dollars"])
-        else:
-            self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
-            self.assertEqual(10000, op["percent_hbd"])
+        self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
+        self.assertEqual(10000, op["percent_hbd"])
         self.assertEqual(True, op["allow_votes"])
         self.assertEqual(True, op["allow_curation_rewards"])
         self.assertEqual("witness-gtg-log", op["permlink"])

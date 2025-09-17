@@ -46,7 +46,7 @@ class Testcases(unittest.TestCase):
         if node_param == "normal":
             hv = self.bts
         else:
-            hv = self.testnet
+            hv = self.hiveio
         asset = Asset(data, full=False, blockchain_instance=hv)
         self.assertEqual(asset.symbol, symbol_str)
         self.assertEqual(asset.precision, precision)

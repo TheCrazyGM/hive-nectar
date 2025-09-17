@@ -101,7 +101,7 @@ class Comment(BlockchainObject):
             if p in comment and isinstance(comment.get(p), str):
                 comment[p] = formatTimeString(comment.get(p, "1970-01-01T00:00:00"))
         # Parse Amounts
-        sbd_amounts = [
+        hbd_amounts = [
             "total_payout_value",
             "max_accepted_payout",
             "pending_payout_value",
@@ -109,7 +109,7 @@ class Comment(BlockchainObject):
             "total_pending_payout_value",
             "promoted",
         ]
-        for p in sbd_amounts:
+        for p in hbd_amounts:
             if p in comment and isinstance(comment.get(p), (str, list, dict)):
                 value = comment.get(p, "0.000 %s" % (self.blockchain.backed_token_symbol))
                 if (
@@ -244,7 +244,7 @@ class Comment(BlockchainObject):
                     output[p] = formatTimeString(p_date)
                 else:
                     output[p] = p_date
-        sbd_amounts = [
+        hbd_amounts = [
             "total_payout_value",
             "max_accepted_payout",
             "pending_payout_value",
@@ -252,7 +252,7 @@ class Comment(BlockchainObject):
             "total_pending_payout_value",
             "promoted",
         ]
-        for p in sbd_amounts:
+        for p in hbd_amounts:
             if p in output and isinstance(output[p], Amount):
                 output[p] = output[p].json()
         parse_int = [

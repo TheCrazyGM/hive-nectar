@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import warnings
 
 from .comment import Comment
 from .instance import shared_blockchain_instance
@@ -73,6 +74,24 @@ class Discussions(object):
     """
 
     def __init__(self, lazy=False, use_appbase=False, blockchain_instance=None, **kwargs):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.lazy = lazy
         self.use_appbase = use_appbase
@@ -319,6 +338,24 @@ class Discussions_by_trending(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -406,6 +443,24 @@ class Discussions_by_author_before_date(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase
@@ -482,6 +537,24 @@ class Comment_discussions_by_payout(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -561,6 +634,24 @@ class Post_discussions_by_payout(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -640,6 +731,24 @@ class Discussions_by_created(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -719,6 +828,24 @@ class Discussions_by_active(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -799,6 +926,24 @@ class Discussions_by_cashout(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -879,6 +1024,24 @@ class Discussions_by_votes(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -959,6 +1122,24 @@ class Discussions_by_children(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1040,6 +1221,24 @@ class Discussions_by_hot(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1119,6 +1318,24 @@ class Discussions_by_feed(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1198,6 +1415,24 @@ class Discussions_by_blog(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1446,6 +1681,24 @@ class Discussions_by_replies(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in ["start_parent_author", "start_permlink", "limit"]:
@@ -1547,6 +1800,24 @@ class Replies_by_last_update(list):
         blockchain_instance=None,
         **kwargs,
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase
@@ -1598,6 +1869,24 @@ class Trending_tags(list):
     def __init__(
         self, discussion_query, lazy=False, use_appbase=False, blockchain_instance=None, **kwargs
     ):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.blockchain.rpc.set_next_node_on_empty_reply(
             self.blockchain.rpc.get_use_appbase() and use_appbase

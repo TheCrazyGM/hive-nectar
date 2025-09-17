@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -28,9 +29,33 @@ class Vote(BlockchainObject):
     :param str authorperm: perm link to post/comment
     :param nectar.nectar.nectar blockchain_instance: nectar
         instance to use when accesing a RPC
+    :param steem_instance: (deprecated) use blockchain_instance instead
+    :param hive_instance: (deprecated) use blockchain_instance instead
     """
 
-    def __init__(self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None):
+    def __init__(self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None, **kwargs):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Check for unknown kwargs
+        if kwargs:
+            raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()
@@ -403,7 +428,25 @@ class ActiveVotes(VotesObject):
     :param Blockchain blockchain_instance: Blockchain instance to use when accessing RPC
     """
 
-    def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None):
+    def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None, **kwargs):
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():

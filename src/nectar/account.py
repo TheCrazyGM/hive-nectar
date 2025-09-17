@@ -2,6 +2,7 @@
 import json
 import logging
 import random
+import warnings
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional, Union
 
@@ -89,7 +90,7 @@ class Account(BlockchainObject):
 
     type_id = 2
 
-    def __init__(self, account, full=True, lazy=False, blockchain_instance=None):
+    def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
         """Initialize an account
 
         :param str account: Name of the account
@@ -98,6 +99,24 @@ class Account(BlockchainObject):
         :param bool full: Obtain all account data including orders, positions,
                etc.
         """
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(f"Cannot specify both {key} and another legacy instance parameter")
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()

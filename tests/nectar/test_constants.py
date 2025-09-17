@@ -25,17 +25,17 @@ class Testcases(unittest.TestCase):
         hive_conf = hv.get_config()
         if "HIVE_100_PERCENT" in hive_conf:
             HIVE_100_PERCENT = hive_conf["HIVE_100_PERCENT"]
-        self.assertEqual(constants.HIVE_100_PERCENT, HIVE_100_PERCENT)
+            self.assertEqual(constants.HIVE_100_PERCENT, HIVE_100_PERCENT)
 
-        if "HIVE__PERCENT" in hive_conf:
+        if "HIVE_1_PERCENT" in hive_conf:
             HIVE_1_PERCENT = hive_conf["HIVE_1_PERCENT"]
-        self.assertEqual(constants.HIVE_1_PERCENT, HIVE_1_PERCENT)
+            self.assertEqual(constants.HIVE_1_PERCENT, HIVE_1_PERCENT)
 
         if "HIVE_REVERSE_AUCTION_WINDOW_SECONDS" in hive_conf:
             HIVE_REVERSE_AUCTION_WINDOW_SECONDS = hive_conf[
-                "HIVE_EVERSE_AUCTION_WINDOW_SECONDS"
+                "HIVE_REVERSE_AUCTION_WINDOW_SECONDS"
             ]
-        elif "HIVE_EVERSE_AUCTION_WINDOW_SECONDS_HF6" in hive_conf:
+        elif "HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6" in hive_conf:
             HIVE_REVERSE_AUCTION_WINDOW_SECONDS = hive_conf[
                 "HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6"
             ]
@@ -70,4 +70,4 @@ class Testcases(unittest.TestCase):
 
         if "HIVE_ROOT_POST_PARENT" in hive_conf:
             HIVE_ROOT_POST_PARENT = hive_conf["HIVE_ROOT_POST_PARENT"]
-        self.assertEqual(constants.HIVE_ROOT_POST_PARENT, HIVE_ROOT_POST_PARENT)
+            self.assertEqual(constants.HIVE_ROOT_POST_PARENT, HIVE_ROOT_POST_PARENT)

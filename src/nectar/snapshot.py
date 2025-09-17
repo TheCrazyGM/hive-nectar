@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import warnings
 from bisect import bisect_left
 from datetime import date, datetime, time, timedelta, timezone
 
@@ -27,7 +28,16 @@ class AccountSnapshot(list):
     :param Hive blockchain_instance: Hive instance
     """
 
-    def __init__(self, account, account_history=[], blockchain_instance=None):
+    def __init__(self, account, account_history=[], blockchain_instance=None, **kwargs):
+        # Warn about any unused kwargs to maintain backward compatibility
+        if kwargs:
+            for key in kwargs:
+                warnings.warn(
+                    f"Unexpected keyword argument '{key}' passed to AccountSnapshot.__init__. "
+                    "This may be a deprecated parameter and will be ignored.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
