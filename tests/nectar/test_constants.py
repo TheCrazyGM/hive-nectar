@@ -32,9 +32,7 @@ class Testcases(unittest.TestCase):
             self.assertEqual(constants.HIVE_1_PERCENT, HIVE_1_PERCENT)
 
         if "HIVE_REVERSE_AUCTION_WINDOW_SECONDS" in hive_conf:
-            HIVE_REVERSE_AUCTION_WINDOW_SECONDS = hive_conf[
-                "HIVE_REVERSE_AUCTION_WINDOW_SECONDS"
-            ]
+            HIVE_REVERSE_AUCTION_WINDOW_SECONDS = hive_conf["HIVE_REVERSE_AUCTION_WINDOW_SECONDS"]
         elif "HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6" in hive_conf:
             HIVE_REVERSE_AUCTION_WINDOW_SECONDS = hive_conf[
                 "HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6"

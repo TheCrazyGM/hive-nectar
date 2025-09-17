@@ -11,6 +11,7 @@
   - `Comment_options.__init__`: Added fallback support for deprecated `percent_steem_dollars` parameter.
 - **Improvement**: Removed deprecated websocket support from GrapheneRPC, now only supports HTTP/requests for better reliability and maintainability.
 - **Improvement**: Simplified ecdsasig.py to use only cryptography library, removing complex conditional logic for different secp256k1 implementations. The `tweak_add` operation now raises NotImplementedError when called.
+- **Major Feature**: Implemented pure Python secp256k1 elliptic curve operations for PublicKey.add() method, restoring compatibility with existing code that relies on key derivation. The implementation includes proper validation, error handling, and maintains the same API as before. All unit tests pass successfully.
 
 ## 0.0.11 - 2025-07-25
 
