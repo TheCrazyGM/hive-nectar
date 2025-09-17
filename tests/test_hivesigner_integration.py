@@ -88,6 +88,12 @@ class TestHiveSignerIntegration(unittest.TestCase):
         # Add a signing account for username
         self.tx_builder.signing_accounts = ["testuser"]
 
+        # Stub builder methods used by broadcast
+        self.tx_builder.json = Mock(
+            return_value={"operations": [{"type": "transfer", "data": {}}]}
+        )
+        self.tx_builder.clear = Mock()
+
         # Call broadcast method
         self.tx_builder.broadcast()
 
@@ -96,7 +102,7 @@ class TestHiveSignerIntegration(unittest.TestCase):
         self.mock_blockchain.hivesigner.broadcast.assert_called_once_with(
             expected_operations, username="testuser"
         )
-        self.assertTrue(self.tx_builder.clear.called)
+        self.tx_builder.clear.assert_called_once()
 
     def test_fallback_to_regular_signing_when_hivesigner_fails(self):
         """Test that sign() falls back to regular signing when HiveSigner fails"""
