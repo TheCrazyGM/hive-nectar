@@ -467,17 +467,14 @@ class Comment(BlockchainObject):
             Amount: Estimated HBD payout required to offset the early-vote curation penalty.
         """
         self.refresh()
-        if self.blockchain.hardfork >= 21:
+        if self.blockchain.hardfork() >= 21:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif self.blockchain.hardfork() >= 20:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
-        return (
-            self.reward
-            * reverse_auction_window_seconds
-            / ((self.time_elapsed()).total_seconds() / 60) ** 2
-        )
+        elapsed_minutes = max((self.time_elapsed()).total_seconds() / 60, 1e-6)
+        return self.reward * reverse_auction_window_seconds / (elapsed_minutes**2)
 
     def estimate_curation_hbd(self, vote_value_hbd, estimated_value_hbd=None):
         """
@@ -529,9 +526,9 @@ class Comment(BlockchainObject):
             elapsed_seconds = (vote_time - self["created"]).total_seconds()
         else:
             raise ValueError("vote_time must be a string or a datetime")
-        if self.blockchain.hardfork >= 21:
+        if self.blockchain.hardfork() >= 21:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif self.blockchain.hardfork() >= 20:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -678,9 +675,8 @@ class Comment(BlockchainObject):
         curation_tokens = self.reward * author_reward_factor
         author_tokens = self.reward - curation_tokens
         curation_rewards = self.get_curation_rewards()
-        if self.blockchain.hardfork >= 20 and median_hist is not None:
+        if self.blockchain.hardfork() >= 20 and median_hist is not None:
             author_tokens += median_price * curation_rewards["unclaimed_rewards"]
-
         benefactor_tokens = author_tokens * beneficiaries_pct / HIVE_100_PERCENT
         author_tokens -= benefactor_tokens
 

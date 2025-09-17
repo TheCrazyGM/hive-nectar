@@ -9,6 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import (
+    Prehashed,
     decode_dss_signature,
     encode_dss_signature,
 )
@@ -204,7 +205,20 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
     if not isinstance(message, bytes):
         message = bytes(message, "utf-8")
 
-    digest = hashfn(message).digest()
+    # Detect if message is already a digest
+    prehashed = len(message) == hashfn().digest_size
+
+    if prehashed:
+        digest = message
+        message_for_signing = message  # the digest
+        algorithm_for_signing = ec.ECDSA(Prehashed(hashes.SHA256()))
+        message_for_recovery = None
+    else:
+        digest = hashfn(message).digest()
+        message_for_signing = message
+        algorithm_for_signing = ec.ECDSA(hashes.SHA256())
+        message_for_recovery = message
+
     priv_key = PrivateKey(wif)
     cnt = 0
     private_key = ec.derive_private_key(int(repr(priv_key), 16), ec.SECP256K1(), default_backend())
@@ -214,7 +228,7 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
         if not cnt % 20:
             log.info("Still searching for a canonical signature. Tried %d times already!" % cnt)
         order = ecdsa.SECP256k1.order
-        sigder = private_key.sign(message, ec.ECDSA(hashes.SHA256()))
+        sigder = private_key.sign(message_for_signing, algorithm_for_signing)
         r, s = decode_dss_signature(sigder)
         signature = ecdsa.util.sigencode_string(r, s, order)
         # Make sure signature is canonical!
@@ -222,10 +236,12 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
         sigder = bytearray(sigder)
         lenR = sigder[3]
         lenS = sigder[5 + lenR]
-        if lenR == 32 and lenS == 32:
+        if lenR == 32 and lenS == 32 and _is_canonical(signature):
             # Derive the recovery parameter
             #
-            i = recoverPubkeyParameter(message, digest, signature, public_key)
+            i = recoverPubkeyParameter(message_for_recovery, digest, signature, public_key)
+            if i is None:
+                continue
             i += 4  # compressed
             i += 27  # compact
             break
