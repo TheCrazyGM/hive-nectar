@@ -28,7 +28,8 @@ class AccountSnapshot(list):
     :param Hive blockchain_instance: Hive instance
     """
 
-    def __init__(self, account, account_history=[], blockchain_instance=None, **kwargs):
+    def __init__(self, account, account_history=None, blockchain_instance=None, **kwargs):
+        super(AccountSnapshot, self).__init__(account_history or [])
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize an AccountSnapshot for the given account.
