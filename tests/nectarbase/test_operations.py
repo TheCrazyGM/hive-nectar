@@ -14,7 +14,7 @@ wif = "5J4KCbg1G3my9b9hCaQXnHSm6vrwW9xQTJS6ZciW2Kek7cCkCEk"
 
 class Testcases(unittest.TestCase):
     def test_Transfer(self):
-        transferJson = {"from": "test", "to": "test1", "amount": "1.000 STEEM", "memo": "foobar"}
+        transferJson = {"from": "test", "to": "test1", "amount": "1.000 HIVE", "memo": "foobar"}
         t = Transfer(transferJson)
         self.assertEqual(transferJson, json.loads(str(t)))
         self.assertEqual(transferJson, t.json())
@@ -44,5 +44,5 @@ class Testcases(unittest.TestCase):
             "signatures": [],
         }
         s = Signed_Transaction(tx)
-        s.sign(wifkeys=[wif], chain="STEEM")
+        s.sign(wifkeys=[wif], chain="HIVE")
         self.assertEqual(s.json()["operations"][0][1], transferJson)

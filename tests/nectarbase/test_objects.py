@@ -7,7 +7,7 @@ from nectarbase.objects import Amount, Operation
 
 class Testcases(unittest.TestCase):
     def test_Amount(self):
-        a = "1.000 STEEM"
+        a = "1.000 HIVE"
         t = Amount(a)
         self.assertEqual(a, t.__str__())
         self.assertEqual(a, str(t))
@@ -23,38 +23,38 @@ class Testcases(unittest.TestCase):
         self.assertEqual(a, json.loads(str(t)))
 
     def test_Amount_overflow(self):
-        a = "0.9999 STEEM"
+        a = "0.9999 HIVE"
         t = Amount(a)
-        self.assertEqual("0.999 STEEM", t.__str__())
-        self.assertEqual("0.999 STEEM", str(t))
-        a = "0.9991 STEEM"
+        self.assertEqual("0.999 HIVE", t.__str__())
+        self.assertEqual("0.999 HIVE", str(t))
+        a = "0.9991 HIVE"
         t = Amount(a)
-        self.assertEqual("0.999 STEEM", t.__str__())
-        self.assertEqual("0.999 STEEM", str(t))
+        self.assertEqual("0.999 HIVE", t.__str__())
+        self.assertEqual("0.999 HIVE", str(t))
 
-        a = "8.9999 STEEM"
+        a = "8.9999 HIVE"
         t = Amount(a)
-        self.assertEqual("8.999 STEEM", t.__str__())
-        self.assertEqual("8.999 STEEM", str(t))
-        a = "8.9991 STEEM"
+        self.assertEqual("8.999 HIVE", t.__str__())
+        self.assertEqual("8.999 HIVE", str(t))
+        a = "8.9991 HIVE"
         t = Amount(a)
-        self.assertEqual("8.999 STEEM", t.__str__())
-        self.assertEqual("8.999 STEEM", str(t))
+        self.assertEqual("8.999 HIVE", t.__str__())
+        self.assertEqual("8.999 HIVE", str(t))
 
-        a = "8.19 STEEM"
+        a = "8.19 HIVE"
         t = Amount(a)
-        self.assertEqual("8.190 STEEM", t.__str__())
-        self.assertEqual("8.190 STEEM", str(t))
+        self.assertEqual("8.190 HIVE", t.__str__())
+        self.assertEqual("8.190 HIVE", str(t))
 
-        a = "0.0009 STEEM"
+        a = "0.0009 HIVE"
         t = Amount(a)
-        self.assertEqual("0.000 STEEM", t.__str__())
-        self.assertEqual("0.000 STEEM", str(t))
+        self.assertEqual("0.000 HIVE", t.__str__())
+        self.assertEqual("0.000 HIVE", str(t))
 
-        a = "100.0009 STEEM"
+        a = "100.0009 HIVE"
         t = Amount(a)
-        self.assertEqual("100.000 STEEM", t.__str__())
-        self.assertEqual("100.000 STEEM", str(t))
+        self.assertEqual("100.000 HIVE", t.__str__())
+        self.assertEqual("100.000 HIVE", str(t))
 
     def test_Operation(self):
         a = {"amount": "1000", "precision": 3, "nai": "@@000000013"}

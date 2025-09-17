@@ -18,7 +18,7 @@ from nectargraphenebase.account import PrivateKey
 
 TEST_AGAINST_CLI_WALLET = False
 
-prefix = "STEEM"
+prefix = "HIVE"
 default_prefix = "STM"
 wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 ref_block_num = 34294
@@ -73,7 +73,7 @@ class Testcases(unittest.TestCase):
             **{
                 "from": "foo",
                 "to": "baar",
-                "amount": Amount("111.110 STEEM", blockchain_instance=self.hv),
+                "amount": Amount("111.110 HIVE", blockchain_instance=self.hv),
                 "memo": "Fooo",
                 "prefix": default_prefix,
             }
@@ -91,7 +91,7 @@ class Testcases(unittest.TestCase):
         self.op = operations.Account_create(
             **{
                 "creator": "xeroc",
-                "fee": "10.000 STEEM",
+                "fee": "10.000 HIVE",
                 "json_metadata": "",
                 "memo_key": "STM6zLNtyFVToBsBZDsgMhgjpwysYVbsQD6YhP3kRkQhANUB4w7Qp",
                 "new_account_name": "fsafaasf",
@@ -145,7 +145,7 @@ class Testcases(unittest.TestCase):
 
     def test_Transfer_to_vesting(self):
         self.op = operations.Transfer_to_vesting(
-            **{"from": "foo", "to": "baar", "amount": "111.110 STEEM", "prefix": default_prefix}
+            **{"from": "foo", "to": "baar", "amount": "111.110 HIVE", "prefix": default_prefix}
         )
 
         self.cm = (
@@ -215,7 +215,7 @@ class Testcases(unittest.TestCase):
             **{
                 "from": "testuser",
                 "to": "testuser",
-                "amount": "1.000 STEEM",
+                "amount": "1.000 HIVE",
                 "memo": "testmemo",
                 "prefix": default_prefix,
             }
@@ -264,8 +264,8 @@ class Testcases(unittest.TestCase):
             **{
                 "owner": "",
                 "orderid": 0,
-                "amount_to_sell": "0.000 STEEM",
-                "min_to_receive": "0.000 STEEM",
+                "amount_to_sell": "0.000 HIVE",
+                "min_to_receive": "0.000 HIVE",
                 "fill_or_kill": False,
                 "expiration": "2016-12-31T23:59:59",
                 "prefix": default_prefix,
@@ -583,7 +583,7 @@ class Testcases(unittest.TestCase):
         self.op = operations.Feed_publish(
             **{
                 "publisher": "xeroc",
-                "exchange_rate": {"base": "1.000 HBD", "quote": "4.123 STEEM"},
+                "exchange_rate": {"base": "1.000 HBD", "quote": "4.123 HIVE"},
                 "prefix": default_prefix,
             }
         )
@@ -617,11 +617,11 @@ class Testcases(unittest.TestCase):
                 "url": "foooobar",
                 "block_signing_key": "STM6zLNtyFVToBsBZDsgMhgjpwysYVbsQD6YhP3kRkQhANUB4w7Qp",
                 "props": {
-                    "account_creation_fee": "10.000 STEEM",
+                    "account_creation_fee": "10.000 HIVE",
                     "maximum_block_size": 1111111,
                     "sbd_interest_rate": 1000,
                 },
-                "fee": "10.000 STEEM",
+                "fee": "10.000 HIVE",
                 "prefix": default_prefix,
             }
         )
