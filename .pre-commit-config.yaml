@@ -6,7 +6,7 @@ repos:
       - id: gitleaks
   # Run ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.13.0
     hooks:
       # Run the linter.
       - id: ruff-check
