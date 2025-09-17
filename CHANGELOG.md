@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2025-09-17
+
+- **Fix**: Replaced missing `**kwargs` in `Blocks` constructor.
+
 ## 0.1.1 - 2025-09-17
 
 - **Fix**: Added support for `only_ops` and `only_virtual_ops` parameters in `Blocks` constructor.
