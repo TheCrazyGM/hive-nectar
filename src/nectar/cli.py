@@ -2382,16 +2382,13 @@ def delprofile(variable, account, export):
 
     for var in variable:
         json_metadata.remove(var)
-    try:
-        tx = acc.update_account_profile(json_metadata)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
-        export_trx(tx, export)
-        tx = json.dumps(tx, indent=4)
-        print(tx)
-    except Exception as e:
-        print(str(e))
-        raise e
+
+    tx = acc.update_account_profile(json_metadata)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
+    export_trx(tx, export)
+    tx = json.dumps(tx, indent=4)
+    print(tx)
 
 
 @cli.command()
@@ -3800,16 +3797,12 @@ def sell(amount, asset, price, account, orderid, export):
         return
     a = Amount(float(amount), asset, blockchain_instance=hv)
     acc = Account(account, blockchain_instance=hv)
-    try:
-        tx = market.sell(p, a, account=acc, orderid=orderid)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
-        export_trx(tx, export)
-        tx = json.dumps(tx, indent=4)
-        print(tx)
-    except Exception as e:
-        print(str(e))
-        raise e
+    tx = market.sell(p, a, account=acc, orderid=orderid)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
+    export_trx(tx, export)
+    tx = json.dumps(tx, indent=4)
+    print(tx)
 
 
 @cli.command()
@@ -4009,22 +4002,18 @@ def witnessdisable(witness, export):
         witness = hv.config["default_account"]
     if not unlock_wallet(hv):
         return
-    try:
-        witness = Witness(witness, blockchain_instance=hv)
-        if not witness.is_active:
-            print("Cannot disable a disabled witness!")
-            return
-        props = witness["props"]
-        null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % hv.prefix
-        tx = witness.update(null_key, witness["url"], props)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
-        export_trx(tx, export)
-        tx = json.dumps(tx, indent=4)
-        print(tx)
-    except Exception as e:
-        print(str(e))
-        raise e
+    witness = Witness(witness, blockchain_instance=hv)
+    if not witness.is_active:
+        print("Cannot disable a disabled witness!")
+        return
+    props = witness["props"]
+    null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % hv.prefix
+    tx = witness.update(null_key, witness["url"], props)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
+    export_trx(tx, export)
+    tx = json.dumps(tx, indent=4)
+    print(tx)
 
 
 @cli.command()
@@ -4040,18 +4029,14 @@ def witnessenable(witness, signing_key, export):
         witness = hv.config["default_account"]
     if not unlock_wallet(hv):
         return
-    try:
-        witness = Witness(witness, blockchain_instance=hv)
-        props = witness["props"]
-        tx = witness.update(signing_key, witness["url"], props)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
-        export_trx(tx, export)
-        tx = json.dumps(tx, indent=4)
-        print(tx)
-    except Exception as e:
-        print(str(e))
-        raise e
+    witness = Witness(witness, blockchain_instance=hv)
+    props = witness["props"]
+    tx = witness.update(signing_key, witness["url"], props)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
+    export_trx(tx, export)
+    tx = json.dumps(tx, indent=4)
+    print(tx)
 
 
 @cli.command()
