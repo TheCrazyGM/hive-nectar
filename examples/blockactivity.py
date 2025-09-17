@@ -39,7 +39,8 @@ def parse_args(args=None):
         "blockchain",
         type=str,
         nargs="?",
-        default=sys.stdin,
+        default="hive",
+        choices=["hive"],
         help="Blockchain (hive)",
     )
     return parser.parse_args(args)
