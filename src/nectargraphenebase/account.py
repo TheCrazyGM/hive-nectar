@@ -628,9 +628,7 @@ class PublicKey(Prefix):
 
     def add(self, digest256):
         """Derive new public key from this key and a sha256 "digest" """
-        from .ecdsa import tweakaddPubkey
-
-        return tweakaddPubkey(self, digest256)
+        raise NotImplementedError("tweak_add operation requires secp256k1 library, which is not available when using cryptography-only mode")
 
     @classmethod
     def from_privkey(cls, privkey, prefix=None):
