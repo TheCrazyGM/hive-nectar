@@ -271,14 +271,17 @@ class PointInTime(object):
         
         If the instance holds a datetime, it is converted to a POSIX timestamp using UTC. If it holds a string, the string is parsed (with the module-level `timeformat` and "UTC" appended) and converted to a POSIX timestamp. The timestamp is encoded as a signed 32-bit little-endian integer when negative, otherwise as an unsigned 32-bit little-endian integer.
         """
+        # Import lazily to avoid import-time cycles
+        from calendar import timegm
         if isinstance(self.data, datetime):
-            # Import timegm locally to avoid circular imports
-            from calendar import timegm
-            unixtime = timegm(self.data.timetuple())
+            # Use UTC, not local time
+            unixtime = timegm(self.data.utctimetuple())
         else:
-            # Import timegm locally to avoid circular imports
-            from calendar import timegm
-            unixtime = timegm(time.strptime((self.data + "UTC"), timeformat))
+            s = self.data
+            # Accept ISO8601 'Z' suffix
+            if isinstance(s, str) and s.endswith("Z"):
+                s = s[:-1]
+            unixtime = timegm(time.strptime((s + "UTC"), timeformat))
         if unixtime < 0:
             return struct.pack("<i", unixtime)
         return struct.pack("<I", unixtime)
