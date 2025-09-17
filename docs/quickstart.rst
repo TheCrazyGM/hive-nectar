@@ -51,9 +51,9 @@ By creating this object different options can be set.
           the ``blockchain_instance=`` parameter to assure that
           all objects use the same Hive object. When the
           ``blockchain_instance=`` parameter is not used, the 
-          hive object is taken from get_shared_blockchain_instance().
+          hive object is taken from shared_blockchain_instance().
 
-          :func:`nectar.instance.shared_blockchain_instance` returns a global instance of hive.
+          :func:`nectar.instance.shared_blockchain_instance` returns a global instance of Hive.
           It can be set by :func:`nectar.instance.set_shared_blockchain_instance` otherwise it is created
           on the first call.
 

@@ -36,16 +36,14 @@ def main(args=None):
     nodelist = NodeList()
     nodelist.update_nodes(weights={"block": 1})
 
-    if blockchain == "hive" or blockchain is None:
-        max_batch_size = 50
-        threading = False
-        thread_num = 16
-        block_debug = 1000
+    max_batch_size = 50
+    threading = False
+    thread_num = 16
+    block_debug = 1000
 
-        nodes = nodelist.get_hive_nodes()
-        blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    else:
-        raise Exception("Wrong parameter, can be hive")
+    nodes = nodelist.get_hive_nodes()
+    blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
+
     print(blk_inst)
     block_count = 0
     total_ops = 0
