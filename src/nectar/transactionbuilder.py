@@ -52,7 +52,7 @@ class TransactionBuilder(dict):
 
     """
 
-    def __init__(self, tx={}, blockchain_instance=None, **kwargs):
+    def __init__(self, tx=None, blockchain_instance=None, **kwargs):
         """
         Initialize a TransactionBuilder, optionally from an existing transaction dict.
 
