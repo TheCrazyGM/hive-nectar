@@ -73,17 +73,21 @@ def _point_add(p1, p2, p=SECP256K1_P):
     x1, y1 = p1
     x2, y2 = p2
 
-    if x1 == x2 and y1 != y2:
+    # P + (-P) = O
+    if x1 == x2 and (y1 + y2) % p == 0:
         return None  # Point at infinity
 
     if x1 == x2:
         # Point doubling - for secp256k1: s = (3*x1^2) / (2*y1)
+        if y1 % p == 0:
+            return None  # vertical tangent => infinity
         numerator = (3 * x1 * x1) % p
         denominator = (2 * y1) % p
         s = (numerator * _mod_inverse(denominator, p)) % p
     else:
         # Point addition
-        s = ((y2 - y1) * _mod_inverse(x2 - x1, p)) % p
+        denom = (x2 - x1) % p
+        s = ((y2 - y1) % p) * _mod_inverse(denom, p) % p
 
     x3 = (s * s - x1 - x2) % p
     y3 = (s * (x1 - x3) - y1) % p
