@@ -5,10 +5,15 @@ from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
 
 
-def check_asset(other, self, stm):
+def check_asset(other, self, hv):
+    """
+    Assert that two asset representations refer to the same asset.
+
+    If both `other` and `self` are dicts containing an "asset" key, each asset id is wrapped in an Asset using the provided blockchain instance and compared for equality. Otherwise the two values are compared directly. Raises AssertionError if the values do not match.
+    """
     if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
-        if not Asset(other["asset"], blockchain_instance=stm) == Asset(
-            self["asset"], blockchain_instance=stm
+        if not Asset(other["asset"], blockchain_instance=hv) == Asset(
+            self["asset"], blockchain_instance=hv
         ):
             raise AssertionError()
     else:
@@ -31,16 +36,16 @@ class Amount(dict):
     :param list args: Allows to deal with different representations of an amount
     :param float amount: Let's create an instance with a specific amount
     :param str asset: Let's you create an instance with a specific asset (symbol)
-    :param boolean fixed_point_arithmetic: when set to True, all operation are fixed
+    :param boolean fixed_point_arithmetic: when set to True, all operations are fixed
         point operations and the amount is always be rounded down to the precision
-    :param Steem steem_instance: Steem instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :returns: All data required to represent an Amount/Asset
     :rtype: dict
     :raises ValueError: if the data provided is not recognized
 
     Way to obtain a proper instance:
 
-        * ``args`` can be a string, e.g.:  "1 SBD"
+        * ``args`` can be a string, e.g.:  "1 HBD"
         * ``args`` can be a dictionary containing ``amount`` and ``asset_id``
         * ``args`` can be a dictionary containing ``amount`` and ``asset``
         * ``args`` can be a list of a ``float`` and ``str`` (symbol)
@@ -60,9 +65,9 @@ class Amount(dict):
 
         from nectar.amount import Amount
         from nectar.asset import Asset
-        a = Amount("1 STEEM")
-        b = Amount(1, "STEEM")
-        c = Amount("20", Asset("STEEM"))
+        a = Amount("1 HIVE")
+        b = Amount(1, "HIVE")
+        c = Amount("20", Asset("HIVE"))
         a + b
         a * 2
         a += b
@@ -70,8 +75,8 @@ class Amount(dict):
 
     .. testoutput::
 
-        2.000 STEEM
-        2.000 STEEM
+        2.000 HIVE
+        2.000 HIVE
 
     """
 
@@ -84,15 +89,38 @@ class Amount(dict):
         blockchain_instance=None,
         **kwargs,
     ):
+        """
+        Initialize an Amount object representing a quantity of a specific blockchain asset.
+
+        The constructor accepts many input formats and normalizes them into internal keys:
+        - amount may be another Amount, a three-element list [amount, precision, asset],
+          a new appbase-format dict with keys ("amount", "nai", "precision"), a legacy dict
+          with ("amount", "asset_id") or ("amount", "asset"), a string like "1.000 HIVE",
+          or a numeric value (int, float, Decimal) paired with an `asset` argument.
+        - asset may be an Asset instance, an asset dict, or a symbol string; when omitted,
+          the asset will be inferred from the provided `amount` representation.
+
+        After parsing, the instance stores:
+        - "amount" as a Decimal (or quantized Decimal when fixed-point mode is enabled),
+        - "symbol" as the asset symbol,
+        - "asset" as an Asset-like object.
+
+        Parameters:
+            amount: Various accepted formats (see description) representing the quantity.
+            asset: Asset instance, asset dict, or asset symbol string used when `amount`
+                is a bare numeric value or when explicit asset resolution is required.
+            fixed_point_arithmetic (bool): When True, the numeric amount is quantized
+                to the asset's precision using floor rounding.
+            new_appbase_format (bool): Indicates whether to prefer the new appbase JSON
+                format when producing serialized representations.
+
+        Raises:
+            ValueError: If `amount` and `asset` do not match any supported input format.
+        """
         self["asset"] = {}
         self.new_appbase_format = new_appbase_format
         self.fixed_point_arithmetic = fixed_point_arithmetic
 
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if amount and asset is None and isinstance(amount, Amount):
@@ -221,8 +249,14 @@ class Amount(dict):
 
     @property
     def asset(self):
-        """Returns the asset as instance of :class:`steem.asset.Asset`"""
-        if not self["asset"]:
+        """
+        Return the Asset object for this Amount, constructing it lazily if missing.
+
+        If the internal 'asset' entry is falsy, this creates a nectar.asset.Asset using the stored symbol
+        and this Amount's blockchain instance, stores it in 'asset', and returns it. Always returns an
+        Asset instance.
+        """
+        if not isinstance(self["asset"], Asset):
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
         return self["asset"]
 
@@ -381,9 +415,20 @@ class Amount(dict):
         return self
 
     def __idiv__(self, other):
+        """
+        In-place division: divide this Amount by another Amount or numeric value and return self.
+
+        If `other` is an Amount, asserts asset compatibility and divides this object's internal amount by the other's amount. If `other` is numeric, divides by Decimal(other). When `fixed_point_arithmetic` is enabled, the result is quantized to this asset's precision.
+
+        Returns:
+            self (Amount): The mutated Amount instance.
+
+        Raises:
+            AssertionError: If `other` is an Amount with a different asset (via check_asset).
+        """
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] / other["amount"]
+            self["amount"] = self["amount"] / other["amount"]
         else:
             self["amount"] /= Decimal(other)
         if self.fixed_point_arithmetic:
@@ -442,18 +487,33 @@ class Amount(dict):
             return quant_amount == quantize((other or 0), self["asset"]["precision"])
 
     def __ne__(self, other):
+        """
+        Return True if this Amount is not equal to `other`.
+
+        Compares values after quantizing both sides to this amount's asset precision. If `other` is an Amount, its asset must match this Amount's asset (an assertion is raised on mismatch) and the comparison uses both amounts quantized to the shared precision. If `other` is numeric or None, it is treated as a numeric value (None → 0) and compared after quantization.
+
+        Returns:
+                bool: True when the quantized values differ, False otherwise.
+        """
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] != quantize(other["amount"], self["asset"]["precision"])
+            return quantize(self["amount"], self["asset"]["precision"]) != quantize(
+                other["amount"], self["asset"]["precision"]
+            )
         else:
             return quant_amount != quantize((other or 0), self["asset"]["precision"])
 
     def __ge__(self, other):
+        """
+        Return True if this Amount is greater than or equal to `other`.
+
+        Performs comparison after quantizing both values to this Amount's asset precision. If `other` is an Amount, its asset must match this Amount's asset (an AssertionError is raised on mismatch). If `other` is None, it is treated as zero. Returns a boolean.
+        """
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] >= quantize(other["amount"], self["asset"]["precision"])
+            return quant_amount >= quantize(other["amount"], self["asset"]["precision"])
         else:
             return quant_amount >= quantize((other or 0), self["asset"]["precision"])
 
@@ -467,4 +527,5 @@ class Amount(dict):
 
     __repr__ = __str__
     __truediv__ = __div__
+    __itruediv__ = __idiv__
     __truemul__ = __mul__

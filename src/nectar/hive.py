@@ -4,7 +4,7 @@ import math
 from datetime import date, datetime, timezone
 
 from nectar.blockchaininstance import BlockChainInstance
-from nectar.constants import STEEM_100_PERCENT
+from nectar.constants import HIVE_100_PERCENT
 from nectargraphenebase.chains import known_chains
 
 from .amount import Amount
@@ -59,7 +59,7 @@ class Hive(BlockChainInstance):
     * **Providing Keys**: Here, you can provide the keys for
       your accounts manually. All you need to do is add the wif
       keys for the accounts you want to use as a simple array
-      using the ``keys`` parameter to ``Steem()``.
+      using the ``keys`` parameter to ``Hive()``.
     * **Force keys**: This more is for advanced users and
       requires that you know what you are doing. Here, the
       ``keys`` parameter is a dictionary that overwrite the
@@ -94,9 +94,9 @@ class Hive(BlockChainInstance):
     .. code-block:: python
 
         from nectar import Hive
-        stm = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
+        hv = Hive(node=["https://mytstnet.com"], custom_chains={"MYTESTNET":
             {'chain_assets': [{'asset': 'HBD', 'id': 0, 'precision': 3, 'symbol': 'HBD'},
-                              {'asset': 'STEEM', 'id': 1, 'precision': 3, 'symbol': 'STEEM'},
+                              {'asset': 'HIVE', 'id': 1, 'precision': 3, 'symbol': 'HIVE'},
                               {'asset': 'VESTS', 'id': 2, 'precision': 6, 'symbol': 'VESTS'}],
              'chain_id': '79276aea5d4877d9a25892eaa01b0adf019d3e5cb12a97478df3298ccdd01674',
              'min_version': '0.0.0',
@@ -220,11 +220,25 @@ class Hive(BlockChainInstance):
         self,
         token_power,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
+        """
+        Convert token power (Hive Power) to its token-backed dollar equivalent (HBD).
+
+        Parameters:
+            token_power: Hive Power amount (numeric or Amount-like) to convert.
+            post_rshares (int): Optional existing rshares on the post to include when estimating payout.
+            voting_power (int): Voter's current voting power (use HIVE_100_PERCENT for full power).
+            vote_pct (int): Vote weight to apply (use HIVE_100_PERCENT for 100%).
+            not_broadcasted_vote (bool): If True, include the vote as not-yet-broadcasted when computing reward pool effects.
+            use_stored_data (bool): If True, prefer cached chain data when available.
+
+        Returns:
+            The estimated HBD value (token-backed dollar) corresponding to the provided token power.
+        """
         return self.hp_to_hbd(
             token_power,
             post_rshares=post_rshares,
@@ -238,21 +252,24 @@ class Hive(BlockChainInstance):
         self,
         hp,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
-        """Obtain the resulting HBD vote value from Hive power
+        """
+        Convert Hive Power (HP) to the estimated HBD payout this vote would produce.
 
-        :param number hive_power: Hive Power
-        :param int post_rshares: rshares of post which is voted
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
-        :param bool not_broadcasted_vote: not_broadcasted or already broadcasted vote (True = not_broadcasted vote).
+        Parameters:
+            hp (number): Amount of Hive Power to convert.
+            post_rshares (int): Current post rshares to include when computing marginal effect of this vote.
+            voting_power (int): Voter's current voting power (100% = 10000).
+            vote_pct (int): Vote percentage to apply (100% = 10000).
+            not_broadcasted_vote (bool): If True, treat the vote as not yet broadcast — the function will account for the vote reducing the available reward pool when applicable.
+            use_stored_data (bool): If True, use cached chain/state data when available.
 
-        Only impactful for very big votes. Slight modification to the value calculation, as the not_broadcasted
-        vote rshares decreases the reward pool.
+        Returns:
+            HBD value corresponding to the provided HP under the current reward pool and price conditions (same type/format as the library's Amount/HBD results).
         """
         vesting_shares = int(self.hp_to_vests(hp, use_stored_data=use_stored_data))
         return self.vests_to_hbd(
@@ -268,21 +285,28 @@ class Hive(BlockChainInstance):
         self,
         vests,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
-        """Obtain the resulting HBD vote value from vests
+        """
+        Convert vesting shares to their equivalent HBD payout for a single vote.
 
-        :param number vests: vesting shares
-        :param int post_rshares: rshares of post which is voted
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
-        :param bool not_broadcasted_vote: not_broadcasted or already broadcasted vote (True = not_broadcasted vote).
+        Given vesting shares, computes the vote's r-shares (taking into account post r-shares,
+        voter power and percentage) and converts that r-shares value to an HBD payout.
 
-        Only impactful for very big votes. Slight modification to the value calculation, as the not_broadcasted
-        vote rshares decreases the reward pool.
+        Parameters:
+            vests: Vesting shares to use for the vote (number or Amount-like).
+            post_rshares (int): Existing r-shares of the post being voted on; affects the r-shares calculation.
+            voting_power (int): Voter's current voting power (units where 100% == HIVE_100_PERCENT).
+            vote_pct (int): Vote percentage to apply (units where 100% == HIVE_100_PERCENT).
+            not_broadcasted_vote (bool): If True, treat this as a not-yet-broadcast vote (it reduces the effective reward pool);
+                if False, treat as already-applied (affects conversion math for very large votes).
+            use_stored_data (bool): Whether to use cached chain parameters/reward state or query fresh data.
+
+        Returns:
+            The estimated HBD value (same type returned by rshares_to_hbd) for the vote.
         """
         vote_rshares = self.vests_to_rshares(
             vests, post_rshares=post_rshares, voting_power=voting_power, vote_pct=vote_pct
@@ -295,17 +319,24 @@ class Hive(BlockChainInstance):
         self,
         hive_power,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         use_stored_data=True,
     ):
-        """Obtain the r-shares from Hive power
+        """
+        Convert Hive Power (HP) to r-shares used for voting.
 
-        :param number hive_power: Hive Power
-        :param int post_rshares: rshares of post which is voted
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
+        Given a Hive Power amount, computes the equivalent vesting shares and then the r-shares that a vote with the specified voting_power and vote_pct would produce against a post that currently has post_rshares. `voting_power` and `vote_pct` use the chain-normalized scale (100% == HIVE_100_PERCENT).
 
+        Parameters:
+            hive_power (number): Hive Power (HP) value to convert.
+            post_rshares (int, optional): Current r-shares of the post being voted on; used to adjust the resulting r-shares. Defaults to 0.
+            voting_power (int, optional): Voter's current voting power on the HIVE_100_PERCENT scale. Defaults to HIVE_100_PERCENT.
+            vote_pct (int, optional): Vote percentage to apply on the HIVE_100_PERCENT scale. Defaults to HIVE_100_PERCENT.
+            use_stored_data (bool, optional): Whether to use cached chain data when performing conversions. Defaults to True.
+
+        Returns:
+            int: The computed r-shares produced by the specified vote.
         """
         # calculate our account voting shares (from vests)
         vesting_shares = int(self.hp_to_vests(hive_power, use_stored_data=use_stored_data))
@@ -322,24 +353,36 @@ class Hive(BlockChainInstance):
         self,
         vests,
         post_rshares=0,
-        voting_power=STEEM_100_PERCENT,
-        vote_pct=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
+        vote_pct=HIVE_100_PERCENT,
         subtract_dust_threshold=True,
         use_stored_data=True,
     ):
-        """Obtain the r-shares from vests
+        """
+        Convert vesting shares to vote r-shares.
 
-        :param number vests: vesting shares
-        :param int post_rshares: rshares of post which is voted
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
+        Detailed behavior:
+        - `vests` is the voter's vesting amount in VESTS (not in micro-vests); the implementation multiplies this value by 1e6 internally.
+        - Computes the effective voting power using `voting_power` and `vote_pct`, applies Hive's normalization (HIVE_100_PERCENT), and returns the signed r-shares for that vote.
+        - If `subtract_dust_threshold` is True, results at or below the chain dust threshold return 0; otherwise the threshold is subtracted from the computed r-shares.
+        - The final r-shares are adjusted by `post_rshares` using the chain's vote-claim logic before being returned.
 
+        Parameters:
+            vests (int|float|Amount): Vesting shares in VESTS.
+            post_rshares (int): Current r-shares on the post being voted (used to compute claim adjustment).
+            voting_power (int): Voter's current voting power (100% == HIVE_100_PERCENT).
+            vote_pct (int): Vote percentage to apply (100% == HIVE_100_PERCENT); sign of this value determines vote direction.
+            subtract_dust_threshold (bool): If True, apply/subtract the chain dust threshold from the computed r-shares.
+            use_stored_data (bool): Whether to use cached chain data for thresholds and calculations.
+
+        Returns:
+            int: Signed r-shares resulting from the provided vesting shares and vote parameters.
         """
         used_power = self._calc_resulting_vote(
             voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
         )
         # calculate vote rshares
-        rshares = int(math.copysign(vests * 1e6 * used_power / STEEM_100_PERCENT, vote_pct))
+        rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
         if subtract_dust_threshold:
             if abs(rshares) <= self.get_dust_threshold(use_stored_data=use_stored_data):
                 return 0
@@ -404,22 +447,36 @@ class Hive(BlockChainInstance):
         post_rshares=0,
         hive_power=None,
         vests=None,
-        voting_power=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
         use_stored_data=True,
     ):
-        """Obtain the voting percentage for a desired rshares value
-        for a given Hive Power or vesting shares and voting_power
-        Give either hive_power or vests, not both.
-        When the output is greater than 10000 or less than -10000,
-        the given absolute rshares are too high
+        """
+        Compute the voting percentage required to achieve a target r-shares value.
 
-        Returns the required voting percentage (100% = 10000)
+        Given a desired r-shares (positive for upvotes, negative for downvotes) and either
+        hive_power or vests (exactly one must be provided), return the voting percentage
+        where 100% = 10000. The calculation accounts for post-vote r-shares adjustments,
+        current dust-threshold behavior (post-hardfork), and the configured voting power.
 
-        :param number rshares: desired rshares value
-        :param number hive_power: Hive Power
-        :param number vests: vesting shares
-        :param int voting_power: voting power (100% = 10000)
+        Parameters:
+            rshares (int | float): Target r-shares value (signed).
+            post_rshares (int, optional): R-shares already present on the post (positive
+                for existing upvotes, negative for downvotes). Defaults to 0.
+            hive_power (float, optional): Hive Power to use for the calculation. Provide
+                this or `vests`, not both. If given, it is converted to vesting shares.
+            vests (int, optional): Vesting shares (in micro-vests, i.e., vest*1e6). Provide
+                this or `hive_power`, not both.
+            voting_power (int, optional): Voter's current voting power where 100% = 10000.
+                Defaults to HIVE_100_PERCENT.
+            use_stored_data (bool, optional): Whether to use cached chain properties when
+                available. Defaults to True.
 
+        Returns:
+            int: Signed voting percentage required (100% = 10000). The sign matches the
+            sign of `rshares`.
+
+        Raises:
+            ValueError: If neither or both of `hive_power` and `vests` are provided.
         """
         if hive_power is None and vests is None:
             raise ValueError("Either hive_power or vests has to be set!")
@@ -450,10 +507,10 @@ class Hive(BlockChainInstance):
 
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
 
-        used_power = int(math.ceil(abs(rshares) * STEEM_100_PERCENT / vests))
+        used_power = int(math.ceil(abs(rshares) * HIVE_100_PERCENT / vests))
         used_power = used_power * max_vote_denom
 
-        vote_pct = used_power * STEEM_100_PERCENT / (60 * 60 * 24) / voting_power
+        vote_pct = used_power * HIVE_100_PERCENT / (60 * 60 * 24) / voting_power
         return int(math.copysign(vote_pct, rshares))
 
     def hbd_to_vote_pct(
@@ -462,26 +519,29 @@ class Hive(BlockChainInstance):
         post_rshares=0,
         hive_power=None,
         vests=None,
-        voting_power=STEEM_100_PERCENT,
+        voting_power=HIVE_100_PERCENT,
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
-        """Obtain the voting percentage for a desired HBD value
-        for a given Hive Power or vesting shares and voting power
-        Give either Hive Power or vests, not both.
-        When the output is greater than 10000 or smaller than -10000,
-        the HBD value is too high.
+        """
+        Calculate the voting percentage required to achieve a target HBD payout for a given voting power and stake.
 
-        Returns the required voting percentage (100% = 10000)
+        Given a desired HBD amount, this returns the vote percentage (100% == 10000) that, when applied from the provided Hive Power or vesting shares, would produce approximately that payout. Exactly one of `hive_power` or `vests` must be provided.
 
-        :param hbd: desired HBD value
-        :type hbd: str, int, amount.Amount
-        :param number hive_power: Hive Power
-        :param number vests: vesting shares
-        :param bool not_broadcasted_vote: not_broadcasted or already broadcasted vote (True = not_broadcasted vote).
-         Only impactful for very high amounts of HBD. Slight modification to the value calculation, as the not_broadcasted
-         vote rshares decreases the reward pool.
+        Parameters:
+            hbd (str|int|Amount): Desired HBD payout. Accepts an Amount, numeric value, or asset string; will be converted to an Amount in the chain's HBD symbol.
+            hive_power (number, optional): Voter's Hive Power. Mutually exclusive with `vests`.
+            vests (number, optional): Voter's vesting shares. Mutually exclusive with `hive_power`.
+            voting_power (int, optional): Current voting power normalization constant (default HIVE_100_PERCENT).
+            not_broadcasted_vote (bool, optional): If True, treat the vote as not yet broadcast; this slightly changes calculations for very large HBD amounts because an unbroadcasted vote reduces the available reward pool.
+            post_rshares (int, optional): rshares already present on the post (used when calculating required vote to reach a target).
+            use_stored_data (bool, optional): Use cached chain properties when available.
 
+        Returns:
+            int: Required vote percentage where 100% == 10000. Values >10000 or < -10000 indicate the requested HBD is too large for a single vote.
+
+        Raises:
+            AssertionError: If the provided `hbd` cannot be interpreted as the chain's HBD asset.
         """
         if isinstance(hbd, Amount):
             hbd = Amount(hbd, blockchain_instance=self)

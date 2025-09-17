@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-Hive/Steem blockchain
+Hive blockchain
 ---------------------
 
 Nodes for using nectar with the Hive blockchain can be set by the command line tool with:
@@ -29,16 +29,16 @@ Hive nodes can be set in a python script with
    hive = Hive(node=nodes)
    print(hive.is_hive)
 
-Steem nodes can be set in a python script with
+Hive nodes can be set in a python script with
 
 .. code-block:: python
 
-   from nectar import Steem
+   from nectar import Hive
    from nectar.nodelist import NodeList
    nodelist = NodeList()
    nodelist.update_nodes()
-   nodes = nodelist.get_steem_nodes()
-   hive = Steem(node=nodes)
+   nodes = nodelist.get_hive_nodes()
+   hive = Hive(node=nodes)
    print(hive.is_hive)
 
 
@@ -49,11 +49,11 @@ By creating this object different options can be set.
 
 .. note:: All init methods of nectar classes can be given
           the ``blockchain_instance=`` parameter to assure that
-          all objects use the same steem object. When the
+          all objects use the same Hive object. When the
           ``blockchain_instance=`` parameter is not used, the 
-          steem object is taken from get_shared_blockchain_instance().
+          hive object is taken from shared_blockchain_instance().
 
-          :func:`nectar.instance.shared_blockchain_instance` returns a global instance of steem.
+          :func:`nectar.instance.shared_blockchain_instance` returns a global instance of Hive.
           It can be set by :func:`nectar.instance.set_shared_blockchain_instance` otherwise it is created
           on the first call.
 
@@ -77,12 +77,12 @@ Wallet and Keys
 ---------------
 Each account has the following keys:
 
-* Posting key (allows accounts to post, vote, edit, resteem and follow/mute)
+* Posting key (allows accounts to post, vote, edit, reblog and follow/mute)
 * Active key (allows accounts to transfer, power up/down, voting for witness, ...)
 * Memo key (Can be used to encrypt/decrypt memos)
 * Owner key (The most important key, should not be used with nectar)
 
-Outgoing operation, which will be stored in the steem blockchain, have to be
+Outgoing operation, which will be stored in the hive blockchain, have to be
 signed by a private key. E.g. Comment or Vote operation need to be signed by the posting key
 of the author or upvoter. Private keys can be provided to nectar temporary or can be
 stored encrypted in a sql-database (wallet).
@@ -106,7 +106,7 @@ Adding keys to the wallet
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: python
 
-   from nectar import Steem
+   from nectar import Hive
    hive = Hive()
    hive.wallet.unlock("wallet-passphrase")
    hive.wallet.addPrivateKey("xxxxxxx")

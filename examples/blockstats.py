@@ -6,7 +6,7 @@ from timeit import default_timer as timer
 
 from prettytable import PrettyTable
 
-from nectar import Blurt, Hive, Steem
+from nectar import Hive
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
@@ -17,54 +17,59 @@ logging.basicConfig(level=logging.INFO)
 
 
 def parse_args(args=None):
-    d = "Show op type stats for either hive, blurt or steem."
+    """
+    Parse command-line arguments for the script.
+
+    One-line summary:
+        Parse CLI arguments and return the parsed Namespace.
+
+    Detailed:
+        Accepts an optional list of argument strings (for testing). Parses a single optional
+        positional argument "blockchain" which is a string specifying the blockchain to use;
+        if omitted the parser will use standard input as the default value.
+
+    Parameters:
+        args (list[str] | None): Optional list of argument strings to parse. If None, uses
+            arguments from the environment (sys.argv).
+
+    Returns:
+        argparse.Namespace: Parsed arguments with attribute `blockchain`.
+    """
+    d = "Show op type stats for hive."
     parser = argparse.ArgumentParser(description=d)
     parser.add_argument(
         "blockchain",
         type=str,
         nargs="?",
         default=sys.stdin,
-        help="Blockchain (hive, blurt or steem)",
+        help="Blockchain (hive)",
     )
     return parser.parse_args(args)
 
 
 def main(args=None):
+    """
+    Compute and print operation-type statistics for recent Hive blocks.
+
+    Scans approximately one hour of recent Hive blocks (by default) and tallies operation types across all transactions found in that window. Results are printed as a table showing each operation type, its count, and its percentage of total operations.
+
+    Parameters:
+        args (list|None): Optional argument list in the same format as sys.argv[1:] or None to use command-line arguments parsed by argparse. Recognized options include a single optional positional "blockchain" identifier (defaults to Hive).
+    """
     args = parse_args(args)
     blockchain = args.blockchain
 
     nodelist = NodeList()
     nodelist.update_nodes(weights={"block": 1})
 
-    if blockchain == "hive" or blockchain is None:
-        max_batch_size = 50
-        threading = False
-        thread_num = 16
-        block_debug = 1000
+    max_batch_size = 50
+    threading = False
+    thread_num = 16
+    block_debug = 1000
 
-        nodes = nodelist.get_hive_nodes()
-        blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "blurt":
-        max_batch_size = None
-        threading = False
-        thread_num = 8
-        block_debug = 20
-        nodes = [
-            "https://rpc.blurt.buzz/",
-            "https://api.blurt.blog",
-            "https://rpc.blurtworld.com",
-            "https://rpc.blurtworld.com",
-        ]
-        blk_inst = Blurt(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "steem":
-        max_batch_size = 50
-        threading = False
-        thread_num = 16
-        block_debug = 1000
-        nodes = nodelist.get_steem_nodes()
-        blk_inst = Steem(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    else:
-        raise Exception("Wrong parameter, can be hive, blurt or steem")
+    nodes = nodelist.get_hive_nodes()
+    blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
+
     print(blk_inst)
     block_count = 0
     total_ops = 0
@@ -121,7 +126,7 @@ def main(args=None):
                 % (blocksperday - block_count, ops_per_day)
             )
 
-    duration = timer() - start
+    _duration = timer() - start
     t = PrettyTable(["Type", "Count", "percentage"])
     t.align = "l"
     op_list = []

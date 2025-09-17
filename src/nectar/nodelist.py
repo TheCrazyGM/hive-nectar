@@ -10,12 +10,24 @@ log = logging.getLogger(__name__)
 
 
 def node_answer_time(node):
+    """
+    Measure the RPC/network response time to a Hive node.
+
+    Parameters:
+        node (str): Node endpoint (URL or host) to ping.
+
+    Returns:
+        float: Elapsed time in seconds for a single `get_network` call. Returns float('inf') if an error occurred while contacting the node.
+
+    Raises:
+        KeyboardInterrupt: Re-raised if the operation is interrupted by the user.
+    """
     try:
         from nectar.blockchaininstance import BlockChainInstance
 
-        stm_local = BlockChainInstance(node=node, num_retries=2, num_retries_call=2, timeout=10)
+        hv_local = BlockChainInstance(node=node, num_retries=2, num_retries_call=2, timeout=10)
         start = timer()
-        stm_local.get_network(use_stored_data=False)
+        hv_local.get_network(use_stored_data=False)
         stop = timer()
         rpc_answer_time = stop - start
     except KeyboardInterrupt:
@@ -27,7 +39,7 @@ def node_answer_time(node):
 
 
 class NodeList(list):
-    """Returns HIVE/STEEM nodes as list
+    """Returns Hive nodes as list
 
     .. code-block:: python
 
@@ -38,15 +50,14 @@ class NodeList(list):
     """
 
     def __init__(self):
+        """
+        Initialize the NodeList with a built-in default set of Hive node metadata.
+
+        Creates the list with prepopulated node dictionaries (url, version, type, owner, hive, score)
+        and passes them to the parent list constructor. The default entries are Hive-focused
+        (appbase and testnet types) and intended as the initial internal node registry.
+        """
         nodes = [
-            {
-                "url": "https://api.steemit.com",
-                "version": "0.20.2",
-                "type": "appbase",
-                "owner": "steemit",
-                "hive": False,
-                "score": 50,
-            },
             {
                 "url": "https://api.hive.blog",
                 "version": "1.27.8",
@@ -177,14 +188,24 @@ class NodeList(list):
         super(NodeList, self).__init__(new_nodes)
 
     def get_node_answer_time(self, node_list=None, verbose=False):
-        """Pings all nodes and measure the answer time
+        """
+        Return a list of reachable node endpoints sorted by measured RPC latency.
 
-        .. code-block:: python
+        Pings each URL in node_list (or every URL known to this NodeList if node_list is None)
+        using node_answer_time and returns a list of dicts sorted by increasing latency.
+        Each dict contains:
+            - "url": the node endpoint string
+            - "delay_ms": measured round-trip delay in milliseconds
 
-            from nectar.nodelist import NodeList
-            nl = NodeList()
-            nl.update_nodes()
-            nl.ping_nodes()
+        Parameters:
+            node_list (iterable[str] | None): Specific node URLs to test. If None, all URLs
+                from this NodeList are tested.
+            verbose (bool): If True, logs each node's measured delay.
+
+        Behavior notes:
+            - URLs not present in this NodeList are treated as unreachable and omitted from the result.
+            - Nodes that fail measurement are treated as infinite latency and are excluded from the returned list.
+            - A KeyboardInterrupt during measurements stops further pinging; the interrupted entry is treated as unreachable.
         """
         ping_times = []
         if node_list is None:
@@ -214,27 +235,39 @@ class NodeList(list):
                 sorted_nodes.append({"url": node_list[i], "delay_ms": ping_times[i] * 1000})
         return sorted_nodes
 
-    def update_nodes(self, weights=None, blockchain_instance=None, **kwargs):
-        """Reads metadata from nectarflower and recalculates the nodes score
-
-        :param list/dict weight: can be used to weight the different benchmarks
-        :type weight: list, dict
-
-        .. code-block:: python
-
-            from nectar.nodelist import NodeList
-            nl = NodeList()
-            weights = [0, 0.1, 0.2, 1]
-            nl.update_nodes(weights)
-            weights = {'block': 0.1, 'history': 0.1, 'apicall': 1, 'config': 1}
-            nl.update_nodes(weights)
+    def update_nodes(self, weights=None, blockchain_instance=None):
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
-        steem = blockchain_instance or shared_blockchain_instance()
+        Update the internal node list and recalculated scores using nectarflower metadata.
+
+        Fetches the "nectarflower" account's json_metadata (up to 5 attempts) and uses its
+        "report", "failing_nodes", and "parameter" sections to recalculate each node's
+        score and metadata (version, hive). If metadata cannot be retrieved after
+        retries, the method logs a warning and returns without modifying the list.
+
+        Weights:
+        - weights may be None, a list, or a dict.
+          - None: benchmarks are weighted uniformly.
+          - list: values are assigned in order to discovered benchmark names and normalized by their sum.
+          - dict: keys are benchmark names; values are normalized by their sum. Any benchmark not present in the provided dict receives weight 0.
+        The code derives benchmark names from metadata.parameters.benchmarks when available,
+        otherwise from keys present in report entries (excluding obvious non-benchmark fields).
+
+        Scoring rules:
+        - For each report entry, per-benchmark ranks are converted to scores (0–100),
+          multiplied by the benchmark weights, and summed to produce a node score.
+        - If a report entry contains a numeric "weighted_score", that value takes precedence.
+        - Nodes listed in failing_nodes receive a score of -1.
+        - Nodes present in the internal list but missing from the report receive score 0.
+        - Nodes present in the report but missing from the internal list are appended to the final list (with fields populated from the report).
+        - Nodes listed in failing_nodes but absent elsewhere are appended with score -1.
+
+        Side effects:
+        - Replaces the NodeList contents (in-place) with the newly computed list of nodes.
+        - Uses the provided blockchain_instance or a shared blockchain instance to fetch metadata and advance RPC state on transient errors.
+
+        No return value.
+        """
+        bc = blockchain_instance or shared_blockchain_instance()
 
         metadata = None
         account = None
@@ -242,7 +275,7 @@ class NodeList(list):
         while metadata is None and cnt < 5:
             cnt += 1
             try:
-                account = Account("nectarflower", blockchain_instance=steem)
+                account = Account("nectarflower", blockchain_instance=bc)
                 # Metadata is stored in the account's json_metadata field (not posting_json_metadata)
                 raw_meta = account.get("json_metadata") or ""
                 try:
@@ -251,7 +284,7 @@ class NodeList(list):
                     metadata = None
             except Exception as e:
                 log.warning(f"Error fetching metadata (attempt {cnt}): {str(e)}")
-                steem.rpc.next()
+                bc.rpc.next()
                 account = None
                 metadata = None
 
@@ -412,7 +445,7 @@ class NodeList(list):
 
     def get_nodes(
         self,
-        hive=False,
+        hive=True,
         exclude_limited=False,
         dev=False,
         testnet=False,
@@ -423,17 +456,25 @@ class NodeList(list):
         normal=True,
         appbase=True,
     ):
-        """Returns nodes as list
+        """
+        Return a list of node URLs filtered and sorted by score (descending).
 
-        :param bool hive: When True, only HIVE nodes will be returned
-        :param bool exclude_limited: When True, limited nodes are excluded
-        :param bool dev: when True, dev nodes with version 0.19.11 are included
-        :param bool testnet: when True, testnet nodes are included
-        :param bool testnetdev: When True, testnet-dev nodes are included
-        :param bool not_working: When True, all nodes including not working ones will be returned
-        :param bool normal: deprecated
-        :param bool appbase: deprecated
+        Filters nodes by type (normal, appbase, appbase-dev, testnet, testnet-dev, appbase-limited), by whether they are Hive nodes, by protocol (https/wss), and by working status. Nodes with score < 0 are excluded unless not_working=True. The resulting list is sorted by each node's "score" in descending order.
 
+        Parameters that add non-obvious behavior:
+            hive (bool): If True (default) return only nodes marked as Hive; set to False to include non-Hive entries (note: the bundled node data is Hive-focused).
+            exclude_limited (bool): If True, exclude nodes of type "appbase-limited".
+            dev (bool): If True, include "appbase-dev" nodes (legacy/dev nodes, historically version 0.19.11).
+            testnet (bool): If True, include "testnet" nodes.
+            testnetdev (bool): If True, include "testnet-dev" nodes.
+            wss (bool): If False, exclude URLs that start with "wss".
+            https (bool): If False, exclude URLs that start with "https".
+            not_working (bool): If True, include nodes with negative scores (not working).
+            normal (bool): Include "normal" nodes when True. (Deprecated)
+            appbase (bool): Include "appbase" nodes when True. (Deprecated)
+
+        Returns:
+            list[str]: Filtered node URLs sorted by node["score"] descending.
         """
         node_list = []
         node_type_list = []
@@ -451,6 +492,7 @@ class NodeList(list):
             node_type_list.append("appbase-limited")
         for node in self:
             if node["type"] in node_type_list and (node["score"] >= 0 or not_working):
+                # Hive-only by default; legacy callers can still pass hive=False but list is Hive-only
                 if hive != node["hive"]:
                     continue
                 if not https and node["url"][:5] == "https":
@@ -464,11 +506,19 @@ class NodeList(list):
         ]
 
     def get_hive_nodes(self, testnet=False, not_working=False, wss=True, https=True):
-        """Returns hive only nodes as list
+        """
+        Return a list of Hive node URLs filtered and ordered by score.
 
-        :param bool testnet: when True, testnet nodes are included
-        :param bool not_working: When True, all nodes including not working ones will be returned
+        Filters internal nodes to Hive-only entries and returns their URLs sorted by score (highest first).
 
+        Parameters:
+            testnet (bool): If True, include only nodes whose type is "testnet". If False, include only non-testnet nodes.
+            not_working (bool): If True, include nodes with negative scores (typically non-working). If False, exclude them.
+            wss (bool): If True, include nodes with WSS (wss://) URLs; if False, exclude WSS endpoints.
+            https (bool): If True, include nodes with HTTPS (https://) URLs; if False, exclude HTTPS endpoints.
+
+        Returns:
+            list[str]: Sorted list of node URLs (strings) matching the filters.
         """
         node_list = []
 
@@ -490,33 +540,17 @@ class NodeList(list):
             node["url"] for node in sorted(node_list, key=lambda self: self["score"], reverse=True)
         ]
 
-    def get_steem_nodes(self, testnet=False, not_working=False, wss=True, https=True):
-        """Returns steem only nodes as list
-
-        :param bool testnet: when True, testnet nodes are included
-        :param bool not_working: When True, all nodes including not working ones will be returned
-
-        """
-        node_list = []
-
-        for node in self:
-            if node["hive"]:
-                continue
-            if node["score"] < 0 and not not_working:
-                continue
-            if (testnet and node["type"] == "testnet") or (
-                not testnet and node["type"] != "testnet"
-            ):
-                if not https and node["url"][:5] == "https":
-                    continue
-                if not wss and node["url"][:3] == "wss":
-                    continue
-                node_list.append(node)
-
-        return [
-            node["url"] for node in sorted(node_list, key=lambda self: self["score"], reverse=True)
-        ]
-
     def get_testnet(self, testnet=True, testnetdev=False):
-        """Returns testnet nodes"""
+        """
+        Return a list of testnet node URLs.
+
+        Calls get_nodes with normal and appbase disabled to return nodes belonging to the testnet(s).
+
+        Parameters:
+            testnet (bool): If True include nodes marked as `testnet`. If False, include non-testnet nodes.
+            testnetdev (bool): If True include nodes marked as `testnet-dev` (development testnet).
+
+        Returns:
+            list: Sorted list of node URL strings matching the requested testnet filters.
+        """
         return self.get_nodes(normal=False, appbase=False, testnet=testnet, testnetdev=testnetdev)

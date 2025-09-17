@@ -18,13 +18,13 @@ You can change the password via `changewalletpassphrase` command.
 
 
 From this point on, every time an action requires your private keys, you will be prompted ot enter
-this password (from CLI as well as while using `steem` library).
+this password (from CLI as well as while using `hive` library).
 
 To bypass password entry, you can set an environment variable ``UNLOCK``.
 
 ::
 
-    UNLOCK=mysecretpassword hive-nectar transfer <recipient_name> 100 STEEM
+    UNLOCK=mysecretpassword hive-nectar transfer <recipient_name> 100 HIVE
 
 Using a key json file
 ---------------------
@@ -47,7 +47,7 @@ When set, the wallet cannot be used.
 
 Common Commands
 ---------------
-First, you may like to import your Steem account:
+First, you may like to import your Hive account:
 
 ::
 
@@ -76,19 +76,19 @@ Sending funds:
 
 ::
 
-   hive-nectar transfer --account <account_name> <recipient_name> 100 STEEM memo
+   hive-nectar transfer --account <account_name> <recipient_name> 100 HIVE memo
 
 Upvoting a post:
 
 ::
 
-   hive-nectar upvote --account <account_name> https://steemit.com/funny/@mynameisbrian/the-content-stand-a-comic
+   hive-nectar upvote --account <account_name> https://hive.blog/funny/@mynameisbrian/the-content-stand-a-comic
 
 
 Setting Defaults
 ----------------
 For a more convenient use of ``hive-nectar`` as well as the ``nectar`` library, you can set some defaults.
-This is especially useful if you have a single Steem account.
+This is especially useful if you have a single Hive account.
 
 ::
 
@@ -107,7 +107,7 @@ If you've set up your `default_account`, you can now send funds by omitting this
 
 ::
 
-    hive-nectar transfer <recipient_name> 100 STEEM memo
+    hive-nectar transfer <recipient_name> 100 Hive memo
 
 Commands
 --------
@@ -126,16 +126,14 @@ You can see all available commands with ``hive-nectar --help``
    Usage: hive-nectar [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
 
    Options:
-     -n, --node TEXT        URL for public Steem API (e.g.
-                            https://api.steemit.com)
+     -n, --node TEXT        URL for public Hive API (e.g.
+                            https://api.hive.blog)
      -o, --offline          Prevent connecting to network
      -d, --no-broadcast     Do not broadcast
      -p, --no-wallet        Do not load the wallet
      -x, --unsigned         Nothing will be signed
      -l, --create-link      Creates hivesigner links from all broadcast
                             operations
-     -s, --steem            Connect to the Steem blockchain
-     -h, --hive             Connect to the Hive blockchain
      -k, --keys TEXT        JSON file that contains account keys, when set, the
                             wallet cannot be used.
      -u, --use-ledger       Uses the ledger device Nano S for signing.
@@ -159,7 +157,7 @@ You can see all available commands with ``hive-nectar --help``
      balance                 Shows balance
      beneficiaries           Set beneficaries
      broadcast               broadcast a signed transaction
-     buy                     Buy STEEM/HIVE or SBD/HBD from the internal
+     buy                     Buy HIVE or HBD from the internal
                              market...
      cancel                  Cancel order in the internal market
      changekeys              Changes all keys for the specified account Keys...
@@ -168,7 +166,7 @@ You can see all available commands with ``hive-nectar --help``
      claimaccount            Claim account for claimed account creation.
      claimreward             Claim reward balances By default, this will...
      config                  Shows local configuration
-     convert                 Convert SBD/HBD to Steem/Hive (takes a week to...
+     convert                 Convert HBD to Hive (takes a week to...
      createpost              Creates a new markdown file with YAML header
      createwallet            Create new wallet with a new password
      curation                Lists curation rewards of all votes for
@@ -218,12 +216,12 @@ You can see all available commands with ``hive-nectar --help``
      power                   Shows vote power and bandwidth
      powerdown               Power down (start withdrawing VESTS from...
      powerdownroute          Setup a powerdown route
-     powerup                 Power up (vest STEEM/HIVE as STEEM/HIVE POWER)
+     powerup                 Power up (vest HIVE as HIVE POWER)
      pricehistory            Show price history
      reblog                  Reblog an existing post
      reply                   replies to a comment
      rewards                 Lists received rewards
-     sell                    Sell STEEM/HIVE or SBD/HBD from the internal...
+     sell                    Sell HIVE or HBD from the internal...
      set                     Set default_account, default_vote_weight or...
      setprofile              Set a variable in an account's profile
      setproxy                Set your witness/proposal system proxy
@@ -231,7 +229,7 @@ You can see all available commands with ``hive-nectar --help``
      stream                  Stream operations
      ticker                  Show ticker
      tradehistory            Show price history
-     transfer                Transfer SBD/HBD or STEEM/HIVE
+     transfer                Transfer HBD or HIVE
      unfollow                Unfollow/Unmute another account
      updatememokey           Update an account's memo key
      updatenodes             Update the nodelist from @fullnodeupdate

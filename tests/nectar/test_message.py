@@ -5,7 +5,7 @@ import mock
 
 from nectar import Hive
 from nectar.account import Account
-from nectar.instance import set_shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance
 from nectar.message import Message
 
 from .nodes import get_hive_nodes
@@ -18,7 +18,7 @@ class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.bts = Hive(node=get_hive_nodes(), nobroadcast=True, keys=[wif], num_retries=10)
-        set_shared_steem_instance(cls.bts)
+        set_shared_blockchain_instance(cls.bts)
 
     def test_sign_message(self):
         def new_refresh(self):

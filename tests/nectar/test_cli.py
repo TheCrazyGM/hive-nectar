@@ -5,7 +5,7 @@ import unittest
 from click.testing import CliRunner
 
 from nectar.cli import cli
-from nectar.instance import shared_steem_instance
+from nectar.instance import shared_blockchain_instance
 from nectar.utils import import_pubkeys
 
 from .nodes import get_hive_nodes
@@ -19,10 +19,23 @@ pub_key = "STX52xMqKegLk4tdpNcUXU9Rw5DtdM9fxf3f12Gp55v1UjLX3ELZf"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Prepare the test environment for the suite by configuring the CLI and initializing a wallet with test keys.
+
+        This class-level setup:
+        - Retrieves the hive node list and stores it on the class.
+        - Uses Click's CliRunner to set default CLI options (default vote weight, default account, nodes).
+        - Creates a new test wallet (wiping any existing wallet) and imports three predefined keys (WIF, posting, memo).
+        - Raises AssertionError if any CLI invocation exits with a non-zero code, including the CliRunner result in the error.
+
+        Side effects:
+        - Modifies global CLI configuration and the on-disk wallet state via the Nectar CLI.
+        - Relies on module-level key constants and get_hive_nodes().
+        """
         cls.node_list = get_hive_nodes()
 
-        # stm = shared_steem_instance()
-        # stm.config.refreshBackup()
+        # hv = shared_blockchain_instance()
+        # hv.config.refreshBackup()
         runner = CliRunner()
         result = runner.invoke(cli, ["-o", "set", "default_vote_weight", "100"])
         if result.exit_code != 0:
@@ -48,10 +61,15 @@ class Testcases(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        stm = shared_steem_instance()
-        stm.config.recover_with_latest_backup()
+        """
+        Restore shared blockchain state and refresh CLI node list after tests.
+
+        This class teardown recovers the shared blockchain instance from the latest backup to restore global state modified by the tests, then invokes the CLI's `updatenodes --hive` command to refresh the configured node list.
+        """
+        hv = shared_blockchain_instance()
+        hv.config.recover_with_latest_backup()
         runner = CliRunner()
-        result = runner.invoke(cli, ["updatenodes", "--hive"])
+        _ = runner.invoke(cli, ["updatenodes", "--hive"])
 
     def test_balance(self):
         runner = CliRunner()
@@ -192,11 +210,11 @@ class Testcases(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_transfer(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["-dx", "transfer", "thecrazygm", "1", stm.backed_token_symbol, "test"],
+            ["-dx", "transfer", "thecrazygm", "1", hv.backed_token_symbol, "test"],
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
@@ -302,7 +320,9 @@ class Testcases(unittest.TestCase):
 
     def test_addproxy(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "setproxy", "-a", "hive-nectar", "thecrazygm"], input="test\n")
+        result = runner.invoke(
+            cli, ["-dx", "setproxy", "-a", "hive-nectar", "thecrazygm"], input="test\n"
+        )
         self.assertEqual(result.exit_code, 0)
 
     def test_delproxy(self):
@@ -399,38 +419,38 @@ class Testcases(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_buy(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "buy", "1", hv.token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dt", "-x", "buy", "1", stm.token_symbol], input="y\ntest\n")
+        result = runner.invoke(cli, ["-dt", "-x", "buy", "1", hv.token_symbol], input="y\ntest\n")
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.backed_token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", stm.backed_token_symbol], input="y\ntest\n"
+            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol], input="y\ntest\n"
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_sell(self):
-        stm = shared_steem_instance()
+        hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "sell", "1", hv.token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.backed_token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "sell", "1", hv.backed_token_symbol, "2.2"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dt", "-x", "sell", "1", stm.token_symbol], input="y\ntest\n")
+        result = runner.invoke(cli, ["-dt", "-x", "sell", "1", hv.token_symbol], input="y\ntest\n")
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "sell", "1", stm.backed_token_symbol], input="y\ntest\n"
+            cli, ["-dt", "-x", "sell", "1", hv.backed_token_symbol], input="y\ntest\n"
         )
         self.assertEqual(result.exit_code, 0)
 
@@ -465,7 +485,7 @@ class Testcases(unittest.TestCase):
 
     def test_witnesscreate(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "witnesscreate", "nectar", pub_key], input="test\n")
+        _ = runner.invoke(cli, ["-dx", "witnesscreate", "nectar", pub_key], input="test\n")
 
     def test_witnessupdate(self):
         runner = CliRunner()
@@ -529,7 +549,8 @@ class Testcases(unittest.TestCase):
     def test_witnessenable(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "witnessenable", "thecrazygm", "STM1111111111111111111111111111111114T1Anm"]
+            cli,
+            ["-dx", "witnessenable", "thecrazygm", "STM1111111111111111111111111111111114T1Anm"],
         )
         self.assertEqual(result.exit_code, 0)
 

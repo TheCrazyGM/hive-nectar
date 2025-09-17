@@ -10,8 +10,8 @@ from nectar.account import Account
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.comment import Comment
+from nectar.hive import Hive
 from nectar.nodelist import NodeList
-from nectar.steem import Steem
 from nectar.utils import (
     construct_authorperm,
     parse_time,
@@ -23,7 +23,7 @@ from nectarapi.exceptions import NumRetriesReached
 FUTURES_MODULE = None
 if not FUTURES_MODULE:
     try:
-        from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         FUTURES_MODULE = "futures"
     except ImportError:
@@ -34,6 +34,31 @@ quit_thread = False
 
 
 def benchmark_node(node, how_many_minutes=10, how_many_seconds=30):
+    """
+    Benchmark a single Hive node by measuring block processing, account history retrieval, and basic RPC access latencies.
+
+    Performs three timed phases against the provided node:
+    1. Iterates historical blocks starting from a fixed block ID until a time limit (how_many_minutes) or per-call time limit (how_many_seconds) is reached, counting blocks and transactions.
+    2. Iterates the account history of the fixed account "gtg" in reverse (batch_size=100) until the per-call time limit is reached, counting history entries.
+    3. Measures the average latency of four representative operations (Vote, Comment, Account construction, and fetching followers) to produce an access-time metric.
+
+    Parameters:
+        node (str): URL or identifier of the Hive node to benchmark.
+        how_many_minutes (int): Maximum span (in minutes) of blockchain history to walk from the starting block (default: 10).
+        how_many_seconds (int): Per-phase timeout in seconds to abort a long-running loop/scan (default: 30).
+
+    Returns:
+        dict: A summary with the following keys:
+            - successful (bool): False if a retriable error occurred during history or access phases.
+            - node (str): The node value passed in.
+            - error (str|None): Error message when a phase failed, otherwise None.
+            - total_duration (float): Total elapsed seconds for the entire benchmark run.
+            - block_count (int): Number of blocks processed (or -1 on error).
+            - history_count (int): Number of account history entries processed (or -1 on error).
+            - access_time (float): Average latency (seconds) of the measured RPC operations (or -1 on error).
+            - follow_time (float): Measured time (seconds) for fetching followers in the access phase.
+            - version (str): Blockchain version string reported by the node.
+    """
     block_count = 0
     history_count = 0
     access_time = 0
@@ -46,16 +71,16 @@ def benchmark_node(node, how_many_minutes=10, how_many_seconds=30):
     threading = False
     thread_num = 16
 
-    authorpermvoter = "@gtg/steem-pressure-4-need-for-speed|gandalf"
+    authorpermvoter = "@gtg/hive-pressure-4-need-for-speed|gandalf"
     [author, permlink, voter] = resolve_authorpermvoter(authorpermvoter)
     authorperm = construct_authorperm(author, permlink)
     last_block_id = 19273700
     try:
-        stm = Steem(node=node, num_retries=3, num_retries_call=3, timeout=30)
-        blockchain = Blockchain(steem_instance=stm)
-        blockchain_version = stm.get_blockchain_version()
+        hv = Hive(node=node, num_retries=3, num_retries_call=3, timeout=30)
+        blockchain = Blockchain(blockchain_instance=hv)
+        blockchain_version = hv.get_blockchain_version()
 
-        last_block = Block(last_block_id, steem_instance=stm)
+        last_block = Block(last_block_id, blockchain_instance=hv)
 
         stopTime = last_block.time() + timedelta(seconds=how_many_minutes * 60)
         total_transaction = 0
@@ -98,9 +123,9 @@ def benchmark_node(node, how_many_minutes=10, how_many_seconds=30):
         block_count = -1
 
     try:
-        stm = Steem(node=node, num_retries=3, num_retries_call=3, timeout=30)
-        account = Account("gtg", steem_instance=stm)
-        blockchain_version = stm.get_blockchain_version()
+        hv = Hive(node=node, num_retries=3, num_retries_call=3, timeout=30)
+        account = Account("gtg", blockchain_instance=hv)
+        blockchain_version = hv.get_blockchain_version()
 
         start = timer()
         for acc_op in account.history_reverse(batch_size=100):
@@ -122,20 +147,20 @@ def benchmark_node(node, how_many_minutes=10, how_many_seconds=30):
         successful = False
 
     try:
-        stm = Steem(node=node, num_retries=3, num_retries_call=3, timeout=30)
-        account = Account("gtg", steem_instance=stm)
-        blockchain_version = stm.get_blockchain_version()
+        hv = Hive(node=node, num_retries=3, num_retries_call=3, timeout=30)
+        account = Account("gtg", blockchain_instance=hv)
+        blockchain_version = hv.get_blockchain_version()
 
         start = timer()
-        Vote(authorpermvoter, steem_instance=stm)
+        Vote(authorpermvoter, blockchain_instance=hv)
         stop = timer()
         vote_time = stop - start
         start = timer()
-        Comment(authorperm, steem_instance=stm)
+        Comment(authorperm, blockchain_instance=hv)
         stop = timer()
         comment_time = stop - start
         start = timer()
-        Account(author, steem_instance=stm)
+        Account(author, blockchain_instance=hv)
         stop = timer()
         account_time = stop - start
         start = timer()
@@ -217,7 +242,7 @@ if __name__ == "__main__":
     print("\n")
     print("Total benchmark time: %.2f s\n" % (timer() - benchmark_time))
     if set_default_nodes:
-        stm = Steem(offline=True)
-        stm.set_default_nodes(working_nodes)
+        hv = Hive(offline=True)
+        hv.set_default_nodes(working_nodes)
     else:
         print("hive-nectar set nodes " + str(working_nodes))

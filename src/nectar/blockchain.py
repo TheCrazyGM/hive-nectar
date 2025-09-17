@@ -9,7 +9,6 @@ from queue import Queue
 from threading import Event, Thread
 from time import sleep
 
-import nectar as stm
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import UnknownTransaction
 
@@ -181,7 +180,7 @@ class Blockchain(object):
     """This class allows to access the blockchain and read data
     from it
 
-    :param Steem/Hive blockchain_instance: Steem or Hive instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :param str mode: (default) Irreversible block (``irreversible``) or
         actual head block (``head``)
     :param int max_block_wait_repetition: maximum wait repetition for next block
@@ -235,11 +234,18 @@ class Blockchain(object):
         data_refresh_time_seconds=900,
         **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize the Blockchain helper.
+
+        Sets the underlying blockchain connection (uses shared instance if none provided), configures mode to map to the underlying RPC key ("last_irreversible_block_num" or "head_block_number"), sets max_block_wait_repetition (default 3), and reads the chain's block interval.
+
+        Parameters:
+            mode (str): "irreversible" to operate against the last irreversible block, or "head" to operate against the chain head.
+            max_block_wait_repetition (int, optional): Number of times to retry waiting for a block before giving up; defaults to 3.
+
+        Raises:
+            ValueError: If `mode` is not "irreversible" or "head".
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if mode == "irreversible":
@@ -434,23 +440,34 @@ class Blockchain(object):
         only_ops=False,
         only_virtual_ops=False,
     ):
-        """Yields blocks starting from ``start``.
+        """
+        Yield Block objects from `start` up to `stop` (or the chain head).
 
-        :param int start: Starting block
-        :param int stop: Stop at this block
-        :param int max_batch_size: only for appbase nodes. When not None, batch calls of are used.
-            Cannot be combined with threading
-        :param bool threading: Enables threading. Cannot be combined with batch calls
-        :param int thread_num: Defines the number of threads, when `threading` is set.
-        :param bool only_ops: Only yield operations (default: False).
-            Cannot be combined with ``only_virtual_ops=True``.
-        :param bool only_virtual_ops: Only yield virtual operations (default: False)
+        This generator retrieves blocks from the connected blockchain instance and yields them as Block objects. It supports three retrieval modes:
+        - Single-threaded sequential fetching (default).
+        - Threaded parallel fetching across multiple blockchain instances when `threading=True`.
+        - Batched RPC calls for appbase-compatible nodes when `max_batch_size` is set (cannot be combined with `threading`).
 
-        .. note:: If you want instant confirmation, you need to instantiate
-                  class:`nectar.blockchain.Blockchain` with
-                  ``mode="head"``, otherwise, the call will wait until
-                  confirmed in an irreversible block.
+        Parameters:
+            start (int, optional): First block number to fetch. If omitted, defaults to the current block.
+            stop (int, optional): Last block number to fetch. If omitted, the generator follows the chain head indefinitely.
+            max_batch_size (int, optional): Use batched RPC calls (appbase only). Cannot be used with `threading`.
+            threading (bool): If True, fetch blocks in parallel using `thread_num` workers.
+            thread_num (int): Number of worker threads to use when `threading=True`.
+            only_ops (bool): If True, blocks will contain only regular operations (no block metadata).
+                Mutually exclusive with `only_virtual_ops=True`.
+            only_virtual_ops (bool): If True, yield only virtual operations.
 
+        Yields:
+            Block: A Block object for each fetched block (may contain only ops or only virtual ops depending on flags).
+
+        Exceptions:
+            OfflineHasNoRPCException: Raised if batched mode is requested while offline (no RPC available).
+            BatchedCallsNotSupported: Raised if the node does not support batched calls when `max_batch_size` is used.
+
+        Notes:
+            - For instant (non-irreversible) confirmations, initialize the Blockchain with mode="head"; otherwise this method will wait for irreversible blocks.
+            - `max_batch_size` requires appbase-compatible RPC; threaded mode creates additional blockchain instances for parallel RPC calls.
         """
         # Let's find out how often blocks are generated!
         current_block = self.get_current_block()
@@ -467,7 +484,7 @@ class Blockchain(object):
             nodelist = self.blockchain.rpc.nodes.export_working_nodes()
             for i in range(thread_num - 1):
                 blockchain_instance.append(
-                    stm.Steem(
+                    self.blockchain.__class__(
                         node=nodelist,
                         num_retries=self.blockchain.rpc.num_retries,
                         num_retries_call=self.blockchain.rpc.num_retries_call,
@@ -794,63 +811,33 @@ class Blockchain(object):
         return ops_stat
 
     def stream(self, opNames=[], raw_ops=False, *args, **kwargs):
-        """Yield specific operations (e.g. comments) only
+        """
+        Yield blockchain operations filtered by type, normalizing several node event formats into a consistent output.
 
-        :param array opNames: List of operations to filter for
-        :param bool raw_ops: When set to True, it returns the unmodified operations (default: False)
-        :param int start: Start at this block
-        :param int stop: Stop at this block
-        :param int max_batch_size: only for appbase nodes. When not None, batch calls of are used.
-            Cannot be combined with threading
-        :param bool threading: Enables threading. Cannot be combined with batch calls
-        :param int thread_num: Defines the number of threads, when `threading` is set.
-        :param bool only_ops: Only yield operations (default: False)
-            Cannot be combined with ``only_virtual_ops=True``
-        :param bool only_virtual_ops: Only yield virtual operations (default: False)
+        Parameters:
+            opNames (list): Operation type names to filter for (e.g., ['transfer', 'comment']). If empty, all operations are yielded.
+            raw_ops (bool): If True, yield raw operation tuples with minimal metadata; if False (default), yield a flattened dict with operation fields and metadata.
+            *args, **kwargs: Passed through to self.blocks(...) (e.g., start, stop, max_batch_size, threading, thread_num, only_ops, only_virtual_ops).
 
-        The dict output is formated such that ``type`` carries the
-        operation type. Timestamp and block_num are taken from the
-        block the operation was stored in and the other keys depend
-        on the actual operation.
+        Yields:
+            dict: When raw_ops is False, yields a dictionary with at least:
+                - 'type': operation name
+                - operation fields (e.g., 'from', 'to', 'amount', ...)
+                - '_id': deterministic operation hash
+                - 'timestamp': block timestamp
+                - 'block_num': block number
+                - 'trx_num': transaction index within the block
+                - 'trx_id': transaction id
 
-        .. note:: If you want instant confirmation, you need to instantiate
-                  class:`nectar.blockchain.Blockchain` with
-                  ``mode="head"``, otherwise, the call will wait until
-                  confirmed in an irreversible block.
+            dict: When raw_ops is True, yields a compact dictionary:
+                - 'block_num': block number
+                - 'trx_num': transaction index
+                - 'op': [op_type, op_payload]
+                - 'timestamp': block timestamp
 
-        output when `raw_ops=False` is set:
-
-        .. code-block:: js
-
-            {
-                'type': 'transfer',
-                'from': 'johngreenfield',
-                'to': 'thundercurator',
-                'amount': '0.080 SBD',
-                'memo': 'https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right',
-                '_id': '6d4c5f2d4d8ef1918acaee4a8dce34f9da384786',
-                'timestamp': datetime.datetime(2018, 5, 9, 11, 23, 6, tzinfo=<UTC>),
-                'block_num': 22277588, 'trx_num': 35, 'trx_id': 'cf11b2ac8493c71063ec121b2e8517ab1e0e6bea'
-            }
-
-        output when `raw_ops=True` is set:
-
-        .. code-block:: js
-
-            {
-                'block_num': 22277588,
-                'op':
-                    [
-                        'transfer',
-                            {
-                                'from': 'johngreenfield', 'to': 'thundercurator',
-                                'amount': '0.080 SBD',
-                                'memo': 'https://steemit.com/lofi/@johngreenfield/lofi-joji-yeah-right'
-                            }
-                    ],
-                    'timestamp': datetime.datetime(2018, 5, 9, 11, 23, 6, tzinfo=<UTC>)
-            }
-
+        Notes:
+            - The method accepts the same control parameters as blocks(...) via kwargs. The block stream determines timestamps and block-related metadata.
+            - Operation events from different node formats (lists, legacy dicts, appbase-style dicts) are normalized by this method before yielding.
         """
         for block in self.blocks(**kwargs):
             if "transactions" in block:
@@ -1052,23 +1039,20 @@ class Blockchain(object):
             skip_first = True
 
     def get_similar_account_names(self, name, limit=5):
-        """Returns limit similar accounts with name as list
+        """
+        Return a list of accounts with names similar to the given name.
 
-        :param str name: account name to search similars for
-        :param int limit: limits the number of accounts, which will be returned
-        :returns: Similar account names as list
-        :rtype: list
+        Performs an RPC call to fetch accounts starting at `name`. If the underlying node uses the
+        appbase API this returns the raw `accounts` list from the `list_accounts` response (list of
+        account objects/dicts). If using the legacy API this returns the list of account names
+        returned by `lookup_accounts`. If the local blockchain connection is offline, returns None.
 
-        .. code-block:: python
+        Parameters:
+            name (str): Prefix or starting account name to search for.
+            limit (int): Maximum number of accounts to return.
 
-            >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
-            >>> ret = blockchain.get_similar_account_names("test", limit=5)
-            >>> len(ret) == 5
-            True
-
+        Returns:
+            list or None: A list of account names or account objects (depending on RPC), or None if offline.
         """
         if not self.blockchain.is_connected():
             return None
@@ -1083,22 +1067,18 @@ class Blockchain(object):
             return self.blockchain.rpc.lookup_accounts(name, limit)
 
     def find_rc_accounts(self, name):
-        """Returns the RC parameters of one or more accounts.
+        """
+        Return resource credit (RC) parameters for one or more accounts.
 
-        :param str name: account name to search rc params for (can also be a list of accounts)
-        :returns: RC params
-        :rtype: list
+        If given a single account name (str), returns the RC parameters for that account as a dict.
+        If given a list of account names, returns a list of RC-parameter dicts in the same order.
+        Returns None when the underlying blockchain RPC is not connected or if the RPC returns no data.
 
-        .. code-block:: python
+        Parameters:
+            name (str | list): An account name or a list of account names.
 
-            >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
-            >>> ret = blockchain.find_rc_accounts(["test"])
-            >>> len(ret) == 1
-            True
-
+        Returns:
+            dict | list | None: RC parameters for the account(s), or None if offline or no result.
         """
         if not self.blockchain.is_connected():
             return None
@@ -1113,29 +1093,21 @@ class Blockchain(object):
                 return account["rc_accounts"][0]
 
     def list_change_recovery_account_requests(self, start="", limit=1000, order="by_account"):
-        """List pending `change_recovery_account` requests.
+        """
+        Return pending change_recovery_account requests from the blockchain.
 
-        :param str/list start: Start the listing from this entry.
-            Leave empty to start from the beginning. If `order` is set
-            to `by_account`, `start` has to be an account name. If
-            `order` is set to `by_effective_date`, `start` has to be a
-            list of [effective_on, account_to_recover],
-            e.g. `start=['2018-12-18T01:46:24', 'bott']`.
-        :param int limit: maximum number of results to return (default
-            and maximum: 1000).
-        :param str order: valid values are "by_account" (default) or
-            "by_effective_date".
-        :returns: list of `change_recovery_account` requests.
-        :rtype: list
+        If the local blockchain connection is offline, returns None.
 
-        .. code-block:: python
+        Parameters:
+            start (str or list): Starting point for the listing.
+                - For order="by_account": an account name (string).
+                - For order="by_effective_date": a two-item list [effective_on, account_to_recover]
+                  e.g. ['2018-12-18T01:46:24', 'bott'].
+            limit (int): Maximum number of results to return (default and max: 1000).
+            order (str): Index to iterate: "by_account" (default) or "by_effective_date".
 
-            >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
-            >>> ret = blockchain.list_change_recovery_account_requests(limit=1)
-
+        Returns:
+            list or None: A list of change_recovery_account request entries, or None if offline.
         """
         if not self.blockchain.is_connected():
             return None
@@ -1147,23 +1119,19 @@ class Blockchain(object):
             return requests["requests"]
 
     def find_change_recovery_account_requests(self, accounts):
-        """Find pending `change_recovery_account` requests for one or more
-        specific accounts.
+        """
+        Find pending change_recovery_account requests for one or more accounts.
 
-        :param str/list accounts: account name or list of account
-            names to find `change_recovery_account` requests for.
-        :returns: list of `change_recovery_account` requests for the
-            given account(s).
-        :rtype: list
+        Accepts a single account name or a list of account names and queries the connected node for pending
+        change_recovery_account requests. Returns the list of matching request entries, or None if the
+        local blockchain instance is not connected or the RPC returned no data.
 
-        .. code-block:: python
+        Parameters:
+            accounts (str | list): Account name or list of account names to search for.
 
-            >>> from nectar.blockchain import Blockchain
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> blockchain = Blockchain(blockchain_instance=stm)
-            >>> ret = blockchain.find_change_recovery_account_requests('bott')
-
+        Returns:
+            list | None: List of change_recovery_account request objects for the given account(s), or
+            None if offline or no requests were returned.
         """
         if not self.blockchain.is_connected():
             return None

@@ -50,11 +50,17 @@ timestamp={meta[timestamp]}
 {MESSAGE_SPLIT[3]}"""
 
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize the message handler, normalize line endings, and set up signing context.
+
+        Parameters:
+            message (str): The raw message text to be signed or verified. Line endings are normalized to LF.
+
+        Description:
+            - Assigns self.blockchain to the provided blockchain_instance or to shared_blockchain_instance() when none is given.
+            - Normalizes CRLF ("\r\n") to LF ("\n") and stores the result in self.message.
+            - Initializes signing/verification context attributes: signed_by_account, signed_by_name, meta, and plain_message to None.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.message = message.replace("\r\n", "\n")
         self.signed_by_account = None
@@ -183,11 +189,18 @@ class MessageV2(object):
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     def __init__(self, message, blockchain_instance=None, *args, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize the message handler and set up default signing context.
+
+        Parameters:
+            message (str): The raw message text to be signed or verified.
+
+        Description:
+            Stores the provided message and sets up the signing context attributes
+            (signed_by_account, signed_by_name, meta, plain_message) to None.
+            If no blockchain instance is supplied, assigns a shared blockchain instance
+            via shared_blockchain_instance().
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         self.message = message

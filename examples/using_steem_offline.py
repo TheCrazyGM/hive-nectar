@@ -2,7 +2,7 @@ from __future__ import division, print_function, unicode_literals
 
 import logging
 
-from nectar.steem import Steem
+from nectar import Hive as Hive
 from nectar.transactionbuilder import TransactionBuilder
 from nectarbase import operations
 
@@ -14,17 +14,17 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 
 
 if __name__ == "__main__":
-    stm_online = Steem()
-    trx_builder = TransactionBuilder(blockchain_instance=stm_online)
+    hv_online = Hive()
+    trx_builder = TransactionBuilder(blockchain_instance=hv_online)
     ref_block_num, ref_block_prefix = trx_builder.get_block_params()
     print("ref_block_num %d - ref_block_prefix %d" % (ref_block_num, ref_block_prefix))
 
-    stm = Steem(offline=True)
+    hv = Hive(offline=True)
 
     op = operations.Transfer(
-        {"from": "thecrazygm", "to": "thecrazygm", "amount": "0.001 SBD", "memo": ""}
+        {"from": "thecrazygm", "to": "thecrazygm", "amount": "0.001 HBD", "memo": ""}
     )
-    tb = TransactionBuilder(steem_instance=stm)
+    tb = TransactionBuilder(blockchain_instance=hv)
 
     tb.appendOps([op])
     tb.appendWif(wif)

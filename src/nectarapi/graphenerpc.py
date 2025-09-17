@@ -2,7 +2,9 @@
 import json
 import logging
 import re
-import ssl
+
+import requests
+from requests.exceptions import ConnectionError
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.version import version as nectar_version
@@ -17,30 +19,6 @@ from .exceptions import (
 )
 from .node import Nodes
 from .rpcutils import get_api_name, get_query, is_network_appbase_ready
-
-WEBSOCKET_MODULE = None
-if not WEBSOCKET_MODULE:
-    try:
-        import websocket
-        from websocket._exceptions import (
-            WebSocketConnectionClosedException,
-            WebSocketTimeoutException,
-        )
-
-        WEBSOCKET_MODULE = "websocket"
-    except ImportError:
-        WEBSOCKET_MODULE = None
-REQUEST_MODULE = None
-if not REQUEST_MODULE:
-    try:
-        import requests
-        from requests.adapters import HTTPAdapter
-        from requests.exceptions import ConnectionError
-        from requests.packages.urllib3.util.retry import Retry
-
-        REQUEST_MODULE = "requests"
-    except ImportError:
-        REQUEST_MODULE = None
 
 log = logging.getLogger(__name__)
 
@@ -57,24 +35,18 @@ def set_session_instance(instance):
 
 
 def shared_session_instance():
-    """Get session instance"""
-    if REQUEST_MODULE is None:
-        raise Exception("Requests module is not available.")
+    """
+    Return a singleton requests.Session instance, creating it if necessary.
+
+    Ensures a single shared HTTP session is reused across the process to take advantage
+    of connection pooling and shared session state (headers, cookies, adapters).
+
+    Returns:
+        requests.Session: The shared session object.
+    """
     if not SessionInstance.instance:
         SessionInstance.instance = requests.Session()
     return SessionInstance.instance
-
-
-def create_ws_instance(use_ssl=True, enable_multithread=True):
-    """Get websocket instance"""
-    if WEBSOCKET_MODULE is None:
-        raise Exception("WebSocket module is not available.")
-    if use_ssl:
-        ssl_defaults = ssl.get_default_verify_paths()
-        sslopt_ca_certs = {"ca_certs": ssl_defaults.cafile}
-        return websocket.WebSocket(sslopt=sslopt_ca_certs, enable_multithread=enable_multithread)
-    else:
-        return websocket.WebSocket(enable_multithread=enable_multithread)
 
 
 class GrapheneRPC(object):
@@ -83,7 +55,7 @@ class GrapheneRPC(object):
 
     It logs warnings and errors.
 
-    :param str urls: Either a single Websocket/Http URL, or a list of URLs
+    :param str urls: Either a single HTTP URL, or a list of HTTP URLs
     :param str user: Username for Authentication
     :param str password: Password for Authentication
     :param int num_retries: Number of retries for node connection (default is 100)
@@ -96,9 +68,27 @@ class GrapheneRPC(object):
     """
 
     def __init__(self, urls, user=None, password=None, **kwargs):
-        """Initialize the RPC client."""
-        self.rpc_methods = {"offline": -1, "ws": 0, "jsonrpc": 1, "wsappbase": 2, "appbase": 3}
-        self.current_rpc = self.rpc_methods["ws"]
+        """
+        Create a synchronous HTTP RPC client for Graphene-based nodes.
+
+        Initializes RPC mode, retry/timeouts, node management, optional credentials, and feature flags. Supported keyword arguments (with defaults) control behavior:
+        - timeout (int): request timeout in seconds (default 60).
+        - num_retries (int): number of node-retry attempts for node selection (default 100).
+        - num_retries_call (int): per-call retry attempts before switching nodes (default 5).
+        - use_condenser (bool): prefer condenser API compatibility (default False).
+        - use_tor (bool): enable Tor proxies for the shared HTTP session (default False).
+        - disable_chain_detection (bool): skip automatic chain/appbase detection (default False).
+        - custom_chains (dict): mapping of additional known chain configurations to merge into the client's known_chains.
+        - autoconnect (bool): if True (default), attempts to connect to a working node immediately via rpcconnect().
+
+        Credentials:
+        - user, password: optional basic-auth credentials applied to HTTP requests.
+
+        Side effects:
+        - Builds a Nodes instance for node tracking and may call rpcconnect() when autoconnect is True.
+        """
+        self.rpc_methods = {"offline": -1, "appbase": 3}
+        self.current_rpc = self.rpc_methods["appbase"]
         self._request_id = 0
         self.timeout = kwargs.get("timeout", 60)
         num_retries = kwargs.get("num_retries", 100)
@@ -119,7 +109,6 @@ class GrapheneRPC(object):
 
         self.user = user
         self.password = password
-        self.ws = None
         self.url = None
         self.session = None
         self.rpc_queue = []
@@ -148,24 +137,37 @@ class GrapheneRPC(object):
         return self._request_id
 
     def next(self):
-        """Switches to the next node url"""
-        if self.ws:
-            try:
-                self.rpcclose()
-            except Exception as e:
-                log.warning(str(e))
+        """
+        Advance to the next available RPC node and attempt to (re)connect.
+        """
         self.rpcconnect()
 
     def is_appbase_ready(self):
         """Check if node is appbase ready"""
-        return self.current_rpc in [self.rpc_methods["wsappbase"], self.rpc_methods["appbase"]]
+        return self.current_rpc == self.rpc_methods["appbase"]
 
     def get_use_appbase(self):
-        """Returns True if appbase ready and appbase calls are set"""
+        """
+        Return True if AppBase RPC calls should be used.
+
+        Returns:
+            bool: True when AppBase is ready (is_appbase_ready()) and the instance is not configured to use the condenser API (use_condenser is False).
+        """
         return not self.use_condenser and self.is_appbase_ready()
 
     def rpcconnect(self, next_url=True):
-        """Connect to next url in a loop."""
+        """
+        Selects and establishes connection to an available RPC node.
+
+        Attempts to connect to the next available node (or reuse the current one) and initializes per-instance HTTP session state needed for subsequent RPC calls. On a successful connection this method sets: self.url, self.session (shared session reused), self._proxies (Tor proxies when configured), self.headers, and self.current_rpc (appbase mode by default). It also probes the node using get_config to detect whether the node supports appbase RPC format unless chain detection is disabled.
+
+        Parameters:
+            next_url (bool): If True, advance to the next node before attempting connection; if False, retry the current node.
+
+        Raises:
+            RPCError: When a get_config probe returns no properties (connection reached but no config received).
+            KeyboardInterrupt: Propagated if the operation is interrupted by the user.
+        """
         if self.nodes.working_nodes_count == 0:
             return
         while True:
@@ -173,36 +175,26 @@ class GrapheneRPC(object):
                 self.url = next(self.nodes)
                 self.nodes.reset_error_cnt_call()
                 log.debug("Trying to connect to node %s" % self.url)
-                if self.url[:3] == "wss":
-                    self.ws = create_ws_instance(use_ssl=True)
-                    self.ws.settimeout(self.timeout)
-                    self.current_rpc = self.rpc_methods["wsappbase"]
-                elif self.url[:2] == "ws":
-                    self.ws = create_ws_instance(use_ssl=False)
-                    self.ws.settimeout(self.timeout)
-                    self.current_rpc = self.rpc_methods["wsappbase"]
-                else:
-                    self.ws = None
-                    self.session = shared_session_instance()
-                    if self.use_tor:
-                        self.session.proxies = {}
-                        self.session.proxies["http"] = "socks5h://localhost:9050"
-                        self.session.proxies["https"] = "socks5h://localhost:9050"
-                    self.current_rpc = self.rpc_methods["appbase"]
-                    self.headers = {
-                        "User-Agent": "nectar v%s" % (nectar_version),
-                        "content-type": "application/json; charset=utf-8",
+                self.ws = None
+                self.session = shared_session_instance()
+                self.ws = None
+                self.session = shared_session_instance()
+                # Do not mutate the shared session; store per-instance proxies.
+                self._proxies = None
+                if self.use_tor:
+                    self._proxies = {
+                        "http": "socks5h://localhost:9050",
+                        "https": "socks5h://localhost:9050",
                     }
+                self.current_rpc = self.rpc_methods["appbase"]
+                self.headers = {
+                    "User-Agent": "nectar v%s" % (nectar_version),
+                    "content-type": "application/json; charset=utf-8",
+                }
             try:
-                if self.ws:
-                    self.ws.connect(self.url)
-                    self.rpclogin(self.user, self.password)
                 if self.disable_chain_detection:
                     # Set to appbase rpc format
-                    if self.current_rpc == self.rpc_methods["ws"]:
-                        self.current_rpc = self.rpc_methods["wsappbase"]
-                    else:
-                        self.current_rpc = self.rpc_methods["appbase"]
+                    self.current_rpc = self.rpc_methods["appbase"]
                     break
                 try:
                     props = None
@@ -213,18 +205,12 @@ class GrapheneRPC(object):
                 except Exception as e:
                     if re.search("Bad Cast:Invalid cast from type", str(e)):
                         # retry with not appbase
-                        if self.current_rpc == self.rpc_methods["wsappbase"]:
-                            self.current_rpc = self.rpc_methods["ws"]
-                        else:
-                            self.current_rpc = self.rpc_methods["appbase"]
+                        self.current_rpc = self.rpc_methods["appbase"]
                         props = self.get_config(api="database")
                 if props is None:
                     raise RPCError("Could not receive answer for get_config")
                 if is_network_appbase_ready(props):
-                    if self.ws:
-                        self.current_rpc = self.rpc_methods["wsappbase"]
-                    else:
-                        self.current_rpc = self.rpc_methods["appbase"]
+                    self.current_rpc = self.rpc_methods["appbase"]
                 break
             except KeyboardInterrupt:
                 raise
@@ -234,19 +220,21 @@ class GrapheneRPC(object):
                 self.nodes.sleep_and_check_retries(str(e), sleep=do_sleep)
                 next_url = True
 
-    def rpclogin(self, user, password):
-        """Login into Websocket"""
-        if self.ws and self.current_rpc == self.rpc_methods["ws"] and user and password:
-            self.login(user, password, api="login_api")
-
-    def rpcclose(self):
-        """Close Websocket"""
-        if self.ws is None:
-            return
-        # if self.ws.connected:
-        self.ws.close()
-
     def request_send(self, payload):
+        """
+        Send the prepared RPC payload to the currently connected node via HTTP POST.
+
+        Sends `payload` to the client's active URL using the shared HTTP session. If username and password were provided to the client, HTTP basic auth is applied. Raises UnauthorizedError when the node responds with HTTP 401.
+
+        Parameters:
+            payload (str | bytes): The JSON-RPC payload (string or bytes) to send in the POST body.
+
+        Returns:
+            requests.Response: The raw HTTP response object from the node.
+
+        Raises:
+            UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
+        """
         if self.user is not None and self.password is not None:
             response = self.session.post(
                 self.url,
@@ -263,20 +251,49 @@ class GrapheneRPC(object):
             raise UnauthorizedError
         return response
 
-    def ws_send(self, payload):
-        if self.ws is None:
-            raise RPCConnection("No websocket available!")
-        self.ws.send(payload)
-        reply = self.ws.recv()
-        return reply
-
     def version_string_to_int(self, network_version):
+        """
+        Convert a dotted version string "MAJOR.MINOR.PATCH" into a single integer for easy comparison.
+
+        The integer is computed as: major * 10^8 + minor * 10^4 + patch. For example, "2.3.15" -> 200030015.
+
+        Parameters:
+            network_version (str): Version string in the form "major.minor.patch".
+
+        Returns:
+            int: Integer representation suitable for numeric comparisons.
+
+        Raises:
+            ValueError: If any version component is not an integer.
+            IndexError: If the version string does not contain three components.
+        """
         version_list = network_version.split(".")
         return int(int(version_list[0]) * 1e8 + int(version_list[1]) * 1e4 + int(version_list[2]))
 
     def get_network(self, props=None):
-        """Identify the connected network. This call returns a
-        dictionary with keys chain_id, core_symbol and prefix
+        """
+        Detects and returns the network/chain configuration for the connected node.
+
+        If props is not provided, this call fetches node configuration via get_config(api="database") and inspects property keys to determine the chain identifier, address prefix, network/version, and core asset definitions. It builds a chain configuration dict with keys:
+        - chain_id: canonical chain identifier string
+        - prefix: account/address prefix for the network
+        - min_version: reported chain version string
+        - chain_assets: list of asset dicts (each with keys "asset" (NAI), "precision", "symbol", and "id")
+
+        If the detected chain matches an entry in self.known_chains (preferring the highest compatible known min_version), that known_chains entry is returned instead of the freshly built config.
+
+        Special behaviors:
+        - When props is None, get_config(api="database") is called.
+        - If detection finds conflicting blockchain prefixes, the most frequent prefix is used.
+        - A legacy fallback removes STEEM_CHAIN_ID from props if no blockchain name is inferred, logging a warning to prefer HIVE.
+        - Test-network asset NAIs are mapped to "TBD" or "TESTS" symbols when appropriate.
+        - Asset entries are assigned stable incremental ids based on sorted NAI order.
+
+        Returns:
+            dict: A chain configuration (either a matching entry from self.known_chains or a freshly constructed chain_config) with keys described above.
+
+        Raises:
+            RPCError: If chain_id cannot be determined or no compatible known chain is found.
         """
         if props is None:
             props = self.get_config(api="database")
@@ -298,8 +315,12 @@ class GrapheneRPC(object):
             sorted_prefix_count = sorted(prefix_count.items(), key=lambda x: x[1], reverse=True)
             if sorted_prefix_count[0][1] > 1:
                 blockchain_name = sorted_prefix_count[0][0]
-        if blockchain_name is None and "HIVE_CHAIN_ID" in props and "STEEM_CHAIN_ID" in props:
-            del props["STEEM_CHAIN_ID"]
+
+        # Check for configurable chain preference
+        if blockchain_name is None:
+            if "STEEM_CHAIN_ID" in props:
+                del props["STEEM_CHAIN_ID"]
+                log.warning("Using fallback chain preference: HIVE (STEEM removed from detection)")
 
         for key in props:
             if key[-8:] == "CHAIN_ID" and blockchain_name is None:
@@ -364,7 +385,6 @@ class GrapheneRPC(object):
             if (
                 blockchain_name is not None
                 and blockchain_name not in k
-                and blockchain_name != "STEEMIT"
                 and blockchain_name != "CHAIN"
             ):
                 continue
@@ -425,11 +445,21 @@ class GrapheneRPC(object):
 
     def rpcexec(self, payload):
         """
-        Execute a call by sending the payload.
+        Execute the given JSON-RPC payload against the currently selected node and return the RPC result.
 
-        :param json payload: Payload data
-        :raises ValueError: if the server does not respond in proper JSON format
-        :raises RPCError: if the server returns an error
+        Sends an HTTP POST with `payload` to the connected node, handling empty responses, retries, node rotation, and JSON parsing. On success returns either the `result` field for single-response RPC calls or a list of results when the server returns a JSON-RPC batch/array. Resets per-call error counters on successful responses.
+
+        Parameters:
+            payload (dict or list): JSON-serializable RPC request object or a list of request objects (batch).
+
+        Returns:
+            The RPC `result` (any) for a single request, or a list of results for a batch response.
+
+        Raises:
+            WorkingNodeMissing: if no working nodes are available.
+            RPCConnection: if the client is not connected to any node.
+            RPCError: for server-reported errors or unexpected / non-JSON responses that indicate an RPC failure.
+            KeyboardInterrupt: if execution is interrupted by the user.
         """
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:
@@ -442,16 +472,8 @@ class GrapheneRPC(object):
         while True:
             self.nodes.increase_error_cnt_call()
             try:
-                if (
-                    self.current_rpc == self.rpc_methods["ws"]
-                    or self.current_rpc == self.rpc_methods["wsappbase"]
-                ):
-                    reply = self.ws_send(json.dumps(payload, ensure_ascii=False).encode("utf8"))
-                else:
-                    response = self.request_send(
-                        json.dumps(payload, ensure_ascii=False).encode("utf8")
-                    )
-                    reply = response.text
+                response = self.request_send(json.dumps(payload, ensure_ascii=False).encode("utf8"))
+                reply = response.text
                 if not bool(reply):
                     try:
                         self.nodes.sleep_and_check_retries("Empty Reply", call_retry=True)
@@ -465,15 +487,7 @@ class GrapheneRPC(object):
                     break
             except KeyboardInterrupt:
                 raise
-            except WebSocketConnectionClosedException as e:
-                self.nodes.increase_error_cnt()
-                self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
-                self.rpcconnect()
             except ConnectionError as e:
-                self.nodes.increase_error_cnt()
-                self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
-                self.rpcconnect()
-            except WebSocketTimeoutException as e:
                 self.nodes.increase_error_cnt()
                 self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
                 self.rpcconnect()

@@ -19,7 +19,7 @@ class Memo(object):
 
     :param Account from_account: Account that has sent the memo
     :param Account to_account: Account that has received the memo
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     A memo is encrypted with a shared secret derived from a private key of
     the sender and a public key of the receiver. Due to the underlying
@@ -51,7 +51,7 @@ class Memo(object):
 
     Memo Keys
 
-    In Steem, memos are AES-256 encrypted with a shared secret between sender and
+    In Hive, memos are AES-256 encrypted with a shared secret between sender and
     receiver. It is derived from the memo private key of the sender and the memo
     public key of the receiver.
 
@@ -136,11 +136,23 @@ class Memo(object):
     """
 
     def __init__(self, from_account=None, to_account=None, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize a Memo helper that resolves sender/recipient identifiers into Account/Key objects.
+
+        If `from_account`/`to_account` are provided as strings shorter than 51 characters they are treated as account names and resolved to Account(...) using the selected blockchain instance. Strings with length >= 51 are treated as raw keys and converted to PrivateKey (for `from_account`) or PublicKey (for `to_account`). If an input is omitted, the corresponding attribute is set to None.
+
+        Also sets self.blockchain to the provided blockchain_instance or, if None, the shared blockchain instance.
+
+        Parameters:
+            from_account (str|Account|PrivateKey|None): Sender identity — an account name (resolved to Account) or a private key string (resolved to PrivateKey). If already an Account/PrivateKey object, it will be assigned as-is by calling the appropriate constructor above.
+            to_account (str|Account|PublicKey|None): Recipient identity — an account name (resolved to Account) or a public key string (resolved to PublicKey).
+            blockchain_instance (optional): Blockchain client/instance to use for Account resolution; if omitted the shared blockchain instance is used.
+
+        Attributes set:
+            self.blockchain: blockchain instance used for key/account resolution.
+            self.from_account: Account or PrivateKey instance (or None).
+            self.to_account: Account or PublicKey instance (or None).
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if to_account and len(to_account) < 51:
@@ -272,20 +284,35 @@ class Memo(object):
         return from_key, to_key, nonce
 
     def decrypt(self, memo):
-        """Decrypt a memo
+        """
+        Decrypt a memo message produced for a transfer.
 
-        :param str memo: encrypted memo message
-        :returns: encrypted memo
-        :rtype: str
+        Accepts either a raw memo string or a transfer-style dict with keys "from", "to", and "memo" or "message". If provided, the memo dict may also contain a "nonce". The function will locate an appropriate private memo key from the local wallet (or use a provided PrivateKey), derive the shared secret with the counterparty public key, and return the decrypted plaintext.
+
+        Parameters:
+            memo (str or dict): Encrypted memo as a string, or a dict in transfer form:
+                {"from": <account|key>, "to": <account|key>, "memo"/"message": <str>, "nonce"?: <int|str>}.
+                - "from"/"to" entries may be account names, account dicts, PublicKey/PrivateKey objects, or omitted.
+
+        Returns:
+            str: Decrypted memo plaintext, or None if `memo` is falsy.
+
+        Raises:
+            MissingKeyError: If no installed private memo key can be found for decrypting the message.
         """
         if not memo:
             return None
         memo_wif = None
         # We first try to decode assuming we received the memo
-        if isinstance(memo, dict) and "to" in memo and "from" in memo and "memo" in memo:
+        if (
+            isinstance(memo, dict)
+            and "to" in memo
+            and "from" in memo
+            and ("memo" in memo or "message" in memo)
+        ):
             memo_to = Account(memo["to"], blockchain_instance=self.blockchain)
             memo_from = Account(memo["from"], blockchain_instance=self.blockchain)
-            message = memo["memo"]
+            message = memo.get("memo") or memo.get("message")
         else:
             memo_to = self.to_account
             memo_from = self.from_account

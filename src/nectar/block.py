@@ -14,7 +14,7 @@ class Block(BlockchainObject):
     """Read a single block from the chain
 
     :param int block: block number
-    :param Steem steem_instance: Steem
+    :param Hive blockchain_instance: Hive
         instance
     :param bool lazy: Use lazy loading
     :param bool only_ops: Includes only operations, when set to True (default: False)
@@ -51,15 +51,16 @@ class Block(BlockchainObject):
         blockchain_instance=None,
         **kwargs,
     ):
-        """Initilize a block
+        """
+        Initialize a Block object representing a single blockchain block.
 
-        :param int block: block number
-        :param Steem steem_instance: Steem
-            instance
-        :param bool lazy: Use lazy loading
-        :param bool only_ops: Includes only operations, when set to True (default: False)
-        :param bool only_virtual_ops: Includes only virtual operations (default: False)
+        block may be an integer (block number), a float (will be converted to int), or a dict containing block data (which will be parsed). Controls:
+        - only_ops: load only operations from the block.
+        - only_virtual_ops: load only virtual operations.
+        - full: if True, populate full block data; if False, keep a minimal representation.
+        - lazy: if True, defer fetching full data until needed.
 
+        If no identifier is present after initialization, the block's identifier is set to its numeric block number.
         """
         self.full = full
         self.lazy = lazy
@@ -317,7 +318,7 @@ class BlockHeader(BlockchainObject):
     """Read a single block header from the chain
 
     :param int block: block number
-    :param Steem steem_instance: Steem
+    :param Hive blockchain_instance: Hive
         instance
     :param bool lazy: Use lazy loading
 
@@ -333,13 +334,19 @@ class BlockHeader(BlockchainObject):
     """
 
     def __init__(self, block, full=True, lazy=False, blockchain_instance=None, **kwargs):
-        """Initilize a block
+        """
+        Initialize a BlockHeader.
 
-        :param int block: block number
-        :param Steem steem_instance: Steem
-            instance
-        :param bool lazy: Use lazy loading
+        One-line summary:
+            Create a BlockHeader wrapper for a block header, optionally in lazy or full mode.
 
+        Parameters:
+            block (int | float | dict): Block number (floats are converted to int) or a header dict.
+            full (bool): If True, populate the object with full header data; otherwise keep a minimal representation.
+            lazy (bool): If True, delay API fetching until data is accessed.
+
+        Notes:
+            If no blockchain_instance is provided, the module's shared blockchain instance is used.
         """
         self.full = full
         self.lazy = lazy
@@ -410,8 +417,8 @@ class Blocks(list):
     :param list name_list: list of accounts to fetch
     :param int count: (optional) maximum number of accounts
         to fetch per call, defaults to 100
-    :param Steem/Hive blockchain_instance: Steem() or Hive() instance to use when
-        accessing a RPCcreator = Account(creator, blockchain_instance=self)
+    :param Hive blockchain_instance: Hive() instance to use when
+        accessing RPC
     """
 
     def __init__(
@@ -421,13 +428,18 @@ class Blocks(list):
         lazy=False,
         full=True,
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize a Blocks collection by fetching a contiguous range of blocks from the chain and populating the list with Block objects.
+
+        If a blockchain_instance is provided it is used; otherwise the shared blockchain instance is used. If the chosen instance is not connected, the initializer returns early and the Blocks object remains empty.
+
+        Parameters:
+            starting_block_num (int): First block number to retrieve.
+            count (int, optional): Number of consecutive blocks to fetch. Defaults to 1000.
+            lazy (bool, optional): If True, create Block objects in lazy mode (defer full parsing). Defaults to False.
+            full (bool, optional): If True, create Block objects with full data loaded (subject to lazy). Defaults to True.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

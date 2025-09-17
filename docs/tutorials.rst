@@ -5,7 +5,7 @@ Tutorials
 Bundle Many Operations
 ----------------------
 
-With Steem, you can bundle multiple operations into a single
+With Hive, you can bundle multiple operations into a single
 transactions. This can be used to do a multi-send (one sender, multiple
 receivers), but it also allows to use any other kind of operation. The
 advantage here is that the user can be sure that the operations are
@@ -17,7 +17,7 @@ one comment operation from each sender.
 .. code-block:: python
 
   from pprint import pprint
-  from nectar import Steem
+  from nectar import Hive
   from nectar.account import Account
   from nectar.comment import Comment
   from nectar.instance import set_shared_blockchain_instance
@@ -25,27 +25,27 @@ one comment operation from each sender.
   # not a real working key
   wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 
-  stm = Steem(
+  hv = Hive(
       bundle=True, # Enable bundle broadcast
       # nobroadcast=True, # Enable this for testing
       keys=[wif],
   )
-  # Set stm as shared instance
-  set_shared_blockchain_instance(stm)
+  # Set hv as shared instance
+  set_shared_blockchain_instance(hv)
 
-  # Account and Comment will use now stm
+  # Account and Comment will use now hv
   account = Account("test")
 
   # Post
   c = Comment("@gtg/witness-gtg-log")
 
-  account.transfer("test1", 1, "STEEM")
-  account.transfer("test2", 1, "STEEM")
-  account.transfer("test3", 1, "SBD")
+  account.transfer("test1", 1, "HIVE")
+  account.transfer("test2", 1, "HIVE")
+  account.transfer("test3", 1, "HBD")
   # Upvote post with 25%
   c.upvote(25, voter=account)
 
-  pprint(stm.broadcast())
+  pprint(hv.broadcast())
 
 
 Use nobroadcast for testing
@@ -56,7 +56,7 @@ When using  `nobroadcast=True` the transaction is not broadcasted but printed.
 .. code-block:: python
 
   from pprint import pprint
-  from nectar import Steem
+  from nectar import Hive
   from nectar.account import Account
   from nectar.instance import set_shared_blockchain_instance
 
@@ -64,7 +64,7 @@ When using  `nobroadcast=True` the transaction is not broadcasted but printed.
   wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 
   # set nobroadcast always to True, when testing
-  testnet = Steem(
+  testnet = Hive(
       nobroadcast=True, # Set to false when want to go live
       keys=[wif],
   )
@@ -74,7 +74,7 @@ When using  `nobroadcast=True` the transaction is not broadcasted but printed.
   # Account will use now testnet
   account = Account("test")
 
-  pprint(account.transfer("test1", 1, "STEEM"))
+  pprint(account.transfer("test1", 1, "HIVE"))
 
 When executing the script above, the output will be similar to the following:
 
@@ -84,7 +84,7 @@ When executing the script above, the output will be similar to the following:
     {'expiration': '2018-05-01T16:16:57',
      'extensions': [],
      'operations': [['transfer',
-                     {'amount': '1.000 STEEM',
+                     {'amount': '1.000 HIVE',
                       'from': 'test',
                       'memo': '',
                       'to': 'test1'}]],
@@ -118,7 +118,7 @@ Simple Sell Script
 
 .. code-block:: python
 
-    from nectar import Steem
+    from nectar import Hive
     from nectar.market import Market
     from nectar.price import Price
     from nectar.amount import Amount
@@ -127,9 +127,9 @@ Simple Sell Script
     wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 
     #
-    # Instantiate Steem (pick network via API node)
+    # Instantiate Hive (pick network via API node)
     #
-    steem = Steem(
+    hv = Hive(
         nobroadcast=True,   # <<--- set this to False when you want to fire!
         keys=[wif]          # <<--- use your real keys, when going live!
     )
@@ -139,16 +139,16 @@ Simple Sell Script
     # The first asset in the first argument is the *quote*
     # Sell and buy calls always refer to the *quote*
     #
-    market = Market("SBD:STEEM",
-        blockchain_instance=steem
+    market = Market("HBD:HIVE",
+        blockchain_instance=hv
     )
 
     #
     # Sell an asset for a price with amount (quote)
     #
     print(market.sell(
-        Price(100.0, "STEEM/SBD"),
-        Amount("0.01 SBD")
+        Price(100.0, "HIVE/HBD"),
+        Amount("0.01 HBD")
     ))
 
 
@@ -158,7 +158,7 @@ Sell at a timely rate
 .. code-block:: python
 
     import threading
-    from nectar import Steem
+    from nectar import Hive
     from nectar.market import Market
     from nectar.price import Price
     from nectar.amount import Amount
@@ -170,8 +170,8 @@ Sell at a timely rate
         """ Sell an asset for a price with amount (quote)
         """
         print(market.sell(
-            Price(100.0, "SBD/STEEM"),
-            Amount("0.01 STEEM")
+            Price(100.0, "HBD/HIVE"),
+            Amount("0.01 HIVE")
         ))
 
         threading.Timer(60, sell).start()
@@ -179,9 +179,9 @@ Sell at a timely rate
 
     if __name__ == "__main__":
         #
-        # Instantiate Steem (pick network via API node)
+        # Instantiate Hive (pick network via API node)
         #
-        steem = Steem(
+        hv = Hive(
             nobroadcast=True,   # <<--- set this to False when you want to fire!
             keys=[wif]          # <<--- use your real keys, when going live!
         )
@@ -191,8 +191,8 @@ Sell at a timely rate
         # The first asset in the first argument is the *quote*
         # Sell and buy calls always refer to the *quote*
         #
-        market = Market("STEEM:SBD",
-            blockchain_instance=steem
+        market = Market("HIVE:HBD",
+            blockchain_instance=hv
         )
 
         sell()
@@ -207,10 +207,10 @@ the complete queue is sended at once to the node. The result is a list with repl
 
 .. code-block:: python
 
-    from nectar import Steem
-    stm = Steem("https://api.steemit.com")
-    stm.rpc.get_config(add_to_queue=True)
-    stm.rpc.rpc_queue
+    from nectar import Hive
+    hv = Hive("https://api.hive.blog")
+    hv.rpc.get_config(add_to_queue=True)
+    hv.rpc.rpc_queue
 
 .. code-block:: python
 
@@ -218,7 +218,7 @@ the complete queue is sended at once to the node. The result is a list with repl
 
 .. code-block:: python
 
-    result = stm.rpc.get_block({"block_num":1}, api="block", add_to_queue=False)
+    result = hv.rpc.get_block({"block_num":1}, api="block", add_to_queue=False)
     len(result)
 
 .. code-block:: python
@@ -241,8 +241,8 @@ Lets calculate the curation reward from the last 7 days:
     reward_vests = Amount("0 VESTS")
     for reward in acc.history_reverse(stop=stop, only_ops=["curation_reward"]):
                 reward_vests += Amount(reward['reward'])
-    curation_rewards_SP = acc.steem.vests_to_sp(reward_vests.amount)
-    print("Rewards are %.3f SP" % curation_rewards_SP)
+    curation_rewards_HP = acc.hive.vests_to_hp(reward_vests.amount)
+    print("Rewards are %.3f HP" % curation_rewards_HP)
 
 Lets display all Posts from an account:
 
@@ -271,16 +271,16 @@ Example with one operation with and without the wallet:
 
 .. code-block:: python
 
-    from nectar import Steem
+    from nectar import Hive
     from nectar.transactionbuilder import TransactionBuilder
     from nectarbase import operations
-    stm = Steem()
+    hv = Hive()
     # Uncomment the following when using a wallet:
-    # stm.wallet.unlock("secret_password")
-    tx = TransactionBuilder(blockchain_instance=stm)
+    # hv.wallet.unlock("secret_password")
+    tx = TransactionBuilder(blockchain_instance=hv)
     op = operations.Transfer(**{"from": 'user_a',
                                 "to": 'user_b',
-                                "amount": '1.000 SBD',
+                                "amount": '1.000 HBD',
                                 "memo": 'test 2'}))
     tx.appendOps(op)
     # Comment appendWif out and uncomment appendSigner when using a stored key from the wallet
@@ -293,17 +293,17 @@ Example with signing and broadcasting two operations:
 
 .. code-block:: python
 
-    from nectar import Steem
+    from nectar import Hive
     from nectar.transactionbuilder import TransactionBuilder
     from nectarbase import operations
-    stm = Steem()
+    hv = Hive()
     # Uncomment the following when using a wallet:
-    # stm.wallet.unlock("secret_password")
-    tx = TransactionBuilder(blockchain_instance=stm)
+    # hv.wallet.unlock("secret_password")
+    tx = TransactionBuilder(blockchain_instance=hv)
     ops = []
     op = operations.Transfer(**{"from": 'user_a',
                                 "to": 'user_b',
-                                "amount": '1.000 SBD',
+                                "amount": '1.000 HBD',
                                 "memo": 'test 2'}))
     ops.append(op)
     op = operations.Vote(**{"voter": v,

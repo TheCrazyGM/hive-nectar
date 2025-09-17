@@ -4,21 +4,10 @@ from fractions import Fraction
 
 from nectar.instance import shared_blockchain_instance
 
-from .amount import Amount
+from .amount import Amount, check_asset
 from .asset import Asset
 from .exceptions import InvalidAssetException
 from .utils import assets_from_string, formatTimeString
-
-
-def check_asset(other, self, stm):
-    if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
-        if not Asset(other["asset"], blockchain_instance=stm) == Asset(
-            self["asset"], blockchain_instance=stm
-        ):
-            raise AssertionError()
-    else:
-        if not other == self:
-            raise AssertionError()
 
 
 class Price(dict):
@@ -37,7 +26,7 @@ class Price(dict):
     :param list args: Allows to deal with different representations of a price
     :param Asset base: Base asset
     :param Asset quote: Quote asset
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
     :returns: All data required to represent a price
     :rtype: dictionary
 
@@ -53,16 +42,16 @@ class Price(dict):
         * ``args`` being a list of ``[quote, base]`` both being instances of ``str`` (``amount symbol``)
         * ``base`` and ``quote`` being instances of :class:`nectar.asset.Amount`
 
-    This allows instanciations like:
+    This allows instantiations like:
 
-    * ``Price("0.315 SBD/STEEM")``
-    * ``Price(0.315, base="SBD", quote="STEEM")``
-    * ``Price(0.315, base=Asset("SBD"), quote=Asset("STEEM"))``
-    * ``Price({"base": {"amount": 1, "asset_id": "SBD"}, "quote": {"amount": 10, "asset_id": "SBD"}})``
-    * ``Price(quote="10 STEEM", base="1 SBD")``
-    * ``Price("10 STEEM", "1 SBD")``
-    * ``Price(Amount("10 STEEM"), Amount("1 SBD"))``
-    * ``Price(1.0, "SBD/STEEM")``
+    * ``Price("0.315 HBD/HIVE")``
+    * ``Price(0.315, base="HBD", quote="HIVE")``
+    * ``Price(0.315, base=Asset("HBD"), quote=Asset("HIVE"))``
+    * ``Price({"base": {"amount": 1, "asset_id": "HBD"}, "quote": {"amount": 10, "asset_id": "HBD"}})``
+    * ``Price(quote="10 HIVE", base="1 HBD")``
+    * ``Price("10 HIVE", "1 HBD")``
+    * ``Price(Amount("10 HIVE"), Amount("1 HBD"))``
+    * ``Price(1.0, "HBD/HIVE")``
 
     Instances of this class can be used in regular mathematical expressions
     (``+-*/%``) such as:
@@ -70,12 +59,12 @@ class Price(dict):
     .. code-block:: python
 
         >>> from nectar.price import Price
-        >>> from nectar import Steem
-        >>> stm = Steem("https://api.steemit.com")
-        >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm) * 2
-        0.662804 SBD/STEEM
-        >>> Price(0.3314, "SBD", "STEEM", blockchain_instance=stm)
-        0.331402 SBD/STEEM
+        >>> from nectar import Hive
+        >>> hv = Hive("https://api.hive.blog")
+        >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv) * 2
+        0.662804 HBD/HIVE
+        >>> Price(0.3314, "HBD", "HIVE", blockchain_instance=hv)
+        0.331402 HBD/HIVE
 
     """
 
@@ -86,13 +75,38 @@ class Price(dict):
         quote=None,
         base_asset=None,  # to identify sell/buy
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize a Price object representing a ratio between a base and quote asset.
+
+        This constructor accepts multiple input forms and normalizes them into internal
+        "base" and "quote" Amount entries. Supported usages:
+        - price: str like "X BASE/QUOTE" with no base/quote: parses symbols and creates
+          Amounts from the fractional representation of X.
+        - price: dict with "base" and "quote": loads Amounts directly (raises AssertionError
+          if a top-level "price" key is present).
+        - price: numeric (float/int/Decimal) with base and quote provided as Asset or
+          symbol strings: converts the numeric value to a Fraction and builds Amounts.
+        - price: str representing an Amount and base: when price is a string and base is
+          a symbol string, price and base are used to build quote/base Amounts.
+        - price and base as Amount instances: accepts Amount objects directly.
+        - price is None with base and quote as symbol strings or Amounts: loads assets
+          or Amounts respectively.
+
+        Parameters (not exhaustive):
+        - price: numeric, str, dict, or Amount — the price or a representation used to
+          derive base/quote Amounts.
+        - base: Asset, Amount, or str — identifies the base side (or a symbol string
+          used to parse both symbols when combined with a numeric price).
+        - quote: Asset, Amount, or str — identifies the quote side.
+        - base_asset: optional; used only as an identifier flag for buy/sell contexts.
+        - blockchain_instance: blockchain context used to construct Asset/Amount (omitted
+          from param listing as a shared service).
+
+        Raises:
+        - AssertionError: if a dict `price` includes a top-level "price" key.
+        - ValueError: if the combination of inputs cannot be parsed into base and quote.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if price == "":
             price = None
@@ -112,7 +126,7 @@ class Price(dict):
         elif price is not None and isinstance(price, dict) and "base" in price and "quote" in price:
             if "price" in price:
                 raise AssertionError("You cannot provide a 'price' this way")
-            # Regular 'price' objects according to steem-core
+            # Regular 'price' objects according to hive-core
             # base_id = price["base"]["asset_id"]
             # if price["base"]["asset_id"] == base_id:
             self["base"] = Amount(price["base"], blockchain_instance=self.blockchain)
@@ -201,18 +215,18 @@ class Price(dict):
         return self["base"]["symbol"], self["quote"]["symbol"]
 
     def as_base(self, base):
-        """Returns the price instance so that the base asset is ``base``.
+        """
+        Return a copy of this Price expressed with the given asset as the base.
 
-        .. note:: This makes a copy of the object!
+        If `base` matches the current base symbol this returns a shallow copy.
+        If `base` matches the current quote symbol this returns a copy with base and quote inverted.
+        Raises InvalidAssetException if `base` is neither the base nor the quote of this price.
 
-        .. code-block:: python
+        Parameters:
+            base (str): Asset symbol to use as the base (e.g., "HIVE" or "HBD").
 
-            >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).as_base("STEEM")
-            3.017483 STEEM/SBD
-
+        Returns:
+            Price: A new Price instance whose base asset is `base`.
         """
         if base == self["base"]["symbol"]:
             return self.copy()
@@ -222,18 +236,21 @@ class Price(dict):
             raise InvalidAssetException
 
     def as_quote(self, quote):
-        """Returns the price instance so that the quote asset is ``quote``.
+        """
+        Return a Price instance expressed with the given quote asset symbol.
 
-        .. note:: This makes a copy of the object!
+        If `quote` matches the current quote symbol, returns a copy of this Price.
+        If `quote` matches the current base symbol, returns a copied, inverted Price.
+        A new object is always returned (the original is not modified).
 
-        .. code-block:: python
+        Parameters:
+            quote (str): Asset symbol to use as the quote (e.g., "HBD" or "HIVE").
 
-            >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).as_quote("SBD")
-            3.017483 STEEM/SBD
+        Returns:
+            Price: A Price object with `quote` as the quote asset.
 
+        Raises:
+            InvalidAssetException: If `quote` does not match either the current base or quote symbol.
         """
         if quote == self["quote"]["symbol"]:
             return self.copy()
@@ -243,16 +260,18 @@ class Price(dict):
             raise InvalidAssetException
 
     def invert(self):
-        """Invert the price (e.g. go from ``SBD/STEEM`` into ``STEEM/SBD``)
+        """
+        Invert the price in place, swapping base and quote assets (e.g., HBD/HIVE -> HIVE/HBD).
 
-        .. code-block:: python
+        Returns:
+            self: The same Price instance after inversion.
 
+        Example:
             >>> from nectar.price import Price
-            >>> from nectar import Steem
-            >>> stm = Steem("https://api.steemit.com")
-            >>> Price("0.3314 SBD/STEEM", blockchain_instance=stm).invert()
-            3.017483 STEEM/SBD
-
+            >>> from nectar import Hive
+            >>> hv = Hive("https://api.hive.blog")
+            >>> Price("0.3314 HBD/HIVE", blockchain_instance=hv).invert()
+            3.017483 HIVE/HBD
         """
         tmp = self["quote"]
         self["quote"] = self["base"]
@@ -451,7 +470,7 @@ class Order(Price):
     ratio of base and quote) but instead has those amounts represent the
     amounts of an actual order!
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. note::
 
@@ -504,7 +523,7 @@ class FilledOrder(Price):
     ratio of base and quote) but instead has those amounts represent the
     amounts of an actually filled order!
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
 
     .. note:: Instances of this class come with an additional ``date`` key
               that shows when the order has been filled!

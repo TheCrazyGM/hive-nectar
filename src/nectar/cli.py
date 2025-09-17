@@ -24,10 +24,8 @@ from nectar.asciichart import AsciiChart
 from nectar.asset import Asset
 from nectar.block import Block
 from nectar.blockchain import Blockchain
-from nectar.blurt import Blurt
 from nectar.comment import Comment
 from nectar.community import Communities, Community
-from nectar.conveyor import Conveyor
 from nectar.hive import Hive
 from nectar.hivesigner import HiveSigner
 from nectar.imageuploader import ImageUploader
@@ -39,8 +37,6 @@ from nectar.nodelist import NodeList, node_answer_time
 from nectar.price import Price
 from nectar.profile import Profile
 from nectar.rc import RC
-from nectar.steem import Steem
-from nectar.storage import get_default_config_store
 from nectar.transactionbuilder import TransactionBuilder
 from nectar.utils import (
     construct_authorperm,
@@ -93,8 +89,8 @@ def prompt_callback(ctx, param, value):
 
 
 def asset_callback(ctx, param, value):
-    if value not in ["STEEM", "SBD", "HIVE", "HBD", "BLURT", "TBD", "TESTS"]:
-        print("Please STEEM/HIVE/BLURT or SBD/HBD as asset!")
+    if value not in ["HIVE", "HBD", "TBD", "TESTS"]:
+        print("Please choose HIVE/HBD (or TESTS/TBD for test assets) as asset!")
         ctx.abort()
     else:
         return value
@@ -119,16 +115,16 @@ def is_keyring_available():
     return KEYRING_AVAILABLE
 
 
-def unlock_wallet(stm, password=None, allow_wif=True):
-    if stm.unsigned and stm.nobroadcast:
+def unlock_wallet(hv, password=None, allow_wif=True):
+    if hv.unsigned and hv.nobroadcast:
         return True
-    if stm.use_ledger:
+    if hv.use_ledger:
         return True
-    if not stm.wallet.locked():
+    if not hv.wallet.locked():
         return True
-    if not stm.wallet.store.is_encrypted():
+    if not hv.wallet.store.is_encrypted():
         return True
-    password_storage = stm.config["password_storage"]
+    password_storage = hv.config["password_storage"]
     if not password and password_storage == "keyring" and is_keyring_available():
         import keyring
 
@@ -136,7 +132,7 @@ def unlock_wallet(stm, password=None, allow_wif=True):
     if not password and password_storage == "environment" and "UNLOCK" in os.environ:
         password = os.environ.get("UNLOCK")
     if bool(password):
-        stm.wallet.unlock(password)
+        hv.wallet.unlock(password)
     else:
         if allow_wif:
             password = click.prompt(
@@ -148,15 +144,15 @@ def unlock_wallet(stm, password=None, allow_wif=True):
             password = click.prompt(
                 "Password to unlock wallet", confirmation_prompt=False, hide_input=True
             )
-        if stm.wallet.is_encrypted():
+        if hv.wallet.is_encrypted():
             try:
-                stm.wallet.unlock(password)
+                hv.wallet.unlock(password)
             except Exception:
                 try:
                     from nectarstorage import InRamPlainKeyStore
 
-                    stm.wallet.store = InRamPlainKeyStore()
-                    stm.wallet.setKeys([password])
+                    hv.wallet.store = InRamPlainKeyStore()
+                    hv.wallet.setKeys([password])
                     print("Wif accepted!")
                     return True
                 except Exception:
@@ -170,15 +166,15 @@ def unlock_wallet(stm, password=None, allow_wif=True):
                         )
         else:
             try:
-                stm.wallet.setKeys([password])
+                hv.wallet.setKeys([password])
                 print("Wif accepted!")
                 return True
             except Exception:
                 try:
                     from nectarstorage import SqliteEncryptedKeyStore
 
-                    stm.wallet.store = SqliteEncryptedKeyStore(config=stm.config)
-                    stm.wallet.unlock(password)
+                    hv.wallet.store = SqliteEncryptedKeyStore(config=hv.config)
+                    hv.wallet.unlock(password)
                 except Exception:
                     if allow_wif:
                         raise exceptions.WrongMasterPasswordException(
@@ -189,15 +185,15 @@ def unlock_wallet(stm, password=None, allow_wif=True):
                             "entered password is not a valid password"
                         )
 
-    if stm.wallet.locked():
+    if hv.wallet.locked():
         if password_storage == "keyring" or password_storage == "environment":
             print("Wallet could not be unlocked with %s!" % password_storage)
             password = click.prompt(
                 "Password to unlock wallet", confirmation_prompt=False, hide_input=True
             )
             if bool(password):
-                unlock_wallet(stm, password=password)
-                if not stm.wallet.locked():
+                unlock_wallet(hv, password=password)
+                if not hv.wallet.locked():
                     return True
         else:
             print("Wallet could not be unlocked!")
@@ -207,16 +203,16 @@ def unlock_wallet(stm, password=None, allow_wif=True):
         return True
 
 
-def unlock_token_wallet(stm, sc2, password=None):
-    if stm.unsigned and stm.nobroadcast:
+def unlock_token_wallet(hv, hs, password=None):
+    if hv.unsigned and hv.nobroadcast:
         return True
-    if stm.use_ledger:
+    if hv.use_ledger:
         return True
-    if not sc2.locked():
+    if not hs.locked():
         return True
-    if not sc2.store.is_encrypted():
+    if not hs.store.is_encrypted():
         return True
-    password_storage = stm.config["password_storage"]
+    password_storage = hv.config["password_storage"]
     if not password and password_storage == "keyring" and is_keyring_available():
         import keyring
 
@@ -224,27 +220,27 @@ def unlock_token_wallet(stm, sc2, password=None):
     if not password and password_storage == "environment" and "UNLOCK" in os.environ:
         password = os.environ.get("UNLOCK")
     if bool(password):
-        sc2.unlock(password)
+        hs.unlock(password)
     else:
         password = click.prompt(
             "Password to unlock wallet", confirmation_prompt=False, hide_input=True
         )
         try:
-            sc2.unlock(password)
+            hs.unlock(password)
         except Exception:
             raise exceptions.WrongMasterPasswordException(
                 "entered password is not a valid password"
             )
 
-    if sc2.locked():
+    if hs.locked():
         if password_storage == "keyring" or password_storage == "environment":
             print("Wallet could not be unlocked with %s!" % password_storage)
             password = click.prompt(
                 "Password to unlock wallet", confirmation_prompt=False, hide_input=True
             )
             if bool(password):
-                unlock_token_wallet(stm, sc2, password=password)
-                if not sc2.locked():
+                unlock_token_wallet(hv, hs, password=password)
+                if not hs.locked():
                     return True
         else:
             print("Wallet could not be unlocked!")
@@ -286,8 +282,7 @@ def export_trx(tx, export):
     default=False,
     help="Creates hivesigner links from all broadcast operations",
 )
-@click.option("--steem", "-s", is_flag=True, default=False, help="Connect to the Steem blockchain")
-@click.option("--hive", "-h", is_flag=True, default=False, help="Connect to the Hive blockchain")
+# Hive is the only supported chain; no chain selection flags
 @click.option(
     "--keys",
     "-k",
@@ -325,8 +320,6 @@ def cli(
     no_wallet,
     unsigned,
     create_link,
-    steem,
-    hive,
     keys,
     use_ledger,
     path,
@@ -368,78 +361,31 @@ def cli(
     if create_link:
         no_broadcast = True
         unsigned = True
-        sc2 = HiveSigner()
+        hs = HiveSigner()
     else:
-        sc2 = None
+        hs = None
     debug = verbose > 0
-    blurt = False
-    if not hive and not steem:
-        config = get_default_config_store()
-        if config["default_chain"].lower() == "hive":
-            hive = True
-        elif config["default_chain"].lower() == "steem":
-            steem = True
-        elif config["default_chain"].lower() == "blurt":
-            blurt = True
-    if hive:
-        stm = Hive(
-            node=node,
-            nobroadcast=no_broadcast,
-            keys=keys_list,
-            offline=offline,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_hs=token,
-            expiration=expires,
-            hivesigner=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
-    elif steem:
-        stm = Steem(
-            node=node,
-            nobroadcast=no_broadcast,
-            offline=offline,
-            keys=keys_list,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_sc2=token,
-            expiration=expires,
-            steemconnect=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
-    else:
-        stm = Blurt(
-            node=node,
-            nobroadcast=no_broadcast,
-            offline=offline,
-            keys=keys_list,
-            nowallet=no_wallet,
-            unsigned=unsigned,
-            use_sc2=token,
-            expiration=expires,
-            steemconnect=sc2,
-            use_ledger=use_ledger,
-            path=path,
-            debug=debug,
-            num_retries=10,
-            num_retries_call=5,
-            timeout=30,
-            autoconnect=autoconnect,
-        )
+    # Hive-only instance
+    hv = Hive(
+        node=node,
+        nobroadcast=no_broadcast,
+        keys=keys_list,
+        offline=offline,
+        nowallet=no_wallet,
+        unsigned=unsigned,
+        use_hs=token,
+        expiration=expires,
+        hivesigner=hs,
+        use_ledger=use_ledger,
+        path=path,
+        debug=debug,
+        num_retries=10,
+        num_retries_call=5,
+        timeout=30,
+        autoconnect=autoconnect,
+    )
 
-    set_shared_blockchain_instance(stm)
+    set_shared_blockchain_instance(hv)
 
     pass
 
@@ -457,22 +403,22 @@ def set(key, value):
     Set the default vote weight to 50 %:
     set default_vote_weight 50
     """
-    stm = shared_blockchain_instance()
+    hv = shared_blockchain_instance()
     if key == "default_account":
-        if stm.rpc is not None:
-            stm.rpc.rpcconnect()
-        stm.set_default_account(value)
+        if hv.rpc is not None:
+            hv.rpc.rpcconnect()
+        hv.set_default_account(value)
     elif key == "default_vote_weight":
-        stm.set_default_vote_weight(value)
+        hv.set_default_vote_weight(value)
     elif key == "nodes" or key == "node":
         if bool(value) or value != "default":
-            stm.set_default_nodes(value)
+            hv.set_default_nodes(value)
         else:
-            stm.set_default_nodes("")
+            hv.set_default_nodes("")
     elif key == "default_chain":
-        stm.config["default_chain"] = value
+        hv.config["default_chain"] = value
     elif key == "password_storage":
-        stm.config["password_storage"] = value
+        hv.config["password_storage"] = value
         if is_keyring_available() and value == "keyring":
             import keyring
 
@@ -494,23 +440,23 @@ def set(key, value):
                 "The wallet password can be stored in the UNLOCK environment variable to skip password prompt!"
             )
     elif key == "client_id":
-        stm.config["client_id"] = value
+        hv.config["client_id"] = value
     elif key == "hot_sign_redirect_uri":
-        stm.config["hot_sign_redirect_uri"] = value
-    elif key == "sc2_api_url":
-        stm.config["sc2_api_url"] = value
+        hv.config["hot_sign_redirect_uri"] = value
     elif key == "hs_api_url":
-        stm.config["hs_api_url"] = value
+        hv.config["hs_api_url"] = value
     elif key == "oauth_base_url":
-        stm.config["oauth_base_url"] = value
+        # Keep generic key and also update HiveSigner oauth base for consistency
+        hv.config["oauth_base_url"] = value
+        hv.config["hs_oauth_base_url"] = value
     elif key == "default_path":
-        stm.config["default_path"] = value
+        hv.config["default_path"] = value
     elif key == "default_canonical_url":
-        stm.config["default_canonical_url"] = value
+        hv.config["default_canonical_url"] = value
     elif key == "use_condenser":
-        stm.config["use_condenser"] = value in ["true", "True"]
+        hv.config["use_condenser"] = value in ["true", "True"]
     elif key == "use_tor":
-        stm.config["use_tor"] = value in ["true", "True"]
+        hv.config["use_tor"] = value in ["true", "True"]
     else:
         print("wrong key")
 
@@ -519,34 +465,34 @@ def set(key, value):
 @click.option("--results", is_flag=True, default=False, help="Shows result of changing the node.")
 def nextnode(results):
     """Uses the next node in list"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    stm.move_current_node_to_front()
-    node = stm.get_default_nodes()
-    offline = stm.offline
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    hv.move_current_node_to_front()
+    node = hv.get_default_nodes()
+    offline = hv.offline
     if len(node) < 2 or isinstance(node, str):
         print("At least two nodes are needed!")
         return
     node = node[1:] + [node[0]]
     if not offline:
-        stm.rpc.next()
-        stm.get_blockchain_version()
-    while not offline and node[0] != stm.rpc.url and len(node) > 1:
+        hv.rpc.next()
+        hv.get_blockchain_version()
+    while not offline and node[0] != hv.rpc.url and len(node) > 1:
         node = node[1:] + [node[0]]
-    stm.set_default_nodes(node)
+    hv.set_default_nodes(node)
     if not results:
         return
 
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
     if not offline:
-        t.add_row(["Node-Url", stm.rpc.url])
+        t.add_row(["Node-Url", hv.rpc.url])
     else:
         t.add_row(["Node-Url", node[0]])
     if not offline:
-        t.add_row(["Version", stm.get_blockchain_version()])
-        t.add_row(["HIVE", stm.is_hive])
+        t.add_row(["Version", hv.get_blockchain_version()])
+        t.add_row(["HIVE", hv.is_hive])
     else:
         t.add_row(["Version", "hive-nectar is in offline mode..."])
     print(t)
@@ -559,10 +505,10 @@ def nextnode(results):
 )
 def pingnode(sort, remove):
     """Returns the answer time in milliseconds"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    nodes = stm.get_default_nodes()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    nodes = hv.get_default_nodes()
 
     t = PrettyTable(["Node", "Answer time [ms]"])
     t.align = "l"
@@ -574,9 +520,9 @@ def pingnode(sort, remove):
             t.add_row([node["url"], "%.2f" % (node["delay_ms"])])
             sorted_node_list.append(node["url"])
         print(t)
-        stm.set_default_nodes(sorted_node_list)
+        hv.set_default_nodes(sorted_node_list)
     else:
-        node = stm.rpc.url
+        node = hv.rpc.url
         rpc_answer_time = node_answer_time(node)
         rpc_time_str = "%.2f" % (rpc_answer_time * 1000)
         t.add_row([node, rpc_time_str])
@@ -598,46 +544,38 @@ def about():
 @click.option("--url", is_flag=True, default=False, help="Returns only the raw url value")
 def currentnode(version, url):
     """Sets the currently working node at the first place in the list"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    offline = stm.offline
-    stm.move_current_node_to_front()
-    node = stm.get_default_nodes()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    offline = hv.offline
+    hv.move_current_node_to_front()
+    node = hv.get_default_nodes()
     if version and not offline:
-        print(stm.get_blockchain_version())
+        print(hv.get_blockchain_version())
         return
     elif version and offline:
         print("Node is offline")
         return
     if url and not offline:
-        print(stm.rpc.url)
+        print(hv.rpc.url)
         return
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
     if not offline:
-        t.add_row(["Node-Url", stm.rpc.url])
+        t.add_row(["Node-Url", hv.rpc.url])
     else:
         t.add_row(["Node-Url", node[0]])
     if not offline:
-        t.add_row(["Version", stm.get_blockchain_version()])
-        t.add_row(["Chain", stm.get_blockchain_name()])
+        t.add_row(["Version", hv.get_blockchain_version()])
+        t.add_row(["Chain", hv.get_blockchain_name()])
     else:
-        t.add_row(["Version", "steempy is in offline mode..."])
+        t.add_row(["Version", "hive-nectar is in offline mode..."])
     print(t)
 
 
 @cli.command()
 @click.option("--show", "-s", is_flag=True, default=False, help="Prints the updated nodes")
-@click.option(
-    "--hive", "-h", is_flag=True, default=False, help="Switch to HIVE blockchain, when set to true."
-)
-@click.option(
-    "--steem", "-e", is_flag=True, default=False, help="Switch to STEEM nodes, when set to true."
-)
-@click.option(
-    "--blurt", "-b", is_flag=True, default=False, help="Switch to BLURT nodes, when set to true."
-)
+# Hive-only node updates
 @click.option(
     "--test",
     "-t",
@@ -647,44 +585,18 @@ def currentnode(version, url):
 )
 @click.option("--only-https", is_flag=True, default=False, help="Use only https nodes.")
 @click.option("--only-wss", is_flag=True, default=False, help="Use only websocket nodes.")
-def updatenodes(show, hive, steem, blurt, test, only_https, only_wss):
+def updatenodes(show, test, only_https, only_wss):
     """Update the nodelist from @fullnodeupdate"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if steem and hive:
-        print("hive and steem cannot be active both")
-        return
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     t = PrettyTable(["node", "Version", "score"])
     t.align = "l"
-    if steem:
-        blockchain = "steem"
-    elif hive:
-        blockchain = "hive"
-    elif blurt:
-        blockchain = "blurt"
-    else:
-        blockchain = stm.config["default_chain"]
     nodelist = NodeList()
-    nodelist.update_nodes(blockchain_instance=stm)
-    if hive:
-        nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
-        if stm.config["default_chain"] != "hive":
-            stm.config["default_chain"] = "hive"
-    elif steem:
-        nodes = nodelist.get_steem_nodes(wss=not only_https, https=not only_wss)
-        if stm.config["default_chain"] != "steem":
-            stm.config["default_chain"] = "steem"
-    elif blurt:
-        nodes = ["https://rpc.blurt.world", "https://blurt-rpc.steem.buzz"]
-        if stm.config["default_chain"] != "blurt":
-            stm.config["default_chain"] = "blurt"
-    elif stm.config["default_chain"] == "steem":
-        nodes = nodelist.get_steem_nodes(wss=not only_https, https=not only_wss)
-    elif stm.config["default_chain"] == "blurt":
-        nodes = ["https://rpc.blurt.world", "https://blurt-rpc.steem.buzz"]
-    else:
-        nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+    nodelist.update_nodes(blockchain_instance=hv)
+    nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+    if hv.config["default_chain"] != "hive":
+        hv.config["default_chain"] = "hive"
     if show or test:
         sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
         for node in sorted_nodes:
@@ -693,20 +605,20 @@ def updatenodes(show, hive, steem, blurt, test, only_https, only_wss):
                 t.add_row([node["url"], node["version"], score])
         print(t)
     if not test:
-        stm.set_default_nodes(nodes)
-        stm.rpc.nodes.set_node_urls(nodes)
-        stm.rpc.current_rpc = 0
-        stm.rpc.rpcclose()
-        stm.rpc.rpcconnect()
+        hv.set_default_nodes(nodes)
+        hv.rpc.nodes.set_node_urls(nodes)
+        hv.rpc.current_rpc = 0
+        hv.rpc.rpcclose()
+        hv.rpc.rpcconnect()
 
 
 @cli.command()
 def config():
     """Shows local configuration"""
-    stm = shared_blockchain_instance()
+    hv = shared_blockchain_instance()
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
-    for key in stm.config:
+    for key in hv.config:
         # hide internal config data
         if (
             key in availableConfigurationKeys
@@ -714,18 +626,18 @@ def config():
             and key != "node"
             and key != "use_tor"
         ):
-            t.add_row([key, stm.config[key]])
-    node = stm.get_default_nodes()
-    blockchain = stm.config["default_chain"]
+            t.add_row([key, hv.config[key]])
+    node = hv.get_default_nodes()
+    blockchain = hv.config["default_chain"]
     nodes = json.dumps(node, indent=4)
     t.add_row(["default_chain", blockchain])
     t.add_row(["nodes", nodes])
     if "password_storage" not in availableConfigurationKeys:
-        t.add_row(["password_storage", stm.config["password_storage"]])
-    if not stm.config["use_condenser"]:
-        t.add_row(["use_condenser", stm.config["use_condenser"]])
-    t.add_row(["data_dir", stm.config.data_dir])
-    t.add_row(["use_tor", bool(stm.config["use_tor"])])
+        t.add_row(["password_storage", hv.config["password_storage"]])
+    if not hv.config["use_condenser"]:
+        t.add_row(["use_condenser", hv.config["use_condenser"]])
+    t.add_row(["data_dir", hv.config.data_dir])
+    t.add_row(["use_tor", bool(hv.config["use_tor"])])
     print(t)
 
 
@@ -733,26 +645,26 @@ def config():
 @click.option("--wipe", is_flag=True, default=False, help="Wipe old wallet without prompt.")
 def createwallet(wipe):
     """Create new wallet with a new password"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if stm.wallet.created() and not wipe:
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if hv.wallet.created() and not wipe:
         wipe_answer = click.prompt(
             "'Do you want to wipe your wallet? Are your sure? This is IRREVERSIBLE! If you dont have a backup you may lose access to your account! [y/n]",
             default="n",
         )
         if wipe_answer in ["y", "ye", "yes"]:
-            stm.wallet.wipe(True)
+            hv.wallet.wipe(True)
         else:
             return
     elif wipe:
-        stm.wallet.wipe(True)
+        hv.wallet.wipe(True)
     password = None
     password = click.prompt("New wallet password", confirmation_prompt=True, hide_input=True)
     if not bool(password):
         print("Password cannot be empty! Quitting...")
         return
-    password_storage = stm.config["password_storage"]
+    password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
         import keyring
 
@@ -761,9 +673,9 @@ def createwallet(wipe):
         print(
             "The new wallet password can be stored in the UNLOCK environment variable to skip password prompt!"
         )
-    stm.wallet.wipe(True)
-    stm.wallet.create(password)
-    set_shared_blockchain_instance(stm)
+    hv.wallet.wipe(True)
+    hv.wallet.create(password)
+    set_shared_blockchain_instance(hv)
 
 
 @cli.command()
@@ -771,21 +683,21 @@ def createwallet(wipe):
 @click.option("--lock", "-l", is_flag=True, default=False, help="Lock wallet")
 def walletinfo(unlock, lock):
     """Show info about wallet"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if lock:
-        stm.wallet.lock()
+        hv.wallet.lock()
     elif unlock:
-        unlock_wallet(stm, allow_wif=False)
+        unlock_wallet(hv, allow_wif=False)
 
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
-    t.add_row(["created", stm.wallet.created()])
-    t.add_row(["locked", stm.wallet.locked()])
-    t.add_row(["Number of stored keys", len(stm.wallet.getPublicKeys())])
-    t.add_row(["sql-file", stm.wallet.store.sqlite_file])
-    password_storage = stm.config["password_storage"]
+    t.add_row(["created", hv.wallet.created()])
+    t.add_row(["locked", hv.wallet.locked()])
+    t.add_row(["Number of stored keys", len(hv.wallet.getPublicKeys())])
+    t.add_row(["sql-file", hv.wallet.store.sqlite_file])
+    password_storage = hv.config["password_storage"]
     t.add_row(["password_storage", password_storage])
     password = os.environ.get("UNLOCK")
     if password is not None:
@@ -798,11 +710,11 @@ def walletinfo(unlock, lock):
         t.add_row(["keyring installed", "no"])
 
     if unlock:
-        if unlock_wallet(stm, allow_wif=False):
+        if unlock_wallet(hv, allow_wif=False):
             t.add_row(["Wallet unlock", "successful"])
         else:
             t.add_row(["Wallet unlock", "not working"])
-    # t.add_row(["getPublicKeys", str(stm.wallet.getPublicKeys())])
+    # t.add_row(["getPublicKeys", str(hv.wallet.getPublicKeys())])
     print(t)
 
 
@@ -814,17 +726,17 @@ def walletinfo(unlock, lock):
 )
 def parsewif(unsafe_import_key):
     """Parse a WIF private key without importing"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if unsafe_import_key:
         for key in unsafe_import_key:
             try:
-                pubkey = PrivateKey(key, prefix=stm.prefix).pubkey
+                pubkey = PrivateKey(key, prefix=hv.prefix).pubkey
                 print(pubkey)
-                account = stm.wallet.getAccountFromPublicKey(str(pubkey))
-                account = Account(account, blockchain_instance=stm)
-                key_type = stm.wallet.getKeyType(account, str(pubkey))
+                account = hv.wallet.getAccountFromPublicKey(str(pubkey))
+                account = Account(account, blockchain_instance=hv)
+                key_type = hv.wallet.getKeyType(account, str(pubkey))
                 print("Account: %s - %s" % (account["name"], key_type))
             except Exception as e:
                 print(str(e))
@@ -834,11 +746,11 @@ def parsewif(unsafe_import_key):
             if not wifkey or wifkey == "quit" or wifkey == "exit":
                 break
             try:
-                pubkey = PrivateKey(wifkey, prefix=stm.prefix).pubkey
+                pubkey = PrivateKey(wifkey, prefix=hv.prefix).pubkey
                 print(pubkey)
-                account = stm.wallet.getAccountFromPublicKey(str(pubkey))
-                account = Account(account, blockchain_instance=stm)
-                key_type = stm.wallet.getKeyType(account, str(pubkey))
+                account = hv.wallet.getAccountFromPublicKey(str(pubkey))
+                account = Account(account, blockchain_instance=hv)
+                key_type = hv.wallet.getKeyType(account, str(pubkey))
                 print("Account: %s - %s" % (account["name"], key_type))
             except Exception as e:
                 print(str(e))
@@ -856,17 +768,17 @@ def addkey(unsafe_import_key):
     When no [OPTION] is given, a password prompt for unlocking the wallet
     and a prompt for entering the private key are shown.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm, allow_wif=False):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv, allow_wif=False):
         return
     if not unsafe_import_key:
         unsafe_import_key = click.prompt(
             "Enter private key", confirmation_prompt=False, hide_input=True
         )
-    stm.wallet.addPrivateKey(unsafe_import_key)
-    set_shared_blockchain_instance(stm)
+    hv.wallet.addPrivateKey(unsafe_import_key)
+    set_shared_blockchain_instance(hv)
 
 
 @cli.command()
@@ -886,13 +798,13 @@ def delkey(confirm, pub):
     PUB is the public key from the private key
     which will be deleted from the wallet
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm, allow_wif=False):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv, allow_wif=False):
         return
-    stm.wallet.removePrivateKeyFromPublicKey(pub)
-    set_shared_blockchain_instance(stm)
+    hv.wallet.removePrivateKeyFromPublicKey(pub)
+    set_shared_blockchain_instance(hv)
 
 
 @cli.command()
@@ -913,7 +825,7 @@ def delkey(confirm, pub):
 @click.option(
     "--network",
     "-n",
-    help="Network index, when using BIP39, 0 for steem and 13 for hive, (default is 13)",
+    help="Network index for BIP39 (default is 13 for Hive)",
     default=13,
 )
 @click.option(
@@ -962,7 +874,7 @@ def keygen(
     The generated key is not stored. Can also be used to create new keys for an account.
     Can also be used to derive account keys from a password or BIP39 wordlist.
     """
-    stm = shared_blockchain_instance()
+    hv = shared_blockchain_instance()
     pub_json = {"owner": "", "active": "", "posting": "", "memo": ""}
 
     if not account_keys and len(role.split(",")) > 1:
@@ -975,10 +887,10 @@ def keygen(
     else:
         wif = 0
 
-    if stm.use_ledger:
-        if stm.rpc is not None:
-            stm.rpc.rpcconnect()
-        ledgertx = stm.new_tx()
+    if hv.use_ledger:
+        if hv.rpc is not None:
+            hv.rpc.rpcconnect()
+        ledgertx = hv.new_tx()
         ledgertx.constructTx()
         if account is None:
             account = 0
@@ -1156,9 +1068,9 @@ def passwordgen(role, account, import_password, import_coldcard, wif, export_pub
     """Creates a new password based key and prints its derived private key and public key.
     The generated key is not stored. The password is used to create new keys for an account.
     """
-    stm = shared_blockchain_instance()
+    hv = shared_blockchain_instance()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if import_password:
         import_password = click.prompt("Enter password", confirmation_prompt=False, hide_input=True)
     elif import_coldcard is not None:
@@ -1229,18 +1141,18 @@ def addtoken(name, unsafe_import_token):
     When no [OPTION] is given, a password prompt for unlocking the wallet
     and a prompt for entering the private key are shown.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    hs = HiveSigner(blockchain_instance=hv)
+    if not unlock_token_wallet(hv, hs):
         return
     if not unsafe_import_token:
         unsafe_import_token = click.prompt(
             "Enter private token", confirmation_prompt=False, hide_input=True
         )
-    sc2.addToken(name, unsafe_import_token)
-    set_shared_blockchain_instance(stm)
+    hs.addToken(name, unsafe_import_token)
+    set_shared_blockchain_instance(hv)
 
 
 @cli.command()
@@ -1260,14 +1172,14 @@ def deltoken(confirm, name):
     name is the public name from the private token
     which will be deleted from the wallet
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    hs = HiveSigner(blockchain_instance=hv)
+    if not unlock_token_wallet(hv, hs):
         return
-    sc2.removeTokenFromPublicName(name)
-    set_shared_blockchain_instance(stm)
+    hs.removeTokenFromPublicName(name)
+    set_shared_blockchain_instance(hv)
 
 
 @cli.command()
@@ -1284,16 +1196,16 @@ def listkeys(path, ledger_approval):
 
     Can be used to receive and approve the pubkey obtained from the ledger
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
-    if stm.use_ledger:
+    if hv.use_ledger:
         if path is None:
-            path = stm.config["default_path"]
+            path = hv.config["default_path"]
         t = PrettyTable(["Available Key for %s" % path])
         t.align = "l"
-        ledgertx = stm.new_tx()
+        ledgertx = hv.new_tx()
         ledgertx.constructTx()
         pubkey = ledgertx.ledgertx.get_pubkey(path, request_screen_approval=False)
         t.add_row([str(pubkey)])
@@ -1303,7 +1215,7 @@ def listkeys(path, ledger_approval):
     else:
         t = PrettyTable(["Available Key"])
         t.align = "l"
-        for key in stm.wallet.getPublicKeys():
+        for key in hv.wallet.getPublicKeys():
             t.add_row([key])
     print(t)
 
@@ -1311,14 +1223,14 @@ def listkeys(path, ledger_approval):
 @cli.command()
 def listtoken():
     """Show stored token"""
-    stm = shared_blockchain_instance()
+    hv = shared_blockchain_instance()
     t = PrettyTable(["name", "scope", "status"])
     t.align = "l"
-    sc2 = HiveSigner(blockchain_instance=stm)
-    if not unlock_token_wallet(stm, sc2):
+    hs = HiveSigner(blockchain_instance=hv)
+    if not unlock_token_wallet(hv, hs):
         return
-    for name in sc2.getPublicNames():
-        ret = sc2.me(username=name)
+    for name in hs.getPublicNames():
+        ret = hs.me(username=name)
         if "error" in ret:
             t.add_row([name, "-", ret["error"]])
         else:
@@ -1345,14 +1257,14 @@ def listaccounts(role, max_account_index, max_sequence):
 
     Can be used with the ledger to obtain all accounts that uses pubkeys derived from this ledger
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
-    if stm.use_ledger:
+    if hv.use_ledger:
         t = PrettyTable(["Name", "Type", "Available Key", "Path"])
         t.align = "l"
-        ledgertx = stm.new_tx()
+        ledgertx = hv.new_tx()
         ledgertx.constructTx()
         key_found = False
         path = None
@@ -1365,7 +1277,7 @@ def listaccounts(role, max_account_index, max_sequence):
             for perm in role_list:
                 path = ledgertx.ledgertx.build_path(perm, current_account_index, current_key_index)
                 current_pubkey = ledgertx.ledgertx.get_pubkey(path)
-                account = stm.wallet.getAccountFromPublicKey(str(current_pubkey))
+                account = hv.wallet.getAccountFromPublicKey(str(current_pubkey))
                 if account is not None:
                     t.add_row([str(account), perm, str(current_pubkey), path])
             if current_key_index < max_sequence:
@@ -1376,7 +1288,7 @@ def listaccounts(role, max_account_index, max_sequence):
     else:
         t = PrettyTable(["Name", "Type", "Available Key"])
         t.align = "l"
-        for account in stm.wallet.getAccounts():
+        for account in hv.wallet.getAccounts():
             t.add_row([account["name"] or "n/a", account["type"] or "n/a", account["pubkey"]])
     print(t)
 
@@ -1391,11 +1303,11 @@ def upvote(post, account, weight, export):
 
     POST is @author/permlink
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not weight:
-        weight = stm.config["default_vote_weight"]
+        weight = hv.config["default_vote_weight"]
     else:
         weight = float(weight)
         if weight > 100:
@@ -1404,16 +1316,14 @@ def upvote(post, account, weight, export):
             raise ValueError("Minimum vote weight is 0!")
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
     try:
-        post = Comment(post, blockchain_instance=stm)
+        post = Comment(post, blockchain_instance=hv)
         tx = post.upvote(weight, voter=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-            tx = stm.hivesigner.url_from_tx(tx)
+        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not upvote.")
         tx = {}
@@ -1431,21 +1341,19 @@ def delete(post, account, export):
 
     POST is @author/permlink
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
     try:
-        post = Comment(post, blockchain_instance=stm)
+        post = Comment(post, blockchain_instance=hv)
         tx = post.delete(account=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-            tx = stm.hivesigner.url_from_tx(tx)
+        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Could not delete post.")
         tx = {}
@@ -1464,9 +1372,9 @@ def downvote(post, account, weight, export):
 
     POST is @author/permlink
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     weight = float(weight)
     if weight > 100:
@@ -1475,16 +1383,14 @@ def downvote(post, account, weight, export):
         raise ValueError("Minimum downvote weight is 0!")
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
     try:
-        post = Comment(post, blockchain_instance=stm)
+        post = Comment(post, blockchain_instance=hv)
         tx = post.downvote(weight, voter=account)
-        if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-            tx = stm.steemconnect.url_from_tx(tx)
-        elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-            tx = stm.hivesigner.url_from_tx(tx)
+        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not downvote.")
         tx = {}
@@ -1501,22 +1407,20 @@ def downvote(post, account, weight, export):
 @click.option("--account", "-a", help="Transfer from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def transfer(to, amount, asset, memo, account, export):
-    """Transfer SBD/HBD or STEEM/HIVE"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    """Transfer HBD or HIVE"""
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if not bool(memo):
         memo = ""
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.transfer(to, amount, asset, memo)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1528,24 +1432,22 @@ def transfer(to, amount, asset, memo, account, export):
 @click.option("--to", "-t", help="Powerup this account", default=None)
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def powerup(amount, account, to, export):
-    """Power up (vest STEEM/HIVE as STEEM/HIVE POWER)"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    """Power up (vest HIVE into Hive Power)"""
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     try:
         amount = float(amount)
     except Exception:
         amount = str(amount)
     tx = acc.transfer_to_vesting(amount, to=to)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1556,27 +1458,25 @@ def powerup(amount, account, to, export):
 @click.option("--account", "-a", help="Powerup from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def powerdown(amount, account, export):
-    """Power down (start withdrawing VESTS from Steem POWER)
+    """Power down (start withdrawing VESTS from Hive Power)
 
     amount is in VESTS
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     try:
         amount = float(amount)
     except Exception:
         amount = str(amount)
     tx = acc.withdraw_vesting(amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1590,30 +1490,27 @@ def powerdown(amount, account, export):
 def delegate(amount, to_account, account, export):
     """Delegate (start delegating VESTS to another account)
 
-    amount is in VESTS / Steem
+    amount is in VESTS / HIVE Power
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
-    try:
-        amount = float(amount)
-    except Exception:
-        amount = Amount(str(amount), blockchain_instance=stm)
-        if amount.symbol == stm.token_symbol and isinstance(stm, Steem):
-            amount = stm.sp_to_vests(float(amount))
-        elif amount.symbol == stm.token_symbol and isinstance(stm, Hive):
-            amount = stm.hp_to_vests(float(amount))
+    acc = Account(account, blockchain_instance=hv)
+    if hv.token_symbol is not None:
+        amount = Amount(amount, blockchain_instance=hv)
+    else:
+        amount = Amount(amount, blockchain_instance=hv)
+    if isinstance(amount, Amount):
+        if amount.symbol == hv.token_symbol:
+            amount = hv.hp_to_vests(float(amount))
 
     tx = acc.delegate_vesting_shares(to_account, amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1627,13 +1524,13 @@ def listdelegations(account):
     The default account is used if no other account name is given as
         option to this command.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    acc = Account(account, blockchain_instance=stm)
-    pt = PrettyTable(["Delegatee", stm.vests_symbol, "%s Power" % (stm.token_symbol)])
+        account = hv.config["default_account"]
+    acc = Account(account, blockchain_instance=hv)
+    pt = PrettyTable(["Delegatee", hv.vests_symbol, "%s Power" % (hv.token_symbol)])
     pt.align = "r"
     start_account = ""
     limit = 100
@@ -1646,8 +1543,8 @@ def listdelegations(account):
             # skip first entry if it was already part of the previous call
             delegations = delegations[1:]
         for deleg in delegations:
-            vests = Amount(deleg["vesting_shares"], blockchain_instance=stm)
-            token_power = "%.3f" % (stm.vests_to_token_power(vests))
+            vests = Amount(deleg["vesting_shares"], blockchain_instance=hv)
+            token_power = "%.3f" % (hv.vests_to_token_power(vests))
             pt.add_row([deleg["delegatee"], str(vests), token_power])
             start_account = deleg["delegatee"]
     print(pt)
@@ -1662,25 +1559,23 @@ def listdelegations(account):
 @click.option(
     "--auto_vest",
     help="Set to true if the from account should receive the VESTS as"
-    "VESTS, or false if it should receive them as STEEM/HIVE.",
+    "VESTS, or false if it should receive them as HIVE.",
     is_flag=True,
 )
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def powerdownroute(to, percentage, account, auto_vest, export):
     """Setup a powerdown route"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.set_withdraw_vesting_route(to, percentage, auto_vest=auto_vest)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1692,15 +1587,15 @@ def powerdownroute(to, percentage, account, auto_vest, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def changerecovery(new_recovery_account, account, export):
     """Changes the recovery account with the owner key (needs 30 days to be active)"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    # if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    # if not unlock_wallet(hv):
     #    return
-    new_recovery_account = Account(new_recovery_account, blockchain_instance=stm)
-    account = Account(account, blockchain_instance=stm)
+    new_recovery_account = Account(new_recovery_account, blockchain_instance=hv)
+    account = Account(account, blockchain_instance=hv)
     op = operations.Change_recovery_account(
         **{
             "account_to_recover": account["name"],
@@ -1709,9 +1604,9 @@ def changerecovery(new_recovery_account, account, export):
         }
     )
 
-    tb = TransactionBuilder(blockchain_instance=stm)
+    tb = TransactionBuilder(blockchain_instance=hv)
     tb.appendOps([op])
-    if stm.unsigned:
+    if hv.unsigned:
         tb.addSigningInformation(account["name"], "owner")
         tx = tb
     else:
@@ -1722,10 +1617,8 @@ def changerecovery(new_recovery_account, account, export):
         tb.appendWif(str(owner_key))
         tb.sign()
         tx = tb.broadcast()
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1736,24 +1629,22 @@ def changerecovery(new_recovery_account, account, export):
 @click.option("--account", "-a", help="Powerup from this account")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def convert(amount, account, export):
-    """Convert SBD/HBD to Steem/Hive (takes a week to settle)"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    """Convert HBD to HIVE (takes ~1 week to settle)"""
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     try:
         amount = float(amount)
     except Exception:
         amount = str(amount)
     tx = acc.convert(amount)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1762,17 +1653,17 @@ def convert(amount, account, export):
 @cli.command()
 def changewalletpassphrase():
     """Change wallet password"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm, allow_wif=False):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv, allow_wif=False):
         return
     newpassword = None
     newpassword = click.prompt("New wallet password", confirmation_prompt=True, hide_input=True)
     if not bool(newpassword):
         print("Password cannot be empty! Quitting...")
         return
-    password_storage = stm.config["password_storage"]
+    password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
         import keyring
 
@@ -1781,21 +1672,21 @@ def changewalletpassphrase():
         print(
             "The new wallet password can be stored in the UNLOCK invironment variable to skip password prompt!"
         )
-    stm.wallet.changePassphrase(newpassword)
+    hv.wallet.changePassphrase(newpassword)
 
 
 @cli.command()
 @click.argument("account", nargs=-1)
 def power(account):
     """Shows vote power and bandwidth"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if len(account) == 0:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for name in account:
-        a = Account(name, blockchain_instance=stm)
+        a = Account(name, blockchain_instance=hv)
         print("\n@%s" % a.name)
         a.print_info(use_table=True)
 
@@ -1804,16 +1695,16 @@ def power(account):
 @click.argument("account", nargs=-1)
 def balance(account):
     """Shows balance"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if len(account) == 0:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for name in account:
-        a = Account(name, blockchain_instance=stm)
+        a = Account(name, blockchain_instance=hv)
         print("\n@%s" % a.name)
-        t = PrettyTable(["Account", stm.token_symbol, stm.backed_token_symbol, "VESTS"])
+        t = PrettyTable(["Account", hv.token_symbol, hv.backed_token_symbol, "VESTS"])
         t.align = "r"
         t.add_row(
             [
@@ -1854,19 +1745,19 @@ def balance(account):
 @click.argument("account", nargs=-1, required=False)
 def interest(account):
     """Get information about interest payment"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
 
     t = PrettyTable(
         ["Account", "Last Interest Payment", "Next Payment", "Interest rate", "Interest"]
     )
     t.align = "r"
     for a in account:
-        a = Account(a, blockchain_instance=stm)
+        a = Account(a, blockchain_instance=hv)
         i = a.interest()
         t.add_row(
             [
@@ -1874,7 +1765,7 @@ def interest(account):
                 i["last_payment"],
                 "in %s" % (i["next_payment_duration"]),
                 "%.1f%%" % i["interest_rate"],
-                "%.3f %s" % (i["interest"], stm.backed_token_symbol),
+                "%.3f %s" % (i["interest"], hv.backed_token_symbol),
             ]
         )
     print(t)
@@ -1890,13 +1781,13 @@ def followlist(follow_type, account, limit):
     follow_type can be blog
     On Hive, follow type can also be one the following: blacklisted, follow_blacklist, muted, or follow_muted
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
-    account = Account(account, blockchain_instance=stm)
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
+    account = Account(account, blockchain_instance=hv)
     if follow_type == "blog":
         name_list = account.get_following(limit=limit)
     else:
@@ -1914,14 +1805,14 @@ def followlist(follow_type, account, limit):
 @click.argument("account", nargs=-1, required=False)
 def follower(account):
     """Get information about followers"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for a in account:
-        a = Account(a, blockchain_instance=stm)
+        a = Account(a, blockchain_instance=hv)
         print("\nFollowers statistics for @%s (please wait...)" % a.name)
         followers = a.get_followers(False)
         followers.print_summarize_table(tag_type="Followers")
@@ -1931,14 +1822,14 @@ def follower(account):
 @click.argument("account", nargs=-1, required=False)
 def following(account):
     """Get information about following"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for a in account:
-        a = Account(a, blockchain_instance=stm)
+        a = Account(a, blockchain_instance=hv)
         print("\nFollowing statistics for @%s (please wait...)" % a.name)
         following = a.get_following(False)
         following.print_summarize_table(tag_type="Following")
@@ -1948,14 +1839,14 @@ def following(account):
 @click.argument("account", nargs=-1, required=False)
 def muter(account):
     """Get information about muter"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for a in account:
-        a = Account(a, blockchain_instance=stm)
+        a = Account(a, blockchain_instance=hv)
         print("\nMuters statistics for @%s (please wait...)" % a.name)
         muters = a.get_muters(False)
         muters.print_summarize_table(tag_type="Muters")
@@ -1965,14 +1856,14 @@ def muter(account):
 @click.argument("account", nargs=-1, required=False)
 def muting(account):
     """Get information about muting"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = [stm.config["default_account"]]
+        if "default_account" in hv.config:
+            account = [hv.config["default_account"]]
     for a in account:
-        a = Account(a, blockchain_instance=stm)
+        a = Account(a, blockchain_instance=hv)
         print("\nMuting statistics for @%s (please wait...)" % a.name)
         muting = a.get_mutings(False)
         muting.print_summarize_table(tag_type="Muting")
@@ -2007,19 +1898,19 @@ def notifications(
     account, limit, all, mark_as_read, replies, mentions, follows, votes, reblogs, reverse
 ):
     """Show notifications of an account"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if account is None or account == "":
-        if "default_account" in stm.config:
-            account = stm.config["default_account"]
-    if mark_as_read and not unlock_wallet(stm):
+        if "default_account" in hv.config:
+            account = hv.config["default_account"]
+    if mark_as_read and not unlock_wallet(hv):
         return
     if not replies and not mentions and not follows and not votes and not reblogs:
         show_all = True
     else:
         show_all = False
-    account = Account(account, blockchain_instance=stm)
+    account = Account(account, blockchain_instance=hv)
     t = PrettyTable(["Date", "Type", "Message"], hrules=0)
     t.align = "r"
     last_read = None
@@ -2059,13 +1950,13 @@ def notifications(
 @click.argument("account", nargs=1, required=False)
 def permissions(account):
     """Show permissions of an account"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = stm.config["default_account"]
-    account = Account(account, blockchain_instance=stm)
+        if "default_account" in hv.config:
+            account = hv.config["default_account"]
+    account = Account(account, blockchain_instance=hv)
     t = PrettyTable(["Permission", "Threshold", "Key/Account"], hrules=0)
     t.align = "r"
     for permission in ["owner", "active", "posting"]:
@@ -2109,29 +2000,27 @@ def allow(foreign_account, permission, account, weight, threshold, export):
         When not given, password will be asked, from which a public key is derived.
         This derived key will then interact with your account.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
     if permission not in ["posting", "active", "owner"]:
         print("Wrong permission, please use: posting, active or owner!")
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     if not foreign_account:
         from nectargraphenebase.account import PasswordKey
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True, hide_input=True)
-        foreign_account = format(PasswordKey(account, pwd, permission).get_public(), stm.prefix)
+        foreign_account = format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)
     if threshold is not None:
         threshold = int(threshold)
     tx = acc.allow(foreign_account, weight=weight, permission=permission, threshold=threshold)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2151,29 +2040,27 @@ def allow(foreign_account, permission, account, weight, threshold, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def disallow(foreign_account, permission, account, threshold, export):
     """Remove allowance an account/key to interact with your account"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
     if permission not in ["posting", "active", "owner"]:
         print("Wrong permission, please use: posting, active or owner!")
         return
     if threshold is not None:
         threshold = int(threshold)
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     if not foreign_account:
         from nectargraphenebase.account import PasswordKey
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
-        foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), stm.prefix)]
+        foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
     tx = acc.disallow(foreign_account, permission=permission, threshold=threshold)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2189,7 +2076,7 @@ def disallow(foreign_account, permission, account, threshold, export):
 @click.option(
     "--number",
     "-n",
-    help="Number of subsidized accounts to be claimed (default = 1), when fee = 0 STEEM",
+    help="Number of subsidized accounts to be claimed (default = 1), when fee = 0 HIVE",
     default=1,
 )
 @click.option(
@@ -2199,24 +2086,21 @@ def disallow(foreign_account, permission, account, threshold, export):
 )
 def claimaccount(creator, fee, number, export):
     """Claim account for claimed account creation."""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not creator:
-        creator = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        creator = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    creator = Account(creator, blockchain_instance=stm)
-    fee = Amount("%.3f %s" % (float(fee), stm.token_symbol), blockchain_instance=stm)
+    creator = Account(creator, blockchain_instance=hv)
+    fee = Amount("%.3f %s" % (float(fee), hv.token_symbol), blockchain_instance=hv)
     tx = None
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.claim_account(creator, fee=fee)
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.claim_account(creator, fee=fee)
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.claim_account(creator, fee=fee)
+        tx = hv.hivesigner.url_from_tx(tx)
     elif float(fee) == 0:
-        rc = RC(blockchain_instance=stm)
+        rc = RC(blockchain_instance=hv)
         current_costs = rc.claim_account(tx_size=200)
         current_mana = creator.get_rc_manabar()["current_mana"]
         last_mana = current_mana
@@ -2235,7 +2119,7 @@ def claimaccount(creator, fee, number, export):
                 tx = json.dumps(tx, indent=4)
                 print(tx)
             cnt += 1
-            tx = stm.claim_account(creator, fee=fee)
+            tx = hv.claim_account(creator, fee=fee)
             time.sleep(10)
             creator.refresh()
             current_mana = creator.get_rc_manabar()["current_mana"]
@@ -2244,7 +2128,7 @@ def claimaccount(creator, fee, number, export):
         if cnt == 0:
             print("Not enough RC for a claim!")
     else:
-        tx = stm.claim_account(creator, fee=fee)
+        tx = hv.claim_account(creator, fee=fee)
     if tx is not None:
         export_trx(tx, export)
         tx = json.dumps(tx, indent=4)
@@ -2271,10 +2155,10 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
     """Changes all keys for the specified account
     Keys are given in their public form.
     Asks for the owner key for broadcasting the op to the chain."""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    account = Account(account, blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    account = Account(account, blockchain_instance=hv)
 
     if import_pub and import_pub != "":
         owner, active, posting, memo = import_pubkeys(import_pub)
@@ -2298,13 +2182,13 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
     t.add_row(["new posting pubkey", str(posting)])
     t.add_row(["new memo pubkey", str(memo)])
     print(t)
-    if not stm.unsigned:
+    if not hv.unsigned:
         wif = click.prompt(
             "Owner key for %s" % account["name"], confirmation_prompt=False, hide_input=True
         )
-        stm.wallet.setKeys([wif])
+        hv.wallet.setKeys([wif])
 
-    tx = stm.update_account(
+    tx = hv.update_account(
         account,
         owner_key=owner,
         active_key=active,
@@ -2312,10 +2196,8 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
         memo_key=memo,
         password=None,
     )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2369,18 +2251,18 @@ def newaccount(
 
     Please use keygen and set public keys
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     if import_pub and import_pub != "":
         owner, active, posting, memo = import_pubkeys(import_pub)
         if create_claimed_account:
-            tx = stm.create_claimed_account(
+            tx = hv.create_claimed_account(
                 accountname,
                 creator=acc,
                 owner_key=owner,
@@ -2389,7 +2271,7 @@ def newaccount(
                 posting_key=posting,
             )
         else:
-            tx = stm.create_account(
+            tx = hv.create_account(
                 accountname,
                 creator=acc,
                 owner_key=owner,
@@ -2408,12 +2290,12 @@ def newaccount(
             return
         password = generate_password(import_password, wif)
         if create_claimed_account:
-            tx = stm.create_claimed_account(accountname, creator=acc, password=password)
+            tx = hv.create_claimed_account(accountname, creator=acc, password=password)
         else:
-            tx = stm.create_account(accountname, creator=acc, password=password)
+            tx = hv.create_account(accountname, creator=acc, password=password)
     else:
         if create_claimed_account:
-            tx = stm.create_claimed_account(
+            tx = hv.create_claimed_account(
                 accountname,
                 creator=acc,
                 owner_key=owner,
@@ -2422,7 +2304,7 @@ def newaccount(
                 posting_key=posting,
             )
         else:
-            tx = stm.create_account(
+            tx = hv.create_account(
                 accountname,
                 creator=acc,
                 owner_key=owner,
@@ -2430,10 +2312,8 @@ def newaccount(
                 memo_key=memo,
                 posting_key=posting,
             )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2447,9 +2327,9 @@ def newaccount(
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def setprofile(variable, value, account, pair, export):
     """Set a variable in an account\'s profile"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     keys = []
     values = []
     if pair:
@@ -2464,18 +2344,16 @@ def setprofile(variable, value, account, pair, export):
     profile = Profile(keys, values)
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
 
     json_metadata = Profile(acc["json_metadata"] if acc["json_metadata"] else {})
     json_metadata.update(profile)
     tx = acc.update_account_profile(json_metadata)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2487,25 +2365,23 @@ def setprofile(variable, value, account, pair, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def delprofile(variable, account, export):
     """Delete a variable in an account\'s profile"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     json_metadata = Profile(acc["json_metadata"])
 
     for var in variable:
         json_metadata.remove(var)
 
     tx = acc.update_account_profile(json_metadata)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2533,12 +2409,12 @@ def importaccount(account, roles, import_coldcard, wif):
     """Import an account using a passphrase"""
     from nectargraphenebase.account import PasswordKey
 
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv):
         return
-    account = Account(account, blockchain_instance=stm)
+    account = Account(account, blockchain_instance=hv)
     imported = False
     if import_coldcard is None:
         password = click.prompt("Account Passphrase", confirmation_prompt=False, hide_input=True)
@@ -2558,38 +2434,38 @@ def importaccount(account, roles, import_coldcard, wif):
 
     if "owner" in roles:
         owner_key = PasswordKey(account["name"], password, role="owner")
-        owner_pubkey = format(owner_key.get_public_key(), stm.prefix)
+        owner_pubkey = format(owner_key.get_public_key(), hv.prefix)
         if owner_pubkey in [x[0] for x in account["owner"]["key_auths"]]:
             print("Importing owner key!")
             owner_privkey = owner_key.get_private_key()
-            stm.wallet.addPrivateKey(owner_privkey)
+            hv.wallet.addPrivateKey(owner_privkey)
             imported = True
 
     if "active" in roles:
         active_key = PasswordKey(account["name"], password, role="active")
-        active_pubkey = format(active_key.get_public_key(), stm.prefix)
+        active_pubkey = format(active_key.get_public_key(), hv.prefix)
         if active_pubkey in [x[0] for x in account["active"]["key_auths"]]:
             print("Importing active key!")
             active_privkey = active_key.get_private_key()
-            stm.wallet.addPrivateKey(active_privkey)
+            hv.wallet.addPrivateKey(active_privkey)
             imported = True
 
     if "posting" in roles:
         posting_key = PasswordKey(account["name"], password, role="posting")
-        posting_pubkey = format(posting_key.get_public_key(), stm.prefix)
+        posting_pubkey = format(posting_key.get_public_key(), hv.prefix)
         if posting_pubkey in [x[0] for x in account["posting"]["key_auths"]]:
             print("Importing posting key!")
             posting_privkey = posting_key.get_private_key()
-            stm.wallet.addPrivateKey(posting_privkey)
+            hv.wallet.addPrivateKey(posting_privkey)
             imported = True
 
     if "memo" in roles:
         memo_key = PasswordKey(account["name"], password, role="memo")
-        memo_pubkey = format(memo_key.get_public_key(), stm.prefix)
+        memo_pubkey = format(memo_key.get_public_key(), hv.prefix)
         if memo_pubkey == account["memo_key"]:
             print("Importing memo key!")
             memo_privkey = memo_key.get_private_key()
-            stm.wallet.addPrivateKey(memo_privkey)
+            hv.wallet.addPrivateKey(memo_privkey)
             imported = True
 
     if not imported:
@@ -2602,14 +2478,14 @@ def importaccount(account, roles, import_coldcard, wif):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def updatememokey(account, key, export):
     """Update an account\'s memo key"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     if not key:
         from nectargraphenebase.account import PasswordKey
 
@@ -2617,15 +2493,13 @@ def updatememokey(account, key, export):
             "Password for Memo Key Derivation", confirmation_prompt=True, hide_input=True
         )
         memo_key = PasswordKey(account, pwd, "memo")
-        key = format(memo_key.get_public_key(), stm.prefix)
+        key = format(memo_key.get_public_key(), hv.prefix)
         memo_privkey = memo_key.get_private_key()
-        if not stm.nobroadcast:
-            stm.wallet.addPrivateKey(memo_privkey)
+        if not hv.nobroadcast:
+            hv.wallet.addPrivateKey(memo_privkey)
     tx = acc.update_memo_key(key)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2637,15 +2511,15 @@ def updatememokey(account, key, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def beneficiaries(authorperm, beneficiaries, export):
     """Set beneficaries"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    c = Comment(authorperm, blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    c = Comment(authorperm, blockchain_instance=hv)
     account = c["author"]
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
 
     options = {
@@ -2655,21 +2529,17 @@ def beneficiaries(authorperm, beneficiaries, export):
         "allow_votes": c["allow_votes"],
         "allow_curation_rewards": c["allow_curation_rewards"],
     }
-    if "percent_steem_dollars" in c:
-        options["percent_steem_dollars"] = c["percent_steem_dollars"]
-    elif "percent_hbd" in c:
+    if "percent_hbd" in c:
         options["percent_hbd"] = c["percent_hbd"]
 
     if isinstance(beneficiaries, tuple) and len(beneficiaries) == 1:
         beneficiaries = beneficiaries[0].split(",")
     beneficiaries_list_sorted = derive_beneficiaries(beneficiaries)
     for b in beneficiaries_list_sorted:
-        Account(b["account"], blockchain_instance=stm)
-    tx = stm.comment_options(options, authorperm, beneficiaries_list_sorted, account=account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+        Account(b["account"], blockchain_instance=hv)
+    tx = hv.comment_options(options, authorperm, beneficiaries_list_sorted, account=account)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2683,11 +2553,11 @@ def beneficiaries(authorperm, beneficiaries, export):
 )
 def message(message_file, account, verify):
     """Sign and verify a message"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if message_file is not None:
         with open(message_file) as f:
             message = f.read()
@@ -2698,14 +2568,14 @@ def message(message_file, account, verify):
         return
     else:
         message = input("Enter message: ")
-    m = Message(message, blockchain_instance=stm)
+    m = Message(message, blockchain_instance=hv)
     if verify:
         if m.verify():
             print("Could verify message!")
         else:
             print("Could not verify message!")
     else:
-        if not unlock_wallet(stm):
+        if not unlock_wallet(hv):
             return
         out = m.sign(account)
     if message_file is not None:
@@ -2735,22 +2605,22 @@ def decrypt(memo, account, output, info, text, binary):
     if text and binary:
         print("You cannot set text and binary!")
         return
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    m = Memo(from_account=None, to_account=account, blockchain_instance=stm)
+        account = hv.config["default_account"]
+    m = Memo(from_account=None, to_account=account, blockchain_instance=hv)
 
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
     for entry in memo:
         print("\n")
         if not binary and info:
             from_key, to_key, nonce = m.extract_decrypt_memo_data(entry)
             try:
-                from_account = stm.wallet.getAccountFromPublicKey(str(from_key))
-                to_account = stm.wallet.getAccountFromPublicKey(str(to_key))
+                from_account = hv.wallet.getAccountFromPublicKey(str(from_key))
+                to_account = hv.wallet.getAccountFromPublicKey(str(to_key))
                 if from_account is not None:
                     print("from: %s" % str(from_account))
                 else:
@@ -2811,13 +2681,13 @@ def encrypt(receiver, memo, account, output, text, binary):
     if text and binary:
         print("You cannot set text and binary!")
         return
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    m = Memo(from_account=account, to_account=receiver, blockchain_instance=stm)
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    m = Memo(from_account=account, to_account=receiver, blockchain_instance=hv)
+    if not unlock_wallet(hv):
         return
     for entry in memo:
         print("\n")
@@ -2855,14 +2725,14 @@ def encrypt(receiver, memo, account, output, text, binary):
 @click.option("--account", "-a", help="Account name")
 @click.option("--image-name", "-n", help="Image name")
 def uploadimage(image, account, image_name):
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    iu = ImageUploader(blockchain_instance=stm)
+    iu = ImageUploader(blockchain_instance=hv)
     tx = iu.upload(image, account, image_name)
     if image_name is None:
         print("![](%s)" % tx["url"])
@@ -2883,12 +2753,12 @@ def uploadimage(image, account, image_name):
 @click.option("--export", "-e", default=None, help="Export markdown to given a md-file name")
 def download(permlink, account, save, export):
     """Download body with yaml header"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if account is None:
-        account = stm.config["default_account"]
-    account = Account(account, blockchain_instance=stm)
+        account = hv.config["default_account"]
+    account = Account(account, blockchain_instance=hv)
     if len(permlink) == 0:
         permlink = []
         progress_length = account.virtual_op_count()
@@ -2922,7 +2792,7 @@ def download(permlink, account, save, export):
             authorperm = construct_authorperm(account["name"], p)
         if len(permlink) > 1:
             print(authorperm)
-        comment = Comment(authorperm, blockchain_instance=stm)
+        comment = Comment(authorperm, blockchain_instance=hv)
         if comment.parent_author != "" and comment.parent_permlink != "":
             reply_identifier = construct_authorperm(comment.parent_author, comment.parent_permlink)
         else:
@@ -2946,9 +2816,7 @@ def download(permlink, account, save, export):
         else:
             yaml_prefix += "last_update: %s\n" % comment.json()["updated"]
         yaml_prefix += "max_accepted_payout: %s\n" % str(comment["max_accepted_payout"])
-        if "percent_steem_dollars" in comment:
-            yaml_prefix += "percent_steem_dollars: %s\n" % str(comment["percent_steem_dollars"])
-        elif "percent_hbd" in comment:
+        if "percent_hbd" in comment:
             yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_hbd"])
         if "tags" in comment.json_metadata:
             if (
@@ -2990,11 +2858,8 @@ def download(permlink, account, save, export):
 @click.option(
     "--beneficiaries", "-b", help="Post beneficiaries (komma separated, e.g. a:10%,b:20%)"
 )
-@click.option(
-    "--percent-steem-dollars", "-d", help="50% SBD /50% SP is 10000 (default), 100% SP is 0"
-)
-@click.option("--percent-hbd", "-h", help="50% HBD /50% HP is 10000 (default), 100% HP is 0")
-@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [SBD]")
+@click.option("--percent-hbd", "-h", help="50% HBD/50% HP is 10000 (default), 100% HP is 0")
+@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [HBD]")
 @click.option(
     "--no-parse-body",
     "-n",
@@ -3009,15 +2874,14 @@ def createpost(
     tags,
     community,
     beneficiaries,
-    percent_steem_dollars,
     percent_hbd,
     max_accepted_payout,
     no_parse_body,
 ):
     """Creates a new markdown file with YAML header"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     if account is None:
         account = input("author: ")
@@ -3053,24 +2917,16 @@ def createpost(
         beneficiaries = input(
             "beneficiaries (komma separated, e.g. a:10%,b:20%) [return to skip]: "
         )
-    if percent_steem_dollars is None and percent_hbd is None:
+    if percent_hbd is None:
         ret = None
         while ret is None:
-            ret = input("50% or 100% Steem/Hive Power as post reward [50 or 100]? ")
+            ret = input("50% or 100% Hive Power as post reward [50 or 100]? ")
             if ret not in ["50", "100"]:
                 ret = None
         if ret == "50":
-            percent_steem_dollars = 10000
             percent_hbd = 10000
         else:
-            percent_steem_dollars = 0
             percent_hbd = 0
-    elif percent_steem_dollars is not None and percent_hbd is not None:
-        raise ValueError("percent_hbd and percent_steem_dollars cannot be both set.")
-    elif percent_steem_dollars is None:
-        percent_steem_dollars = percent_hbd
-    elif percent_hbd is None:
-        percent_hbd = percent_steem_dollars
 
     if max_accepted_payout is None:
         max_accepted_payout = input("max accepted payout [return to skip]: ")
@@ -3078,10 +2934,7 @@ def createpost(
     yaml_prefix += 'title: "%s"\n' % title
     yaml_prefix += "author: %s\n" % account
     yaml_prefix += "tags: %s\n" % tags
-    if stm.is_hive:
-        yaml_prefix += "percent_hbd: %d\n" % percent_hbd
-    else:
-        yaml_prefix += "percent_steem_dollars: %d\n" % percent_steem_dollars
+    yaml_prefix += "percent_hbd: %d\n" % percent_hbd
     if community is not None and community != "":
         yaml_prefix += "community: %s\n" % community
     if beneficiaries is not None and beneficiaries != "":
@@ -3113,11 +2966,8 @@ def createpost(
 @click.option(
     "--beneficiaries", "-b", help="Post beneficiaries (komma separated, e.g. a:10%,b:20%)"
 )
-@click.option(
-    "--percent-steem-dollars", "-d", help="50% SBD /50% SP is 10000 (default), 100% SP is 0"
-)
-@click.option("--percent-hbd", "-h", help="50% SBD /50% SP is 10000 (default), 100% SP is 0")
-@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [SBD]")
+@click.option("--percent-hbd", "-h", help="50% HBD/50% HP is 10000 (default), 100% HP is 0")
+@click.option("--max-accepted-payout", "-m", help="Default is 1000000.000 [HBD]")
 @click.option(
     "--no-parse-body",
     "-n",
@@ -3143,7 +2993,6 @@ def post(
     community,
     canonical_url,
     beneficiaries,
-    percent_steem_dollars,
     percent_hbd,
     max_accepted_payout,
     no_parse_body,
@@ -3161,9 +3010,9 @@ def post(
     ---
 
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     with open(markdown_file) as f:
         content = f.read()
@@ -3182,10 +3031,6 @@ def post(
         parameter["community"] = community
     if reply_identifier is not None:
         parameter["reply_identifier"] = reply_identifier
-    if percent_steem_dollars is not None:
-        parameter["percent_steem_dollars"] = percent_steem_dollars
-    elif "percent-steem-dollars" in parameter:
-        parameter["percent_steem_dollars"] = parameter["percent-steem-dollars"]
     if percent_hbd is not None:
         parameter["percent_hbd"] = percent_hbd
     elif "percent-hbd" in parameter:
@@ -3198,7 +3043,7 @@ def post(
     if canonical_url is not None:
         parameter["canonical_url"] = canonical_url
 
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
     tags = None
     if "tags" in parameter:
@@ -3209,7 +3054,7 @@ def post(
     if "author" in parameter:
         author = parameter["author"]
     else:
-        author = stm.config["default_account"]
+        author = hv.config["default_account"]
     permlink = None
     if "permlink" in parameter:
         permlink = parameter["permlink"]
@@ -3224,10 +3069,8 @@ def post(
     else:
         parse_body = not no_parse_body
     max_accepted_payout = None
-
-    percent_steem_dollars = None
-    if "percent_steem_dollars" in parameter:
-        percent_steem_dollars = parameter["percent_steem_dollars"]
+    if "max_accepted_payout" in parameter:
+        max_accepted_payout = parameter["max_accepted_payout"]
     percent_hbd = None
     if "percent_hbd" in parameter:
         percent_hbd = parameter["percent_hbd"]
@@ -3235,41 +3078,31 @@ def post(
     if "max_accepted_payout" in parameter:
         max_accepted_payout = parameter["max_accepted_payout"]
     comment_options = None
-    if (
-        max_accepted_payout is not None
-        or percent_steem_dollars is not None
-        or percent_hbd is not None
-    ):
+    if max_accepted_payout is not None or percent_hbd is not None:
         comment_options = {}
     if max_accepted_payout is not None:
-        if stm.backed_token_symbol not in max_accepted_payout:
+        if hv.backed_token_symbol not in max_accepted_payout:
             max_accepted_payout = str(
-                Amount(float(max_accepted_payout), stm.backed_token_symbol, blockchain_instance=stm)
+                Amount(float(max_accepted_payout), hv.backed_token_symbol, blockchain_instance=hv)
             )
         comment_options["max_accepted_payout"] = max_accepted_payout
-    if percent_hbd is not None and stm.is_hive:
+    if percent_hbd is not None:
         comment_options["percent_hbd"] = percent_hbd
-    elif percent_steem_dollars is not None and stm.is_hive:
-        comment_options["percent_hbd"] = percent_steem_dollars
-    elif percent_steem_dollars is not None:
-        comment_options["percent_steem_dollars"] = percent_steem_dollars
-    elif percent_hbd is not None:
-        comment_options["percent_steem_dollars"] = percent_hbd
     beneficiaries = None
     if "beneficiaries" in parameter:
         beneficiaries = derive_beneficiaries(parameter["beneficiaries"])
         for b in beneficiaries:
-            Account(b["account"], blockchain_instance=stm)
+            Account(b["account"], blockchain_instance=hv)
 
     if permlink is not None:
         try:
-            comment = Comment(construct_authorperm(author, permlink), blockchain_instance=stm)
+            comment = Comment(construct_authorperm(author, permlink), blockchain_instance=hv)
         except Exception:
             comment = None
     else:
         comment = None
 
-    iu = ImageUploader(blockchain_instance=stm)
+    iu = ImageUploader(blockchain_instance=hv)
     for link in list(
         re.findall(r'!\[[^"\'@\]\(]*\]\([^"\'@\(\)]*\.(?:png|jpg|jpeg|gif|png|svg)\)', body)
     ):
@@ -3277,7 +3110,7 @@ def post(
         image_name = link.split("![")[1].split("]")[0]
         if image[:4] == "http":
             continue
-        if stm.unsigned:
+        if hv.unsigned:
             continue
         basepath = os.path.dirname(markdown_file)
         if os.path.exists(image):
@@ -3290,7 +3123,7 @@ def post(
     if comment is None and permlink is None and reply_identifier is None:
         permlink = derive_permlink(title, with_suffix=False)
         try:
-            comment = Comment(construct_authorperm(author, permlink), blockchain_instance=stm)
+            comment = Comment(construct_authorperm(author, permlink), blockchain_instance=hv)
         except Exception:
             comment = None
     if comment is None:
@@ -3304,7 +3137,7 @@ def post(
     if "canonical_url" in parameter:
         json_metadata["canonical_url"] = parameter["canonical_url"]
     else:
-        json_metadata["canonical_url"] = stm.config["default_canonical_url"] or "https://hive.blog"
+        json_metadata["canonical_url"] = hv.config["default_canonical_url"] or "https://hive.blog"
 
     if "canonical_url" in json_metadata and json_metadata["canonical_url"].find("@") < 0:
         if json_metadata["canonical_url"][-1] != "/":
@@ -3319,7 +3152,7 @@ def post(
     if comment is None or no_patch_on_edit:
         if reply_identifier is None and (len(tags) == 0 or tags is None):
             raise ValueError("Tags must not be empty!")
-        tx = stm.post(
+        tx = hv.post(
             title,
             body,
             author=author,
@@ -3342,7 +3175,7 @@ def post(
         edit_ok = click.prompt("Should I broadcast %s [y/n]" % (str(permlink)))
         if edit_ok not in ["y", "ye", "yes"]:
             return
-        tx = stm.post(
+        tx = hv.post(
             title,
             patch_text,
             author=author,
@@ -3354,10 +3187,8 @@ def post(
             parse_body=False,
             app="hive-nectar/%s" % (__version__),
         )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3371,18 +3202,18 @@ def post(
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def reply(authorperm, body, account, title, export):
     """replies to a comment"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
 
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
 
     if title is None:
         title = ""
-    tx = stm.post(
+    tx = hv.post(
         title,
         body,
         json_metadata=None,
@@ -3390,10 +3221,8 @@ def reply(authorperm, body, account, title, export):
         reply_identifier=authorperm,
         app="hive-nectar/%s" % (__version__),
     )
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3405,19 +3234,17 @@ def reply(authorperm, body, account, title, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def approvewitness(witness, account, export):
     """Approve a witnesses"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.approvewitness(witness, approve=True)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3429,19 +3256,17 @@ def approvewitness(witness, account, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def disapprovewitness(witness, account, export):
     """Disapprove a witnesses"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.disapprovewitness(witness)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3453,19 +3278,17 @@ def disapprovewitness(witness, account, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def setproxy(proxy, account, export):
     """Set your witness/proposal system proxy"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy(proxy, account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3476,19 +3299,17 @@ def setproxy(proxy, account, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def delproxy(account, export):
     """Delete your witness/proposal system proxy"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy("", account)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3503,10 +3324,10 @@ def delproxy(account, export):
 )
 def sign(file, outfile):
     """Sign a provided transaction with available and required keys"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv):
         return
     if file and file != "-":
         if not os.path.isfile(file):
@@ -3519,7 +3340,7 @@ def sign(file, outfile):
     else:
         tx = click.get_text_stream("stdin")
     tx = ast.literal_eval(tx)
-    tx = stm.sign(tx, reconstruct_tx=False)
+    tx = hv.sign(tx, reconstruct_tx=False)
     tx = json.dumps(tx, indent=4)
     if outfile and outfile != "-":
         with open(outfile, "w") as fp:
@@ -3534,9 +3355,9 @@ def sign(file, outfile):
 )
 def broadcast(file):
     """broadcast a signed transaction"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if file and file != "-":
         if not os.path.isfile(file):
             raise Exception("File %s does not exist!" % file)
@@ -3548,7 +3369,7 @@ def broadcast(file):
     else:
         tx = click.get_text_stream("stdin")
     tx = ast.literal_eval(tx)
-    tx = stm.broadcast(tx)
+    tx = hv.broadcast(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -3566,13 +3387,13 @@ def broadcast(file):
 @click.option("--follow", "-f", help="Constantly stream output", is_flag=True, default=False)
 def stream(lines, head, table, follow):
     """Stream operations"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     mode = "irreversible"
     if head:
         mode = "head"
-    b = Blockchain(mode=mode, blockchain_instance=stm)
+    b = Blockchain(mode=mode, blockchain_instance=hv)
     op_count = 0
     if table:
         import pprint
@@ -3591,7 +3412,7 @@ def stream(lines, head, table, follow):
             trx_num = ops.pop("trx_num")
             for key in ops:
                 if isinstance(ops[key], dict) and "nai" in ops[key]:
-                    ops[key] = str(Amount(ops[key], blockchain_instance=stm))
+                    ops[key] = str(Amount(ops[key], blockchain_instance=hv))
                 elif key == "timestamp":
                     ops[key] = formatTimeString(ops[key])
             # value = json.dumps(ops, indent=4)
@@ -3631,23 +3452,17 @@ def stream(lines, head, table, follow):
 
 
 @cli.command()
-@click.option("--sbd-to-steem", help="Show ticker in SBD/STEEM", is_flag=True, default=False)
-@click.option("--hbd-to-hive", "-i", help="Show ticker in HBD/HIVE", is_flag=True, default=False)
-def ticker(sbd_to_steem, hbd_to_hive):
+def ticker():
     """Show ticker"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
-    market = Market(blockchain_instance=stm)
+    market = Market(blockchain_instance=hv)
     ticker = market.ticker()
     for key in ticker:
-        if key in ["highest_bid", "latest", "lowest_ask"] and (sbd_to_steem or hbd_to_hive):
-            t.add_row([key, str(ticker[key].as_base(stm.backed_token_symbol))])
-        elif key in "percent_change" and (sbd_to_steem or hbd_to_hive):
-            t.add_row([key, "%.2f %%" % -ticker[key]])
-        elif key in "percent_change":
+        if key in "percent_change":
             t.add_row([key, "%.2f %%" % ticker[key]])
         else:
             t.add_row([key, str(ticker[key])])
@@ -3660,17 +3475,17 @@ def ticker(sbd_to_steem, hbd_to_hive):
 @click.option("--ascii", help="Use only ascii symbols", is_flag=True, default=False)
 def pricehistory(width, height, ascii):
     """Show price history"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    feed_history = stm.get_feed_history()
-    current_base = Amount(feed_history["current_median_history"]["base"], blockchain_instance=stm)
-    current_quote = Amount(feed_history["current_median_history"]["quote"], blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    feed_history = hv.get_feed_history()
+    current_base = Amount(feed_history["current_median_history"]["base"], blockchain_instance=hv)
+    current_quote = Amount(feed_history["current_median_history"]["quote"], blockchain_instance=hv)
     price_history = feed_history["price_history"]
     price = []
     for h in price_history:
-        base = Amount(h["base"], blockchain_instance=stm)
-        quote = Amount(h["quote"], blockchain_instance=stm)
+        base = Amount(h["base"], blockchain_instance=hv)
+        quote = Amount(h["quote"], blockchain_instance=hv)
         price.append(float(base.amount / quote.amount))
     if ascii:
         charset = "ascii"
@@ -3681,7 +3496,7 @@ def pricehistory(width, height, ascii):
     )
     print(
         "\n            Price history for %s (median price %4.2f $)\n"
-        % (stm.token_symbol, float(current_base) / float(current_quote))
+        % (hv.token_symbol, float(current_base) / float(current_quote))
     )
 
     chart.adapt_on_series(price)
@@ -3703,8 +3518,6 @@ def pricehistory(width, height, ascii):
 @click.option(
     "--hours", help="Limit the intervall history intervall (default 2 hours)", default=2.0
 )
-@click.option("--sbd-to-steem", help="Show ticker in SBD/STEEM", is_flag=True, default=False)
-@click.option("--hbd-to-hive", "-i", help="Show ticker in HBD/HIVE", is_flag=True, default=False)
 @click.option(
     "--limit",
     "-l",
@@ -3714,22 +3527,20 @@ def pricehistory(width, height, ascii):
 @click.option("--width", "-w", help="Plot width (default 75)", default=75)
 @click.option("--height", "-h", help="Plot height (default 15)", default=15)
 @click.option("--ascii", help="Use only ascii symbols", is_flag=True, default=False)
-def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, ascii):
+def tradehistory(days, hours, limit, width, height, ascii):
     """Show price history"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    m = Market(blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    m = Market(blockchain_instance=hv)
     # Using built-in timezone support
     stop = datetime.now(timezone.utc)
     start = stop - timedelta(days=days)
     intervall = timedelta(hours=hours)
     trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
     price = []
-    if sbd_to_steem or hbd_to_hive:
-        base_str = stm.token_symbol
-    else:
-        base_str = stm.backed_token_symbol
+    # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
+    base_str = hv.token_symbol
     for trade in trades:
         base = 0
         quote = 0
@@ -3744,26 +3555,15 @@ def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, a
     chart = AsciiChart(
         height=height, width=width, offset=3, placeholder="{:6.2f} ", charset=charset
     )
-    if sbd_to_steem or hbd_to_hive:
-        print(
-            "\n     Trade history %s - %s \n\n%s/%s"
-            % (
-                formatTimeString(start),
-                formatTimeString(stop),
-                stm.backed_token_symbol,
-                stm.token_symbol,
-            )
+    print(
+        "\n     Trade history %s - %s \n\n%s/%s"
+        % (
+            formatTimeString(start),
+            formatTimeString(stop),
+            hv.token_symbol,
+            hv.backed_token_symbol,
         )
-    else:
-        print(
-            "\n     Trade history %s - %s \n\n%s/%s"
-            % (
-                formatTimeString(start),
-                formatTimeString(stop),
-                stm.token_symbol,
-                stm.backed_token_symbol,
-            )
-        )
+    )
     chart.adapt_on_series(price)
     chart.new_chart()
     chart.add_axis()
@@ -3780,16 +3580,16 @@ def tradehistory(days, hours, sbd_to_steem, hbd_to_hive, limit, width, height, a
 @click.option("--ascii", help="Use only ascii symbols", is_flag=True, default=False)
 def orderbook(chart, limit, show_date, width, height, ascii):
     """Obtain orderbook of the internal market"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    market = Market(blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    market = Market(blockchain_instance=hv)
     orderbook = market.orderbook(limit=limit, raw_data=False)
     if not show_date:
         header = [
-            "Asks Sum " + stm.backed_token_symbol,
+            "Asks Sum " + hv.backed_token_symbol,
             "Sell Orders",
-            "Bids Sum " + stm.backed_token_symbol,
+            "Bids Sum " + hv.backed_token_symbol,
             "Buy Orders",
         ]
     else:
@@ -3807,13 +3607,13 @@ def orderbook(chart, limit, show_date, width, height, ascii):
     n = 0
     for order in orderbook["asks"]:
         asks.append(order)
-        sum_asks += float(order.as_base(stm.backed_token_symbol)["base"])
+        sum_asks += float(order.as_base(hv.backed_token_symbol)["base"])
         sumsum_asks.append(sum_asks)
     if n < len(asks):
         n = len(asks)
     for order in orderbook["bids"]:
         bids.append(order)
-        sum_bids += float(order.as_base(stm.backed_token_symbol)["base"])
+        sum_bids += float(order.as_base(hv.backed_token_symbol)["base"])
         sumsum_bids.append(sum_bids)
     if n < len(bids):
         n = len(bids)
@@ -3884,37 +3684,37 @@ def orderbook(chart, limit, show_date, width, height, ascii):
 @click.option("--orderid", help="Set an orderid")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def buy(amount, asset, price, account, orderid, export):
-    """Buy STEEM/HIVE or SBD/HBD from the internal market
+    """Buy HIVE or HBD from the internal market
 
-    Limit buy price denoted in (SBD per STEEM or HBD per HIVE)
+    Limit buy price denoted in (HBD per HIVE)
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if account is None:
-        account = stm.config["default_account"]
-    if asset == stm.backed_token_symbol:
+        account = hv.config["default_account"]
+    if asset == hv.backed_token_symbol:
         market = Market(
-            base=Asset(stm.token_symbol),
-            quote=Asset(stm.backed_token_symbol),
-            blockchain_instance=stm,
+            base=Asset(hv.token_symbol),
+            quote=Asset(hv.backed_token_symbol),
+            blockchain_instance=hv,
         )
     else:
         market = Market(
-            base=Asset(stm.backed_token_symbol),
-            quote=Asset(stm.token_symbol),
-            blockchain_instance=stm,
+            base=Asset(hv.backed_token_symbol),
+            quote=Asset(hv.token_symbol),
+            blockchain_instance=hv,
         )
     if price is None:
         orderbook = market.orderbook(limit=1, raw_data=False)
-        if asset == stm.token_symbol and len(orderbook["bids"]) > 0:
+        if asset == hv.token_symbol and len(orderbook["bids"]) > 0:
             p = Price(
-                orderbook["bids"][0]["base"], orderbook["bids"][0]["quote"], blockchain_instance=stm
+                orderbook["bids"][0]["base"], orderbook["bids"][0]["quote"], blockchain_instance=hv
             ).invert()
             p_show = p
         elif len(orderbook["asks"]) > 0:
             p = Price(
-                orderbook["asks"][0]["base"], orderbook["asks"][0]["quote"], blockchain_instance=stm
+                orderbook["asks"][0]["base"], orderbook["asks"][0]["quote"], blockchain_instance=hv
             ).invert()
             p_show = p
         price_ok = click.prompt("Is the following Price ok: %s [y/n]" % (str(p_show)))
@@ -3923,19 +3723,17 @@ def buy(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (stm.backed_token_symbol, stm.token_symbol),
-            blockchain_instance=stm,
+            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            blockchain_instance=hv,
         )
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
 
-    a = Amount(float(amount), asset, blockchain_instance=stm)
-    acc = Account(account, blockchain_instance=stm)
+    a = Amount(float(amount), asset, blockchain_instance=hv)
+    acc = Account(account, blockchain_instance=hv)
     tx = market.buy(p, a, account=acc, orderid=orderid)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3949,37 +3747,37 @@ def buy(amount, asset, price, account, orderid, export):
 @click.option("--orderid", help="Set an orderid")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def sell(amount, asset, price, account, orderid, export):
-    """Sell STEEM/HIVE or SBD/HBD from the internal market
+    """Sell HIVE or HBD from the internal market
 
-    Limit sell price denoted in (SBD per STEEM) or (HBD per HIVE)
+    Limit sell price denoted in (HBD per HIVE)
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if asset == stm.backed_token_symbol:
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if asset == hv.backed_token_symbol:
         market = Market(
-            base=Asset(stm.token_symbol),
-            quote=Asset(stm.backed_token_symbol),
-            blockchain_instance=stm,
+            base=Asset(hv.token_symbol),
+            quote=Asset(hv.backed_token_symbol),
+            blockchain_instance=hv,
         )
     else:
         market = Market(
-            base=Asset(stm.backed_token_symbol),
-            quote=Asset(stm.token_symbol),
-            blockchain_instance=stm,
+            base=Asset(hv.backed_token_symbol),
+            quote=Asset(hv.token_symbol),
+            blockchain_instance=hv,
         )
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if not price:
         orderbook = market.orderbook(limit=1, raw_data=False)
-        if asset == stm.backed_token_symbol and len(orderbook["bids"]) > 0:
+        if asset == hv.backed_token_symbol and len(orderbook["bids"]) > 0:
             p = Price(
-                orderbook["bids"][0]["base"], orderbook["bids"][0]["quote"], blockchain_instance=stm
+                orderbook["bids"][0]["base"], orderbook["bids"][0]["quote"], blockchain_instance=hv
             ).invert()
             p_show = p
         else:
             p = Price(
-                orderbook["asks"][0]["base"], orderbook["asks"][0]["quote"], blockchain_instance=stm
+                orderbook["asks"][0]["base"], orderbook["asks"][0]["quote"], blockchain_instance=hv
             ).invert()
             p_show = p
         price_ok = click.prompt("Is the following Price ok: %s [y/n]" % (str(p_show)))
@@ -3988,18 +3786,16 @@ def sell(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (stm.backed_token_symbol, stm.token_symbol),
-            blockchain_instance=stm,
+            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            blockchain_instance=hv,
         )
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
-    a = Amount(float(amount), asset, blockchain_instance=stm)
-    acc = Account(account, blockchain_instance=stm)
+    a = Amount(float(amount), asset, blockchain_instance=hv)
+    acc = Account(account, blockchain_instance=hv)
     tx = market.sell(p, a, account=acc, orderid=orderid)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4011,20 +3807,18 @@ def sell(amount, asset, price, account, orderid, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def cancel(orderid, account, export):
     """Cancel order in the internal market"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    market = Market(blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    market = Market(blockchain_instance=hv)
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = market.cancel(orderid, account=acc)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4034,13 +3828,13 @@ def cancel(orderid, account, export):
 @click.argument("account", nargs=1, required=False)
 def openorders(account):
     """Show open orders"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    market = Market(blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    market = Market(blockchain_instance=hv)
     if not account:
-        account = stm.config["default_account"]
-    acc = Account(account, blockchain_instance=stm)
+        account = hv.config["default_account"]
+    acc = Account(account, blockchain_instance=hv)
     openorders = market.accountopenorders(account=acc)
     t = PrettyTable(["Orderid", "Created", "Order", "Account"], hrules=0)
     t.align = "r"
@@ -4056,20 +3850,18 @@ def openorders(account):
 @click.option("--account", "-a", help="Reblog as this user")
 def reblog(identifier, account):
     """Reblog an existing post"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
-    post = Comment(identifier, blockchain_instance=stm)
-    tx = post.resteem(account=acc)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    acc = Account(account, blockchain_instance=hv)
+    post = Comment(identifier, blockchain_instance=hv)
+    tx = post.reblog(account=acc)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4084,21 +3876,19 @@ def follow(follow, account, what, export):
 
     Can be blog ignore blacklist unblacklist follow_blacklist unfollow_blacklist follow_muted unfollow_muted on HIVE
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if isinstance(what, str):
         what = [what]
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(follow, what=what)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4111,21 +3901,19 @@ def follow(follow, account, what, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def mute(mute, account, what, export):
     """Mute another account"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if isinstance(what, str):
         what = [what]
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(mute, what=what)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4137,19 +3925,17 @@ def mute(mute, account, what, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def unfollow(unfollow, account, export):
     """Unfollow/Unmute another account"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    acc = Account(account, blockchain_instance=hv)
     tx = acc.unfollow(unfollow)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4159,7 +3945,6 @@ def unfollow(unfollow, account, export):
 @click.option("--witness", help="Witness name")
 @click.option("--maximum_block_size", help="Max block size")
 @click.option("--account_creation_fee", help="Account creation fee")
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent")
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent")
 @click.option("--url", help="Witness URL")
 @click.option("--signing_key", help="Signing Key")
@@ -4168,39 +3953,34 @@ def witnessupdate(
     witness,
     maximum_block_size,
     account_creation_fee,
-    sbd_interest_rate,
     hbd_interest_rate,
     url,
     signing_key,
     export,
 ):
     """Change witness properties"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not witness:
-        witness = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        witness = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    witness = Witness(witness, blockchain_instance=stm)
+    witness = Witness(witness, blockchain_instance=hv)
     props = witness["props"]
     if account_creation_fee is not None:
         props["account_creation_fee"] = str(
             Amount(
-                "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
+                "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
             )
         )
     if maximum_block_size is not None:
         props["maximum_block_size"] = int(maximum_block_size)
-    if sbd_interest_rate is not None:
-        props["sbd_interest_rate"] = int(float(sbd_interest_rate) * 100)
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     tx = witness.update(signing_key or witness["signing_key"], url or witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4211,23 +3991,22 @@ def witnessupdate(
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def witnessdisable(witness, export):
     """Disable a witness"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not witness:
-        witness = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        witness = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    witness = Witness(witness, blockchain_instance=stm)
+    witness = Witness(witness, blockchain_instance=hv)
     if not witness.is_active:
         print("Cannot disable a disabled witness!")
         return
     props = witness["props"]
-    tx = witness.update("STM1111111111111111111111111111111114T1Anm", witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % hv.prefix
+    tx = witness.update(null_key, witness["url"], props)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4239,20 +4018,18 @@ def witnessdisable(witness, export):
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def witnessenable(witness, signing_key, export):
     """Enable a witness"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not witness:
-        witness = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        witness = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    witness = Witness(witness, blockchain_instance=stm)
+    witness = Witness(witness, blockchain_instance=hv)
     props = witness["props"]
     tx = witness.update(signing_key, witness["url"], props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4263,7 +4040,6 @@ def witnessenable(witness, signing_key, export):
 @click.argument("pub_signing_key", nargs=1)
 @click.option("--maximum_block_size", help="Max block size", default=65536)
 @click.option("--account_creation_fee", help="Account creation fee", default=0.1)
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent", default=0.0)
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent", default=0.0)
 @click.option("--url", help="Witness URL", default="")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
@@ -4272,39 +4048,27 @@ def witnesscreate(
     pub_signing_key,
     maximum_block_size,
     account_creation_fee,
-    sbd_interest_rate,
     hbd_interest_rate,
     url,
     export,
 ):
     """Create a witness"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    if not unlock_wallet(hv):
         return
-    if stm.is_hive and stm.hardfork >= 24:
-        props = {
-            "account_creation_fee": Amount(
-                "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
-            ),
-            "maximum_block_size": int(maximum_block_size),
-            "hbd_interest_rate": int(hbd_interest_rate * 100),
-        }
-    else:
-        props = {
-            "account_creation_fee": Amount(
-                "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
-            ),
-            "maximum_block_size": int(maximum_block_size),
-            "sbd_interest_rate": int(sbd_interest_rate * 100),
-        }
+    props = {
+        "account_creation_fee": Amount(
+            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+        ),
+        "maximum_block_size": int(maximum_block_size),
+        "hbd_interest_rate": int(hbd_interest_rate * 100),
+    }
 
-    tx = stm.witness_update(pub_signing_key, url, props, account=witness)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    tx = hv.witness_update(pub_signing_key, url, props, account=witness)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4317,7 +4081,6 @@ def witnesscreate(
 @click.option("--account_subsidy_budget", help="Account subisidy per block")
 @click.option("--account_subsidy_decay", help="Per block decay of the account subsidy pool")
 @click.option("--maximum_block_size", help="Max block size")
-@click.option("--sbd_interest_rate", help="SBD interest rate in percent")
 @click.option("--hbd_interest_rate", help="HBD interest rate in percent")
 @click.option("--new_signing_key", help="Set new signing key (pubkey)")
 @click.option("--url", help="Witness URL")
@@ -4328,21 +4091,20 @@ def witnessproperties(
     account_subsidy_budget,
     account_subsidy_decay,
     maximum_block_size,
-    sbd_interest_rate,
     hbd_interest_rate,
     new_signing_key,
     url,
 ):
     """Update witness properties of witness WITNESS with the witness signing key WIF"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    # if not unlock_wallet(stm):
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    # if not unlock_wallet(hv):
     #    return
     props = {}
     if account_creation_fee is not None:
         props["account_creation_fee"] = Amount(
-            "%.3f %s" % (float(account_creation_fee), stm.token_symbol), blockchain_instance=stm
+            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
         )
     if account_subsidy_budget is not None:
         props["account_subsidy_budget"] = int(account_subsidy_budget)
@@ -4350,8 +4112,6 @@ def witnessproperties(
         props["account_subsidy_decay"] = int(account_subsidy_decay)
     if maximum_block_size is not None:
         props["maximum_block_size"] = int(maximum_block_size)
-    if sbd_interest_rate is not None:
-        props["sbd_interest_rate"] = int(float(sbd_interest_rate) * 100)
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     if new_signing_key is not None:
@@ -4359,11 +4119,9 @@ def witnessproperties(
     if url is not None:
         props["url"] = url
 
-    tx = stm.witness_set_properties(wif, witness, props)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    tx = hv.witness_set_properties(wif, witness, props)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4375,7 +4133,9 @@ def witnessproperties(
     "--base", "-b", help="Set base manually, when not set the base is automatically calculated."
 )
 @click.option(
-    "--quote", "-q", help="Steem quote manually, when not set the base is automatically calculated."
+    "--quote",
+    "-q",
+    help="HBD/HIVE quote manually; when not set, the base is automatically calculated.",
 )
 @click.option(
     "--support-peg",
@@ -4385,76 +4145,61 @@ def witnessproperties(
 )
 def witnessfeed(witness, wif, base, quote, support_peg):
     """Publish price feed for a witness"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if wif is None:
-        if not unlock_wallet(stm):
+        if not unlock_wallet(hv):
             return
-    witness = Witness(witness, blockchain_instance=stm)
-    market = Market(blockchain_instance=stm)
-    use_hbd = False
+    witness = Witness(witness, blockchain_instance=hv)
+    market = Market(blockchain_instance=hv)
+    # Prefer HBD exchange rate (Hive-only)
     if "hbd_exchange_rate" in witness:
-        use_hbd = True
         old_base = witness["hbd_exchange_rate"]["base"]
         old_quote = witness["hbd_exchange_rate"]["quote"]
-        last_published_price = Price(witness["hbd_exchange_rate"], blockchain_instance=stm)
+        last_published_price = Price(witness["hbd_exchange_rate"], blockchain_instance=hv)
     else:
-        old_base = witness["sbd_exchange_rate"]["base"]
-        old_quote = witness["sbd_exchange_rate"]["quote"]
-        last_published_price = Price(witness["sbd_exchange_rate"], blockchain_instance=stm)
+        # Fallback to current median price if no prior feed
+        median = hv.get_current_median_history()
+        old_base = median["base"]
+        old_quote = median["quote"]
+        last_published_price = Price(median, blockchain_instance=hv)
 
-    steem_usd = None
     hive_usd = None
     print(
         "Old price %.3f (base: %s, quote %s)" % (float(last_published_price), old_base, old_quote)
     )
     if quote is None and not support_peg:
-        quote = Amount("1.000 %s" % stm.token_symbol, blockchain_instance=stm)
-    elif quote is None and not stm.is_hive:
-        latest_price = market.ticker()["latest"]
-        if steem_usd is None:
-            steem_usd = market.steem_usd_implied()
-        sbd_usd = float(latest_price.as_base(stm.backed_token_symbol)) * steem_usd
-        quote = Amount(1.0 / sbd_usd, stm.token_symbol, blockchain_instance=stm)
-    elif quote is None and stm.is_hive:
+        quote = Amount("1.000 %s" % hv.token_symbol, blockchain_instance=hv)
+    elif quote is None:
         latest_price = market.ticker()["latest"]
         if hive_usd is None:
             hive_usd = market.hive_usd_implied()
-        hbd_usd = float(latest_price.as_base(stm.backed_token_symbol)) * hive_usd
-        quote = Amount(1.0 / hbd_usd, stm.token_symbol, blockchain_instance=stm)
+        hbd_usd = float(latest_price.as_base(hv.backed_token_symbol)) * hive_usd
+        quote = Amount(1.0 / hbd_usd, hv.token_symbol, blockchain_instance=hv)
     else:
-        if str(quote[-5:]).upper() == stm.token_symbol:
-            quote = Amount(quote, blockchain_instance=stm)
+        if str(quote[-5:]).upper() == hv.token_symbol:
+            quote = Amount(quote, blockchain_instance=hv)
         else:
-            quote = Amount(quote, stm.token_symbol, blockchain_instance=stm)
-    if base is None and not stm.is_hive:
-        if steem_usd is None:
-            steem_usd = market.steem_usd_implied()
-        base = Amount(steem_usd, stm.backed_token_symbol, blockchain_instance=stm)
-    elif base is None and stm.is_hive:
+            quote = Amount(quote, hv.token_symbol, blockchain_instance=hv)
+    if base is None:
         if hive_usd is None:
             hive_usd = market.hive_usd_implied()
-        base = Amount(hive_usd, stm.backed_token_symbol, blockchain_instance=stm)
+        base = Amount(hive_usd, hv.backed_token_symbol, blockchain_instance=hv)
     else:
-        if str(quote[-3:]).upper() == stm.backed_token_symbol:
-            base = Amount(base, blockchain_instance=stm)
+        if str(quote[-3:]).upper() == hv.backed_token_symbol:
+            base = Amount(base, blockchain_instance=hv)
         else:
-            base = Amount(base, stm.backed_token_symbol, blockchain_instance=stm)
-    new_price = Price(base=base, quote=quote, blockchain_instance=stm)
+            base = Amount(base, hv.backed_token_symbol, blockchain_instance=hv)
+    new_price = Price(base=base, quote=quote, blockchain_instance=hv)
     print("New price %.3f (base: %s, quote %s)" % (float(new_price), base, quote))
-    if wif is not None and use_hbd:
+    if wif is not None:
         props = {"hbd_exchange_rate": new_price}
-        tx = stm.witness_set_properties(wif, witness["owner"], props)
-    elif wif is not None:
-        props = {"sbd_exchange_rate": new_price}
-        tx = stm.witness_set_properties(wif, witness["owner"], props)
+        tx = hv.witness_set_properties(wif, witness["owner"], props)
     else:
         tx = witness.feed_publish(base, quote=quote)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4463,23 +4208,28 @@ def witnessfeed(witness, wif, base, quote, support_peg):
 @click.argument("witness", nargs=1)
 def witness(witness):
     """List witness information"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    witness = Witness(witness, blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    witness = Witness(witness, blockchain_instance=hv)
     witness_json = witness.json()
-    witness_schedule = stm.get_witness_schedule()
-    config = stm.get_config()
+    witness_schedule = hv.get_witness_schedule()
+    config = hv.get_config()
     if "VIRTUAL_SCHEDULE_LAP_LENGTH2" in config:
         lap_length = int(config["VIRTUAL_SCHEDULE_LAP_LENGTH2"])
     elif "HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2" in config:
         lap_length = int(config["HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
     else:
-        lap_length = int(config["STEEM_VIRTUAL_SCHEDULE_LAP_LENGTH2"])
+        # Hive-only default
+        lap_length = int(
+            config.get(
+                "HIVE_VIRTUAL_SCHEDULE_LAP_LENGTH2", config.get("VIRTUAL_SCHEDULE_LAP_LENGTH2")
+            )
+        )
     rank = 0
     active_rank = 0
     found = False
-    witnesses = WitnessesRankedByVote(limit=250, blockchain_instance=stm)
+    witnesses = WitnessesRankedByVote(limit=250, blockchain_instance=hv)
     vote_sum = witnesses.get_votes_sum()
     for w in witnesses:
         rank += 1
@@ -4495,7 +4245,7 @@ def witness(witness):
     t.align = "l"
     for key in sorted(witness_json):
         value = witness_json[key]
-        if key in ["props", "sbd_exchange_rate"]:
+        if key in ["props", "hbd_exchange_rate"]:
             value = json.dumps(value, indent=4)
         t.add_row([key, value])
     if found:
@@ -4530,21 +4280,21 @@ def witness(witness):
 @click.option("--limit", help="How many witnesses should be shown", default=100)
 def witnesses(account, limit):
     """List witnesses"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if account:
-        account = Account(account, blockchain_instance=stm)
+        account = Account(account, blockchain_instance=hv)
         account_name = account["name"]
         if account["proxy"] != "":
             account_name = account["proxy"]
             account_type = "Proxy"
         else:
             account_type = "Account"
-        witnesses = WitnessesVotedByAccount(account_name, blockchain_instance=stm)
+        witnesses = WitnessesVotedByAccount(account_name, blockchain_instance=hv)
         print("%s: @%s (%d of 30)" % (account_type, account_name, len(witnesses)))
     else:
-        witnesses = WitnessesRankedByVote(limit=limit, blockchain_instance=stm)
+        witnesses = WitnessesRankedByVote(limit=limit, blockchain_instance=hv)
     witnesses.printAsTable()
 
 
@@ -4559,11 +4309,11 @@ def witnesses(account, limit):
 @click.option("--export", "-e", default=None, help="Export results to TXT-file")
 def votes(account, direction, outgoing, incoming, days, export):
     """List outgoing/incoming account votes"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if direction is None and not incoming and not outgoing:
         direction = "in"
     # Using built-in timezone support
@@ -4571,16 +4321,16 @@ def votes(account, direction, outgoing, incoming, days, export):
     out_votes_str = ""
     in_votes_str = ""
     if direction == "out" or outgoing:
-        votes = AccountVotes(account, start=limit_time, blockchain_instance=stm)
+        votes = AccountVotes(account, start=limit_time, blockchain_instance=hv)
         out_votes_str = votes.printAsTable(start=limit_time, return_str=True)
     if direction == "in" or incoming:
-        account = Account(account, blockchain_instance=stm)
+        account = Account(account, blockchain_instance=hv)
         votes_list = []
         for v in account.history(start=limit_time, only_ops=["vote"]):
-            vote = Vote(v, blockchain_instance=stm)
+            vote = Vote(v, blockchain_instance=hv)
             vote.refresh()
             votes_list.append(vote)
-        votes = ActiveVotes(votes_list, blockchain_instance=stm)
+        votes = ActiveVotes(votes_list, blockchain_instance=hv)
         in_votes_str = votes.printAsTable(votee=account["name"], return_str=True)
     if export:
         with open(export, "w") as w:
@@ -4601,15 +4351,15 @@ def votes(account, direction, outgoing, incoming, days, export):
 @click.option(
     "--min-performance",
     "-x",
-    help="Show only votes with performance higher than the given value in HBD/SBD",
+    help="Show only votes with performance higher than the given value in HBD",
 )
 @click.option(
     "--max-performance",
     "-y",
-    help="Show only votes with performance lower than the given value in HBD/SBD",
+    help="Show only votes with performance lower than the given value in HBD",
 )
 @click.option(
-    "--payout", default=None, help="Show the curation for a potential payout in SBD as float"
+    "--payout", default=None, help="Show the curation for a potential payout in HBD as float"
 )
 @click.option("--export", "-e", default=None, help="Export results to HTML-file")
 @click.option("--short", "-s", is_flag=True, default=False, help="Show only Curation without sum")
@@ -4649,12 +4399,10 @@ def curation(
     the fifth account vote in the given time duration (default is 7 days)
 
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    SP_symbol = "SP"
-    if stm.is_hive:
-        SP_symbol = "HP"
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    HP_symbol = "HP"
     if authorperm is None:
         authorperm = "all"
     if account is None and authorperm != "all":
@@ -4663,10 +4411,10 @@ def curation(
         show_all_voter = False
     if authorperm == "all" or authorperm.isdigit():
         if not account:
-            account = stm.config["default_account"]
+            account = hv.config["default_account"]
         # Using built-in timezone support
         limit_time = datetime.now(timezone.utc) - timedelta(days=7)
-        votes = AccountVotes(account, start=limit_time, blockchain_instance=stm)
+        votes = AccountVotes(account, start=limit_time, blockchain_instance=hv)
         authorperm_list = [vote.authorperm for vote in votes]
         if authorperm.isdigit():
             if len(authorperm_list) < int(authorperm):
@@ -4750,16 +4498,16 @@ def curation(
     index = 0
     for authorperm in authorperm_list:
         index += 1
-        comment = Comment(authorperm, blockchain_instance=stm)
+        comment = Comment(authorperm, blockchain_instance=hv)
         if payout is not None and comment.is_pending():
             payout = float(payout)
         elif payout is not None:
             payout = None
-        curation_rewards_SBD = comment.get_curation_rewards(
-            pending_payout_SBD=True, pending_payout_value=payout
+        curation_rewards_HBD = comment.get_curation_rewards(
+            pending_payout_hbd=True, pending_payout_value=payout
         )
-        curation_rewards_SP = comment.get_curation_rewards(
-            pending_payout_SBD=False, pending_payout_value=payout
+        curation_rewards_HP = comment.get_curation_rewards(
+            pending_payout_hbd=False, pending_payout_value=payout
         )
         rows = []
         sum_curation = [0, 0, 0, 0]
@@ -4768,26 +4516,26 @@ def curation(
         for vote in comment.get_votes():
             vote_time = vote["time"]
 
-            vote_SBD = stm.rshares_to_token_backed_dollar(int(vote["rshares"]))
-            curation_SBD = curation_rewards_SBD["active_votes"][vote["voter"]]
-            curation_SP = curation_rewards_SP["active_votes"][vote["voter"]]
-            if vote_SBD > 0:
-                penalty = (comment.get_curation_penalty(vote_time=vote_time)) * vote_SBD
-                performance = float(curation_SBD) / vote_SBD * 100
+            vote_HBD = hv.rshares_to_token_backed_dollar(int(vote["rshares"]))
+            curation_HBD = curation_rewards_HBD["active_votes"][vote["voter"]]
+            curation_HP = curation_rewards_HP["active_votes"][vote["voter"]]
+            if vote_HBD > 0:
+                penalty = (comment.get_curation_penalty(vote_time=vote_time)) * vote_HBD
+                performance = float(curation_HBD) / vote_HBD * 100
             else:
                 performance = 0
                 penalty = 0
             vote_befor_min = ((vote_time) - comment["created"]).total_seconds() / 60
-            sum_curation[0] += vote_SBD
+            sum_curation[0] += vote_HBD
             sum_curation[1] += penalty
-            sum_curation[2] += float(curation_SP)
-            sum_curation[3] += float(curation_SBD)
+            sum_curation[2] += float(curation_HP)
+            sum_curation[3] += float(curation_HBD)
             row = [
                 vote["voter"],
                 vote_befor_min,
-                vote_SBD,
+                vote_HBD,
                 penalty,
-                float(curation_SP),
+                float(curation_HP),
                 performance,
             ]
 
@@ -4843,9 +4591,9 @@ def curation(
                     + voter
                     + [
                         "%.1f min" % row[1],
-                        "%.3f %s" % (float(row[2]), stm.backed_token_symbol),
-                        "%.3f %s" % (float(row[3]), stm.backed_token_symbol),
-                        "%.3f %s" % (row[4], SP_symbol),
+                        "%.3f %s" % (float(row[2]), hv.backed_token_symbol),
+                        "%.3f %s" % (float(row[3]), hv.backed_token_symbol),
+                        "%.3f %s" % (row[4], HP_symbol),
                         "%.1f %%" % (row[5]),
                     ]
                 )
@@ -4864,9 +4612,9 @@ def curation(
                 sum_line
                 + [
                     "%.1f min" % highest_vote[1],
-                    "%.3f %s" % (float(highest_vote[2]), stm.backed_token_symbol),
-                    "%.3f %s" % (float(highest_vote[3]), stm.backed_token_symbol),
-                    "%.3f %s" % (highest_vote[4], SP_symbol),
+                    "%.3f %s" % (float(highest_vote[2]), hv.backed_token_symbol),
+                    "%.3f %s" % (float(highest_vote[3]), hv.backed_token_symbol),
+                    "%.3f %s" % (highest_vote[4], HP_symbol),
                     "%.1f %%" % (highest_vote[5]),
                 ]
             )
@@ -4875,9 +4623,9 @@ def curation(
                 sum_line
                 + [
                     "%.1f min" % max_curation[1],
-                    "%.3f %s" % (float(max_curation[2]), stm.backed_token_symbol),
-                    "%.3f %s" % (float(max_curation[3]), stm.backed_token_symbol),
-                    "%.3f %s" % (max_curation[4], SP_symbol),
+                    "%.3f %s" % (float(max_curation[2]), hv.backed_token_symbol),
+                    "%.3f %s" % (float(max_curation[3]), hv.backed_token_symbol),
+                    "%.3f %s" % (max_curation[4], HP_symbol),
                     "%.1f %%" % (max_curation[5]),
                 ]
             )
@@ -4886,9 +4634,9 @@ def curation(
                 sum_line
                 + [
                     "-",
-                    "%.3f %s" % (sum_curation[0], stm.backed_token_symbol),
-                    "%.3f %s" % (sum_curation[1], stm.backed_token_symbol),
-                    "%.3f %s" % (sum_curation[2], SP_symbol),
+                    "%.3f %s" % (sum_curation[0], hv.backed_token_symbol),
+                    "%.3f %s" % (sum_curation[1], hv.backed_token_symbol),
+                    "%.3f %s" % (sum_curation[2], HP_symbol),
                     "%.2f %%" % curation_sum_percentage,
                 ]
             )
@@ -4922,11 +4670,11 @@ def curation(
 )
 def rewards(accounts, only_sum, post, comment, curation, length, author, permlink, title, days):
     """Lists received rewards"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not accounts:
-        accounts = [stm.config["default_account"]]
+        accounts = [hv.config["default_account"]]
     if not comment and not curation and not post:
         post = True
         permlink = True
@@ -4938,9 +4686,9 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
     limit_time = now - timedelta(days=days)
     for account in accounts:
         sum_reward = [0, 0, 0, 0, 0]
-        account = Account(account, blockchain_instance=stm)
-        median_price = Price(stm.get_current_median_history(), blockchain_instance=stm)
-        m = Market(blockchain_instance=stm)
+        account = Account(account, blockchain_instance=hv)
+        median_price = Price(hv.get_current_median_history(), blockchain_instance=hv)
+        m = Market(blockchain_instance=hv)
         latest = m.ticker()["latest"]
         if author and permlink:
             t = PrettyTable(
@@ -4948,8 +4696,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                     "Author",
                     "Permlink",
                     "Payout",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4960,8 +4708,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                     "Author",
                     "Title",
                     "Payout",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4971,8 +4719,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                 [
                     "Author",
                     "Payout",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4982,8 +4730,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                 [
                     "Permlink",
                     "Payout",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4993,8 +4741,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                 [
                     "Title",
                     "Payout",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -5003,8 +4751,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
             t = PrettyTable(
                 [
                     "Received",
-                    stm.backed_token_symbol,
-                    "%sP + %s" % (stm.token_symbol[0], stm.token_symbol),
+                    hv.backed_token_symbol,
+                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -5026,7 +4774,7 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                 if not post and not comment and v["type"] == "author_reward":
                     continue
                 if v["type"] == "author_reward":
-                    c = Comment(v, blockchain_instance=stm)
+                    c = Comment(v, blockchain_instance=hv)
                     try:
                         c.refresh()
                     except exceptions.ContentDoesNotExistsException:
@@ -5035,23 +4783,24 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                         continue
                     if not comment and c.is_comment():
                         continue
-                    if "sbd_payout" in v:
-                        payout_SBD = Amount(v["sbd_payout"], blockchain_instance=stm)
-                        payout_STEEM = Amount(v["steem_payout"], blockchain_instance=stm)
-                    else:
-                        payout_SBD = Amount(v["hbd_payout"], blockchain_instance=stm)
-                        payout_STEEM = Amount(v["hive_payout"], blockchain_instance=stm)
-                    sum_reward[0] += float(payout_SBD)
-                    sum_reward[1] += float(payout_STEEM)
-                    payout_SP = stm.vests_to_token_power(
-                        Amount(v["vesting_payout"], blockchain_instance=stm)
+                    # Initialize to zero to avoid UnboundLocalError and support missing fields
+                    payout_HBD = Amount("0.000 HBD", blockchain_instance=hv)
+                    payout_HIVE = Amount("0.000 HIVE", blockchain_instance=hv)
+                    if "hbd_payout" in v:
+                        payout_HBD = Amount(v["hbd_payout"], blockchain_instance=hv)
+                    if "hive_payout" in v:
+                        payout_HIVE = Amount(v["hive_payout"], blockchain_instance=hv)
+                    sum_reward[0] += float(payout_HBD)
+                    sum_reward[1] += float(payout_HIVE)
+                    payout_VESTS = hv.vests_to_token_power(
+                        Amount(v["vesting_payout"], blockchain_instance=hv)
                     )
-                    sum_reward[2] += float(payout_SP)
-                    liquid_USD = float(payout_SBD) / float(latest) * float(median_price) + float(
-                        payout_STEEM
+                    sum_reward[2] += float(payout_VESTS)
+                    liquid_USD = float(payout_HBD) / float(latest) * float(median_price) + float(
+                        payout_HIVE
                     ) * float(median_price)
                     sum_reward[3] += liquid_USD
-                    invested_USD = float(payout_SP) * float(median_price)
+                    invested_USD = float(payout_VESTS) * float(median_price)
                     sum_reward[4] += invested_USD
                     if c.is_comment():
                         permlink_row = c.parent_permlink
@@ -5070,24 +4819,24 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                                 / 60
                                 / 24
                             ),
-                            (payout_SBD),
-                            (payout_STEEM),
-                            (payout_SP),
+                            (payout_HBD),
+                            (payout_HIVE),
+                            (payout_VESTS),
                             (liquid_USD),
                             (invested_USD),
                         ]
                     )
                 elif v["type"] == "curation_reward":
-                    reward = Amount(v["reward"], blockchain_instance=stm)
-                    payout_SP = stm.vests_to_token_power(reward)
+                    reward = Amount(v["reward"], blockchain_instance=hv)
+                    payout_VESTS = hv.vests_to_token_power(reward)
                     liquid_USD = 0
-                    invested_USD = float(payout_SP) * float(median_price)
-                    sum_reward[2] += float(payout_SP)
+                    invested_USD = float(payout_VESTS) * float(median_price)
+                    sum_reward[2] += float(payout_VESTS)
                     sum_reward[4] += invested_USD
                     if title:
                         c = Comment(
                             construct_authorperm(v["comment_author"], v["comment_permlink"]),
-                            blockchain_instance=stm,
+                            blockchain_instance=hv,
                         )
                         permlink_row = c.title
                     else:
@@ -5104,7 +4853,7 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                             ),
                             0.000,
                             0.000,
-                            payout_SP,
+                            payout_VESTS,
                             (liquid_USD),
                             (invested_USD),
                         ]
@@ -5170,8 +4919,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], stm.token_symbol[0]),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
+                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -5181,8 +4930,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], stm.token_symbol[0]),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
+                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5193,8 +4942,8 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], stm.token_symbol[0]),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
+                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -5248,11 +4997,11 @@ def pending(
     accounts, only_sum, post, comment, curation, length, author, permlink, title, days, _from
 ):
     """Lists pending rewards"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not accounts:
-        accounts = [stm.config["default_account"]]
+        accounts = [hv.config["default_account"]]
     if not comment and not curation and not post:
         post = True
         permlink = True
@@ -5266,9 +5015,7 @@ def pending(
         _from = 7
     if _from + days > 7:
         days = 7 - _from
-    sp_symbol = "SP"
-    if stm.is_hive:
-        sp_symbol = "HP"
+    sp_symbol = "HP"
 
     # Using built-in timezone support
     max_limit_time = datetime.now(timezone.utc) - timedelta(days=7)
@@ -5276,9 +5023,9 @@ def pending(
     start_time = datetime.now(timezone.utc) - timedelta(days=_from)
     for account in accounts:
         sum_reward = [0, 0, 0, 0]
-        account = Account(account, blockchain_instance=stm)
-        median_price = Price(stm.get_current_median_history(), blockchain_instance=stm)
-        m = Market(blockchain_instance=stm)
+        account = Account(account, blockchain_instance=hv)
+        median_price = Price(hv.get_current_median_history(), blockchain_instance=hv)
+        m = Market(blockchain_instance=hv)
         latest = m.ticker()["latest"]
         if author and permlink:
             t = PrettyTable(
@@ -5286,7 +5033,7 @@ def pending(
                     "Author",
                     "Permlink",
                     "Cashout",
-                    stm.backed_token_symbol,
+                    hv.backed_token_symbol,
                     sp_symbol,
                     "Liquid USD",
                     "Invested USD",
@@ -5298,7 +5045,7 @@ def pending(
                     "Author",
                     "Title",
                     "Cashout",
-                    stm.backed_token_symbol,
+                    hv.backed_token_symbol,
                     sp_symbol,
                     "Liquid USD",
                     "Invested USD",
@@ -5309,7 +5056,7 @@ def pending(
                 [
                     "Author",
                     "Cashout",
-                    stm.backed_token_symbol,
+                    hv.backed_token_symbol,
                     sp_symbol,
                     "Liquid USD",
                     "Invested USD",
@@ -5320,7 +5067,7 @@ def pending(
                 [
                     "Permlink",
                     "Cashout",
-                    stm.backed_token_symbol,
+                    hv.backed_token_symbol,
                     sp_symbol,
                     "Liquid USD",
                     "Invested USD",
@@ -5331,7 +5078,7 @@ def pending(
                 [
                     "Title",
                     "Cashout",
-                    stm.backed_token_symbol,
+                    hv.backed_token_symbol,
                     sp_symbol,
                     "Liquid USD",
                     "Invested USD",
@@ -5339,7 +5086,7 @@ def pending(
             )
         else:
             t = PrettyTable(
-                ["Cashout", stm.backed_token_symbol, sp_symbol, "Liquid USD", "Invested USD"]
+                ["Cashout", hv.backed_token_symbol, sp_symbol, "Liquid USD", "Invested USD"]
             )
         t.align = "l"
         rows = []
@@ -5364,7 +5111,7 @@ def pending(
                 except exceptions.ContentDoesNotExistsException:
                     continue
                 author_reward = v.get_author_rewards()
-                if float(author_reward["total_payout_SBD"]) < 0.001:
+                if float(author_reward["total_payout_HBD"]) < 0.001:
                     continue
                 if v.permlink in c_list:
                     continue
@@ -5377,15 +5124,15 @@ def pending(
                     continue
                 if v["author"] != account["name"]:
                     continue
-                payout_SBD = author_reward["payout_SBD"]
-                sum_reward[0] += float(payout_SBD)
-                payout_SP = author_reward["payout_SP"]
-                sum_reward[1] += float(payout_SP)
+                payout_HBD = author_reward["payout_HBD"]
+                sum_reward[0] += float(payout_HBD)
+                payout_HP = author_reward["payout_HP"]
+                sum_reward[1] += float(payout_HP)
                 liquid_USD = (
-                    float(author_reward["payout_SBD"]) / float(latest) * float(median_price)
+                    float(author_reward["payout_HBD"]) / float(latest) * float(median_price)
                 )
                 sum_reward[2] += liquid_USD
-                invested_USD = float(author_reward["payout_SP"]) * float(median_price)
+                invested_USD = float(author_reward["payout_HP"]) * float(median_price)
                 sum_reward[3] += invested_USD
                 if v.is_comment():
                     permlink_row = v.permlink
@@ -5399,20 +5146,18 @@ def pending(
                         v["author"],
                         permlink_row,
                         ((v["created"] - max_limit_time).total_seconds() / 60 / 60 / 24),
-                        (payout_SBD),
-                        (payout_SP),
+                        (payout_HBD),
+                        (payout_HP),
                         (liquid_USD),
                         (invested_USD),
                     ]
                 )
         if curation:
-            votes = AccountVotes(
-                account, start=limit_time, stop=start_time, blockchain_instance=stm
-            )
+            votes = AccountVotes(account, start=limit_time, stop=start_time, blockchain_instance=hv)
             for vote in votes:
                 authorperm = construct_authorperm(vote["author"], vote["permlink"])
                 try:
-                    c = Comment(authorperm, blockchain_instance=stm)
+                    c = Comment(authorperm, blockchain_instance=hv)
                 except exceptions.ContentDoesNotExistsException:
                     continue
                 rewards = c.get_curation_rewards()
@@ -5421,10 +5166,10 @@ def pending(
                 days_to_payout = (c["created"] - max_limit_time).total_seconds() / 60 / 60 / 24
                 if days_to_payout < 0:
                     continue
-                payout_SP = rewards["active_votes"][account["name"]]
+                payout_HP = rewards["active_votes"][account["name"]]
                 liquid_USD = 0
-                invested_USD = float(payout_SP) * float(median_price)
-                sum_reward[1] += float(payout_SP)
+                invested_USD = float(payout_HP) * float(median_price)
+                sum_reward[1] += float(payout_HP)
                 sum_reward[3] += invested_USD
                 if title:
                     permlink_row = c.title
@@ -5436,7 +5181,7 @@ def pending(
                         permlink_row,
                         days_to_payout,
                         0.000,
-                        payout_SP,
+                        payout_HP,
                         (liquid_USD),
                         (invested_USD),
                     ]
@@ -5502,7 +5247,7 @@ def pending(
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
                     "%.2f %s" % (sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
@@ -5513,7 +5258,7 @@ def pending(
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
                     "%.2f %s" % (sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
@@ -5525,7 +5270,7 @@ def pending(
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], stm.backed_token_symbol),
+                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
                     "%.2f %s" % (sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
@@ -5553,21 +5298,15 @@ def pending(
 
 @cli.command()
 @click.argument("account", nargs=1, required=False)
-@click.option("--reward_steem", help="Amount of STEEM/HIVE you would like to claim", default=0)
-@click.option("--reward_sbd", help="Amount of SBD/HBD you would like to claim", default=0)
+@click.option("--reward_sbd", help="Amount of HBD you would like to claim", default=0)
 @click.option("--reward_vests", help="Amount of VESTS you would like to claim", default=0)
-@click.option(
-    "--claim_all_steem", help="Claim all STEEM/HIVE, overwrites reward_steem", is_flag=True
-)
-@click.option("--claim_all_sbd", help="Claim all SBD/HBD, overwrites reward_sbd", is_flag=True)
+@click.option("--claim_all_sbd", help="Claim all HBD, overwrites reward_sbd", is_flag=True)
 @click.option("--claim_all_vests", help="Claim all VESTS, overwrites reward_vests", is_flag=True)
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def claimreward(
     account,
-    reward_steem,
     reward_sbd,
     reward_vests,
-    claim_all_steem,
     claim_all_sbd,
     claim_all_vests,
     export,
@@ -5576,12 +5315,12 @@ def claimreward(
 
     By default, this will claim ``all`` outstanding balances.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    acc = Account(account, blockchain_instance=stm)
+        account = hv.config["default_account"]
+    acc = Account(account, blockchain_instance=hv)
     r = acc.balances["rewards"]
     if len(r) == 3 and r[0].amount + r[1].amount + r[2].amount == 0:
         print("Nothing to claim.")
@@ -5589,20 +5328,16 @@ def claimreward(
     elif len(r) == 2 and r[0].amount + r[1].amount:
         print("Nothing to claim.")
         return
-    if not unlock_wallet(stm):
+    if not unlock_wallet(hv):
         return
-    if claim_all_steem:
-        reward_steem = r[0]
     if claim_all_sbd:
-        reward_sbd = r[1]
+        reward_sbd = r[0]
     if claim_all_vests:
-        reward_vests = r[2]
+        reward_vests = r[1]
 
-    tx = acc.claim_reward_balance(reward_steem, reward_sbd, reward_vests)
-    if stm.unsigned and stm.nobroadcast and stm.steemconnect is not None:
-        tx = stm.steemconnect.url_from_tx(tx)
-    elif stm.unsigned and stm.nobroadcast and stm.hivesigner is not None:
-        tx = stm.hivesigner.url_from_tx(tx)
+    tx = acc.claim_reward_balance(reward_sbd, reward_vests)
+    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -5633,18 +5368,18 @@ def customjson(jsonid, json_data, account, active, export):
     data = import_custom_json(jsonid, json_data)
     if data is None:
         return
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
-    if not unlock_wallet(stm):
+        account = hv.config["default_account"]
+    if not unlock_wallet(hv):
         return
-    acc = Account(account, blockchain_instance=stm)
+    _acc = Account(account, blockchain_instance=hv)
     if active:
-        tx = stm.custom_json(jsonid, data, required_auths=[account])
+        tx = hv.custom_json(jsonid, data, required_auths=[account])
     else:
-        tx = stm.custom_json(jsonid, data, required_posting_auths=[account])
+        tx = hv.custom_json(jsonid, data, required_posting_auths=[account])
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -5662,16 +5397,16 @@ def customjson(jsonid, json_data, account, active, export):
 )
 def verify(blocknumber, trx, use_api):
     """Returns the public signing keys for a block"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    b = Blockchain(blockchain_instance=stm)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    b = Blockchain(blockchain_instance=hv)
     i = 0
     if not blocknumber:
         blocknumber = b.get_current_block_num()
     try:
         int(blocknumber)
-        block = Block(blocknumber, blockchain_instance=stm)
+        block = Block(blocknumber, blockchain_instance=hv)
         if trx is not None:
             i = int(trx)
             trxs = [block.json_transactions[int(trx)]]
@@ -5680,7 +5415,7 @@ def verify(blocknumber, trx, use_api):
     except Exception:
         trxs = [b.get_transaction(blocknumber)]
         blocknumber = trxs[0]["block_num"]
-    wallet = Wallet(blockchain_instance=stm)
+    wallet = Wallet(blockchain_instance=hv)
     t = PrettyTable(["trx", "Signer key", "Account"])
     t.align = "l"
     if not use_api:
@@ -5695,10 +5430,10 @@ def verify(blocknumber, trx, use_api):
                 tx = b.get_transaction(trx["transaction_id"])
                 signed_tx = Signed_Transaction(tx)
             public_keys = []
-            for key in signed_tx.verify(chain=stm.chain_params, recover_parameter=True):
-                public_keys.append(format(Base58(key, prefix=stm.prefix), stm.prefix))
+            for key in signed_tx.verify(chain=hv.chain_params, recover_parameter=True):
+                public_keys.append(format(Base58(key, prefix=hv.prefix), hv.prefix))
         else:
-            tx = TransactionBuilder(tx=trx, blockchain_instance=stm)
+            tx = TransactionBuilder(tx=trx, blockchain_instance=hv)
             public_keys = tx.get_potential_signatures()
         accounts = []
         empty_public_keys = []
@@ -5731,15 +5466,15 @@ def verify(blocknumber, trx, use_api):
 @cli.command()
 def chainconfig():
     """Prints chain config in a table"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    chain_config = stm.get_config()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    chain_config = hv.get_config()
     t = PrettyTable(["Key", "Value"])
     t.align = "l"
     for key in chain_config:
         if isinstance(chain_config[key], dict) and "amount" in chain_config[key]:
-            t.add_row([key, str(Amount(chain_config[key], blockchain_instance=stm))])
+            t.add_row([key, str(Amount(chain_config[key], blockchain_instance=hv))])
         else:
             t.add_row([key, chain_config[key]])
     print(t)
@@ -5753,35 +5488,35 @@ def info(objects):
     General information about the blockchain, a block, an account,
     a post/comment and a public key
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not objects:
         t = PrettyTable(["Key", "Value"])
         t.align = "l"
-        info = stm.get_dynamic_global_properties()
-        median_price = stm.get_current_median_history()
-        token_per_mvest = stm.get_token_per_mvest()
-        chain_props = stm.get_chain_properties()
+        info = hv.get_dynamic_global_properties()
+        median_price = hv.get_current_median_history()
+        token_per_mvest = hv.get_token_per_mvest()
+        chain_props = hv.get_chain_properties()
         try:
             price = (
-                Amount(median_price["base"], blockchain_instance=stm).amount
-                / Amount(median_price["quote"], blockchain_instance=stm).amount
+                Amount(median_price["base"], blockchain_instance=hv).amount
+                / Amount(median_price["quote"], blockchain_instance=hv).amount
             )
         except Exception:
             price = None
         for key in info:
             if isinstance(info[key], dict) and "amount" in info[key]:
-                t.add_row([key, str(Amount(info[key], blockchain_instance=stm))])
+                t.add_row([key, str(Amount(info[key], blockchain_instance=hv))])
             else:
                 t.add_row([key, info[key]])
-        t.add_row(["%s per mvest" % stm.token_symbol, token_per_mvest])
+        t.add_row(["%s per mvest" % hv.token_symbol, token_per_mvest])
         if price is not None:
             t.add_row(["internal price", price])
         t.add_row(
             [
                 "account_creation_fee",
-                str(Amount(chain_props["account_creation_fee"], blockchain_instance=stm)),
+                str(Amount(chain_props["account_creation_fee"], blockchain_instance=hv)),
             ]
         )
         print(t.get_string(sortby="Key"))
@@ -5797,11 +5532,11 @@ def info(objects):
             if re.match(r"^[0-9-]*:[0-9-]", obj):
                 obj, tran_nr = obj.split(":")
             if int(obj) < 1:
-                b = Blockchain(blockchain_instance=stm)
+                b = Blockchain(blockchain_instance=hv)
                 block_number = b.get_current_block_num() + int(obj) - 1
             else:
                 block_number = obj
-            block = Block(block_number, blockchain_instance=stm)
+            block = Block(block_number, blockchain_instance=hv)
             if block:
                 t = PrettyTable(["Key", "Value"])
                 t.align = "l"
@@ -5838,7 +5573,7 @@ def info(objects):
             else:
                 print("Block number %s unknown" % obj)
         elif re.match(r"^[a-zA-Z0-9\-\._]{2,16}$", obj):
-            account = Account(obj, blockchain_instance=stm)
+            account = Account(obj, blockchain_instance=hv)
             t = PrettyTable(["Key", "Value"])
             t.align = "l"
             t._max_width = {"Value": 80}
@@ -5860,24 +5595,24 @@ def info(objects):
 
             # witness available?
             try:
-                witness = Witness(obj, blockchain_instance=stm)
+                witness = Witness(obj, blockchain_instance=hv)
                 witness_json = witness.json()
                 t = PrettyTable(["Key", "Value"])
                 t.align = "l"
                 for key in sorted(witness_json):
                     value = witness_json[key]
-                    if key in ["props", "sbd_exchange_rate"]:
+                    if key in ["props", "hbd_exchange_rate"]:
                         value = json.dumps(value, indent=4)
                     t.add_row([key, value])
                 print(t)
             except exceptions.WitnessDoesNotExistsException as e:
                 print(str(e))
         # Public Key
-        elif re.match(r"^" + stm.prefix + ".{48,55}$", obj):
-            account = stm.wallet.getAccountFromPublicKey(obj)
+        elif re.match(r"^" + hv.prefix + ".{48,55}$", obj):
+            account = hv.wallet.getAccountFromPublicKey(obj)
             if account:
-                account = Account(account, blockchain_instance=stm)
-                key_type = stm.wallet.getKeyType(account, obj)
+                account = Account(account, blockchain_instance=hv)
+                key_type = hv.wallet.getKeyType(account, obj)
                 t = PrettyTable(["Account", "Key_type"])
                 t.align = "l"
                 t._max_width = {"Value": 80}
@@ -5887,7 +5622,7 @@ def info(objects):
                 print("Public Key %s not known" % obj)
         # Post identifier
         elif re.match(r".*@.{3,16}/.*$", obj):
-            post = Comment(obj, blockchain_instance=stm)
+            post = Comment(obj, blockchain_instance=hv)
             post_json = post.json()
             if post_json:
                 t = PrettyTable(["Key", "Value"])
@@ -5908,7 +5643,7 @@ def info(objects):
             else:
                 print("Post now known" % obj)
         elif re.match(r"^[a-zA-Z0-9\_]{40}$", obj):
-            b = Blockchain(blockchain_instance=stm)
+            b = Blockchain(blockchain_instance=hv)
             from nectarapi.exceptions import UnknownTransaction
 
             try:
@@ -5937,25 +5672,12 @@ def userdata(account, signing_account):
 
     The request has to be signed by the requested account or an admin account.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm):
-        return
-    if not account:
-        if "default_account" in stm.config:
-            account = stm.config["default_account"]
-    account = Account(account, blockchain_instance=stm)
-    if signing_account is not None:
-        signing_account = Account(signing_account, blockchain_instance=stm)
-    c = Conveyor(blockchain_instance=stm)
-    user_data = c.get_user_data(account, signing_account=signing_account)
-    t = PrettyTable(["Key", "Value"])
-    t.align = "l"
-    for key in user_data:
-        # hide internal config data
-        t.add_row([key, user_data[key]])
-    print(t)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    # Removed in Hive-only build
+    print("'userdata' command is no longer available in the Hive-only build.")
+    return
 
 
 @cli.command()
@@ -5983,13 +5705,13 @@ def userdata(account, signing_account):
 @click.option("--json-file", "-j", help="When set, the results are written into a json file")
 def history(account, limit, sort, max_length, virtual_ops, only_ops, exclude_ops, json_file):
     """Returns account history operations as table"""
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        if "default_account" in stm.config:
-            account = stm.config["default_account"]
-    account = Account(account, blockchain_instance=stm)
+        if "default_account" in hv.config:
+            account = hv.config["default_account"]
+    account = Account(account, blockchain_instance=hv)
     t = PrettyTable(["Index", "Type", "Hist op"])
     t.align = "l"
     t._max_width = {"Hist op": max_length}
@@ -6035,7 +5757,7 @@ def history(account, limit, sort, max_length, virtual_ops, only_ops, exclude_ops
                 h.pop("trx_id")
             for key in h:
                 if isinstance(h[key], dict) and "nai" in h[key]:
-                    h[key] = str(Amount(h[key], blockchain_instance=stm))
+                    h[key] = str(Amount(h[key], blockchain_instance=hv))
                 if key == "json" or key == "json_metadata" and h[key] is not None and h[key] != "":
                     h[key] = json.loads(h[key])
             value = json.dumps(h, indent=4)
@@ -6056,25 +5778,12 @@ def featureflags(account, signing_account):
 
     The request has to be signed by the requested account or an admin account.
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
-    if not unlock_wallet(stm):
-        return
-    if not account:
-        if "default_account" in stm.config:
-            account = stm.config["default_account"]
-    account = Account(account, blockchain_instance=stm)
-    if signing_account is not None:
-        signing_account = Account(signing_account, blockchain_instance=stm)
-    c = Conveyor(blockchain_instance=stm)
-    user_data = c.get_feature_flags(account, signing_account=signing_account)
-    t = PrettyTable(["Key", "Value"])
-    t.align = "l"
-    for key in user_data:
-        # hide internal config data
-        t.add_row([key, user_data[key]])
-    print(t)
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
+    # Removed in Hive-only build
+    print("'featureflags' command is no longer available in the Hive-only build.")
+    return
 
 
 @cli.command()
@@ -6140,19 +5849,19 @@ def draw(
 
     When using --reply, the result is directly broadcasted as comment
     """
-    stm = shared_blockchain_instance()
-    if stm.rpc is not None:
-        stm.rpc.rpcconnect()
+    hv = shared_blockchain_instance()
+    if hv.rpc is not None:
+        hv.rpc.rpcconnect()
     if not account:
-        account = stm.config["default_account"]
+        account = hv.config["default_account"]
     if reply is not None:
-        if not unlock_wallet(stm):
+        if not unlock_wallet(hv):
             return
-        reply_comment = Comment(reply, blockchain_instance=stm)
+        reply_comment = Comment(reply, blockchain_instance=hv)
     if block is not None and block != "":
-        block = Block(int(block), blockchain_instance=stm)
+        block = Block(int(block), blockchain_instance=hv)
     else:
-        blockchain = Blockchain(blockchain_instance=stm)
+        blockchain = Blockchain(blockchain_instance=hv)
         block = blockchain.get_current_block()
     data = None
 

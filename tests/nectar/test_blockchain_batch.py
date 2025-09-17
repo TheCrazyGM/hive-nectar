@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Steem
+from nectar import Hive
 from nectar.blockchain import Blockchain
-from nectar.instance import set_shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance
 
 from .nodes import get_hive_nodes
 
@@ -13,7 +13,21 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bts = Steem(
+        """
+        Prepare class-level Hive test fixtures.
+
+        Initializes a Hive client configured for testing (no broadcasting, retries, timeout, condenser disabled,
+        and an active key), registers it as the shared blockchain instance, sets the default account to "test",
+        and computes a short block range to use in tests (start = current_block - 20, stop = current_block).
+        Also sets max_batch_size to 1 due to appbase batch-RPC limitations.
+
+        Creates the following class attributes:
+        - bts: configured Hive client instance
+        - start (int): first block to include in test ranges
+        - stop (int): last block to include in test ranges
+        - max_batch_size (int): maximum batch size used when streaming (set to 1)
+        """
+        cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
             num_retries=10,
@@ -23,10 +37,10 @@ class Testcases(unittest.TestCase):
         )
         # from getpass import getpass
         # self.bts.wallet.unlock(getpass())
-        set_shared_steem_instance(cls.bts)
+        set_shared_blockchain_instance(cls.bts)
         cls.bts.set_default_account("test")
 
-        b = Blockchain(steem_instance=cls.bts)
+        b = Blockchain(blockchain_instance=cls.bts)
         num = b.get_current_block_num()
         cls.start = num - 20
         cls.stop = num
@@ -36,7 +50,7 @@ class Testcases(unittest.TestCase):
 
     def test_stream_batch(self):
         bts = self.bts
-        b = Blockchain(steem_instance=bts)
+        b = Blockchain(blockchain_instance=bts)
         ops_stream = []
         opNames = ["transfer", "vote"]
         for op in b.stream(
@@ -75,8 +89,17 @@ class Testcases(unittest.TestCase):
         self.assertEqual(op_stat["vote"], op_stat4["vote"])
 
     def test_stream_batch2(self):
+        """
+        Test streaming of specific operation types over a fixed block range and verify counts match aggregated statistics.
+
+        Streams "account_create" and "custom_json" operations from block 25097000 to 25097100 (inclusive) using the Blockchain.stream API with a batch size of 50 and single-threaded iteration, collects streamed operations, and asserts:
+        - the first streamed operation's block number is >= start block and the last is <= stop block,
+        - the sum of the operation counts returned by ops_statistics for "account_create" and "custom_json" equals the number of streamed operations.
+
+        This is a functional test and relies on the shared Hive blockchain instance configured in the test class.
+        """
         bts = self.bts
-        b = Blockchain(steem_instance=bts)
+        b = Blockchain(blockchain_instance=bts)
         ops_stream = []
         start_block = 25097000
         stop_block = 25097100

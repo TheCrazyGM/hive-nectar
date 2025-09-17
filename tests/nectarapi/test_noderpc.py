@@ -3,8 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # Py3 compatibility
 import unittest
 
-from nectar import Steem
-from nectar.instance import set_shared_steem_instance
+from nectar import Hive
+from nectar.instance import set_shared_blockchain_instance
 from nectar.nodelist import NodeList
 from nectarapi import exceptions
 from nectarapi.exceptions import NumRetriesReached
@@ -21,23 +21,25 @@ class Testcases(unittest.TestCase):
     def setUpClass(cls):
         nodelist = NodeList()
         nodelist.update_nodes(
-            steem_instance=Steem(node=nodelist.get_nodes(normal=True, appbase=True), num_retries=3)
+            blockchain_instance=Hive(
+                node=nodelist.get_nodes(normal=True, appbase=True), num_retries=3
+            )
         )
         cls.nodes = nodelist.get_nodes()
-        if "https://api.steemit.com" in cls.nodes:
-            cls.nodes.remove("https://api.steemit.com")
-        cls.nodes_steemit = ["https://api.steemit.com"]
+        if "https://api.hive.blog" in cls.nodes:
+            cls.nodes.remove("https://api.hive.blog")
+        cls.nodes_hiveio = ["https://api.hive.blog"]
 
-        cls.appbase = Steem(
+        cls.appbase = Hive(
             node=cls.nodes,
             nobroadcast=True,
             keys={"active": wif, "owner": wif2, "memo": wif3},
             num_retries=10,
         )
-        cls.rpc = NodeRPC(urls=cls.nodes_steemit)
+        cls.rpc = NodeRPC(urls=cls.nodes_hiveio)
         # from getpass import getpass
         # self.bts.wallet.unlock(getpass())
-        set_shared_steem_instance(cls.nodes_steemit)
+        set_shared_blockchain_instance(cls.nodes_hiveio)
         cls.appbase.set_default_account("test")
 
     def get_reply(self, msg):
@@ -59,16 +61,16 @@ class Testcases(unittest.TestCase):
 
     def test_connect_test_node(self):
         rpc = self.rpc
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
         rpc.rpcclose()
         rpc.rpcconnect()
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
 
     def test_connect_test_node2(self):
         rpc = self.rpc
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
         rpc.next()
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
 
     def test_connect_test_str_list(self):
         str_list = ""
@@ -76,9 +78,9 @@ class Testcases(unittest.TestCase):
             str_list += node + ";"
         str_list = str_list[:-1]
         rpc = NodeRPC(urls=str_list)
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
         rpc.next()
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
 
     def test_connect_test_str_list2(self):
         str_list = ""
@@ -86,9 +88,9 @@ class Testcases(unittest.TestCase):
             str_list += node + ","
         str_list = str_list[:-1]
         rpc = NodeRPC(urls=str_list)
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
         rpc.next()
-        self.assertIn(rpc.url, self.nodes + self.nodes_steemit)
+        self.assertIn(rpc.url, self.nodes + self.nodes_hiveio)
 
     def test_server_error(self):
         rpc = self.rpc
@@ -145,14 +147,14 @@ class Testcases(unittest.TestCase):
             NodeRPC(urls=nodes, num_retries=0, num_retries_call=0, timeout=1)
 
     def test_error_handling(self):
-        rpc = NodeRPC(urls=self.nodes_steemit, num_retries=2, num_retries_call=3)
+        rpc = NodeRPC(urls=self.nodes_hiveio, num_retries=2, num_retries_call=3)
         with self.assertRaises(exceptions.NoMethodWithName):
             rpc.get_wrong_command()
         with self.assertRaises(exceptions.UnhandledRPCError):
             rpc.get_accounts("test")
 
     def test_error_handling_appbase(self):
-        rpc = NodeRPC(urls=self.nodes_steemit, num_retries=2, num_retries_call=3)
+        rpc = NodeRPC(urls=self.nodes_hiveio, num_retries=2, num_retries_call=3)
         with self.assertRaises(exceptions.NoMethodWithName):
             rpc.get_wrong_command()
         with self.assertRaises(exceptions.NoApiWithName):

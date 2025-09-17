@@ -1,4 +1,4 @@
-.. python-steem documentation master file, created by
+.. python documentation master file, created by
    sphinx-quickstart on Fri Jun  5 14:06:38 2015.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -17,18 +17,18 @@
 Welcome to nectar's documentation!
 ==================================
 
-Steem/Hive is a blockchain-based rewards platform for publishers to monetize 
+Hive is a blockchain-based rewards platform for publishers to monetize 
 content and grow community.
 
 It is based on *Graphene* (tm), a blockchain technology stack (i.e.
 software) that allows for fast transactions and ascalable blockchain
-solution. In case of Steem/Hive, it comes with decentralized publishing of
+solution. In case of Hive, it comes with decentralized publishing of
 content.
 
 The nectar library has been designed to allow developers to easily
 access its routines and make use of the network without dealing with all
 the related blockchain technology and cryptography. This library can be
-used to do anything that is allowed according to the Steem/Hive
+used to do anything that is allowed according to the Hive
 blockchain protocol.
 
 
@@ -104,7 +104,7 @@ Quickstart
    from nectar.market import Market
    market = Market("HBD:HIVE")
    print(market.ticker())
-   market.steem.wallet.unlock("wallet-passphrase")
+   market.hive.wallet.unlock("wallet-passphrase")
    print(market.sell(300, 100)  # sell 100 HIVE for 300 HIVE/HBD
 
 
@@ -115,6 +115,7 @@ General
 
    installation
    quickstart
+   changelog
    tutorials
    cli
    configuration

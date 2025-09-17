@@ -39,12 +39,15 @@ class DotDict(dict):
 
 class Profile(DotDict):
     """This class is a template to model a user's on-chain
-    profile according to
-
-        * https://github.com/adcpm/steemscript
+    profile according to Hive profile metadata conventions.
     """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a Profile by delegating to the DotDict initializer.
+
+        This constructor accepts the same arguments as DotDict (e.g., dot-separated key/value pairs, a dict, or a JSON string) and performs no additional processing.
+        """
         super(Profile, self).__init__(*args, **kwargs)
 
     def __str__(self):

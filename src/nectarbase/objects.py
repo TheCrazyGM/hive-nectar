@@ -103,12 +103,23 @@ class Amount(object):
 
     def __bytes__(self):
         # padding
-        # Workaround to allow transfers in HIVE
-        if self.symbol == "HBD":
-            self.symbol = "SBD"
-        elif self.symbol == "HIVE":
-            self.symbol = "STEEM"
-        symbol = self.symbol + "\x00" * (7 - len(self.symbol))
+        # The nodes still serialize the legacy symbol name for HBD as 'SBD' and HIVE as 'STEEM' in wire format.
+        # To match get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' and 'HIVE' -> 'STEEM' on serialization.
+        """
+        Serialize the Amount into its wire-format byte representation.
+
+        Returns:
+            bytes: 8-byte little-endian signed integer amount, followed by a 1-byte precision,
+                   followed by a 7-byte ASCII symbol padded with null bytes. On serialization,
+                   the symbol is remapped for legacy wire-format compatibility: "HBD" -> "SBD"
+                   and "HIVE" -> "STEEM".
+        """
+        _sym = self.symbol
+        if _sym == "HBD":
+            _sym = "SBD"
+        elif _sym == "HIVE":
+            _sym = "STEEM"
+        symbol = _sym + "\x00" * (7 - len(_sym))
         return (
             struct.pack("<q", int(self.amount))
             + struct.pack("<b", self.precision)

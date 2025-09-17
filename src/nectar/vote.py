@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -28,18 +29,58 @@ class Vote(BlockchainObject):
     :param str authorperm: perm link to post/comment
     :param nectar.nectar.nectar blockchain_instance: nectar
         instance to use when accesing a RPC
+    :param steem_instance: (deprecated) use blockchain_instance instead
+    :param hive_instance: (deprecated) use blockchain_instance instead
     """
 
     def __init__(
         self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None, **kwargs
     ):
+        # Handle legacy parameters
+        """
+        Initialize a Vote object representing a single vote on a post or comment.
+
+        Supports multiple input shapes for `voter`:
+        - voter as str with `authorperm` provided: `voter` is the voter name; `authorperm` is parsed into author/permlink.
+        - voter as dict containing "author", "permlink", and "voter": uses those fields directly.
+        - voter as dict with "authorperm" plus an external `authorperm` argument: resolves author/permlink and fills missing fields.
+        - voter as dict with "voter" plus an external `authorperm` argument: resolves author/permlink and fills missing fields.
+        - otherwise treats `voter` as an authorpermvoter token (author+permlink+voter), resolving author, permlink, and voter from it.
+
+        Behavior:
+        - Normalizes numeric/time fields via internal parsing before initializing the underlying BlockchainObject.
+        - Chooses the blockchain instance in this order: explicit `blockchain_instance`, a deprecated legacy instance passed via `steem_instance` or `hive_instance` (emits DeprecationWarning), then a shared default instance.
+        - Validates keyword arguments and raises on unknown or conflicting legacy instance keys.
+
+        Raises:
+        - ValueError: if more than one legacy instance key is supplied.
+        - TypeError: if unexpected keyword arguments are present.
+        """
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+        # Check for unknown kwargs
+        if kwargs:
+            raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.full = full
         self.lazy = lazy
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(voter, str) and authorperm is not None:
             [author, permlink] = resolve_authorperm(authorperm)
@@ -89,10 +130,18 @@ class Vote(BlockchainObject):
             id_item="authorpermvoter",
             lazy=lazy,
             full=full,
-            blockchain_instance=blockchain_instance,
+            blockchain_instance=self.blockchain,
         )
 
     def refresh(self):
+        """
+        Refresh the Vote object from the blockchain RPC, replacing its internal data with the latest on-chain vote.
+
+        If the object has no identifier or the blockchain is not connected, this method returns immediately. It resolves author, permlink, and voter from the stored identifier and queries the node for active votes (preferring appbase paths with a condenser fallback). If the matching vote is found, the object is reinitialized with the normalized vote data; otherwise VoteDoesNotExistsException is raised.
+
+        Raises:
+            VoteDoesNotExistsException: if the vote cannot be found or the RPC indicates the vote does not exist.
+        """
         if self.identifier is None:
             return
         if not self.blockchain.is_connected():
@@ -210,27 +259,44 @@ class Vote(BlockchainObject):
 
     @property
     def weight(self):
+        """
+        Return the raw vote weight stored for this vote.
+
+        The value is read directly from the underlying vote data (self["weight"]) and
+        represents the weight field provided by the blockchain (type may be int).
+        """
         return self["weight"]
 
     @property
-    def sbd(self):
-        return self.blockchain.rshares_to_sbd(int(self.get("rshares", 0)))
-
-    @property
     def hbd(self):
+        """
+        Return the HBD value equivalent of this vote's rshares.
+
+        Uses the bound blockchain instance's rshares_to_hbd to convert the vote's integer `rshares` (defaults to 0).
+
+        Returns:
+            float: HBD amount corresponding to the vote's rshares.
+        """
         return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
 
     @property
     def token_backed_dollar(self):
-        from nectar import Hive
+        # Hive-only: always convert to HBD
+        """
+        Convert this vote's rshares to HBD (Hive-backed dollar).
 
-        if isinstance(self.blockchain, Hive):
-            return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
-        else:
-            return self.blockchain.rshares_to_sbd(int(self.get("rshares", 0)))
+        Uses the associated blockchain instance's rshares_to_hbd conversion on the vote's "rshares" field (defaults to 0 if missing). This is Hive-specific and always returns HBD-equivalent value for the vote.
+        """
+        return self.blockchain.rshares_to_hbd(int(self.get("rshares", 0)))
 
     @property
     def rshares(self):
+        """
+        Return the vote's raw `rshares` as an integer.
+
+        Converts the stored `rshares` value (which may be a string or number) to an int and returns it.
+        If `rshares` is missing, returns 0.
+        """
         return int(self.get("rshares", 0))
 
     @property
@@ -273,7 +339,32 @@ class VotesObject(list):
         return_str=False,
         **kwargs,
     ):
-        table_header = ["Voter", "Votee", "SBD/HBD", "Time", "Rshares", "Percent", "Weight"]
+        """
+        Render the votes collection as a formatted table, with optional filtering and sorting.
+
+        Detailed behavior:
+        - Filters votes by voter name, votee (author), time window (start/stop), and percent range (start_percent/stop_percent).
+        - Sorts votes using sort_key (default "time") and reverse order flag.
+        - Formats columns: Voter, Votee, HBD (token equivalent), Time (human-readable delta), Rshares, Percent, Weight.
+        - If return_str is True, returns the table string; otherwise prints it to stdout.
+
+        Parameters:
+            voter (str, optional): Only include votes by this voter name.
+            votee (str, optional): Only include votes targeting this votee (author).
+            start (datetime or str, optional): Inclusive lower bound for vote time; timezone info is added if missing.
+            stop (datetime or str, optional): Inclusive upper bound for vote time; timezone info is added if missing.
+            start_percent (int, optional): Inclusive lower bound for vote percent.
+            stop_percent (int, optional): Inclusive upper bound for vote percent.
+            sort_key (str, optional): Attribute name used to sort votes (default "time").
+            reverse (bool, optional): If True, sort in descending order (default True).
+            allow_refresh (bool, optional): If False, prevents refreshing votes during iteration by marking them as cached.
+            return_str (bool, optional): If True, return the rendered table as a string; otherwise print it.
+            **kwargs: Passed through to PrettyTable.get_string when rendering the table.
+
+        Returns:
+            str or None: The table string when return_str is True; otherwise None (table is printed).
+        """
+        table_header = ["Voter", "Votee", "HBD", "Time", "Rshares", "Percent", "Weight"]
         t = PrettyTable(table_header)
         t.align = "l"
         start = addTzInfo(start)
@@ -383,7 +474,13 @@ class VotesObject(list):
 
     def print_stats(self, return_str=False, **kwargs):
         # Using built-in timezone support
-        table_header = ["voter", "votee", "sbd/hbd", "time", "rshares", "percent", "weight"]
+        """
+        Print or return a summary table of vote statistics for this collection.
+
+        If return_str is True, the formatted table is returned as a string; otherwise it is printed.
+        Accepts the same filtering and formatting keyword arguments used by printAsTable (e.g., voter, votee, start, stop, start_percent, stop_percent, sort_key, reverse).
+        """
+        table_header = ["voter", "votee", "hbd", "time", "rshares", "percent", "weight"]
         t = PrettyTable(table_header)
         t.align = "l"
 
@@ -415,15 +512,46 @@ class ActiveVotes(VotesObject):
     """Obtain a list of votes for a post
 
     :param str authorperm: authorperm link
-    :param Steem steem_instance: Steem() instance to use when accesing a RPC
+    :param Blockchain blockchain_instance: Blockchain instance to use when accessing RPC
     """
 
     def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        # Handle legacy parameters
+        """
+        Initialize an ActiveVotes collection for a post's active votes.
+
+        Creates Vote objects for each active vote on the given post (author/permlink) and stores them in the list.
+        Accepts multiple input shapes for authorperm:
+        - Comment: extracts author/permlink and uses its `active_votes` via RPC.
+        - str: an authorperm string, resolved to author and permlink.
+        - list: treated as a pre-fetched list of vote dicts.
+        - dict: expects keys "active_votes" and "authorperm".
+
+        Handles legacy keyword parameters "steem_instance" and "hive_instance" (deprecated; a DeprecationWarning is emitted). If no explicit blockchain instance is provided, a shared instance is used. If the blockchain is not connected or no votes are found, initialization returns without populating the collection.
+
+        Raises:
+            ValueError: if multiple legacy instance parameters are provided.
+            VoteDoesNotExistsException: when the RPC reports invalid parameters for the requested post (no such post).
+        """
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():
@@ -499,7 +627,7 @@ class AccountVotes(VotesObject):
     Lists the last 100+ votes on the given account.
 
     :param str account: Account name
-    :param Steem steem_instance: Steem() instance to use when accesing a RPC
+    :param Blockchain blockchain_instance: Blockchain instance to use when accessing RPC
     """
 
     def __init__(
@@ -511,13 +639,26 @@ class AccountVotes(VotesObject):
         lazy=False,
         full=False,
         blockchain_instance=None,
-        **kwargs,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize AccountVotes by loading votes for a given account within an optional time window.
+
+        Creates a collection of votes retrieved from the account's historical votes. Each entry is either a Vote object (default) or the raw vote dict when `raw_data` is True. Time filtering is applied using `start` and `stop` (inclusive). Empty or missing timestamps are treated as the Unix epoch.
+
+        Parameters:
+            account: Account or str
+                Account name or Account object whose votes to load.
+            start: datetime | str | None
+                Inclusive lower bound for vote time. Accepts a timezone-aware datetime or a time string; None disables the lower bound.
+            stop: datetime | str | None
+                Inclusive upper bound for vote time. Accepts a timezone-aware datetime or a time string; None disables the upper bound.
+            raw_data: bool
+                If True, return raw vote dictionaries instead of Vote objects.
+            lazy: bool
+                Passed to Vote when constructing Vote objects; controls lazy loading behavior.
+            full: bool
+                Passed to Vote when constructing Vote objects; controls whether to fully populate vote data.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         start = addTzInfo(start)
         stop = addTzInfo(stop)

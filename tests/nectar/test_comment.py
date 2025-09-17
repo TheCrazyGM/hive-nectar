@@ -153,11 +153,11 @@ class Testcases(unittest.TestCase):
                 else:
                     self.assertEqual(content[k], json_content[k])
 
-    def test_resteem(self):
+    def test_reblog(self):
         bts = self.bts
         bts.txbuffer.clear()
         c = Comment(self.authorperm, blockchain_instance=bts)
-        tx = c.resteem(account="test")
+        tx = c.reblog(account="test")
         self.assertEqual((tx["operations"][0][0]), "custom_json")
 
     def test_reply(self):

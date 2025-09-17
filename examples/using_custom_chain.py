@@ -2,20 +2,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
-from nectar.steem import Steem
+from nectar import Hive as Hive
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 if __name__ == "__main__":
-    stm = Steem(
-        node=["https://testnet.steemitdev.com"],
+    hv = Hive(
+        node=["https://api.hive.blog"],
         custom_chains={
             "TESTNETHF20": {
                 "chain_assets": [
-                    {"asset": "@@000000013", "symbol": "SBD", "precision": 3, "id": 0},
-                    {"asset": "@@000000021", "symbol": "STEEM", "precision": 3, "id": 1},
+                    {"asset": "@@000000013", "symbol": "HBD", "precision": 3, "id": 0},
+                    {"asset": "@@000000021", "symbol": "HIVE", "precision": 3, "id": 1},
                     {"asset": "@@000000037", "symbol": "VESTS", "precision": 6, "id": 2},
                 ],
                 "chain_id": "46d82ab7d8db682eb1959aed0ada039a6d49afa1602491f93dde9cac3e8e6c32",
@@ -24,5 +24,5 @@ if __name__ == "__main__":
             }
         },
     )
-    print(stm.get_blockchain_version())
-    print(stm.get_config()["STEEM_CHAIN_ID"])
+    print(hv.get_blockchain_version())
+    print(hv.get_config()["HIVE_CHAIN_ID"])

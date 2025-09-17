@@ -15,12 +15,10 @@ Submodules
    nectar.blockchain
    nectar.blockchaininstance
    nectar.blockchainobject
-   nectar.blurt
    nectar.cli
    nectar.comment
    nectar.community
    nectar.constants
-   nectar.conveyor
    nectar.discussions
    nectar.exceptions
    nectar.hive
@@ -35,7 +33,6 @@ Submodules
    nectar.profile
    nectar.rc
    nectar.snapshot
-   nectar.steem
    nectar.storage
    nectar.transactionbuilder
    nectar.utils

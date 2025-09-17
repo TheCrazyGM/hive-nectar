@@ -2,16 +2,18 @@
 import json
 import logging
 import random
+import warnings
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union
 
 from prettytable import PrettyTable
 
 from nectar.amount import Amount
 from nectar.constants import (
-    STEEM_1_PERCENT,
-    STEEM_100_PERCENT,
-    STEEM_VOTE_REGENERATION_SECONDS,
-    STEEM_VOTING_MANA_REGENERATION_SECONDS,
+    HIVE_1_PERCENT,
+    HIVE_100_PERCENT,
+    HIVE_VOTE_REGENERATION_SECONDS,
+    HIVE_VOTING_MANA_REGENERATION_SECONDS,
 )
 from nectar.instance import shared_blockchain_instance
 from nectar.rc import RC
@@ -53,13 +55,10 @@ class Account(BlockchainObject):
     """This class allows to easily access Account data
 
     :param str account: Name of the account
-    :param Steem/Hive blockchain_instance: Hive or Steem
-           instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :param bool lazy: Use lazy loading
     :param bool full: Obtain all account data including orders, positions,
            etc.
-    :param Hive hive_instance: Hive instance
-    :param Steem steem_instance: Steem instance
     :returns: Account data
     :rtype: dictionary
     :raises nectar.exceptions.AccountDoesNotExistsException: if account
@@ -76,8 +75,8 @@ class Account(BlockchainObject):
         >>> from nectar.nodelist import NodeList
         >>> nodelist = NodeList()
         >>> nodelist.update_nodes()
-        >>> stm = Hive(node=nodelist.get_hive_nodes())
-        >>> account = Account("gtg", blockchain_instance=stm)
+        >>> hv = Hive(node=nodelist.get_hive_nodes())
+        >>> account = Account("gtg", blockchain_instance=hv)
         >>> print(account)
         <Account gtg>
         >>> print(account.balances) # doctest: +SKIP
@@ -92,27 +91,47 @@ class Account(BlockchainObject):
     type_id = 2
 
     def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
-        """Initialize an account
-
-        :param str account: Name of the account
-        :param Steem blockchain_instance: Steem
-               instance
-        :param bool lazy: Use lazy loading
-        :param bool full: Obtain all account data including orders, positions,
-               etc.
         """
+        Create an Account wrapper for a blockchain account.
+
+        Parameters:
+            account (str | dict): Account name or raw account object/dict. If a dict is provided it will be parsed into the internal account representation.
+            full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
+            lazy (bool): If True, defer fetching/processing of some fields until needed.
+
+        Description:
+            Optionally accepts an explicit blockchain instance via the `blockchain_instance` argument; if not provided a shared instance is used. For backward compatibility the deprecated kwargs `steem_instance` and `hive_instance` are accepted (they emit a DeprecationWarning and are mapped to `blockchain_instance`), but specifying more than one legacy instance raises ValueError.
+
+        Returns:
+            None
+        """
+        # Handle legacy parameters
+        legacy_keys = {"steem_instance", "hive_instance"}
+        legacy_instance = None
+        for key in legacy_keys:
+            if key in kwargs:
+                if legacy_instance is not None:
+                    raise ValueError(
+                        f"Cannot specify both {key} and another legacy instance parameter"
+                    )
+                legacy_instance = kwargs.pop(key)
+                warnings.warn(
+                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+        # Prefer explicit blockchain_instance, then legacy
+        if blockchain_instance is None and legacy_instance is not None:
+            blockchain_instance = legacy_instance
+
         self.full = full
         self.lazy = lazy
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(account, dict):
             account = self._parse_json_data(account)
         super(Account, self).__init__(
-            account, lazy=lazy, full=full, id_item="name", blockchain_instance=blockchain_instance
+            account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
     def refresh(self):
@@ -150,6 +169,17 @@ class Account(BlockchainObject):
         )
 
     def _parse_json_data(self, account):
+        """
+        Normalize and convert raw account JSON fields into proper Python types.
+
+        Converts certain string-encoded integer fields to int, parses timestamp strings to datetime via formatTimeString, converts proxied_vsf_votes entries to ints, and wraps balance/vesting fields in Amount objects using the instance's blockchain. The input dict is modified in-place and also returned.
+
+        Parameters:
+            account (dict): Raw account JSON as returned by the node; keys like balances, timestamps, and counters will be normalized.
+
+        Returns:
+            dict: The same account dict after in-place normalization.
+        """
         parse_int = [
             "sbd_seconds",
             "savings_sbd_seconds",
@@ -181,10 +211,6 @@ class Account(BlockchainObject):
             "last_active_proved",
             "last_account_recovery",
             "last_vote_time",
-            "sbd_seconds_last_update",
-            "sbd_last_interest_payment",
-            "savings_sbd_seconds_last_update",
-            "savings_sbd_last_interest_payment",
             "next_vesting_withdrawal",
             "last_market_bandwidth_update",
             "last_post",
@@ -202,16 +228,11 @@ class Account(BlockchainObject):
         amounts = [
             "balance",
             "savings_balance",
-            "sbd_balance",
-            "savings_sbd_balance",
-            "reward_sbd_balance",
             "hbd_balance",
             "savings_hbd_balance",
             "reward_hbd_balance",
-            "reward_steem_balance",
             "reward_hive_balance",
             "reward_vesting_balance",
-            "reward_vesting_steem",
             "vesting_shares",
             "delegated_vesting_shares",
             "received_vesting_shares",
@@ -224,6 +245,18 @@ class Account(BlockchainObject):
         return account
 
     def json(self):
+        """
+        Return a JSON-serializable representation of the account data with normalized field types.
+
+        Converts internal Python objects to plain JSON-friendly types:
+        - Specific integer fields are converted to strings (to preserve large integers) or to strings only when non-zero.
+        - Elements of `proxied_vsf_votes` are converted to strings when they are non-zero integers; other elements are left unchanged.
+        - Datetime, date, and time objects listed in time fields are converted to ISO-like strings via `formatTimeString`; non-datetime values are passed through.
+        - Amount-like fields (e.g., balances, vesting shares) are converted by calling their `.json()` method.
+
+        Returns:
+            dict: A JSON-serializable dictionary representing the account suitable for serialization.
+        """
         output = self.copy()
         parse_int = [
             "sbd_seconds",
@@ -259,10 +292,6 @@ class Account(BlockchainObject):
             "last_active_proved",
             "last_account_recovery",
             "last_vote_time",
-            "sbd_seconds_last_update",
-            "sbd_last_interest_payment",
-            "savings_sbd_seconds_last_update",
-            "savings_sbd_last_interest_payment",
             "next_vesting_withdrawal",
             "last_market_bandwidth_update",
             "last_post",
@@ -283,16 +312,11 @@ class Account(BlockchainObject):
         amounts = [
             "balance",
             "savings_balance",
-            "sbd_balance",
-            "savings_sbd_balance",
-            "reward_sbd_balance",
-            "reward_steem_balance",
             "hbd_balance",
             "savings_hbd_balance",
             "reward_hbd_balance",
             "reward_hive_balance",
             "reward_vesting_balance",
-            "reward_vesting_steem",
             "vesting_shares",
             "delegated_vesting_shares",
             "received_vesting_shares",
@@ -315,7 +339,22 @@ class Account(BlockchainObject):
         return b.find_rc_accounts(self["name"])
 
     def get_rc_manabar(self):
-        """Returns current_mana and max_mana for RC"""
+        """
+        Return the account's current and maximum Resource Credit (RC) mana.
+
+        Calculates RC mana regeneration since the stored `rc_manabar.last_update_time` and returns
+        both raw and computed values.
+
+        Returns:
+            dict: {
+                "last_mana" (int): stored mana at the last update (raw value from account data),
+                "last_update_time" (int): UNIX timestamp (seconds) of the last manabar update,
+                "current_mana" (int): estimated current mana after regeneration (capped at max_mana),
+                "max_mana" (int): maximum possible mana (from `max_rc`),
+                "current_pct" (float): current_mana / max_mana * 100 (0 if max_mana == 0),
+                "max_rc_creation_adjustment" (Amount): Amount object representing max RC creation adjustment
+            }
+        """
         rc_param = self.get_rc()
         max_mana = int(rc_param["max_rc"])
         last_mana = int(rc_param["rc_manabar"]["current_mana"])
@@ -323,7 +362,7 @@ class Account(BlockchainObject):
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
         diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -380,12 +419,16 @@ class Account(BlockchainObject):
 
     @property
     def sp(self):
-        """Returns the accounts Steem Power"""
+        """
+        Return the account's Hive Power (HP).
+
+        This is a compatibility alias that delegates to `get_token_power()` and returns the account's effective Hive Power as computed by that method.
+        """
         return self.get_token_power()
 
     @property
     def tp(self):
-        """Returns the accounts Hive/Steem Power"""
+        """Returns the account Hive Power"""
         return self.get_token_power()
 
     @property
@@ -406,7 +449,22 @@ class Account(BlockchainObject):
         return json.loads(self["posting_json_metadata"])
 
     def print_info(self, force_refresh=False, return_str=False, use_table=False, **kwargs):
-        """Prints import information about the account"""
+        """
+        Print account summary information, either printed or returned as a string.
+
+        If force_refresh is True the account data and shared blockchain data are refreshed before computing values.
+        The summary includes reputation, voting/downvoting power and recharge times, estimated vote value (HBD),
+        token power (HP), balances, and (when available) RC manabar estimates and approximate RC costs for common ops.
+
+        Parameters:
+            force_refresh (bool): If True, refresh account and blockchain data before generating the summary.
+            return_str (bool): If True, return the formatted summary string instead of printing it.
+            use_table (bool): If True, format the output as a two-column PrettyTable; otherwise produce a plain text block.
+            **kwargs: Forwarded to PrettyTable.get_string when use_table is True (e.g., sortby, border). These are ignored for plain text output.
+
+        Returns:
+            str | None: The formatted summary string when return_str is True; otherwise None (the summary is printed).
+        """
         if force_refresh:
             self.refresh()
             self.blockchain.refresh_data(True)
@@ -436,7 +494,7 @@ class Account(BlockchainObject):
             t.add_row(["Name (rep)", self.name + " (%.2f)" % (self.rep)])
             t.add_row(["Voting Power", "%.2f %%, " % (self.get_voting_power())])
             t.add_row(["Downvoting Power", "%.2f %%, " % (self.get_downvoting_power())])
-            t.add_row(["Vote Value", "%.2f $" % (self.get_voting_value_SBD())])
+            t.add_row(["Vote Value (HBD)", "%.2f $" % (self.get_voting_value_HBD())])
             t.add_row(["Last vote", "%s ago" % last_vote_time_str])
             t.add_row(["Full in ", "%s" % (self.get_recharge_time_str())])
             t.add_row(
@@ -507,12 +565,12 @@ class Account(BlockchainObject):
             ret = self.name + " (%.2f) \n" % (self.rep)
             ret += "--- Voting Power ---\n"
             ret += "%.2f %%, " % (self.get_voting_power())
-            ret += " %.2f $\n" % (self.get_voting_value_SBD())
+            ret += " %.2f $\n" % (self.get_voting_value_HBD())
             ret += "full in %s \n" % (self.get_recharge_time_str())
             ret += "--- Downvoting Power ---\n"
             ret += "%.2f %% \n" % (self.get_downvoting_power())
             ret += "--- Balance ---\n"
-            ret += "%.2f SP, " % (self.get_token_power())
+            ret += "%.2f HP, " % (self.get_token_power())
             ret += "%s, %s\n" % (
                 str(self.balances["available"][0]),
                 str(self.balances["available"][1]),
@@ -552,7 +610,11 @@ class Account(BlockchainObject):
             print(ret)
 
     def get_reputation(self):
-        """Returns the account reputation in the (steemit) normalized form"""
+        """
+        Return the account's normalized reputation score.
+
+        If the node is offline, returns None. When connected, prefers the appbase `reputation` API to fetch the latest reputation; if that call fails or is unavailable, falls back to the account's cached `reputation` field. The returned value is the normalized reputation computed by `reputation_to_score`.
+        """
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
@@ -573,7 +635,25 @@ class Account(BlockchainObject):
         return reputation_to_score(rep)
 
     def get_manabar(self):
-        """Return manabar"""
+        """
+        Return the account's voting manabar state.
+
+        Calculates current voting mana from the stored voting_manabar using the account's
+        effective vesting shares as `max_mana`. If effective vesting shares are zero,
+        a fallback is computed from the chain's account creation fee converted to vests.
+
+        Returns:
+            dict: Manabar values with the following keys:
+                - last_mana (int): Stored `current_mana` at the last update.
+                - last_update_time (int): Unix timestamp (seconds) of the last manabar update.
+                - current_mana (int): Estimated current mana (capped at `max_mana`).
+                - max_mana (int): Maximum mana derived from effective vesting shares.
+                - current_mana_pct (float): Current mana as a percentage of `max_mana`.
+
+        Notes:
+            - Regeneration uses HIVE_VOTING_MANA_REGENERATION_SECONDS to convert elapsed
+              seconds since `last_update_time` into regenerated mana.
+        """
         max_mana = self.get_effective_vesting_shares()
         if max_mana == 0:
             props = self.blockchain.get_chain_properties()
@@ -589,7 +669,7 @@ class Account(BlockchainObject):
             addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
         ).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -606,7 +686,18 @@ class Account(BlockchainObject):
         }
 
     def get_downvote_manabar(self):
-        """Return downvote manabar"""
+        """
+        Return the account's downvote manabar state and regeneration progress.
+
+        If the account has no 'downvote_manabar' field returns None.
+
+        Returns a dict with:
+            - last_mana (int): stored mana at last update.
+            - last_update_time (int): POSIX timestamp of the last update.
+            - current_mana (int): estimated current mana after regeneration (clamped to max_mana).
+            - max_mana (int): maximum possible downvote mana (derived from effective vesting shares or account creation fee fallback).
+            - current_mana_pct (float): current_mana expressed as a percentage of max_mana (0–100).
+        """
         if "downvote_manabar" not in self:
             return None
         max_mana = self.get_effective_vesting_shares() / 4
@@ -624,7 +715,7 @@ class Account(BlockchainObject):
             addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
         ).total_seconds()
         current_mana = int(
-            last_mana + diff_in_seconds * max_mana / STEEM_VOTING_MANA_REGENERATION_SECONDS
+            last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
@@ -641,10 +732,16 @@ class Account(BlockchainObject):
         }
 
     def get_voting_power(self, with_regeneration=True):
-        """Returns the account voting power in the range of 0-100%
+        """
+        Return the account's current voting power as a percentage (0–100).
 
-        :param bool with_regeneration: When True, voting power regeneration is
-            included into the result (default True)
+        If the account stores a `voting_manabar`, the result is derived from that manabar and optionally includes regeneration. If the legacy `voting_power` field is present, the method uses that value and, when `with_regeneration` is True, adds the amount regenerated since `last_vote_time`.
+
+        Parameters:
+            with_regeneration (bool): If True (default), include regenerated voting power since the last update.
+
+        Returns:
+            float: Voting power percentage in the range 0 to 100 (clamped).
         """
         if "voting_manabar" in self:
             manabar = self.get_manabar()
@@ -662,7 +759,7 @@ class Account(BlockchainObject):
                     addTzInfo(datetime.now(timezone.utc)) - (last_vote_time)
                 ).total_seconds()
                 regenerated_vp = (
-                    diff_in_seconds * STEEM_100_PERCENT / STEEM_VOTE_REGENERATION_SECONDS / 100
+                    diff_in_seconds * HIVE_100_PERCENT / HIVE_VOTE_REGENERATION_SECONDS / 100
                 )
             else:
                 regenerated_vp = 0
@@ -713,7 +810,18 @@ class Account(BlockchainObject):
         return vests
 
     def get_effective_vesting_shares(self):
-        """Returns the effective vesting shares"""
+        """
+        Return the account's effective vesting shares as an integer.
+
+        Calculates vesting shares adjusted for active delegations and pending withdrawals:
+        - Starts from `vesting_shares`.
+        - Subtracts `delegated_vesting_shares` and adds `received_vesting_shares` when present.
+        - If a future `next_vesting_withdrawal` exists and withdrawal fields are present,
+          subtracts the remaining amount that will be withdrawn (bounded by `vesting_withdraw_rate`).
+
+        Returns:
+            int: Effective vesting shares in the same internal units stored on the account.
+        """
         vesting_shares = int(self["vesting_shares"])
         if "delegated_vesting_shares" in self and "received_vesting_shares" in self:
             vesting_shares = (
@@ -737,21 +845,19 @@ class Account(BlockchainObject):
         return vesting_shares
 
     def get_token_power(self, only_own_vests=False, use_stored_data=True):
-        """Returns the account Hive/Steem power (amount of staked token + delegations)
+        """
+        Return the account's Hive Power (HP), including staked tokens and delegated amounts.
 
-        :param bool only_own_vests: When True, only owned vests is
-            returned without delegation (default False)
-        :param bool use_stored_data: When False, an API call returns the current
-            vests_to_token_power ratio everytime (default True)
+        Parameters:
+            only_own_vests (bool): If True, only the account's owned vesting shares are considered (delegations excluded).
+            use_stored_data (bool): If False, fetch the current vests-to-token-power conversion from the chain; if True, use cached conversion values.
 
+        Returns:
+            float: Hive Power (HP) equivalent for the account's vesting shares.
         """
         return self.blockchain.vests_to_token_power(
             self.get_vests(only_own_vests=only_own_vests), use_stored_data=use_stored_data
         )
-
-    def get_steem_power(self, onlyOwnSP=False):
-        """Returns the account steem power"""
-        return self.get_token_power(only_own_vests=onlyOwnSP)
 
     def get_voting_value(
         self,
@@ -761,7 +867,23 @@ class Account(BlockchainObject):
         token_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the account voting value in Hive/Steem token units"""
+        """
+        Estimate the vote value expressed in HBD for a potential vote by this account.
+
+        Detailed description:
+        Computes the HBD value that a vote would produce given post rshares and voting settings. Uses the account's token power (HP) by default and delegates the numeric conversion to the blockchain instance.
+
+        Parameters:
+            post_rshares (int): The post's rshares contribution (can be 0 for an upvote-only estimate).
+            voting_weight (float|int, optional): The vote weight as a percentage in the range 0–100 (default 100).
+            voting_power (float|int, optional): The account's current voting power as a percentage in the range 0–100.
+                If omitted, the account's current voting power is used.
+            token_power (float|int, optional): Token power (HP) to use for the calculation. If omitted, the account's current HP is used.
+            not_broadcasted_vote (bool, optional): If True, treat the vote as not yet broadcast when estimating (affects regeneration logic).
+
+        Returns:
+            Amount: Estimated vote value denominated in HBD.
+        """
         if voting_power is None:
             voting_power = self.get_voting_power()
         if token_power is None:
@@ -777,40 +899,58 @@ class Account(BlockchainObject):
         )
         return voteValue
 
-    def get_voting_value_SBD(
+    def get_voting_value_HBD(
         self,
         post_rshares=0,
         voting_weight=100,
         voting_power=None,
-        steem_power=None,
+        hive_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the account voting value in SBD"""
+        """
+        Return the estimated voting value expressed in HBD for the account.
+
+        This is a thin wrapper around `get_voting_value` that maps `hive_power` to the underlying `token_power` parameter.
+
+        Parameters:
+            post_rshares (int): Total rshares for the target post (default 0).
+            voting_weight (int): Weight of the vote as a percentage (0-100, default 100).
+            voting_power (int | None): Current voting power percentage to use; if None the account's current power is used.
+            hive_power (float | None): Token power (Hive Power / HP) to use for the calculation; if None the account's current token power is used.
+            not_broadcasted_vote (bool): If True, calculate value as if the vote is not yet broadcast (default True).
+
+        Returns:
+            Estimated vote value expressed in HBD.
+        """
         return self.get_voting_value(
             post_rshares=post_rshares,
             voting_weight=voting_weight,
             voting_power=voting_power,
-            token_power=steem_power,
+            token_power=hive_power,
             not_broadcasted_vote=not_broadcasted_vote,
         )
 
-    def get_vote_pct_for_SBD(
-        self, sbd, post_rshares=0, voting_power=None, steem_power=None, not_broadcasted_vote=True
+    def get_vote_pct_for_HBD(
+        self, hbd, post_rshares=0, voting_power=None, hive_power=None, not_broadcasted_vote=True
     ):
-        """Returns the voting percentage needed to have a vote worth a given number of SBD.
+        """
+        Return the voting percentage (weight) required for this account to produce a vote worth the given HBD amount.
 
-        If the returned number is bigger than 10000 or smaller than -10000,
-        the given SBD value is too high for that account
+        Parameters:
+            hbd (str | int | Amount): Desired vote value in HBD (can be numeric, string, or an Amount).
+            post_rshares (int): Current rshares of the post; used in the vote value calculation. Defaults to 0.
+            voting_power (int | None): Current voting power to use (in internal units). If None, the account's current voting power is used.
+            hive_power (Amount | None): Token power (HP) to use for the calculation. If None, the account's current HP is used.
+            not_broadcasted_vote (bool): If True, accounts for a non-broadcasted (simulated) vote when estimating required percentage.
 
-        :param sbd: The amount of SBD in vote value
-        :type sbd: str, int, amount.Amount
-
+        Returns:
+            int: Vote weight as an integer in the range -10000..10000 (where 10000 == 100%). Values outside that range indicate the requested HBD value is unattainable with this account (e.g., greater than 10000 or less than -10000).
         """
         return self.get_vote_pct_for_vote_value(
-            sbd,
+            hbd,
             post_rshares=post_rshares,
             voting_power=voting_power,
-            token_power=steem_power,
+            token_power=hive_power,
             not_broadcasted_vote=not_broadcasted_vote,
         )
 
@@ -822,14 +962,23 @@ class Account(BlockchainObject):
         token_power=None,
         not_broadcasted_vote=True,
     ):
-        """Returns the voting percentage needed to have a vote worth a given number of Hive/Steem token units
+        """
+        Return the voting percentage required to produce a specified vote value in the blockchain's backed token (HBD).
 
-        If the returned number is bigger than 10000 or smaller than -10000,
-        the given SBD value is too high for that account
+        Given a desired token-backed amount (token_units), compute the internal vote percentage (in the same scale used by the chain, e.g. 10000 == 100%) required to yield that payout for a post with post_rshares. If the returned value is larger than 10000 or smaller than -10000, the requested value is outside what the account can reasonably produce.
 
-        :param token_units: The amount of HBD/SBD in vote value
-        :type token_units: str, int, amount.Amount
+        Parameters:
+            token_units (str|int|Amount): Desired vote value expressed in the blockchain's backed token (HBD). Strings and numbers will be converted to an Amount using the account's blockchain context.
+            post_rshares (int, optional): Current rshares for the post; used when converting rshares to a percentage. Default 0.
+            voting_power (float|int, optional): Account voting power as returned by get_voting_power (expected on a 0–100 scale). If omitted, the account's current voting power is used.
+            token_power (float|int, optional): Account token power (HP). If omitted, the account's current token power is used.
+            not_broadcasted_vote (bool, optional): Passed to the conversion routine when estimating rshares from HBD; controls whether broadcast-specific adjustments are applied. Default True.
 
+        Returns:
+            int: The vote percentage in chain units (e.g., 10000 == 100%). May exceed ±10000 when the requested value is unattainable.
+
+        Raises:
+            AssertionError: If token_units is not expressed in the blockchain's backed token symbol (HBD).
         """
         if voting_power is None:
             voting_power = self.get_voting_power()
@@ -850,18 +999,6 @@ class Account(BlockchainObject):
             raise AssertionError(
                 "Should input %s, not any other asset!" % self.blockchain.backed_token_symbol
             )
-        from nectar import Steem
-
-        if isinstance(self.blockchain, Steem):
-            vote_pct = self.blockchain.rshares_to_vote_pct(
-                self.blockchain.sbd_to_rshares(
-                    token_units, not_broadcasted_vote=not_broadcasted_vote
-                ),
-                post_rshares=post_rshares,
-                voting_power=voting_power * 100,
-                steem_power=token_power,
-            )
-        else:
             vote_pct = self.blockchain.rshares_to_vote_pct(
                 self.blockchain.hbd_to_rshares(
                     token_units, not_broadcasted_vote=not_broadcasted_vote
@@ -895,12 +1032,24 @@ class Account(BlockchainObject):
         return formatTimedelta(remainingTime)
 
     def get_recharge_timedelta(self, voting_power_goal=100, starting_voting_power=None):
-        """Returns the account voting power recharge time as timedelta object
+        """
+        Return the timedelta required to recharge the account's voting power to a target percentage.
 
-        :param float voting_power_goal: voting power goal in percentage (default is 100)
-        :param float starting_voting_power: returns recharge time if current voting power is
-            the provided value.
+        If `starting_voting_power` is omitted, the current voting power is used. `voting_power_goal`
+        and `starting_voting_power` are percentages (e.g., 100 for full power). If the starting
+        power already meets or exceeds the goal, the function returns 0.
 
+        Parameters:
+            voting_power_goal (float): Target voting power percentage (default 100).
+            starting_voting_power (float | int | None): Optional starting voting power percentage to
+                use instead of the account's current voting power.
+
+        Returns:
+            datetime.timedelta | int: Time required to recharge to the goal as a timedelta, or 0 if
+            the starting power is already at or above the goal.
+
+        Raises:
+            ValueError: If `starting_voting_power` is provided but is not a number.
         """
         if starting_voting_power is None:
             missing_vp = voting_power_goal - self.get_voting_power()
@@ -911,7 +1060,7 @@ class Account(BlockchainObject):
         if missing_vp < 0:
             return 0
         recharge_seconds = (
-            missing_vp * 100 * STEEM_VOTING_MANA_REGENERATION_SECONDS / STEEM_100_PERCENT
+            missing_vp * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
@@ -940,11 +1089,17 @@ class Account(BlockchainObject):
         return formatTimedelta(remainingTime)
 
     def get_manabar_recharge_timedelta(self, manabar, recharge_pct_goal=100):
-        """Returns the account mana recharge time as timedelta object
+        """
+        Return the time remaining for a manabar to recharge to a target percentage.
 
-        :param dict manabar: manabar dict from get_manabar() or get_rc_manabar()
-        :param float recharge_pct_goal: mana recovery goal in percentage (default is 100)
+        Parameters:
+            manabar (dict): Manabar structure returned by get_manabar() or get_rc_manabar().
+                Expected to contain either 'current_mana_pct' or 'current_pct' (value in percent).
+            recharge_pct_goal (float): Target recharge percentage (0–100). Defaults to 100.
 
+        Returns:
+            datetime.timedelta or int: Time required to reach the target as a timedelta. If the
+            manabar is already at or above the target, returns 0.
         """
         if "current_mana_pct" in manabar:
             missing_rc_pct = recharge_pct_goal - manabar["current_mana_pct"]
@@ -953,85 +1108,40 @@ class Account(BlockchainObject):
         if missing_rc_pct < 0:
             return 0
         recharge_seconds = (
-            missing_rc_pct * 100 * STEEM_VOTING_MANA_REGENERATION_SECONDS / STEEM_100_PERCENT
+            missing_rc_pct * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
     def get_manabar_recharge_time(self, manabar, recharge_pct_goal=100):
-        """Returns the account mana recharge time in minutes
+        """
+        Return the UTC datetime when the given manabar will reach the specified recovery percentage.
 
-        :param dict manabar: manabar dict from get_manabar() or get_rc_manabar()
-        :param float recharge_pct_goal: mana recovery goal in percentage (default is 100)
+        Parameters:
+            manabar (dict): Manabar state as returned by get_manabar() or get_rc_manabar().
+                Expected keys include 'current_mana' (int), 'max_mana' (int) and 'last_update_time' (datetime or ISO string).
+            recharge_pct_goal (float): Target recovery level as a percentage (0–100). Defaults to 100.
 
+        Returns:
+            datetime: Timezone-aware UTC datetime when the manabar is expected to reach the target percentage.
         """
         return addTzInfo(datetime.now(timezone.utc)) + self.get_manabar_recharge_timedelta(
             manabar, recharge_pct_goal
         )
 
-    def get_feed(
-        self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
-    ):
-        """Returns a list of items in an account’s feed
-
-        :param int start_entry_id: default is 0
-        :param int limit: default is 100
-        :param bool raw_data: default is False
-        :param bool short_entries: when set to True and raw_data is True, get_feed_entries is used istead of get_feed
-        :param str account: When set, a different account name is used (Default is object account name)
-
-        :rtype: list
-
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> account.get_feed(0, 1, raw_data=True)
-            []
-
-        """
-        if account is None:
-            account = self["name"]
-        account = extract_account_name(account)
-        if not self.blockchain.is_connected():
-            return None
-        from nectar.discussions import Discussions, Query
-
-        d = Discussions(blockchain_instance=self.blockchain)
-        if short_entries:
-            truncate_body = 1
-        else:
-            truncate_body = 0
-        q = Query(limit=limit, tag=account, truncate_body=truncate_body)
-        return [c for c in d.get_discussions("feed", q, limit=limit, raw_data=raw_data)]
-
     def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
-        """Returns a list of entries in an account’s feed
+        """
+        Return a list of feed entries for the account.
 
-        :param int start_entry_id: default is 0
-        :param int limit: default is 100
-        :param bool raw_data: default is False
-        :param bool short_entries: when set to True and raw_data is True, get_feed_entries is used istead of get_feed
-        :param str account: When set, a different account name is used (Default is object account name)
+        If `account` is provided, entries for that account are returned; otherwise uses this Account's name. This method delegates to the internal feed retrieval implementation and requests short-form entries.
 
-        :rtype: list
+        Parameters:
+            start_entry_id (int): Entry index to start from (default 0).
+            limit (int): Maximum number of entries to return (default 100).
+            raw_data (bool): If True, return raw API dictionaries; if False, return wrapped objects (default True).
+            account (str, optional): Override account name to fetch feed for (default uses this Account).
 
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> account.get_feed_entries(0, 1)
-            []
-
+        Returns:
+            list: A list of feed entries (raw dicts or wrapped objects depending on `raw_data`).
         """
         return self.get_feed(
             start_entry_id=start_entry_id,
@@ -1042,28 +1152,19 @@ class Account(BlockchainObject):
         )
 
     def get_blog_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
-        """Returns the list of blog entries for an account
+        """
+        Return the account's blog entries.
 
-        :param int start_entry_id: default is 0
-        :param int limit: default is 100
-        :param bool raw_data: default is False
-        :param str account: When set, a different account name is used (Default is object account name)
+        By default returns up to `limit` entries starting at `start_entry_id` for this account. When `raw_data` is True the entries are returned as raw dictionaries from the RPC; when False they are returned as processed Comment objects.
 
-        :rtype: list
+        Parameters:
+            start_entry_id (int): Entry index to start from (default 0).
+            limit (int): Maximum number of entries to return (default 100).
+            raw_data (bool): If True return raw RPC dicts; if False return Comment objects (default True).
+            account (str): Optional account name to fetch entries for (default is this Account's name).
 
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> entry = account.get_blog_entries(0, 1, raw_data=True)[0]
-            >>> print("%s - %s - %s" % (entry["author"], entry["permlink"], entry["blog"]))
-            steemit - firstpost - steemit
-
+        Returns:
+            list: A list of entries (dicts when `raw_data` is True, Comment objects when False).
         """
         return self.get_blog(
             start_entry_id=start_entry_id,
@@ -1076,28 +1177,23 @@ class Account(BlockchainObject):
     def get_blog(
         self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
     ):
-        """Returns the list of blog entries for an account
+        """
+        Return the blog entries for an account.
 
-        :param int start_entry_id: default is 0
-        :param int limit: default is 100
-        :param bool raw_data: default is False
-        :param bool short_entries: when set to True and raw_data is True, get_blog_entries is used istead of get_blog
-        :param str account: When set, a different account name is used (Default is object account name)
+        By default this returns a list of Comment objects for the account's blog. If raw_data=True the raw API dicts are returned instead. When both raw_data and short_entries are True the `get_blog_entries` API is used (returns shorter entry objects). If account is None the current Account's name is used.
 
-        :rtype: list
+        Parameters:
+            start_entry_id (int): ID offset to start from (default 0).
+            limit (int): Maximum number of entries to return (default 100).
+            raw_data (bool): If True, return raw API dictionaries instead of Comment objects.
+            short_entries (bool): When True and raw_data is True, use the shorter `get_blog_entries` API.
+            account (str|Account|dict|None): Account to query; if None uses this Account.
 
-        .. code-block:: python
+        Returns:
+            list: A list of Comment objects (when raw_data is False) or raw entry dictionaries (when raw_data is True).
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> account.get_blog(0, 1)
-            [<Comment @steemit/firstpost>]
-
+        Raises:
+            OfflineHasNoRPCException: If called while offline (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -1232,23 +1328,10 @@ class Account(BlockchainObject):
         return self.blockchain.custom_json("notify", json_body, required_posting_auths=[account])
 
     def get_blog_authors(self, account=None):
-        """Returns a list of authors that have had their content reblogged on a given blog account
+        """
+        Return a list of author account names whose posts have been reblogged on the specified blog account.
 
-        :param str account: When set, a different account name is used (Default is object account name)
-
-        :rtype: list
-
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("gtg", blockchain_instance=stm)
-            >>> account.get_blog_authors() # doctest: +SKIP
-
+        If `account` is omitted, uses this Account object's name. Raises OfflineHasNoRPCException if called while offline. Returns a list of strings (author account names).
         """
         if account is None:
             account = self["name"]
@@ -1312,7 +1395,16 @@ class Account(BlockchainObject):
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
     def get_mutings(self, raw_name_list=True, limit=100):
-        """Returns who the account is muting as list"""
+        """
+        Return the list of accounts this account has muted.
+
+        Parameters:
+            raw_name_list (bool): If True (default), return a list of account names (str). If False, return an Accounts collection of Account objects.
+            limit (int): Maximum number of muted accounts to fetch (default 100).
+
+        Returns:
+            list[str] | Accounts: Either a list of account names or an Accounts object containing the muted accounts.
+        """
         name_list = [
             x["following"]
             for x in self._get_followers(direction="following", what="ignore", limit=limit)
@@ -1322,41 +1414,83 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_follow_list(self, follow_type, starting_account=None, limit=100, raw_name_list=True):
-        """Returns the follow list for the specified follow_type (Only HIVE with HF >= 24)
+    def get_follow_list(
+        self,
+        follow_type: str,
+        starting_account: Optional[str] = None,
+        raw_name_list: bool = True,
+    ) -> Union[List[Dict[str, Any]], "Accounts"]:
+        """
+        Return the account follow list for a given follow_type (requires Hive HF >= 24).
 
-        :param list follow_type: follow_type can be `blacklisted`, `follow_blacklist` `muted`, or `follow_muted`
+        Normalizes legacy aliases ('blacklisted' -> 'follow_blacklist', 'muted' -> 'follow_muted')
+        and queries the blockchain bridge API for the observer's follow list. Supports pagination
+        via an optional starting_account cursor.
+
+        Parameters:
+            follow_type (str): One of 'follow_blacklist' or 'follow_muted' (aliases 'blacklisted' and 'muted' accepted).
+            starting_account (Optional[str]): Optional pagination start cursor (name of the account to start from).
+            raw_name_list (bool): If True, return the raw list of dicts from the bridge API (each dict typically contains a 'name' key).
+                                  If False, return an Accounts collection built from the returned names.
+
+        Returns:
+            Union[List[Dict[str, Any]], Accounts]: Raw list of follow entries (dicts) when raw_name_list is True,
+                                                  otherwise an Accounts instance containing the followed account names.
+
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is in offline mode (no RPC available).
+            ValueError: If follow_type is not one of the supported values or aliases.
         """
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        limit_reached = True
-        cnt = 0
-        while limit_reached:
-            self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            query = {
-                "observer": self.name,
-                "follow_type": follow_type,
-                "starting_account": starting_account,
-                "limit": limit,
-            }
-            followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
-            if cnt == 0:
-                name_list = followers
-            elif followers is not None and len(followers) > 1:
-                name_list += followers[1:]
-            if followers is not None and len(followers) >= limit:
-                starting_account = followers[-1]
-                limit_reached = True
-                cnt += 1
-            else:
-                limit_reached = False
+        # Normalize follow_type to canonical values accepted by all nodes
+        alias_map = {
+            "blacklisted": "follow_blacklist",
+            "muted": "follow_muted",
+        }
+        normalized_follow_type = alias_map.get(follow_type, follow_type)
+        valid_types = {"follow_blacklist", "follow_muted"}
+        if normalized_follow_type not in valid_types:
+            raise ValueError(
+                "Invalid follow_type. Use one of: 'blacklisted', 'muted', 'follow_blacklist', 'follow_muted'"
+            )
+
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        query = {
+            "observer": self.name,
+            "follow_type": normalized_follow_type,
+        }
+        if starting_account is not None:
+            query["start"] = starting_account
+
+        followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
+
+        name_list: List[Dict[str, Any]] = followers or []
         if raw_name_list:
             return name_list
         else:
-            return Accounts(name_list, blockchain_instance=self.blockchain)
+            # Convert list of dicts to list of account names for Accounts initializer
+            account_names: List[str] = [x["name"] for x in name_list if "name" in x]
+            return Accounts(account_names, blockchain_instance=self.blockchain)
 
     def _get_followers(self, direction="follower", last_user="", what="blog", limit=100):
-        """Help function, used in get_followers and get_following"""
+        """
+        Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
+
+        This helper paginates through get_followers/get_following RPC calls (appbase and legacy modes supported) until no more pages are returned, concatenating results into a single list. When batching, duplicate leading entries from subsequent pages are skipped so entries are not repeated.
+
+        Parameters:
+            direction (str): "follower" to fetch followers, "following" to fetch accounts this account follows.
+            last_user (str): Starting username for pagination (inclusive start for the first call); subsequent pages are continued internally.
+            what (str): Relationship type filter passed to the RPC (commonly "blog" or "ignore").
+            limit (int): Maximum number of entries to request per RPC call (page size).
+
+        Returns:
+            list: A list of follower/following records as returned by the condenser API.
+
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is offline.
+        """
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         followers_list = []
@@ -1441,12 +1575,13 @@ class Account(BlockchainObject):
 
     @property
     def available_balances(self):
-        """List balances of an account. This call returns instances of
-        :class:`nectar.amount.Amount`.
         """
-        if "sbd_balance" in self:
-            amount_list = ["balance", "sbd_balance", "vesting_shares"]
-        elif "hbd_balance" in self:
+        Return a list of the account's available balances as Amount objects.
+
+        Includes liquid HIVE ("balance"), HBD ("hbd_balance") when present, and vesting shares ("vesting_shares").
+        Balances are returned in that order when available and are shallow copies of the stored Amount objects.
+        """
+        if "hbd_balance" in self:
             amount_list = ["balance", "hbd_balance", "vesting_shares"]
         else:
             amount_list = ["balance", "vesting_shares"]
@@ -1458,10 +1593,15 @@ class Account(BlockchainObject):
 
     @property
     def saving_balances(self):
+        """
+        Return the account's savings balances.
+
+        Returns a list of Amount objects representing savings balances present on the account.
+        Includes "savings_balance" and, if present, "savings_hbd_balance". Returns an empty list if no
+        savings balances are available.
+        """
         savings_amount = []
-        if "savings_sbd_balance" in self:
-            amount_list = ["savings_balance", "savings_sbd_balance"]
-        elif "savings_hbd_balance" in self:
+        if "savings_hbd_balance" in self:
             amount_list = ["savings_balance", "savings_hbd_balance"]
         else:
             amount_list = ["savings_balance"]
@@ -1472,9 +1612,15 @@ class Account(BlockchainObject):
 
     @property
     def reward_balances(self):
-        if "reward_steem_balance" in self and "reward_sbd_balance" in self:
-            amount_list = ["reward_steem_balance", "reward_sbd_balance", "reward_vesting_balance"]
-        elif "reward_hive_balance" in self and "reward_hbd_balance" in self:
+        """
+        Return the account's reward balances as a list of Amount objects.
+
+        Checks for reward-related fields ('reward_hive_balance', 'reward_hbd_balance', 'reward_vesting_balance') on the account and returns copies of any that exist, preserving the original stored Amount objects. The list order is: reward_hive_balance, reward_hbd_balance, reward_vesting_balance (when present).
+
+        Returns:
+            list: A list of Amount instances (copies) for each available reward balance.
+        """
+        if "reward_hive_balance" in self and "reward_hbd_balance" in self:
             amount_list = ["reward_hive_balance", "reward_hbd_balance", "reward_vesting_balance"]
         else:
             amount_list = []
@@ -1503,22 +1649,17 @@ class Account(BlockchainObject):
         return self.get_balances()
 
     def get_balances(self):
-        """Returns all account balances as dictionary
+        """
+        Return the account's balances grouped by category.
 
-        :returns: Account balances
-        :rtype: dictionary
+        Returns a dictionary with keys:
+        - "available": list of Amounts currently spendable (e.g., HIVE, HBD, VESTS)
+        - "savings": list of Amounts held in savings
+        - "rewards": list of pending reward Amounts
+        - "total": list of total Amounts combining available, savings, and rewards
 
-        Sample output:
-
-            .. code-block:: js
-
-                {
-                    'available': [102.985 STEEM, 0.008 SBD, 146273.695970 VESTS],
-                    'savings': [0.000 STEEM, 0.000 SBD],
-                    'rewards': [0.000 STEEM, 0.000 SBD, 0.000000 VESTS],
-                    'total': [102.985 STEEM, 0.008 SBD, 146273.695970 VESTS]
-                }
-
+        Returns:
+            dict: Mapping of balance category to a list of Amount objects (or empty list for absent symbols).
         """
         return {
             "available": self.available_balances,
@@ -1528,30 +1669,17 @@ class Account(BlockchainObject):
         }
 
     def get_balance(self, balances, symbol):
-        """Obtain the balance of a specific Asset. This call returns instances of
-        :class:`nectar.amount.Amount`. Available balance types:
+        """
+        Return a specific balance Amount for this account.
 
-        * "available"
-        * "saving"
-        * "reward"
-        * "total"
+        Accepts either a list of balance dicts or a balance category name and returns the Amount for the requested symbol. Valid balance category names are "available", "savings", "rewards", and "total". The symbol may be a string (e.g., "HBD", "HIVE", "VESTS") or a dict containing a "symbol" key.
 
-        :param str balances: Defines the balance type
-        :param symbol: Can be "SBD", "STEEM" or "VESTS
-        :type symbol: str, dict
+        Parameters:
+            balances (str | list[dict]): A balance category name or a list of balance dicts (each with keys "amount" and "symbol").
+            symbol (str | dict): The asset symbol to look up, or a dict containing {"symbol": <str>}.
 
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_balance("rewards", "HBD")
-            0.000 HBD
-
+        Returns:
+            nectar.amount.Amount: The matching Amount from the provided balances, or Amount(0, symbol) if no matching entry is found.
         """
         if isinstance(balances, str):
             if balances == "available":
@@ -1719,24 +1847,20 @@ class Account(BlockchainObject):
         # print("bandwidth percent remaining: " + str(100 - (100 * used_bandwidth / allocated_bandwidth)))
 
     def get_owner_history(self, account=None):
-        """Returns the owner history of an account.
+        """
+        Return the owner authority history for an account.
 
-        :param str account: When set, a different account is used for the request (Default is object account name)
+        If `account` is provided, fetches the owner history for that account; otherwise uses this Account's name.
+        Returns a list of owner-authority history entries (RPC dicts, typically those under the `owner_auths` key).
 
-        :rtype: list
+        Parameters:
+            account (str, optional): Account name or Account-like object to query. Defaults to this Account's name.
 
-        .. code-block:: python
+        Returns:
+            list: Owner history entries as returned by the node RPC.
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_owner_history()
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain is in offline mode (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -1752,24 +1876,19 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_owner_history(account)
 
     def get_conversion_requests(self, account=None):
-        """Returns a list of SBD conversion request
+        """
+        Return the list of pending HBD conversion requests for an account.
 
-        :param str account: When set, a different account is used for the request (Default is object account name)
+        If `account` is omitted, the method queries conversion requests for this Account instance.
 
-        :rtype: list
+        Parameters:
+            account (str, optional): Account name or Account-like object. Defaults to this account's name.
 
-        .. code-block:: python
+        Returns:
+            list: A list of conversion request dictionaries (empty list if none).
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_conversion_requests()
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain is in offline mode (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -1789,25 +1908,21 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_conversion_requests(account)
 
     def get_vesting_delegations(self, start_account="", limit=100, account=None):
-        """Returns the vesting delegations by an account.
+        """
+        Return the list of vesting delegations made by an account.
 
-        :param str account: When set, a different account is used for the request (Default is object account name)
-        :param str start_account: delegatee to start with, leave empty to start from the first by name
-        :param int limit: maximum number of results to return
-        :rtype: list
+        If `account` is omitted, the method uses this Account object's name. Results can be paginated by specifying `start_account` (delegatee name to start from) and `limit` (maximum number of entries returned). In appbase mode the call filters returned delegations to those where the delegator matches `account`.
 
-        .. code-block:: python
+        Parameters:
+            start_account (str): Delegatee name to start listing from (for pagination). Default is empty string (start from first).
+            limit (int): Maximum number of results to return. Default is 100.
+            account (str | Account, optional): Account to query; accepts an account name or Account-like object. If None, uses this Account.
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_vesting_delegations()
-            []
+        Returns:
+            list: A list of delegation dictionaries as returned by the node RPC.
 
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is offline (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -1825,24 +1940,20 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_vesting_delegations(account, start_account, limit)
 
     def get_withdraw_routes(self, account=None):
-        """Returns the withdraw routes for an account.
+        """
+        Return the account's withdraw vesting routes.
 
-        :param str account: When set, a different account is used for the request (Default is object account name)
+        If `account` is omitted, uses this Account object's name. Each route is returned as a dict
+        in the format provided by the node RPC (fields include destination account, percentage, auto_vest, etc.).
 
-        :rtype: list
+        Parameters:
+            account (str, optional): Account name to query. Defaults to this Account's name.
 
-        .. code-block:: python
+        Returns:
+            list: A list of withdraw-route dictionaries as returned by the node RPC.
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_withdraw_routes()
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is in offline mode.
         """
         if account is None:
             account = self["name"]
@@ -1858,25 +1969,20 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_withdraw_routes(account, "all")
 
     def get_savings_withdrawals(self, direction="from", account=None):
-        """Returns the list of savings withdrawls for an account.
+        """
+        Return the list of savings withdrawal requests for an account.
 
-        :param str account: When set, a different account is used for the request (Default is object account name)
-        :param str direction: Can be either from or to (only non appbase nodes)
+        If no account is provided, uses this Account's name. On nodes using the appbase/database API the node determines which withdrawals are returned; on legacy (non-appbase) nodes the `direction` parameter selects between withdrawals originating "from" the account or destined "to" the account.
 
-        :rtype: list
+        Parameters:
+            account (str, optional): Account name to query. Defaults to this account.
+            direction (str, optional): "from" or "to" (default "from"). Only used on non-appbase RPC nodes.
 
-        .. code-block:: python
+        Returns:
+            list: A list of savings withdrawal records (each record is a dict as returned by the node).
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_savings_withdrawals()
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while in offline mode (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -1907,8 +2013,8 @@ class Account(BlockchainObject):
             >>> from nectar.nodelist import NodeList
             >>> nodelist = NodeList()
             >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
+            >>> hv = Hive(node=nodelist.get_hive_nodes())
+            >>> account = Account("nectarflower", blockchain_instance=hv)
             >>> account.get_recovery_request()
             []
 
@@ -1927,25 +2033,22 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_recovery_request(account)
 
     def get_escrow(self, escrow_id=0, account=None):
-        """Returns the escrow for a certain account by id
+        """
+        Return escrow(s) related to this account.
 
-        :param int escrow_id: Id (only pre appbase)
-        :param str account: When set, a different account is used for the request (Default is object account name)
+        If called in appbase mode, returns all escrows for the given account (the
+        legacy escrow_id parameter is ignored). In legacy (pre-appbase) mode,
+        returns the escrow with the specified escrow_id for the account.
 
-        :rtype: list
+        Parameters:
+            escrow_id (int): Escrow identifier used by legacy RPC (pre-appbase). Default 0.
+            account (str | Account, optional): Account to query; defaults to this account's name.
 
-        .. code-block:: python
+        Returns:
+            list[dict]: A list of escrow objects (empty if none found).
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_escrow(1234)
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain client is offline.
         """
         if account is None:
             account = self["name"]
@@ -1959,25 +2062,13 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_escrow(account, escrow_id)
 
     def verify_account_authority(self, keys, account=None):
-        """Returns true if the signers have enough authority to authorize an account.
+        """
+        Return whether the provided signers (public keys) are sufficient to authorize the specified account.
 
-        :param list keys: public key
-        :param str account: When set, a different account is used for the request (Default is object account name)
-
-        :rtype: dictionary
-
-        .. code-block:: python
-
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("steemit", blockchain_instance=stm)
-            >>> print(account.verify_account_authority(["STM7Q2rLBqzPzFeteQZewv9Lu3NLE69fZoLeL6YK59t7UmssCBNTU"])["valid"])
-            False
-
+        If `account` is omitted, uses this Account object's name. `keys` may be a single key or a list of public keys.
+        Returns a dictionary as returned by the node RPC (e.g., {"valid": True} or {"valid": False}).
+        Raises OfflineHasNoRPCException when the instance is offline. If the RPC raises MissingRequiredActiveAuthority
+        during verification, the method returns {"valid": False}.
         """
         if account is None:
             account = self["name"]
@@ -2019,26 +2110,23 @@ class Account(BlockchainObject):
             return self.blockchain.rpc.get_tags_used_by_author(account, api="condenser")
 
     def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
-        """Returns the expirations for vesting delegations.
+        """
+        Return upcoming vesting-delegation expirations for an account.
 
-        :param datetime after: expiration after (only for pre appbase nodes)
-        :param int limit: limits number of shown entries (only for pre appbase nodes)
-        :param str account: When set, a different account is used for the request (Default is object account name)
+        If `account` is None the current Account's name is used. On appbase-compatible nodes this queries the
+        database API and returns the list under the "delegations" key; on legacy nodes it calls the
+        legacy RPC which accepts `after` (a datetime) and `limit`.
 
-        :rtype: list
+        Parameters:
+            after (datetime, optional): Only used on pre-appbase nodes — include expirations after this time.
+            limit (int, optional): Only used on pre-appbase nodes — maximum number of entries to return.
+            account (str or object, optional): Account name or object to query. Defaults to the current account.
 
-        .. code-block:: python
+        Returns:
+            list: A list of vesting delegation expiration records.
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_expiring_vesting_delegations()
-            []
-
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is offline.
         """
         if account is None:
             account = self["name"]
@@ -2060,21 +2148,23 @@ class Account(BlockchainObject):
     def get_account_votes(
         self, account=None, start_author="", start_permlink="", limit=1000, start_date=None
     ):
-        """Returns all votes that the account has done
+        """
+        Return a list of vote operations made by an account.
 
-        :rtype: list
+        Retrieves votes by paging through the node's `list_votes` (database) API ordered by voter+comment. Returns vote objects (dicts) that include fields such as `voter`, `author`, `permlink`, `weight`, and `last_update`. Results are filtered so only votes cast by `account` are included and, if `start_date` is provided, only votes with `last_update >= start_date` are returned. Pagination state is advanced using `start_author` / `start_permlink`.
 
-        .. code-block:: python
+        Parameters:
+            account (str|dict|Account, optional): Account to query. If None, uses this Account's name.
+            start_author (str, optional): Author permlink paging start key (used to continue from a previous page).
+            start_permlink (str, optional): Permlink paging start key paired with `start_author`.
+            limit (int, optional): Maximum number of votes to request per RPC call (page size).
+            start_date (datetime.datetime, optional): If provided, stop and exclude votes older than this datetime.
 
-            >>> from nectar.account import Account
-            >>> from nectar import Hive
-            >>> from nectar.nodelist import NodeList
-            >>> nodelist = NodeList()
-            >>> nodelist.update_nodes()
-            >>> stm = Hive(node=nodelist.get_hive_nodes())
-            >>> account = Account("nectarflower", blockchain_instance=stm)
-            >>> account.get_account_votes()  # doctest: +SKIP
+        Returns:
+            list[dict]: List of vote dictionaries in descending retrieval order (newest first as returned by the node).
 
+        Raises:
+            OfflineHasNoRPCException: If called while the blockchain instance is offline (no RPC available).
         """
         if account is None:
             account = self["name"]
@@ -2455,34 +2545,30 @@ class Account(BlockchainObject):
         exclude_ops=[],
         raw_output=False,
     ):
-        """Returns a generator for individual account transactions. This call can be used in a
-        ``for`` loop.
+        """
+        Yield account history operations for a single account.
 
-        :param int index: first number of transactions to return
-        :param int limit: limit number of transactions to return
-        :param start: start number/date of transactions to
-            return (*optional*)
-        :type start: int, datetime
-        :param stop: stop number/date of transactions to
-            return (*optional*)
-        :type stop: int, datetime
-        :param bool use_block_num: if true, start and stop are block numbers, otherwise virtual OP count numbers.
-        :param array only_ops: Limit generator by these
-            operations (*optional*)
-        :param array exclude_ops: Exclude thse operations from
-            generator (*optional*)
-        :param int batch_size: internal api call batch size (*optional*)
-        :param int order: 1 for chronological, -1 for reverse order
-        :param bool raw_output: if False, the output is a dict, which
-            includes all values. Otherwise, the output is list.
+        Generates account history entries (one at a time) between a starting index and limit, optionally filtered
+        and ordered. Each yielded item is either the raw RPC (index, event) tuple when raw_output is True,
+        or an enriched dict containing operation fields plus metadata (account, type, index, _id).
 
-        .. note::
+        Parameters:
+            index (int): starting index for history retrieval (passed to underlying fetch).
+            limit (int): maximum number of entries to request from the node.
+            order (int): 1 for chronological, -1 for reverse chronological (default -1).
+            start (int | datetime | date | time | None): inclusive start boundary. Interpreted as a block number
+                when use_block_num is True, otherwise as an operation index; a datetime/value restricts by timestamp.
+            stop (int | datetime | date | time | None): inclusive stop boundary, interpreted like `start`.
+            use_block_num (bool): when True, treat numeric start/stop as blockchain block numbers; otherwise as op indices.
+            only_ops (list[str]): if non-empty, only yield operations whose type is in this list.
+            exclude_ops (list[str]): skip operations whose type is in this list.
+            raw_output (bool): when True yield the raw (index, event) tuple from the RPC; when False yield an enriched dict.
 
-            only_ops and exclude_ops takes an array of strings:
-            The full list of operation ID's can be found in
-            nectarbase.operationids.ops.
-            Example: ['transfer', 'vote']
+        Returns:
+            generator: yields history entries as described above.
 
+        Raises:
+            ValueError: if `order` is not 1 or -1.
         """
         if order != -1 and order != 1:
             raise ValueError("order must be -1 or 1!")
@@ -2548,7 +2634,22 @@ class Account(BlockchainObject):
             block_props = remove_from_dict(event, keys=["op"], keep_keys=False)
 
             def construct_op(account_name):
-                # verbatim output from steemd
+                # verbatim output from RPC node
+                """
+                Construct a normalized, immutable operation dictionary for an account.
+
+                If `raw_output` is true (from outer scope), returns the original RPC `item` unchanged. Otherwise returns a copy of `op` merged with `block_props` and the following fields:
+                - "account": the provided account_name
+                - "type": operation type (from outer scope `op_type`)
+                - "_id": a deterministic hash computed via Blockchain.hash_op(immutable)
+                - "index": the operation index (from outer scope `item_index`)
+
+                Parameters:
+                    account_name (str): Account name to attach to the constructed operation.
+
+                Returns:
+                    dict: Either the raw RPC item (if `raw_output`) or an immutable operation dict augmented with account, type, _id, and index.
+                """
                 if raw_output:
                     return item
 
@@ -3318,30 +3419,22 @@ class Account(BlockchainObject):
     def transfer(
         self, to, amount, asset, memo="", skip_account_check=False, account=None, **kwargs
     ):
-        """Transfer an asset to another account.
+        """
+        Transfer an asset from this account to another account.
 
-        :param str to: Recipient
-        :param float amount: Amount to transfer
-        :param str asset: Asset to transfer
-        :param str memo: (optional) Memo, may begin with `#` for encrypted
-            messaging
-        :param bool skip_account_check: (optional) When True, the receiver
-            account name is not checked to speed up sending multiple transfers in a row
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
+        Creates and broadcasts a Transfer operation using the account's active authority.
 
+        Parameters:
+            to (str | Account): Recipient account name or Account object.
+            amount (int | float | str | Amount): Amount to transfer; will be normalized to an Amount with the given asset.
+            asset (str): Asset symbol (e.g., "HIVE", "HBD").
+            memo (str, optional): Optional memo; if it starts with '#', the remainder is encrypted with the sender's and receiver's memo keys.
+            skip_account_check (bool, optional): If True, skip resolving the `to` and `account` parameters to Account objects (faster for repeated transfers).
+            account (str | Account, optional): Source account name or Account object; defaults to this Account instance.
+            **kwargs: Passed through to finalizeOp (e.g., broadcast options).
 
-        Transfer example:
-
-        .. code-block:: python
-
-            from nectar.account import Account
-            from nectar import Hive
-            active_wif = "5xxxx"
-            stm = Hive(keys=[active_wif])
-            acc = Account("test", blockchain_instance=stm)
-            acc.transfer("test1", 1, "HIVE", "test")
-
+        Returns:
+            dict: Result from blockchain.finalizeOp (signed/broadcast transaction response).
         """
 
         if account is None:
@@ -3387,32 +3480,23 @@ class Account(BlockchainObject):
         account=None,
         **kwargs,
     ):
-        """Transfer an asset to another account.
+        """
+        Schedule a recurring transfer of a token from this account to another.
 
-        :param str to: Recipient
-        :param float amount: Amount to transfer in each occurence, must have 3 decimal points
-        :param str asset: Asset to transfer
-        :param int recurrence: How often in hours to execute transfer
-        :param int executions: Number of times to recur before stopping execution
-        :param str memo: (optional) Memo, may begin with `#` for encrypted
-            messaging
-        :param bool skip_account_check: (optional) When True, the receiver
-            account name is not checked to speed up sending multiple transfers in a row
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
+        Schedules a recurring on-chain transfer operation that will execute `executions` times every `recurrence` hours.
 
+        Parameters:
+            to (str | Account): Recipient account name or Account object.
+            amount (int | float | str | Amount): Amount to transfer each occurrence. Must match the asset's precision (commonly 3 decimals).
+            asset (str): Asset symbol (e.g., "HIVE", "HBD").
+            recurrence (int): Interval between executions in hours.
+            executions (int): Number of times the transfer will be executed.
+            memo (str, optional): Memo for the transfer. If it starts with '#', the remainder is encrypted to the recipient.
+            skip_account_check (bool, optional): If True, skip resolving/checking Account objects for `to` and `account` (faster when making many calls).
+            account (str | Account, optional): Source account name or Account object; defaults to this Account.
 
-        Transfer example:
-
-        .. code-block:: python
-
-            from nectar.account import Account
-            from nectar import Hive
-            active_wif = "5xxxx"
-            stm = Hive(keys=[active_wif])
-            acc = Account("test", blockchain_instance=stm)
-            acc.transfer("test1", 1, "HIVE", 48, 5, "test")
-
+        Returns:
+            dict: The broadcasted transaction result returned by finalizeOp.
         """
 
         if account is None:
@@ -3448,14 +3532,19 @@ class Account(BlockchainObject):
     def transfer_to_vesting(
         self, amount, to=None, account=None, skip_account_check=False, **kwargs
     ):
-        """Vest STEEM
+        """
+        Power up HIVE by converting liquid HIVE into vesting shares (VESTS).
 
-        :param float amount: Amount to transfer
-        :param str to: Recipient (optional) if not set equal to account
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
-        :param bool skip_account_check: (optional) When True, the receiver
-            account name is not checked to speed up sending multiple transfers in a row
+        Performs a Transfer_to_vesting operation from the source account to the recipient (defaults to the account itself). The `amount` is normalized to the chain token symbol before broadcasting. Use `skip_account_check=True` to avoid resolving/validating Account objects for `to` or `account` when sending many transfers in a loop (faster but skips existence checks).
+
+        Parameters:
+            amount: Amount to transfer; accepts numeric, string, or Amount-like inputs and will be normalized to the blockchain token symbol.
+            to (str|Account, optional): Recipient account name or Account object. Defaults to the calling account.
+            account (str|Account, optional): Source account name or Account object. If omitted, the caller account is used.
+            skip_account_check (bool, optional): If True, do not resolve/validate account names to Account objects (speeds up bulk transfers).
+
+        Returns:
+            The result of finalizeOp (broadcast/transaction result) for the Transfer_to_vesting operation.
         """
         if account is None:
             account = self
@@ -3483,14 +3572,16 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def convert(self, amount, account=None, request_id=None):
-        """Convert SteemDollars to Steem (takes 3.5 days to settle)
+        """
+        Convert HBD to HIVE (takes ~3.5 days to settle).
 
-        :param float amount: amount of SBD to convert
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
-        :param str request_id: (optional) identifier for tracking the
-            conversion`
+        Parameters:
+            amount: HBD amount to convert — accepts numeric, string, or Amount-compatible input; will be normalized to the chain's backed token symbol.
+            account (str | Account, optional): Source account performing the conversion. If omitted, uses this account.
+            request_id (int | str, optional): Numeric identifier for the conversion request. If omitted, a random request id is generated.
 
+        Returns:
+            The result of broadcasting the Convert operation (as returned by blockchain.finalizeOp).
         """
         if account is None:
             account = self
@@ -3515,15 +3606,22 @@ class Account(BlockchainObject):
 
     # Added to differentiate and match the addition of the HF25 convert operation
     def collateralized_convert(self, amount, account=None, request_id=None, **kwargs):
-        """Convert Hive dollars to Hive (this method is meant to be more instant)
-        and reflect the method added in HF25
+        """
+        Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
 
-        :param float amount: amount of SBD to convert
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
-        :param str request_id: (optional) identifier for tracking the
-            conversion`
+        This builds a Collateralized_convert operation for the specified HBD amount and finalizes it with the account's active authority. If `account` is omitted, the method uses the current Account object. If `request_id` is not provided, a random 32-bit id is generated.
 
+        Parameters:
+            amount: Amount, str, int, or float
+                Amount of HBD to convert (symbol must match the chain's backed token symbol).
+            account: str or Account, optional
+                Source account name or Account instance; defaults to the calling account.
+            request_id: int, optional
+                Numeric identifier for the conversion request; if omitted a random id is used.
+
+        Returns:
+            dict
+                Result of finalizeOp (the broadcasted operation response).
         """
         if account is None:
             account = self
@@ -3547,16 +3645,24 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_to_savings(self, amount, asset, memo, to=None, account=None, **kwargs):
-        """Transfer SBD or STEEM into a 'savings' account.
+        """
+        Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
 
-        :param float amount: STEEM or SBD amount
-        :param float asset: 'STEEM' or 'SBD'
-        :param str memo: (optional) Memo
-        :param str to: (optional) the source account for the transfer if
-            not ``default_account``
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
+        Parameters:
+            amount (float | str | Amount): Amount to transfer; may be numeric, string, or an Amount instance.
+            asset (str): Asset symbol, must be the chain token or its backed token (e.g. "HIVE" or "HBD").
+            memo (str): Memo to include with the transfer (may be empty).
+            to (str | Account, optional): Destination account name or Account whose savings will receive the funds.
+                If omitted, the source account's own savings is used.
+            account (str | Account, optional): Source account name or Account performing the transfer.
+                If omitted, `self` is used.
+            **kwargs: Additional keyword arguments passed to the underlying finalizeOp call.
 
+        Returns:
+            dict: Result of finalizeOp (the broadcast/transaction result).
+
+        Raises:
+            AssertionError: If `asset` is not one of the allowed symbols.
         """
         if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
             raise AssertionError()
@@ -3586,18 +3692,27 @@ class Account(BlockchainObject):
     def transfer_from_savings(
         self, amount, asset, memo, request_id=None, to=None, account=None, **kwargs
     ):
-        """Withdraw SBD or STEEM from 'savings' account.
+        """
+        Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
 
-        :param float amount: STEEM or SBD amount
-        :param float asset: 'STEEM' or 'SBD'
-        :param str memo: (optional) Memo
-        :param str request_id: (optional) identifier for tracking or
-            cancelling the withdrawal
-        :param str to: (optional) the source account for the transfer if
-            not ``default_account``
-        :param str account: (optional) the source account for the transfer
-            if not ``default_account``
+        Creates and broadcasts a `transfer_from_savings` operation. If `request_id` is not
+        provided a random 32-bit id will be generated. If `account` is omitted the
+        operation will be created for the current account; if `to` is omitted the funds
+        are transferred back to the same account.
 
+        Parameters:
+            amount (float|str|Amount): Amount to withdraw.
+            asset (str): Symbol of the asset to withdraw, must be the chain token or its backed token (e.g., "HIVE" or "HBD").
+            memo (str): Memo for the transfer (may be empty).
+            request_id (int, optional): Identifier for this withdrawal request; used to cancel or track the withdrawal. If omitted one is generated.
+            to (str|Account, optional): Destination account name or Account; defaults to the source account.
+            account (str|Account, optional): Source account name or Account; defaults to the current account.
+
+        Returns:
+            dict: Result of finalizeOp / broadcast (operation confirmation).
+
+        Raises:
+            AssertionError: If `asset` is not a supported token symbol for this chain.
         """
         if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
             raise AssertionError()
@@ -3664,27 +3779,28 @@ class Account(BlockchainObject):
 
     def claim_reward_balance(
         self,
-        reward_steem=0,
-        reward_sbd=0,
         reward_hive=0,
         reward_hbd=0,
         reward_vests=0,
         account=None,
         **kwargs,
     ):
-        """Claim reward balances.
-        By default, this will claim ``all`` outstanding balances. To bypass
-        this behaviour, set desired claim amount by setting any of
-        `reward_steem`/``reward_hive, `reward_sbd`/``reward_hbd or `reward_vests`.
+        """
+        Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
 
-        :param str reward_steem: Amount of STEEM you would like to claim.
-        :param str reward_hive: Amount of HIVE you would like to claim.
-        :param str reward_sbd: Amount of SBD you would like to claim.
-        :param str reward_hbd: Amount of HBD you would like to claim.
-        :param str reward_vests: Amount of VESTS you would like to claim.
-        :param str account: The source account for the claim if not
-            ``default_account`` is used.
+        If all reward amounts are left at their default (0), this will claim all outstanding rewards for the target account. Otherwise only the nonzero amounts will be claimed.
 
+        Parameters:
+            reward_hive (str|float|Amount, optional): Amount of HIVE to claim (default: 0).
+            reward_hbd (str|float|Amount, optional): Amount of HBD to claim (default: 0).
+            reward_vests (str|float|Amount, optional): Amount of VESTS to claim (default: 0).
+            account (str|Account, optional): Account to claim rewards for; if None, uses self. Must be a valid account.
+
+        Returns:
+            dict: The broadcast/finalization result returned by the blockchain finalizeOp call.
+
+        Raises:
+            ValueError: If no account is provided or the resolved account is falsy.
         """
         if account is None:
             account = self
@@ -3696,20 +3812,14 @@ class Account(BlockchainObject):
         # if no values were set by user, claim all outstanding balances on
         # account
 
-        reward_token_amount = self._check_amount(
-            reward_steem + reward_hive, self.blockchain.token_symbol
-        )
+        reward_token_amount = self._check_amount(reward_hive, self.blockchain.token_symbol)
         reward_backed_token_amount = self._check_amount(
-            reward_sbd + reward_hbd, self.blockchain.backed_token_symbol
+            reward_hbd, self.blockchain.backed_token_symbol
         )
         reward_vests_amount = self._check_amount(reward_vests, self.blockchain.vest_token_symbol)
 
-        if self.blockchain.is_hive:
-            reward_token = "reward_hive"
-            reward_backed_token = "reward_hbd"
-        else:
-            reward_token = "reward_steem"
-            reward_backed_token = "reward_sbd"
+        reward_token = "reward_hive"
+        reward_backed_token = "reward_hbd"
 
         if (
             reward_token_amount.amount == 0
@@ -3746,14 +3856,19 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "posting", **kwargs)
 
     def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs):
-        """Delegate SP to another account.
+        """
+        Delegate vesting shares (Hive Power) from one account to another.
 
-        :param str to_account: Account we are delegating shares to
-            (delegatee).
-        :param str vesting_shares: Amount of VESTS to delegate eg. `10000
-            VESTS`.
-        :param str account: The source account (delegator). If not specified,
-            ``default_account`` is used.
+        Parameters:
+            to_account (str or Account): Receiver of the delegated vesting shares (delegatee).
+            vesting_shares (str|Amount): Amount to delegate, e.g. "10000 VESTS" or an Amount-like object.
+            account (str or Account, optional): Source account (delegator). If omitted, uses this Account instance.
+
+        Returns:
+            dict: Result of broadcasting the Delegate_vesting_shares operation (transaction/result object).
+
+        Raises:
+            ValueError: If `to_account` is not provided or cannot be resolved.
         """
         if account is None:
             account = self
@@ -3802,18 +3917,22 @@ class Account(BlockchainObject):
     def set_withdraw_vesting_route(
         self, to, percentage=100, account=None, auto_vest=False, **kwargs
     ):
-        """Set up a vesting withdraw route. When vesting shares are
-        withdrawn, they will be routed to these accounts based on the
-        specified weights.
+        """
+        Set or update a vesting withdraw route for an account.
 
-        :param str to: Recipient of the vesting withdrawal
-        :param float percentage: The percent of the withdraw to go
-            to the 'to' account.
-        :param str account: (optional) the vesting account
-        :param bool auto_vest: Set to true if the 'to' account
-            should receive the VESTS as VESTS, or false if it should
-            receive them as STEEM. (defaults to ``False``)
+        When the source account withdraws vesting shares, a portion of the withdrawn amount is routed to `to` according to `percentage`. If `auto_vest` is True the recipient receives VESTS; otherwise the recipient receives liquid HIVE.
 
+        Parameters:
+            to (str): Recipient account name.
+            percentage (float): Percentage of each withdraw to route to `to` (0.0–100.0). Internally converted to protocol units (multiplied by HIVE_1_PERCENT).
+            account (str|Account, optional): Source account performing the route change. If omitted, `self` is used.
+            auto_vest (bool): If True route is added as VESTS; if False route is converted to HIVE.
+
+        Returns:
+            dict: Result of broadcasting the `set_withdraw_vesting_route` operation (as returned by finalizeOp).
+
+        Notes:
+            - Operation is broadcast with the source account's active authority.
         """
         if account is None:
             account = self
@@ -3823,7 +3942,7 @@ class Account(BlockchainObject):
             **{
                 "from_account": account["name"],
                 "to_account": to,
-                "percent": int(percentage * STEEM_1_PERCENT),
+                "percent": int(percentage * HIVE_1_PERCENT),
                 "auto_vest": auto_vest,
             }
         )
@@ -3970,40 +4089,22 @@ class Account(BlockchainObject):
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def feed_history(self, limit=None, start_author=None, start_permlink=None, account=None):
-        """Stream the feed entries of an account in reverse time order.
+        """
+        Yield feed entries for an account in reverse chronological order.
 
-        .. note:: RPC nodes keep a limited history of entries for the
-                  user feed. Older entries may not be available via this
-                  call due to these node limitations.
+        Streams discussion entries from the account's feed using paginated calls to the discussions API. Entries are yielded one at a time until the optional limit is reached or no more entries are available. Note that RPC nodes keep only a limited feed history, so older entries may be unavailable.
 
-        :param int limit: (optional) stream the latest `limit`
-            feed entries. If unset (default), all available entries
-            are streamed.
-        :param str start_author: (optional) start streaming the
-            replies from this author. `start_permlink=None`
-            (default) starts with the latest available entry.
-            If set, `start_permlink` has to be set as well.
-        :param str start_permlink: (optional) start streaming the
-            replies from this permlink. `start_permlink=None`
-            (default) starts with the latest available entry.
-            If set, `start_author` has to be set as well.
-        :param str account: (optional) the account to get replies
-            to (defaults to ``default_account``)
+        Parameters:
+            limit (int, optional): Maximum number of entries to yield. If omitted, yields all available entries.
+            start_author (str, optional): Author name to start from. Must be provided together with `start_permlink` to page from a specific position.
+            start_permlink (str, optional): Permlink to start from. Must be provided together with `start_author`.
+            account (str|Account, optional): Account whose feed to stream. If omitted, uses this Account instance.
 
-        comment_history_reverse example:
+        Raises:
+            AssertionError: If `limit` is not a positive integer, or if only one of `start_author` / `start_permlink` is provided.
 
-        .. code-block:: python
-
-            from nectar.account import Account
-            from nectar import Steem
-            from nectar.nodelist import NodeList
-            nodelist = NodeList()
-            nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("ned", blockchain_instance=stm)
-            for reply in acc.feed_history(limit=10):
-                print(reply)
-
+        Yields:
+            dict or Comment-like object: Discussion/feed entries returned by the discussions API, in reverse time order.
         """
         if limit is not None:
             if not isinstance(limit, int) or limit <= 0:
@@ -4046,38 +4147,22 @@ class Account(BlockchainObject):
                     return
 
     def blog_history(self, limit=None, start=-1, reblogs=True, account=None):
-        """Stream the blog entries done by an account in reverse time order.
+        """
+        Yield blog entries for an account in reverse chronological order.
 
-        .. note:: RPC nodes keep a limited history of entries for the
-                  user blog. Older blog posts of an account may not be available
-                  via this call due to these node limitations.
+        Streams Discussion entries from the account's blog (newest first). Results are limited by RPC node history and may not include very old posts.
 
-        :param int limit: (optional) stream the latest `limit`
-            blog entries. If unset (default), all available blog
-            entries are streamed.
-        :param int start: (optional) start streaming the blog
-            entries from this index. `start=-1` (default) starts
-            with the latest available entry.
-        :param bool reblogs: (optional) if set `True` (default)
-            reblogs / resteems are included. If set `False`,
-            reblogs/resteems are omitted.
-        :param str account: (optional) the account to stream blog
-            entries for (defaults to ``default_account``)
+        Parameters:
+            limit (int, optional): Maximum number of entries to yield. Must be > 0 if provided; otherwise all available entries are streamed.
+            start (int, optional): (Currently ignored) kept for backward compatibility.
+            reblogs (bool, optional): If True (default), include reblogs; if False, only original posts by the account are yielded.
+            account (str|Account, optional): Account name or Account object to stream; defaults to this Account instance.
 
-        blog_history_reverse example:
+        Returns:
+            generator: Yields discussion dicts (post objects) as returned by Discussions_by_blog.
 
-        .. code-block:: python
-
-            from nectar.account import Account
-            from nectar import Steem
-            from nectar.nodelist import NodeList
-            nodelist = NodeList()
-            nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("steemitblog", blockchain_instance=stm)
-            for post in acc.blog_history(limit=10):
-                print(post)
-
+        Raises:
+            AssertionError: If limit is provided but is not an int > 0.
         """
         if limit is not None:
             if not isinstance(limit, int) or limit <= 0:
@@ -4121,35 +4206,21 @@ class Account(BlockchainObject):
                     return
 
     def comment_history(self, limit=None, start_permlink=None, account=None):
-        """Stream the comments done by an account in reverse time order.
+        """
+        Yield comments authored by an account in reverse chronological order.
 
-        .. note:: RPC nodes keep a limited history of user comments for the
-                  user feed. Older comments may not be available via this
-                  call due to these node limitations.
+        Streams available comment entries from the node's discussions_by_comments index. Results are returned newest-first and may be truncated by RPC node history limits; older comments might not be available.
 
-        :param int limit: (optional) stream the latest `limit`
-            comments. If unset (default), all available comments
-            are streamed.
-        :param str start_permlink: (optional) start streaming the
-            comments from this permlink. `start_permlink=None`
-            (default) starts with the latest available entry.
-        :param str account: (optional) the account to stream
-            comments for (defaults to ``default_account``)
+        Parameters:
+            limit (int, optional): Maximum number of comments to yield. If None, yields all available comments.
+            start_permlink (str, optional): If set, start streaming from this permlink (inclusive). If None, starts from the latest available entry.
+            account (str or Account, optional): Account name or Account instance to stream comments for. Defaults to the Account instance this method is called on.
 
-        comment_history_reverse example:
+        Yields:
+            dict: Discussion/comment dictionaries as returned by the Discussions_by_comments helper.
 
-        .. code-block:: python
-
-            from nectar.account import Account
-            from nectar import Steem
-            from nectar.nodelist import NodeList
-            nodelist = NodeList()
-            nodelist.update_nodes()
-            stm = Steem(node=nodelist.get_hive_nodes())
-            acc = Account("ned", blockchain_instance=stm)
-            for comment in acc.comment_history(limit=10):
-                print(comment)
-
+        Raises:
+            AssertionError: If `limit` is provided and is not a positive integer.
         """
         if limit is not None:
             if not isinstance(limit, int) or limit <= 0:
@@ -4273,6 +4344,25 @@ class AccountsObject(list):
         print(t)
 
     def print_summarize_table(self, tag_type="Follower", return_str=False, **kwargs):
+        """
+        Print or return a one-line summary table aggregating metrics for the accounts in this collection.
+
+        Calculates and reports:
+        - total count of accounts,
+        - summed MVest value (own vesting shares / 1e6),
+        - mean and max reputation (if available),
+        - summed, mean, and max effective HP (Hive Power) (if available),
+        - mean time since last vote (hours) and mean time since last post (days) excluding accounts inactive >= 365 days,
+        - counts of accounts without a vote or a post in the last 365 days.
+
+        Parameters:
+            tag_type (str): Label used for counting rows (default "Follower").
+            return_str (bool): If True, return the formatted table as a string; if False, print it.
+            **kwargs: Passed through to PrettyTable.get_string (formatting options).
+
+        Returns:
+            Optional[str]: The table string when return_str is True; otherwise None.
+        """
         t = PrettyTable(["Key", "Value"])
         t.align = "r"
         t.add_row([tag_type + " count", str(len(self))])
@@ -4303,9 +4393,9 @@ class AccountsObject(list):
             t.add_row(["Mean Rep.", "%.2f" % (sum(rep) / len(rep))])
             t.add_row(["Max Rep.", "%.2f" % (max(rep))])
         if len(eff_sp) > 0:
-            t.add_row(["Summed eff. SP", "%.2f" % sum(eff_sp)])
-            t.add_row(["Mean eff. SP", "%.2f" % (sum(eff_sp) / len(eff_sp))])
-            t.add_row(["Max eff. SP", "%.2f" % max(eff_sp)])
+            t.add_row(["Summed eff. HP", "%.2f" % sum(eff_sp)])
+            t.add_row(["Mean eff. HP", "%.2f" % (sum(eff_sp) / len(eff_sp))])
+            t.add_row(["Max eff. HP", "%.2f" % max(eff_sp)])
         if len(last_vote_h) > 0:
             t.add_row(
                 ["Mean last vote diff in hours", "%.2f" % (sum(last_vote_h) / len(last_vote_h))]
@@ -4328,18 +4418,34 @@ class Accounts(AccountsObject):
     :param list name_list: list of accounts to fetch
     :param int batch_limit: (optional) maximum number of accounts
         to fetch per call, defaults to 100
-    :param Steem/Hive blockchain_instance: Steem() or Hive() instance to use when
-        accessing a RPCcreator = Account(creator, blockchain_instance=self)
+    :param Blockchain blockchain_instance: Blockchain instance to use when
+        accessing the RPC
     """
 
     def __init__(
-        self, name_list, batch_limit=100, lazy=False, full=True, blockchain_instance=None, **kwargs
+        self,
+        name_list,
+        batch_limit=100,
+        lazy=False,
+        full=True,
+        blockchain_instance=None,
     ):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        """
+        Initialize an Accounts collection by batch-fetching account data and wrapping each result in an Account object.
+
+        Parameters:
+            name_list (Iterable[str]): Sequence of account names to load.
+            batch_limit (int): Maximum number of accounts fetched per RPC call (default 100).
+            lazy (bool): Passed to each Account; if True, create lightweight Account objects (default False).
+            full (bool): Passed to each Account; if True, request full account data when available (default True).
+            blockchain_instance: Optional blockchain client; when omitted, a shared instance is used.
+
+        Behavior:
+            - If the blockchain client is not connected, initialization returns early (creates an empty collection).
+            - Accounts are fetched in batches via the blockchain RPC. When appbase is enabled the
+              `find_accounts` (database) endpoint is used; otherwise `get_accounts` is used.
+            - Each fetched account JSON is converted into an Account(name_or_dict, lazy=..., full=..., blockchain_instance=...).
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

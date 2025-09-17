@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from nectar import Steem
+from nectar import Hive
 from nectar.amount import Amount
 from nectar.asset import Asset
-from nectar.instance import set_shared_steem_instance
+from nectar.instance import set_shared_blockchain_instance
 from nectar.price import FilledOrder, Order, Price
 
 from .nodes import get_hive_nodes
@@ -13,8 +13,8 @@ from .nodes import get_hive_nodes
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        steem = Steem(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
-        set_shared_steem_instance(steem)
+        hv = Hive(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
+        set_shared_blockchain_instance(hv)
 
     def test_init(self):
         # self.assertEqual(1, 1)

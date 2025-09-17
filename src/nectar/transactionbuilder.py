@@ -7,7 +7,7 @@ from binascii import unhexlify
 from datetime import timedelta
 
 from nectar.instance import shared_blockchain_instance
-from nectarbase import operations  # removed deprecated transactions module
+from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
 from nectarbase.objects import Operation
 from nectarbase.signedtransactions import Signed_Transaction
@@ -34,7 +34,7 @@ class TransactionBuilder(dict):
     :param dict tx: transaction (Optional). If not set, the new transaction is created.
     :param int expiration: Delay in seconds until transactions are supposed
         to expire *(optional)* (default is 30)
-    :param Hive/Steem blockchain_instance: If not set, shared_blockchain_instance() is used
+    :param Hive blockchain_instance: If not set, shared_blockchain_instance() is used
 
     .. testcode::
 
@@ -52,12 +52,26 @@ class TransactionBuilder(dict):
 
     """
 
-    def __init__(self, tx={}, blockchain_instance=None, **kwargs):
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+    def __init__(self, tx=None, blockchain_instance=None, **kwargs):
+        """
+        Initialize a TransactionBuilder, optionally from an existing transaction dict.
+
+        If `tx` is a dict, its contents are loaded into the builder (operations are taken from tx["operations"])
+        and reconstruction is marked as not required. Otherwise the builder starts empty and is marked to
+        require reconstruction before use. The constructor clears any prior state, captures ledger/path and
+        condenser API configuration from the provided blockchain instance (or the shared instance), and sets
+        the transaction expiration from kwargs or the blockchain default.
+
+        Parameters:
+            tx (dict, optional): An existing transaction dictionary to load. When provided and valid,
+                operations are initialized from tx["operations"] and reconstruction is disabled.
+            expiration (int, optional, via kwargs): Transaction expiration (seconds or blockchain-specific
+                expiration value). If omitted, the blockchain instance's default expiration is used.
+
+        Notes:
+            - The `blockchain_instance` parameter is a shared service/client and is intentionally not
+              documented here beyond its effect on builder configuration.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):
@@ -195,12 +209,22 @@ class TransactionBuilder(dict):
         return r
 
     def appendSigner(self, account, permission):
-        """Try to obtain the wif key from the wallet by telling which account
-        and permission is supposed to sign the transaction
-        It is possible to add more than one signer.
+        """
+        Register an account as a signer for this transaction by locating or assigning the needed signing keys.
 
-        :param str account: account to sign transaction with
-        :param str permission: type of permission, e.g. "active", "owner" etc
+        Attempts to resolve signing credentials for `account` at the requested `permission` and attaches them to the builder state. Behavior varies by signing mode:
+        - Ledger mode: verifies that the ledger-derived public key for the currently selected path is authorized for the account/permission (raises AssertionError if not).
+        - HiveSigner mode: sets the HiveSigner username (only supports "posting") and returns.
+        - Wallet mode: fetches private keys from the local wallet and stores corresponding WIFs; if the account argument is a PublicKey, the matching WIF is retrieved and added.
+
+        Parameters:
+            account (str | Account | PublicKey): account name, Account instance, or public key identifying the signer.
+            permission (str): permission level to use ("active", "owner", or "posting").
+
+        Raises:
+            WalletLocked: if the local wallet is locked when wallet keys are required.
+            AssertionError: for invalid permission values, if the requested permission cannot be accessed, or if a ledger public key is not found in the account authorities.
+            ValueError: if HiveSigner is used with a permission other than "posting".
         """
         if not self.blockchain.is_connected():
             return
@@ -241,11 +265,16 @@ class TransactionBuilder(dict):
                 )
             return
 
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # HiveSigner only supports posting permission
+            if permission != "posting":
+                raise ValueError(
+                    f"HiveSigner only supports 'posting' permission, got '{permission}'"
+                )
+            self.blockchain.hivesigner.set_username(account["name"], permission)
+            return
         if self.blockchain.wallet.locked():
             raise WalletLocked()
-        if self.blockchain.use_sc2 and self.blockchain.steemconnect is not None:
-            self.blockchain.steemconnect.set_username(account["name"], permission)
-            return
 
         if account["name"] not in self.signing_accounts:
             # is the account an instance of public key?
@@ -398,24 +427,45 @@ class TransactionBuilder(dict):
         return ref_block_num, ref_block_prefix
 
     def sign(self, reconstruct_tx=True):
-        """Sign a provided transaction with the provided key(s)
-        One or many wif keys to use for signing a transaction.
-        The wif keys can be provided by "appendWif" or the
-        signer can be defined "appendSigner". The wif keys
-        from all signer that are defined by "appendSigner
-        will be loaded from the wallet.
+        """
+        Sign the built transaction using HiveSigner, a Ledger device, or local WIFs and attach signatures to the builder.
 
-        :param bool reconstruct_tx: when set to False and tx
-            is already contructed, it will not reconstructed
-            and already added signatures remain
+        If the transaction is not constructed (or if reconstruct_tx is True) the transaction will be reconstructed before signing. The method attempts signing in this order:
+        1. HiveSigner (if configured) — uses remote signing and attaches returned signatures.
+        2. Ledger (if ledger mode is active) — signs with the Ledger device and appends signatures.
+        3. Local WIFs from the builder — uses stored WIFs to sign the transaction and appends signatures.
 
+        Parameters:
+            reconstruct_tx (bool): If False and the transaction is already constructed, existing signatures are preserved and the transaction will not be rebuilt before signing. Defaults to True.
+
+        Returns:
+            The object returned by the signing step:
+              - HiveSigner result (dict) when HiveSigner was used successfully,
+              - Ledger_Transaction when signed via Ledger,
+              - Signed_Transaction when signed locally with WIFs.
+            Returns None if there are no operations to sign.
+
+        Raises:
+            MissingKeyError: If local signing is attempted but no WIFs are available.
         """
         if not self._is_constructed() or (self._is_constructed() and reconstruct_tx):
             self.constructTx()
         if "operations" not in self or not self["operations"]:
             return
-        if self.blockchain.use_sc2:
-            return
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # Use HiveSigner for signing
+            try:
+                signed_tx = self.blockchain.hivesigner.sign(self.json())
+                if signed_tx and "signatures" in signed_tx:
+                    # Attach the signatures from HiveSigner to the transaction
+                    self["signatures"] = signed_tx["signatures"]
+                    return signed_tx
+                else:
+                    raise ValueError("HiveSigner failed to sign transaction")
+            except Exception as e:
+                log.error(f"HiveSigner signing failed: {e}")
+                # Fall back to regular signing if HiveSigner fails
+                pass
         # We need to set the default prefix, otherwise pubkeys are
         # presented wrongly!
         if self.blockchain.rpc is not None:
@@ -495,7 +545,23 @@ class TransactionBuilder(dict):
         return ret
 
     def get_required_signatures(self, available_keys=list()):
-        """Returns public key from signature"""
+        """
+        Return the subset of public keys required to sign this transaction from a set of available keys.
+
+        This method requires an active RPC connection and delegates to the node's
+        get_required_signatures API to determine which of the provided available_keys
+        are necessary to satisfy the transaction's authority requirements.
+
+        Parameters:
+            available_keys (list): Iterable of public key strings to consider when
+                determining required signers.
+
+        Returns:
+            list: Public key strings that the node reports are required to sign the transaction.
+
+        Raises:
+            OfflineHasNoRPCException: If called while offline (no RPC available).
+        """
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
@@ -510,16 +576,28 @@ class TransactionBuilder(dict):
         return ret
 
     def broadcast(self, max_block_age=-1, trx_id=True):
-        """Broadcast a transaction to the steem network
-        Returns the signed transaction and clears itself
-        after broadast
+        """
+        Broadcast the built transaction to the Hive network and clear the builder state.
 
-        Clears itself when broadcast was not successfully.
+        If the transaction is not yet signed this method will attempt to sign it first.
+        If no operations are present the call returns None. When broadcasting is disabled
+        (nobroadcast) the constructed transaction dict is returned and the builder is cleared.
 
-        :param int max_block_age: parameter only used
-            for appbase ready nodes
-        :param bool trx_id: When True, trx_id is return
+        Parameters:
+            max_block_age (int): Passed to appbase/network_broadcast calls to constrain
+                acceptable block age; ignored for condenser API paths. Default -1.
+            trx_id (bool): If True and a signing step produced a transaction id, attach
+                it to the returned result when the RPC response lacks a `trx_id`. Default True.
 
+        Returns:
+            dict or whatever the underlying broadcast method returns, or None if there
+            are no operations to broadcast.
+
+        Side effects:
+            - May sign the transaction if it is not already signed.
+            - May use HiveSigner for broadcast when configured; falls back to RPC on failure.
+            - Clears internal transaction state on successful broadcast or on errors.
+            - May raise exceptions from the signing or RPC broadcast calls.
         """
         # Cannot broadcast an empty transaction
         if not self._is_signed():
@@ -539,6 +617,21 @@ class TransactionBuilder(dict):
             args = self.json()
             broadcast_api = "condenser"
 
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # Use HiveSigner for broadcasting
+            try:
+                # HiveSigner.broadcast expects operations list, not full transaction
+                username = self.signing_accounts[0] if self.signing_accounts else None
+                ret = self.blockchain.hivesigner.broadcast(
+                    self.json()["operations"], username=username
+                )
+                self.clear()
+                return ret
+            except Exception as e:
+                log.error(f"HiveSigner broadcast failed: {e}")
+                # Fall back to RPC broadcasting if HiveSigner fails
+                pass
+
         if self.blockchain.nobroadcast:
             log.info("Not broadcasting anything!")
             self.clear()
@@ -546,9 +639,7 @@ class TransactionBuilder(dict):
         # Broadcast
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.use_sc2:
-                ret = self.blockchain.steemconnect.broadcast(self["operations"])
-            elif self.blockchain.blocking and self._use_condenser_api:
+            if self.blockchain.blocking and self._use_condenser_api:
                 ret = self.blockchain.rpc.broadcast_transaction_synchronous(args, api=broadcast_api)
                 if "trx" in ret:
                     ret.update(**ret.get("trx"))

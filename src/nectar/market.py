@@ -29,9 +29,9 @@ log = logging.getLogger(__name__)
 
 
 class Market(dict):
-    """This class allows to easily access Markets on the blockchain for trading, etc.
+    """This class allows access to the internal market for trading, etc. (Hive-only).
 
-    :param Steem blockchain_instance: Steem instance
+    :param Hive blockchain_instance: Hive instance
     :param Asset base: Base asset
     :param Asset quote: Quote asset
     :returns: Blockchain Market
@@ -50,7 +50,7 @@ class Market(dict):
     * ``base-quote`` separated with ``-``
 
     .. note:: Throughout this library, the ``quote`` symbol will be
-              presented first (e.g. ``STEEM:SBD`` with ``STEEM`` being the
+              presented first (e.g. ``HIVE:HBD`` with ``HIVE`` being the
               quote), while the ``base`` only refers to a secondary asset
               for a trade. This means, if you call
               :func:`nectar.market.Market.sell` or
@@ -61,17 +61,18 @@ class Market(dict):
 
     def __init__(self, base=None, quote=None, blockchain_instance=None, **kwargs):
         """
-        Init Market
+        Create a Market mapping with "base" and "quote" Asset objects.
 
-            :param nectar.steem.Steem blockchain_instance: Steem instance
-            :param nectar.asset.Asset base: Base asset
-            :param nectar.asset.Asset quote: Quote asset
+        Supports three initialization modes:
+        - Single-string market identifier (e.g., "HBD:HIVE" or "HIVE:HBD"): parsed into quote and base symbols and converted to Asset objects.
+        - Explicit base and quote (either Asset instances or values accepted by Asset): each converted to an Asset.
+        - No arguments: uses the blockchain instance's default token symbols (token_symbol as base, backed_token_symbol as quote).
+
+        The resolved Asset objects are stored in the instance as entries "base" and "quote". The blockchain instance used is the provided one or the shared global instance.
+
+        Raises:
+            ValueError: if the combination of arguments does not match any supported initialization mode.
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if quote is None and isinstance(base, str):
@@ -97,9 +98,14 @@ class Market(dict):
             raise ValueError("Unknown Market config")
 
     def get_string(self, separator=":"):
-        """Return a formated string that identifies the market, e.g. ``STEEM:SBD``
+        """
+        Return the market identifier as "QUOTE{separator}BASE" (e.g. "HIVE:HBD").
 
-        :param str separator: The separator of the assets (defaults to ``:``)
+        Parameters:
+            separator (str): Token placed between quote and base symbols. Defaults to ":".
+
+        Returns:
+            str: Formatted market string in the form "<quote><separator><base>".
         """
         return "%s%s%s" % (self["quote"]["symbol"], separator, self["base"]["symbol"])
 
@@ -116,35 +122,21 @@ class Market(dict):
             )
 
     def ticker(self, raw_data=False):
-        """Returns the ticker for all markets.
+        """
+        Return the market ticker for this Market (HIVE:HBD).
 
-        Output Parameters:
+        By default returns a dict with Price objects for 'highest_bid', 'latest', and 'lowest_ask',
+        a float 'percent_change' (24h), and Amount objects for 'hbd_volume' and 'hive_volume' when present.
+        If raw_data is True, returns the unprocessed RPC result.
 
-        * ``latest``: Price of the order last filled
-        * ``lowest_ask``: Price of the lowest ask
-        * ``highest_bid``: Price of the highest bid
-        * ``sbd_volume``: Volume of SBD
-        * ``steem_volume``: Volume of STEEM
-        * ``hbd_volume``: Volume of HBD
-        * ``hive_volume``: Volume of HIVE
-        * ``percent_change``: 24h change percentage (in %)
+        Parameters:
+            raw_data (bool): If True, return the raw market_history RPC response instead of mapped objects.
 
-        .. note::
-            Market is HIVE:HBD and prices are HBD per HIVE!
+        Returns:
+            dict or Any: Mapped ticker dictionary (prices as Price, volumes as Amount) or raw RPC data.
 
-        Sample Output:
-
-        .. code-block:: js
-
-             {
-                'highest_bid': 0.30100226633322913,
-                'latest': 0.0,
-                'lowest_ask': 0.3249636958897082,
-                'percent_change': 0.0,
-                'sbd_volume': 108329611.0,
-                'steem_volume': 355094043.0
-            }
-
+        Notes:
+            Prices are expressed as HBD per HIVE.
         """
         data = {}
         # Core Exchange rate
@@ -173,46 +165,30 @@ class Market(dict):
             blockchain_instance=self.blockchain,
         )
         data["percent_change"] = float(ticker["percent_change"])
-        if "sbd_volume" in ticker:
-            data["sbd_volume"] = Amount(ticker["sbd_volume"], blockchain_instance=self.blockchain)
-        elif "hbd_volume" in ticker:
+        if "hbd_volume" in ticker:
             data["hbd_volume"] = Amount(ticker["hbd_volume"], blockchain_instance=self.blockchain)
-        if "steem_volume" in ticker:
-            data["steem_volume"] = Amount(
-                ticker["steem_volume"], blockchain_instance=self.blockchain
-            )
-        elif "hive_volume" in ticker:
+        if "hive_volume" in ticker:
             data["hive_volume"] = Amount(ticker["hive_volume"], blockchain_instance=self.blockchain)
 
         return data
 
     def volume24h(self, raw_data=False):
-        """Returns the 24-hour volume for all markets, plus totals for primary currencies.
+        """
+        Return 24-hour trading volume for this market.
 
-        Sample output:
+        If raw_data is True, returns the raw result from the blockchain `market_history` RPC.
+        Otherwise, if the RPC result contains 'hbd_volume' and 'hive_volume', returns a dict mapping
+        asset symbols to Amount objects, e.g. { "HBD": Amount(...), "HIVE": Amount(...) }.
+        If the expected volume keys are not present, returns None.
 
-        .. code-block:: js
-
-            {
-                "STEEM": 361666.63617,
-                "SBD": 1087.0
-            }
-
+        Parameters:
+            raw_data (bool): If True, return the unprocessed RPC response.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         volume = self.blockchain.rpc.get_volume(api="market_history")
         if raw_data:
             return volume
-        if "sbd_volume" in volume and "steem_volume" in volume:
-            return {
-                self["base"]["symbol"]: Amount(
-                    volume["sbd_volume"], blockchain_instance=self.blockchain
-                ),
-                self["quote"]["symbol"]: Amount(
-                    volume["steem_volume"], blockchain_instance=self.blockchain
-                ),
-            }
-        elif "hbd_volume" in volume and "hive_volume" in volume:
+        if "hbd_volume" in volume and "hive_volume" in volume:
             return {
                 self["base"]["symbol"]: Amount(
                     volume["hbd_volume"], blockchain_instance=self.blockchain
@@ -223,7 +199,7 @@ class Market(dict):
             }
 
     def orderbook(self, limit=25, raw_data=False):
-        """Returns the order book for SBD/STEEM market.
+        """Returns the order book for the HBD/HIVE market.
 
         :param int limit: Limit the amount of orders (default: 25)
 
@@ -233,12 +209,12 @@ class Market(dict):
 
                 {
                     'asks': [
-                        380.510 STEEM 460.291 SBD @ 1.209669 SBD/STEEM,
-                        53.785 STEEM 65.063 SBD @ 1.209687 SBD/STEEM
+                        380.510 HIVE 460.291 HBD @ 1.209669 HBD/HIVE,
+                        53.785 HIVE 65.063 HBD @ 1.209687 HBD/HIVE
                     ],
                     'bids': [
-                        0.292 STEEM 0.353 SBD @ 1.208904 SBD/STEEM,
-                        8.498 STEEM 10.262 SBD @ 1.207578 SBD/STEEM
+                        0.292 HIVE 0.353 HBD @ 1.208904 HBD/HIVE,
+                        8.498 HIVE 10.262 HBD @ 1.207578 HBD/HIVE
                     ],
                     'asks_date': [
                         datetime.datetime(2018, 4, 30, 21, 7, 24, tzinfo=<UTC>),
@@ -257,19 +233,19 @@ class Market(dict):
                 {
                     'asks': [
                         {
-                            'order_price': {'base': '8.000 STEEM', 'quote': '9.618 SBD'},
+                            'order_price': {'base': '8.000 HIVE', 'quote': '9.618 HBD'},
                             'real_price': '1.20225000000000004',
-                            'steem': 4565,
-                            'sbd': 5488,
+                            'hive': 4565,
+                            'hbd': 5488,
                             'created': '2018-04-30T21:12:45'
                         }
                     ],
                     'bids': [
                         {
-                            'order_price': {'base': '10.000 SBD', 'quote': '8.333 STEEM'},
+                            'order_price': {'base': '10.000 HBD', 'quote': '8.333 HIVE'},
                             'real_price': '1.20004800192007677',
-                            'steem': 8333,
-                            'sbd': 10000,
+                            'hive': 8333,
+                            'hbd': 10000,
                             'created': '2018-04-30T20:29:33'
                         }
                     ]
@@ -314,42 +290,17 @@ class Market(dict):
         return data
 
     def recent_trades(self, limit=25, raw_data=False):
-        """Returns the order book for a given market. You may also
-        specify "all" to get the orderbooks of all markets.
+        """
+        Return recent trades for this market.
 
-        :param int limit: Limit the amount of orders (default: 25)
-        :param bool raw_data: when False, FilledOrder objects will be
-            returned
+        By default returns up to `limit` most recent trades wrapped as FilledOrder objects; if `raw_data` is True the raw trade dictionaries from the market_history API are returned instead.
 
-        Sample output (raw_data=False):
+        Parameters:
+            limit (int): Maximum number of trades to retrieve (default: 25).
+            raw_data (bool): If True, return raw API trade entries; if False, return a list of FilledOrder instances constructed with this market's blockchain instance.
 
-            .. code-block:: none
-
-                [
-                    (2018-04-30 21:00:54+00:00) 0.267 STEEM 0.323 SBD @ 1.209738 SBD/STEEM,
-                    (2018-04-30 20:59:30+00:00) 0.131 STEEM 0.159 SBD @ 1.213740 SBD/STEEM,
-                    (2018-04-30 20:55:45+00:00) 0.093 STEEM 0.113 SBD @ 1.215054 SBD/STEEM,
-                    (2018-04-30 20:55:30+00:00) 26.501 STEEM 32.058 SBD @ 1.209690 SBD/STEEM,
-                    (2018-04-30 20:55:18+00:00) 2.108 STEEM 2.550 SBD @ 1.209677 SBD/STEEM,
-                ]
-
-        Sample output (raw_data=True):
-
-            .. code-block:: js
-
-                [
-                    {'date': '2018-04-30T21:02:45', 'current_pays': '0.235 SBD', 'open_pays': '0.194 STEEM'},
-                    {'date': '2018-04-30T21:02:03', 'current_pays': '24.494 SBD', 'open_pays': '20.248 STEEM'},
-                    {'date': '2018-04-30T20:48:30', 'current_pays': '175.464 STEEM', 'open_pays': '211.955 SBD'},
-                    {'date': '2018-04-30T20:48:30', 'current_pays': '0.999 STEEM', 'open_pays': '1.207 SBD'},
-                    {'date': '2018-04-30T20:47:54', 'current_pays': '0.273 SBD', 'open_pays': '0.225 STEEM'},
-                ]
-
-        .. note:: Each bid is an instance of
-            :class:`nectar.price.Order` and thus carries the keys
-            ``base``, ``quote`` and ``price``. From those you can
-            obtain the actual amounts for sale
-
+        Returns:
+            list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(limit > 0)
         if self.blockchain.rpc.get_use_appbase():
@@ -450,36 +401,22 @@ class Market(dict):
             return ret
 
     def market_history(self, bucket_seconds=300, start_age=3600, end_age=0, raw_data=False):
-        """Return the market history (filled orders).
+        """
+        Return market history buckets for a time window.
 
-        :param int bucket_seconds: Bucket size in seconds (see
-            `returnMarketHistoryBuckets()`)
-        :param int start_age: Age (in seconds) of the start of the
-            window (default: 1h/3600)
-        :param int end_age: Age (in seconds) of the end of the window
-            (default: now/0)
-        :param bool raw_data: (optional) returns raw data if set True
+        This fetches aggregated market history buckets (filled orders) for the market over a window defined by start_age and end_age and grouped by bucket_seconds. bucket_seconds may be provided either as a numeric bucket size (seconds) or as an index into available buckets returned by market_history_buckets(). When raw_data is False any bucket "open" timestamp strings are normalized to a consistent formatted datetime string.
 
-        Example:
+        Parameters:
+            bucket_seconds (int): Bucket size in seconds or an index into market_history_buckets().
+            start_age (int): Age in seconds from now to the start of the window (default 3600 seconds).
+            end_age (int): Age in seconds from now to the end of the window (default 0 = now).
+            raw_data (bool): If True, return the raw RPC response without normalizing timestamps.
 
-            .. code-block:: js
+        Returns:
+            list: A list of bucket dicts (or the raw RPC list when raw_data is True). Each bucket contains fields such as 'open', 'seconds', 'open_hbd', 'close_hbd', 'high_hbd', 'low_hbd', 'hbd_volume', 'open_hive', 'close_hive', 'high_hive', 'low_hive', 'hive_volume', and 'id' when available.
 
-                {
-                    'close_sbd': 2493387,
-                    'close_steem': 7743431,
-                    'high_sbd': 1943872,
-                    'high_steem': 5999610,
-                    'id': '7.1.5252',
-                    'low_sbd': 534928,
-                    'low_steem': 1661266,
-                    'open': '2016-07-08T11:25:00',
-                    'open_sbd': 534928,
-                    'open_steem': 1661266,
-                    'sbd_volume': 9714435,
-                    'seconds': 300,
-                    'steem_volume': 30088443
-                }
-
+        Raises:
+            ValueError: If bucket_seconds is not a valid bucket size or valid index into available buckets.
         """
         buckets = self.market_history_buckets()
         if bucket_seconds < 5 and bucket_seconds >= 0:
@@ -562,39 +499,29 @@ class Market(dict):
         orderid=None,
         returnOrderId=False,
     ):
-        """Places a buy order in a given market
+        """
+        Place a buy order (limit order) on this market.
 
-        :param float price: price denoted in ``base``/``quote``
-        :param number amount: Amount of ``quote`` to buy
-        :param number expiration: (optional) expiration time of the order in seconds (defaults to 7 days)
-        :param bool killfill: flag that indicates if the order shall be killed if it is not filled (defaults to False)
-        :param string account: Account name that executes that order
-        :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
-            the head/irreversible block and add the key "orderid" to the tx output
+        Prices are expressed in the market's base/quote orientation (HIVE per HBD in HBD_HIVE). This method submits a limit-order-create operation that effectively places a sell order of the base asset to acquire the requested amount of the quote asset.
 
-        Prices/Rates are denoted in 'base', i.e. the SBD_STEEM market
-        is priced in STEEM per SBD.
+        Parameters:
+            price (float or Price): Price expressed in base per quote (e.g., HIVE per HBD).
+            amount (number or str or Amount): Amount of the quote asset to buy.
+            expiration (int, optional): Order lifetime in seconds (default: configured order-expiration, typically 7 days).
+            killfill (bool, optional): If True, set fill_or_kill on the order (defaults to False).
+            account (str, optional): Account name that will own and broadcast the order. If omitted, default_account from config is used; a ValueError is raised if none is available.
+            orderid (int, optional): Explicit client-side order id. If omitted one is randomly generated.
+            returnOrderId (bool or str, optional): If truthy (or set to "head"/"irreversible"), the call will wait for the transaction and attach the assigned order id to the returned transaction under the "orderid" key.
 
-        **Example:** in the SBD_STEEM market, a price of 300 means
-        a SBD is worth 300 STEEM
+        Returns:
+            dict: The finalized broadcast transaction object returned by the blockchain client. If returnOrderId was used, the dict includes an "orderid" field.
 
-        .. note::
+        Raises:
+            ValueError: If no account can be resolved.
+            AssertionError: If an Amount is provided whose asset symbol does not match the market quote.
 
-            All prices returned are in the **reversed** orientation as the
-            market. I.e. in the STEEM/SBD market, prices are SBD per STEEM.
-            That way you can multiply prices with `1.05` to get a +5%.
-
-        .. warning::
-
-            Since buy orders are placed as
-            limit-sell orders for the base asset,
-            you may end up obtaining more of the
-            buy asset than you placed the order
-            for. Example:
-
-                * You place and order to buy 10 SBD for 100 STEEM/SBD
-                * This means that you actually place a sell order for 1000 STEEM in order to obtain **at least** 10 SBD
-                * If an order on the market exists that sells SBD for cheaper, you will end up with more than 10 SBD
+        Notes:
+            - Because buy orders are implemented as limit-sell orders of the base asset, the trade can result in receiving more of the quote asset than requested if matching orders exist at better prices.
         """
         if not expiration:
             expiration = self.blockchain.config["order-expiration"]
@@ -660,27 +587,26 @@ class Market(dict):
         orderid=None,
         returnOrderId=False,
     ):
-        """Places a sell order in a given market
+        """
+        Place a limit sell order on this market, selling the market's quote asset for its base asset.
 
-        :param float price: price denoted in ``base``/``quote``
-        :param number amount: Amount of ``quote`` to sell
-        :param number expiration: (optional) expiration time of the order in seconds (defaults to 7 days)
-        :param bool killfill: flag that indicates if the order shall be killed if it is not filled (defaults to False)
-        :param string account: Account name that executes that order
-        :param string returnOrderId: If set to "head" or "irreversible" the call will wait for the tx to appear in
-            the head/irreversible block and add the key "orderid" to the tx output
+        This creates a Limit_order_create operation where `amount_to_sell` is the provided `amount` in the market's quote asset and `min_to_receive` is `amount * price` in the market's base asset.
 
-        Prices/Rates are denoted in 'base', i.e. the SBD_STEEM market
-        is priced in STEEM per SBD.
+        Parameters:
+            price (float or Price): Price expressed as base per quote (e.g., in HBD_HIVE market, a price of 3 means 1 HBD = 3 HIVE).
+            amount (number or str or Amount): Quantity of the quote asset to sell; may be an Amount instance, a string (e.g., "10.000 HBD"), or a numeric value.
+            expiration (int, optional): Order lifetime in seconds; defaults to the node/configured order-expiration (typically 7 days).
+            killfill (bool, optional): If True, treat the order as fill-or-kill (cancel if not fully filled). Defaults to False.
+            account (str, optional): Account name placing the order. If omitted, the configured default_account is used. Raises ValueError if no account is available.
+            orderid (int, optional): Client-provided order identifier; a random 32-bit id is used if not supplied.
+            returnOrderId (bool or str, optional): If truthy (or set to "head"/"irreversible"), the call will wait according to the blocking mode and the returned transaction will include an "orderid" field.
 
-        **Example:** in the SBD_STEEM market, a price of 300 means
-        a SBD is worth 300 STEEM
+        Returns:
+            dict: The finalized transaction object returned by the blockchain finalizeOp call. If `returnOrderId` is used, the dict will include an "orderid" key.
 
-        .. note::
-
-            All prices returned are in the **reversed** orientation as the
-            market. I.e. in the STEEM/SBD market, prices are SBD per STEEM.
-            That way you can multiply prices with `1.05` to get a +5%.
+        Raises:
+            ValueError: If no account is provided or available from configuration.
+            AssertionError: If an Amount is provided whose asset symbol does not match the market's quote asset.
         """
         if not expiration:
             expiration = self.blockchain.config["order-expiration"]
@@ -769,8 +695,20 @@ class Market(dict):
 
     @staticmethod
     def btc_usd_ticker(verbose=False):
-        """Returns the BTC/USD price from bitfinex, gdax, kraken, okcoin and bitstamp. The mean price is
-        weighted by the exchange volume.
+        """
+        Return the market-weighted BTC/USD price aggregated from multiple external sources.
+
+        Queries a set of public endpoints (currently CoinGecko; legacy support for Bitfinex, GDAX, Kraken, OKCoin, Bitstamp is present)
+        and computes a volume-weighted average price (VWAP) across successful responses.
+
+        Parameters:
+            verbose (bool): If True, prints the raw price/volume map collected from each source.
+
+        Returns:
+            float: The VWAP of BTC in USD computed from available sources.
+
+        Raises:
+            RuntimeError: If no valid price data could be obtained from any source after several attempts.
         """
         prices = {}
         responses = []
@@ -845,91 +783,17 @@ class Market(dict):
         )
 
     @staticmethod
-    def steem_btc_ticker():
-        """Returns the STEEM/BTC price from bittrex, binance, huobi and upbit. The mean price is
-        weighted by the exchange volume.
-        """
-        prices = {}
-        responses = []
-        urls = [
-            # "https://poloniex.com/public?command=returnTicker",
-            # "https://bittrex.com/api/v1.1/public/getmarketsummary?market=BTC-STEEM",
-            # "https://api.binance.com/api/v1/ticker/24hr",
-            # "https://api.huobi.pro/market/history/kline?period=1day&size=1&symbol=steembtc",
-            # "https://crix-api.upbit.com/v1/crix/trades/ticks?code=CRIX.UPBIT.BTC-STEEM&count=1",
-            "https://api.coingecko.com/api/v3/simple/price?ids=steem&vs_currencies=btc&include_24hr_vol=true",
-        ]
-        headers = {
-            "Content-type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36",
-        }
-        cnt = 0
-        while len(prices) == 0 and cnt < 5:
-            cnt += 1
-            try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
-            except Exception as e:
-                log.debug(str(e))
-
-            for r in [
-                x
-                for x in responses
-                if hasattr(x, "status_code") and x.status_code == 200 and x.json()
-            ]:
-                try:
-                    if "poloniex" in r.url:
-                        data = r.json()["BTC_STEEM"]
-                        prices["poloniex"] = {
-                            "price": float(data["last"]),
-                            "volume": float(data["baseVolume"]),
-                        }
-                    elif "bittrex" in r.url:
-                        data = r.json()["result"][0]
-                        price = (data["Bid"] + data["Ask"]) / 2
-                        prices["bittrex"] = {"price": price, "volume": data["BaseVolume"]}
-                    elif "binance" in r.url:
-                        data = [x for x in r.json() if x["symbol"] == "STEEMBTC"][0]
-                        prices["binance"] = {
-                            "price": float(data["lastPrice"]),
-                            "volume": float(data["quoteVolume"]),
-                        }
-                    elif "huobi" in r.url:
-                        data = r.json()["data"][-1]
-                        prices["huobi"] = {
-                            "price": float(data["close"]),
-                            "volume": float(data["vol"]),
-                        }
-                    elif "upbit" in r.url:
-                        data = r.json()[-1]
-                        prices["upbit"] = {
-                            "price": float(data["tradePrice"]),
-                            "volume": float(data["tradeVolume"]),
-                        }
-                    elif "coingecko" in r.url:
-                        data = r.json()["steem"]
-                        if "usd_24h_vol" in data:
-                            volume = float(data["usd_24h_vol"])
-                        else:
-                            volume = 1
-                        prices["coingecko"] = {"price": float(data["btc"]), "volume": volume}
-                except KeyError as e:
-                    log.info(str(e))
-
-        if len(prices) == 0:
-            raise RuntimeError("Obtaining STEEM/BTC prices has failed from all sources.")
-
-        return Market._weighted_average(
-            [x["price"] for x in prices.values()], [x["volume"] for x in prices.values()]
-        )
-
-    def steem_usd_implied(self):
-        """Returns the current STEEM/USD market price"""
-        return self.steem_btc_ticker() * self.btc_usd_ticker()
-
-    @staticmethod
     def hive_btc_ticker():
-        """Returns the HIVE/BTC price from bittrex and upbit. The mean price is
-        weighted by the exchange volume.
+        """
+        Return the HIVE/BTC price as a volume-weighted average from multiple public exchanges.
+
+        Queries several public APIs (CoinGecko and others) to collect recent HIVE/BTC prices and 24h volumes, then computes a volume-weighted average price (VWAP). The function retries up to 5 times if no valid responses are obtained.
+
+        Returns:
+            float: VWAP price expressed in BTC per 1 HIVE.
+
+        Raises:
+            RuntimeError: If no valid price data could be obtained from any source.
         """
         prices = {}
         responses = []

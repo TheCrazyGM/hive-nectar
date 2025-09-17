@@ -9,8 +9,7 @@ class Asset(BlockchainObject):
     :param str Asset: Symbol name or object id of an asset
     :param bool lazy: Lazy loading
     :param bool full: Also obtain bitasset-data and dynamic asset dat
-    :param Steem steem_instance: Steem
-        instance
+    :param Blockchain blockchain_instance: Blockchain instance
     :returns: All data of an asset
 
     .. note:: This class comes with its own caching function to reduce the

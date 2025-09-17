@@ -29,8 +29,7 @@ class Community(BlockchainObject):
         observer: Observer account for personalized results (default: "")
         full: If True, fetch full community data (default: True)
         lazy: If True, use lazy loading (default: False)
-        blockchain_instance: Hive or Steem instance for blockchain access
-        **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
+        blockchain_instance: Blockchain instance for RPC access
 
     Attributes:
         type_id (int): Type identifier for blockchain objects (2 for communities)
@@ -41,8 +40,8 @@ class Community(BlockchainObject):
         >>> from nectar.nodelist import NodeList
         >>> nodelist = NodeList()
         >>> nodelist.update_nodes()
-        >>> stm = Hive(node=nodelist.get_hive_nodes())
-        >>> community = Community("hive-139531", blockchain_instance=stm)
+        >>> hv = Hive(node=nodelist.get_hive_nodes())
+        >>> community = Community("hive-139531", blockchain_instance=hv)
         >>> print(community)
         <Community hive-139531>
 
@@ -60,42 +59,41 @@ class Community(BlockchainObject):
         full: bool = True,
         lazy: bool = False,
         blockchain_instance=None,
-        **kwargs,
     ) -> None:
-        """Initialize a Community instance.
+        """
+        Create a Community wrapper for the given community identifier or raw data.
 
-        Args:
-            community: Either a community name (str) or a dictionary containing community data
-            observer: Observer account for personalized results (default: "")
-            full: If True, fetch full community data (default: True)
-            lazy: If True, use lazy loading (default: False)
-            blockchain_instance: Hive or Steem instance for blockchain access
-            **kwargs: Additional arguments including 'hive_instance' or 'steem_instance'
+        If `community` is a dict, it will be normalized via _parse_json_data before initialization.
+        This sets instance flags (full, lazy, observer) and resolves the blockchain instance used
+        for RPC calls (falls back to the shared global instance). The object is constructed with
+        its identifier field set to "name".
+
+        Parameters:
+            community: Community name (str) or a dict with community data.
+            observer: Account name used to request personalized data (optional).
+            full: If True, load complete community data when available.
+            lazy: If True, defer loading detail until accessed.
         """
         self.full = full
         self.lazy = lazy
         self.observer = observer
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(community, dict):
             community = self._parse_json_data(community)
         super(Community, self).__init__(
-            community, lazy=lazy, full=full, id_item="name", blockchain_instance=blockchain_instance
+            community, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
     def refresh(self) -> None:
-        """Refresh the community's data from the blockchain.
+        """
+        Refresh the community's data from the blockchain.
 
-        This method updates the community's data by fetching the latest information
-        from the blockchain. It raises an exception if the community doesn't exist.
+        Fetches the latest community record for this community's name via the bridge RPC and
+        reinitializes the Community object with the returned data (updating identifier and all fields).
+        If the instance is offline, the method returns without performing any RPC call.
 
         Raises:
-            AccountDoesNotExistsException: If the community doesn't exist on the blockchain
-            OfflineHasNoRPCException: If not connected to the blockchain
+            AccountDoesNotExistsException: If no community data is returned for this community name.
         """
         if not self.blockchain.is_connected():
             return
@@ -772,8 +770,7 @@ class Communities(CommunityObject):
         limit: Maximum number of communities to fetch (default: 100)
         lazy: If True, use lazy loading (default: False)
         full: If True, fetch full community data (default: True)
-        blockchain_instance: Hive or Steem instance to use for blockchain access
-        **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
+        blockchain_instance: Blockchain instance to use for RPC access
     """
 
     def __init__(
@@ -785,25 +782,24 @@ class Communities(CommunityObject):
         lazy: bool = False,
         full: bool = True,
         blockchain_instance=None,
-        **kwargs,
     ) -> None:
-        """Initialize the Communities list with the given parameters.
-
-        Args:
-            sort: Sort order for communities (default: "rank")
-            observer: Observer account for personalized results (optional)
-            last: Last community name for pagination (optional)
-            limit: Maximum number of communities to fetch (default: 100)
-            lazy: If True, use lazy loading (default: False)
-            full: If True, fetch full community data (default: True)
-            blockchain_instance: Hive or Steem instance to use for blockchain access
-            **kwargs: Additional arguments including 'steem_instance' or 'hive_instance'
         """
-        if blockchain_instance is None:
-            if kwargs.get("steem_instance"):
-                blockchain_instance = kwargs["steem_instance"]
-            elif kwargs.get("hive_instance"):
-                blockchain_instance = kwargs["hive_instance"]
+        Initialize a Communities collection by querying the blockchain for community metadata.
+
+        Fetches up to `limit` communities from the resolved blockchain instance using paginated bridge RPC calls and constructs Community objects from the results.
+
+        Parameters:
+            sort (str): Sort order for results (e.g., "rank"). Defaults to "rank".
+            observer (str | None): Account used to personalize results; passed through to the RPC call.
+            last (str | None): Starting community name for pagination; used as the RPC `last` parameter.
+            limit (int): Maximum number of communities to fetch (clamped per-request to 100). Defaults to 100.
+            lazy (bool): If True, created Community objects will use lazy loading. Defaults to False.
+            full (bool): If True, created Community objects will request full data. Defaults to True.
+
+        Notes:
+            - If no blockchain instance is connected, initialization returns early and yields an empty collection.
+            - The constructor ensures at most `limit` Community objects are created.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if not self.blockchain.is_connected():

@@ -2,55 +2,37 @@
 import hashlib
 import logging
 import struct
-import time
 from binascii import hexlify
 
 import ecdsa
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import (
+    Prehashed,
+    decode_dss_signature,
+    encode_dss_signature,
+)
 
 from .account import PrivateKey, PublicKey
 
 log = logging.getLogger(__name__)
 
-SECP256K1_MODULE = None
-SECP256K1_AVAILABLE = False
-CRYPTOGRAPHY_AVAILABLE = False
-GMPY2_MODULE = False
-if not SECP256K1_MODULE:
-    try:
-        import secp256k1prp as secp256k1
-
-        SECP256K1_MODULE = "secp256k1"
-        SECP256K1_AVAILABLE = True
-    except Exception:
-        try:
-            import secp256k1
-
-            SECP256K1_MODULE = "secp256k1"
-            SECP256K1_AVAILABLE = True
-        except ImportError:
-            try:
-                import cryptography
-            except ImportError:
-                SECP256K1_MODULE = "ecdsa"
-            else:
-                SECP256K1_MODULE = "cryptography"
-                CRYPTOGRAPHY_AVAILABLE = True
-
-try:
-    from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.asymmetric import ec
-    from cryptography.hazmat.primitives.asymmetric.utils import (
-        decode_dss_signature,
-        encode_dss_signature,
-    )
-except ImportError:
-    pass
-
-log.debug("Using SECP256K1 module: %s" % SECP256K1_MODULE)
-
 
 def _is_canonical(sig):
+    """
+    Return True if a 64-byte ECDSA signature (R || S) is in canonical form.
+
+    A canonical signature here means:
+    - Neither R nor S has its highest bit set (no negative integers when interpreted as signed big-endian).
+    - Neither R nor S has unnecessary leading zero bytes (no extra 0x00 padding before a non-negative highest byte).
+
+    Parameters:
+        sig (bytes or bytearray): 64-byte concatenation of R (32 bytes) followed by S (32 bytes).
+
+    Returns:
+        bool: True if signature is canonical, False otherwise.
+    """
     sig = bytearray(sig)
     return (
         not (int(sig[0]) & 0x80)
@@ -61,21 +43,62 @@ def _is_canonical(sig):
 
 
 def compressedPubkey(pk):
-    if SECP256K1_MODULE == "cryptography" and not isinstance(pk, ecdsa.keys.VerifyingKey):
+    """
+    Return the 33-byte compressed secp256k1 public key for the given public-key object.
+
+    Accepts either an ecdsa.keys.VerifyingKey or an object exposing public_numbers().x and .y
+    (such as a cryptography EllipticCurvePublicKey). The output is 1 byte (0x02 if y is even,
+    0x03 if y is odd) followed by the 32-byte big-endian X coordinate.
+
+    Parameters:
+        pk: Public-key object (ecdsa.VerifyingKey or object with public_numbers().x and .y).
+
+    Returns:
+        bytes: 33-byte compressed public key (prefix + 32-byte X).
+    """
+    if isinstance(pk, ecdsa.keys.VerifyingKey):
         order = ecdsa.SECP256k1.order
-        x = pk.public_numbers().x
-        y = pk.public_numbers().y
-    else:
-        order = pk.curve.generator.order()
         p = pk.pubkey.point
         x = p.x()
         y = p.y()
+    else:
+        order = ecdsa.SECP256k1.order
+        x = pk.public_numbers().x
+        y = pk.public_numbers().y
     x_str = ecdsa.util.number_to_string(x, order)
     return bytes(chr(2 + (y & 1)), "ascii") + x_str
 
 
 def recover_public_key(digest, signature, i, message=None):
-    """Recover the public key from the the signature"""
+    """
+    Recover the secp256k1 public key from an ECDSA signature and message hash.
+
+    If `message` is provided the function will construct a cryptography EllipticCurvePublicKey
+    from the recovered point and verify the signature against the message; on success it
+    returns that cryptography public key. If `message` is None the function returns an
+    ecdsa.VerifyingKey built from the recovered point after verifying the signature
+    against the provided digest. If verification fails, returns None (when `message` is None)
+    or raises a verification exception (when `message` is provided).
+
+    Parameters:
+        digest (bytes): The message hash (big-endian) used when signing.
+        signature (bytes): 64-byte signature consisting of r||s (raw concatenation).
+        i (int): Recovery identifier (0..3) selecting which of the possible curve points to use.
+        message (bytes or str, optional): Original message to verify against; if a str it is
+            encoded as UTF-8. When provided the function returns a cryptography public key
+            and performs verification using ECDSA-SHA256.
+
+    Returns:
+        cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePublicKey
+            when `message` is provided and verification succeeds;
+        ecdsa.keys.VerifyingKey
+            when `message` is None and digest-based verification succeeds;
+        None
+            when `message` is None and verification fails.
+
+    Raises:
+        cryptography.exceptions.InvalidSignature: If `message` is provided and signature verification fails.
+    """
 
     # See http: //www.secg.org/download/aid-780/sec1-v2.pdf section 4.1.6 primarily
     curve = ecdsa.SECP256k1.curve
@@ -97,7 +120,7 @@ def recover_public_key(digest, signature, i, message=None):
     # 1.6 Compute Q = r^-1(sR - eG)
     Q = ecdsa.numbertheory.inverse_mod(r, order) * (s * R + (-e % order) * G)
 
-    if SECP256K1_MODULE == "cryptography" and message is not None:
+    if message is not None:
         if not isinstance(message, bytes):
             message = bytes(message, "utf-8")
         sigder = encode_dss_signature(r, s)
@@ -128,18 +151,24 @@ def recover_public_key(digest, signature, i, message=None):
 
 
 def recoverPubkeyParameter(message, digest, signature, pubkey):
-    """Use to derive a number that allows to easily recover the
-    public key from the signature
+    """
+    Determine the ECDSA recovery parameter (0–3) that, when used with the given digest and 64-byte signature (R||S), reproduces the provided public key.
+
+    Attempts each recovery index i in 0..3, recovers a candidate public key, and compares its compressed form to the compressed form of the supplied pubkey. If a match is found returns the matching index; otherwise returns None.
+
+    Parameters that need clarification:
+    - message: the original message (will be encoded as UTF-8 if not bytes) and is used when recovering a cryptography public key variant.
+    - digest: the message hash used for recovery.
+    - signature: 64-byte R||S signature (bytes-like).
+    - pubkey: the expected public key to match; may be a cryptography/ec or ecdsa-like public key object.
+
+    Returns:
+        int: matching recovery parameter in 0..3, or None if no match is found.
     """
     if not isinstance(message, bytes):
         message = bytes(message, "utf-8")
     for i in range(0, 4):
-        if SECP256K1_MODULE == "secp256k1":
-            sig = pubkey.ecdsa_recoverable_deserialize(signature, i)
-            p = secp256k1.PublicKey(pubkey.ecdsa_recover(message, sig))
-            if p.serialize() == pubkey.serialize():
-                return i
-        elif SECP256K1_MODULE == "cryptography" and not isinstance(pubkey, PublicKey):
+        if not isinstance(pubkey, PublicKey):
             p = recover_public_key(digest, signature, i, message)
             p_comp = hexlify(compressedPubkey(p))
             pubkey_comp = hexlify(compressedPubkey(pubkey))
@@ -159,102 +188,63 @@ def recoverPubkeyParameter(message, digest, signature, pubkey):
 
 
 def sign_message(message, wif, hashfn=hashlib.sha256):
-    """Sign a digest with a wif key
+    """
+    Sign a message using a private key in Wallet Import Format (WIF) and return a compact, canonical ECDSA signature.
 
-    :param str wif: Private key in
+    Signs the provided message with secp256k1 ECDSA-SHA256 using the private key derived from the given WIF. The function repeats signing as needed until it produces a canonical 64-byte R||S signature (both R and S encoded as 32 bytes). It also computes the recovery parameter for the signature and encodes it into the first byte of the returned blob.
+
+    Parameters:
+        message (bytes or str): Message to sign. If a str is provided it is encoded as UTF-8 before hashing.
+        wif (str): Private key in Wallet Import Format (WIF).
+        hashfn (callable, optional): Hash function to apply to the message prior to recovery-parameter computation; defaults to hashlib.sha256.
+
+    Returns:
+        bytes: 65-byte compact signature: 1-byte recovery/version prefix (recovery parameter adjusted for compact/compressed form) followed by the 64-byte R||S sequence.
     """
 
     if not isinstance(message, bytes):
         message = bytes(message, "utf-8")
 
-    digest = hashfn(message).digest()
+    # Detect if message is already a digest
+    prehashed = len(message) == hashfn().digest_size
+
+    if prehashed:
+        digest = message
+        message_for_signing = message  # the digest
+        algorithm_for_signing = ec.ECDSA(Prehashed(hashes.SHA256()))
+        message_for_recovery = None
+    else:
+        digest = hashfn(message).digest()
+        message_for_signing = message
+        algorithm_for_signing = ec.ECDSA(hashes.SHA256())
+        message_for_recovery = message
+
     priv_key = PrivateKey(wif)
-    if SECP256K1_MODULE == "secp256k1":
-        p = bytes(priv_key)
-        ndata = secp256k1.ffi.new("const int *ndata")
-        ndata[0] = 0
-        while True:
-            ndata[0] += 1
-            privkey = secp256k1.PrivateKey(p, raw=True)
-            sig = secp256k1.ffi.new("secp256k1_ecdsa_recoverable_signature *")
-            signed = secp256k1.lib.secp256k1_ecdsa_sign_recoverable(
-                privkey.ctx, sig, digest, privkey.private_key, secp256k1.ffi.NULL, ndata
-            )
-            if not signed == 1:
-                raise AssertionError()
-            signature, i = privkey.ecdsa_recoverable_serialize(sig)
-            if _is_canonical(signature):
-                i += 4  # compressed
-                i += 27  # compact
-                break
-    elif SECP256K1_MODULE == "cryptography":
-        cnt = 0
-        private_key = ec.derive_private_key(
-            int(repr(priv_key), 16), ec.SECP256K1(), default_backend()
-        )
-        public_key = private_key.public_key()
-        while True:
-            cnt += 1
-            if not cnt % 20:
-                log.info("Still searching for a canonical signature. Tried %d times already!" % cnt)
-            order = ecdsa.SECP256k1.order
-            sigder = private_key.sign(message, ec.ECDSA(hashes.SHA256()))
-            r, s = decode_dss_signature(sigder)
-            signature = ecdsa.util.sigencode_string(r, s, order)
-            # Make sure signature is canonical!
+    cnt = 0
+    private_key = ec.derive_private_key(int(repr(priv_key), 16), ec.SECP256K1(), default_backend())
+    public_key = private_key.public_key()
+    while True:
+        cnt += 1
+        if not cnt % 20:
+            log.info("Still searching for a canonical signature. Tried %d times already!" % cnt)
+        order = ecdsa.SECP256k1.order
+        sigder = private_key.sign(message_for_signing, algorithm_for_signing)
+        r, s = decode_dss_signature(sigder)
+        signature = ecdsa.util.sigencode_string(r, s, order)
+        # Make sure signature is canonical!
+        #
+        sigder = bytearray(sigder)
+        lenR = sigder[3]
+        lenS = sigder[5 + lenR]
+        if lenR == 32 and lenS == 32 and _is_canonical(signature):
+            # Derive the recovery parameter
             #
-            sigder = bytearray(sigder)
-            lenR = sigder[3]
-            lenS = sigder[5 + lenR]
-            if lenR == 32 and lenS == 32:
-                # Derive the recovery parameter
-                #
-                i = recoverPubkeyParameter(message, digest, signature, public_key)
-                i += 4  # compressed
-                i += 27  # compact
-                break
-    else:  # pragma: no branch  # pragma: no cover
-        cnt = 0
-        p = bytes(priv_key)
-        sk = ecdsa.SigningKey.from_string(p, curve=ecdsa.SECP256k1)
-        while 1:
-            cnt += 1
-            if not cnt % 20:
-                log.info("Still searching for a canonical signature. Tried %d times already!" % cnt)
-
-            # Deterministic k
-            #
-            k = ecdsa.rfc6979.generate_k(
-                sk.curve.generator.order(),
-                sk.privkey.secret_multiplier,
-                hashlib.sha256,
-                hashlib.sha256(
-                    digest
-                    + struct.pack("d", time.time())  # use the local time to randomize the signature
-                ).digest(),
-            )
-
-            # Sign message
-            #
-            sigder = sk.sign_digest(digest, sigencode=ecdsa.util.sigencode_der, k=k)
-
-            # Reformating of signature
-            #
-            r, s = ecdsa.util.sigdecode_der(sigder, sk.curve.generator.order())
-            signature = ecdsa.util.sigencode_string(r, s, sk.curve.generator.order())
-
-            # Make sure signature is canonical!
-            #
-            sigder = bytearray(sigder)
-            lenR = sigder[3]
-            lenS = sigder[5 + lenR]
-            if lenR == 32 and lenS == 32:
-                # Derive the recovery parameter
-                #
-                i = recoverPubkeyParameter(message, digest, signature, sk.get_verifying_key())
-                i += 4  # compressed
-                i += 27  # compact
-                break
+            i = recoverPubkeyParameter(message_for_recovery, digest, signature, public_key)
+            if i is None:
+                continue
+            i += 4  # compressed
+            i += 27  # compact
+            break
 
     # pack signature
     #
@@ -265,6 +255,23 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
 
 
 def verify_message(message, signature, hashfn=hashlib.sha256, recover_parameter=None):
+    """
+    Verify an ECDSA secp256k1 signature against a message and return the signer's compressed public key.
+
+    Parameters:
+        message (bytes or str): The message to verify. If a str, it will be UTF-8 encoded.
+        signature (bytes or str): 65-byte compact signature where the first byte encodes the recovery parameter/version and the remaining 64 bytes are R||S. If a str, it will be UTF-8 encoded.
+        hashfn (callable): Hash function constructor used to compute the digest of the message (default: hashlib.sha256).
+        recover_parameter (int, optional): Explicit recovery parameter (0–3). If omitted, it is extracted from the signature's first byte.
+
+    Returns:
+        bytes: The 33-byte compressed public key of the recovered signer on successful verification.
+
+    Notes:
+        - The function computes the digest of `message` with `hashfn`, recovers the public key using the recovery parameter, converts the 64-byte R||S into DER form, and verifies the signature with ECDSA-SHA256.
+        - If the recovery parameter cannot be determined from the signature, None is returned.
+        - Cryptographic verification errors (e.g., invalid signature) will propagate as raised exceptions.
+    """
     if not isinstance(message, bytes):
         message = bytes(message, "utf-8")
     if not isinstance(signature, bytes):
@@ -281,41 +288,10 @@ def verify_message(message, signature, hashfn=hashlib.sha256, recover_parameter=
         log.info("Could not recover parameter")
         return None
 
-    if SECP256K1_MODULE == "secp256k1":
-        ALL_FLAGS = secp256k1.lib.SECP256K1_CONTEXT_VERIFY | secp256k1.lib.SECP256K1_CONTEXT_SIGN
-        # Placeholder
-        pub = secp256k1.PublicKey(flags=ALL_FLAGS)
-        # Recover raw signature
-        sig = pub.ecdsa_recoverable_deserialize(sig, recover_parameter)
-        # Recover PublicKey
-        verifyPub = secp256k1.PublicKey(pub.ecdsa_recover(message, sig))
-        # Convert recoverable sig to normal sig
-        normalSig = verifyPub.ecdsa_recoverable_convert(sig)
-        # Verify
-        verifyPub.ecdsa_verify(message, normalSig)
-        phex = verifyPub.serialize(compressed=True)
-    elif SECP256K1_MODULE == "cryptography":
-        p = recover_public_key(digest, sig, recover_parameter, message)
-        order = ecdsa.SECP256k1.order
-        r, s = ecdsa.util.sigdecode_string(sig, order)
-        sigder = encode_dss_signature(r, s)
-        p.verify(sigder, message, ec.ECDSA(hashes.SHA256()))
-        phex = compressedPubkey(p)
-    else:  # pragma: no branch  # pragma: no cover
-        p = recover_public_key(digest, sig, recover_parameter)
-        # Will throw an exception of not valid
-        p.verify_digest(sig, digest, sigdecode=ecdsa.util.sigdecode_string)
-        phex = compressedPubkey(p)
-
+    p = recover_public_key(digest, sig, recover_parameter, message)
+    order = ecdsa.SECP256k1.order
+    r, s = ecdsa.util.sigdecode_string(sig, order)
+    sigder = encode_dss_signature(r, s)
+    p.verify(sigder, digest, ec.ECDSA(Prehashed(hashes.SHA256())))
+    phex = compressedPubkey(p)
     return phex
-
-
-def tweakaddPubkey(pk, digest256, SECP256K1_MODULE=SECP256K1_MODULE):
-    if SECP256K1_MODULE == "secp256k1":
-        tmp_key = secp256k1.PublicKey(pubkey=bytes(pk), raw=True)
-        new_key = tmp_key.tweak_add(digest256)  # <-- add
-        raw_key = hexlify(new_key.serialize()).decode("ascii")
-    else:
-        raise Exception("Must have secp256k1 for `tweak_add`")
-        # raw_key = ecmult(pk, 1, digest256, SECP256K1_MODULE)
-    return PublicKey(raw_key, prefix=pk.prefix)

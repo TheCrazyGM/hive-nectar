@@ -23,6 +23,11 @@ wif3 = "5K1daXjehgPZgUHz6kvm55ahEArBHfCHLy6ew8sT7sjDb76PU2P"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Set up shared test fixtures for the test class.
+
+        Creates a Hive blockchain client configured for offline/no-broadcast testing and a populated Account instance named "test" bound to that client. The Hive client is stored on the class as `bts` and the Account as `account`, making them available to all test methods.
+        """
         cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
@@ -31,7 +36,7 @@ class Testcases(unittest.TestCase):
             keys={"active": wif, "owner": wif2, "memo": wif3},
             num_retries=10,
         )
-        cls.account = Account("test", full=True, steem_instance=cls.bts)
+        cls.account = Account("test", full=True, blockchain_instance=cls.bts)
 
     def test_transfer(self):
         bts = self.bts
@@ -52,7 +57,7 @@ class Testcases(unittest.TestCase):
         self.assertEqual(op["memo"], "Foobar")
         self.assertEqual(op["from"], "test1")
         self.assertEqual(op["to"], "test")
-        amount = Amount(op["amount"], steem_instance=bts)
+        amount = Amount(op["amount"], blockchain_instance=bts)
         self.assertEqual(float(amount), 1.33)
 
     def test_create_account(self):
@@ -322,12 +327,8 @@ class Testcases(unittest.TestCase):
             op = tx["operations"][0]["value"]
 
         self.assertIn("gtg", op["author"])
-        if "percent_steem_dollars" in op:
-            self.assertEqual("1000000.000 SBD", op["max_accepted_payout"])
-            self.assertEqual(10000, op["percent_steem_dollars"])
-        else:
-            self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
-            self.assertEqual(10000, op["percent_hbd"])
+        self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
+        self.assertEqual(10000, op["percent_hbd"])
         self.assertEqual(True, op["allow_votes"])
         self.assertEqual(True, op["allow_curation_rewards"])
         self.assertEqual("witness-gtg-log", op["permlink"])
@@ -390,43 +391,41 @@ class Testcases(unittest.TestCase):
         self.assertFalse(bts.is_steem)
 
     def test_hp_to_rshares(self):
-        stm = self.bts
-        rshares = stm.hp_to_rshares(stm.vests_to_hp(1e6), post_rshares=1e19)
+        hv = self.bts
+        rshares = hv.hp_to_rshares(hv.vests_to_hp(1e6), post_rshares=1e19)
         self.assertTrue(abs(rshares - 20000000000.0) < 2)
 
     def test_rshares_to_vests(self):
-        stm = self.bts
-        rshares = stm.hp_to_rshares(stm.vests_to_hp(1e6))
-        rshares2 = stm.vests_to_rshares(1e6)
+        hv = self.bts
+        rshares = hv.hp_to_rshares(hv.vests_to_hp(1e6))
+        rshares2 = hv.vests_to_rshares(1e6)
         self.assertTrue(abs(rshares - rshares2) < 2)
 
     def test_hp_to_hbd(self):
-        stm = self.bts
+        hv = self.bts
         sp = 500
-        ret = stm.hp_to_hbd(sp)
+        ret = hv.hp_to_hbd(sp)
         self.assertTrue(ret is not None)
 
     def test_hbd_to_rshares(self):
-        stm = self.bts
+        hv = self.bts
         test_values = [1, 10, 100, 1e3, 1e4, 1e5, 1e6, 1e7]
         for v in test_values:
             try:
-                sbd = round(stm.rshares_to_hbd(stm.hbd_to_rshares(v)), 5)
+                sbd = round(hv.rshares_to_hbd(hv.hbd_to_rshares(v)), 5)
             except (
                 ValueError
-            ):  # Reward pool smaller than 1e7 SBD (e.g. caused by a very low steem price)
+            ):  # Reward pool smaller than 1e7 HBD (e.g. caused by a very low hive price)
                 continue
             self.assertEqual(sbd, v)
 
     def test_rshares_to_vote_pct(self):
-        stm = self.bts
+        hv = self.bts
         sp = 1000
         voting_power = 9000
         for vote_pct in range(500, 10000, 500):
-            rshares = stm.hp_to_rshares(sp, voting_power=voting_power, vote_pct=vote_pct)
-            vote_pct_ret = stm.rshares_to_vote_pct(
-                rshares, hive_power=sp, voting_power=voting_power
-            )
+            rshares = hv.hp_to_rshares(sp, voting_power=voting_power, vote_pct=vote_pct)
+            vote_pct_ret = hv.rshares_to_vote_pct(rshares, hive_power=sp, voting_power=voting_power)
             self.assertEqual(vote_pct_ret, vote_pct)
 
     def test_sign(self):

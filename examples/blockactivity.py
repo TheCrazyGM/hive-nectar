@@ -4,7 +4,7 @@ import sys
 from datetime import timedelta
 from timeit import default_timer as timer
 
-from nectar import Blurt, Hive, Steem
+from nectar import Hive
 from nectar.block import Block
 from nectar.blockchain import Blockchain
 from nectar.nodelist import NodeList
@@ -15,19 +15,52 @@ logging.basicConfig(level=logging.INFO)
 
 
 def parse_args(args=None):
+    """
+    Parse command-line arguments for the blocktivity CLI.
+
+    One-line summary:
+        Parse arguments and return the parsed namespace.
+
+    Detailed description:
+        Recognizes a single optional positional argument "blockchain" (default: sys.stdin) which
+        should be the target blockchain identifier (currently "hive"). The optional `args`
+        parameter can be used to pass an argument list for testing or programmatic invocation.
+
+    Parameters:
+        args (list or None): Optional list of argument strings to parse. If None, the parser
+            reads from sys.argv.
+
+    Returns:
+        argparse.Namespace: Parsed arguments with attribute `blockchain`.
+    """
     d = "Verify blocktivity by counting operations and trx for the last 24 hours."
     parser = argparse.ArgumentParser(description=d)
     parser.add_argument(
         "blockchain",
         type=str,
         nargs="?",
-        default=sys.stdin,
-        help="Blockchain (hive, blurt or steem)",
+        default="hive",
+        choices=["hive"],
+        help="Blockchain (hive)",
     )
     return parser.parse_args(args)
 
 
 def main(args=None):
+    """
+    Run a block activity (blocktivity) check over the last 24 hours for the Hive blockchain and print a summary.
+
+    This function parses CLI arguments to select the blockchain (Hive only), builds a node/client, scans the most recent ~24 hours of blocks (assuming ~3s block interval) to count:
+    - total transactions and operations (first pass),
+    - virtual operations (second pass),
+    and prints throughput and per-day totals.
+
+    Parameters:
+        args (list or None): Optional list of command-line arguments to parse (passed to parse_args). If None, parse_args reads from sys.argv.
+
+    Raises:
+        Exception: If the `blockchain` argument is provided and is not "hive".
+    """
     args = parse_args(args)
     blockchain = args.blockchain
 
@@ -42,26 +75,8 @@ def main(args=None):
 
         nodes = nodelist.get_hive_nodes()
         blk_inst = Hive(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "blurt":
-        max_batch_size = None
-        threading = False
-        thread_num = 8
-        block_debug = 20
-        nodes = [
-            "https://api.blurt.blog",
-            "https://rpc.blurtworld.com",
-            "https://rpc.blurtworld.com",
-        ]
-        blk_inst = Blurt(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
-    elif blockchain == "steem":
-        max_batch_size = 50
-        threading = False
-        thread_num = 16
-        block_debug = 1000
-        nodes = nodelist.get_steem_nodes()
-        blk_inst = Steem(node=nodes, num_retries=3, num_retries_call=3, timeout=30)
     else:
-        raise Exception("Wrong parameter, can be hive, blurt or steem")
+        raise Exception("Wrong parameter, can be hive")
     print(blk_inst)
     block_count = 0
     total_ops = 0

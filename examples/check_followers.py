@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 from nectar.account import Account
 from nectar.comment import Comment
