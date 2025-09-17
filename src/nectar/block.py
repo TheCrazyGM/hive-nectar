@@ -427,6 +427,8 @@ class Blocks(list):
         count=1000,
         lazy=False,
         full=True,
+        only_ops=False,
+        only_virtual_ops=False,
         blockchain_instance=None,
     ):
         """
@@ -439,6 +441,8 @@ class Blocks(list):
             count (int, optional): Number of consecutive blocks to fetch. Defaults to 1000.
             lazy (bool, optional): If True, create Block objects in lazy mode (defer full parsing). Defaults to False.
             full (bool, optional): If True, create Block objects with full data loaded (subject to lazy). Defaults to True.
+            only_ops (bool, optional): If True, blocks will contain only regular operations (no block metadata). Defaults to False.
+            only_virtual_ops (bool, optional): If True, blocks will contain only virtual operations. Defaults to False.
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
@@ -453,5 +457,15 @@ class Blocks(list):
         )["blocks"]
 
         super(Blocks, self).__init__(
-            [Block(x, lazy=lazy, full=full, blockchain_instance=self.blockchain) for x in blocks]
+            [
+                Block(
+                    x,
+                    lazy=lazy,
+                    full=full,
+                    only_ops=only_ops,
+                    only_virtual_ops=only_virtual_ops,
+                    blockchain_instance=self.blockchain,
+                )
+                for x in blocks
+            ]
         )
