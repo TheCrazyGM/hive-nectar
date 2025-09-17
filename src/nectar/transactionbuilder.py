@@ -265,8 +265,6 @@ class TransactionBuilder(dict):
                 )
             return
 
-        if self.blockchain.wallet.locked():
-            raise WalletLocked()
         if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
             # HiveSigner only supports posting permission
             if permission != "posting":
@@ -275,6 +273,8 @@ class TransactionBuilder(dict):
                 )
             self.blockchain.hivesigner.set_username(account["name"], permission)
             return
+        if self.blockchain.wallet.locked():
+            raise WalletLocked()
 
         if account["name"] not in self.signing_accounts:
             # is the account an instance of public key?
