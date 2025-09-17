@@ -19,36 +19,17 @@ def test_basic_add_functionality():
     # Create a PublicKey using a known valid key from test data
     test_key = "STM6oVMzJJJgSu3hV1DZBcLdMUJYj3Cs6kGXf6WVLP3HhgLgNkA5J"
 
-    try:
-        test_pub = PublicKey(test_key)
-        print(f"Original public key: {test_pub}")
-        print(f"Original key type: {type(test_pub)}")
-
-        # Test with a simple tweak
-        tweak = hashlib.sha256(b"test_tweak").digest()
-        print(f"Tweak: {tweak.hex()}")
-
-        result = test_pub.add(tweak)
-        print(f"Result: {result}")
-        print(f"Result type: {type(result)}")
-        print("✓ PublicKey.add method executed successfully")
-        print(f"✓ Result is PublicKey instance: {isinstance(result, PublicKey)}")
-        print(f"✓ Result has same prefix: {result.prefix == test_pub.prefix}")
-
-        # Test that child method works
-        print("\nTesting child method...")
-        child_key = test_pub.child(b"test_offset")
-        print(f"Child key: {child_key}")
-        print("✓ PublicKey.child method executed successfully")
-
-        return True
-
-    except Exception as e:
-        print(f"✗ Error in PublicKey.add: {e}")
-        import traceback
-
-        traceback.print_exc()
-        return False
+def test_basic_add_functionality():
+    """Basic assertions for PublicKey.add and .child"""
+    test_key = "STM6oVMzJJJgSu3hV1DZBcLdMUJYj3Cs6kGXf6WVLP3HhgLgNkA5J"
+    test_pub = PublicKey(test_key)
+    tweak = hashlib.sha256(b"test_tweak").digest()
+    result = test_pub.add(tweak)
+    assert isinstance(result, PublicKey)
+    assert result.prefix == test_pub.prefix
+    assert str(result) != str(test_pub)
+    child_key = test_pub.child(b"test_offset")
+    assert isinstance(child_key, PublicKey)
 
 
 if __name__ == "__main__":
