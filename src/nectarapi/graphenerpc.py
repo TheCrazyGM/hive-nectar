@@ -133,10 +133,15 @@ class GrapheneRPC(object):
                 log.debug("Trying to connect to node %s" % self.url)
                 self.ws = None
                 self.session = shared_session_instance()
+                self.ws = None
+                self.session = shared_session_instance()
+                # Do not mutate the shared session; store per-instance proxies.
+                self._proxies = None
                 if self.use_tor:
-                    self.session.proxies = {}
-                    self.session.proxies["http"] = "socks5h://localhost:9050"
-                    self.session.proxies["https"] = "socks5h://localhost:9050"
+                    self._proxies = {
+                        "http": "socks5h://localhost:9050",
+                        "https": "socks5h://localhost:9050",
+                    }
                 self.current_rpc = self.rpc_methods["appbase"]
                 self.headers = {
                     "User-Agent": "nectar v%s" % (nectar_version),
