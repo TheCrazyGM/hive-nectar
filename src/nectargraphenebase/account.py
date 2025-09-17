@@ -900,16 +900,23 @@ class PublicKey(Prefix):
         privkey = PrivateKey(privkey, prefix=prefix or Prefix.prefix)
         secret = unhexlify(repr(privkey))
 
-        if not ECDSA_AVAILABLE:
-            raise ImportError("ecdsa library is required for from_privkey method")
-
-        order = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).curve.generator.order()
-        p = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).verifying_key.pubkey.point
-        x_str = ecdsa.util.number_to_string(p.x(), order)
-        # y_str = ecdsa.util.number_to_string(p.y(), order)
-        compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
-        # uncompressed = hexlify(
-        #    chr(4).encode('ascii') + x_str + y_str).decode('ascii')
+        if ECDSA_AVAILABLE:
+            order = ecdsa.SigningKey.from_string(
+                secret, curve=ecdsa.SECP256k1
+            ).curve.generator.order()
+            p = ecdsa.SigningKey.from_string(
+                secret, curve=ecdsa.SECP256k1
+            ).verifying_key.pubkey.point
+            x_str = ecdsa.util.number_to_string(p.x(), order)
+            compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
+            return cls(compressed, prefix=prefix or Prefix.prefix)
+        # Fallback: derive with pure-Python EC math
+        secexp = int.from_bytes(secret, "big")
+        if secexp <= 0 or secexp >= SECP256K1_N:
+            raise ValueError("Invalid private key scalar")
+        G = (SECP256K1_GX, SECP256K1_GY)
+        P = _scalar_mult(secexp, G)
+        compressed = hexlify(_point_to_compressed(P)).decode("ascii")
         return cls(compressed, prefix=prefix or Prefix.prefix)
 
     def __repr__(self):
