@@ -468,6 +468,20 @@ class Update_proposal_votes(GrapheneObject):
 
 class Remove_proposal(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a Remove_proposal operation.
+        
+        Creates the internal OrderedDict for a remove_proposal operation with:
+        - proposal_owner: account name (String)
+        - proposal_ids: list of Uint64-wrapped proposal IDs
+        - extensions: empty Array
+        
+        If initialized with a single existing GrapheneObject instance, initialization returns early after copying that instance's data (handled by check_for_class).
+        
+        Required kwargs:
+        - proposal_owner: str
+        - proposal_ids: iterable of integers (each converted to Uint64)
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
@@ -490,6 +504,22 @@ class Remove_proposal(GrapheneObject):
 
 class Update_proposal(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize an Update_proposal operation.
+        
+        Accepts either an existing Update_proposal instance (handled by check_for_class), a single positional dict, or keyword arguments. Required fields: `proposal_id`, `creator`, `daily_pay`, `subject`, and `permlink`. Optional `end_date` will be converted into an `update_proposal_end_date` extension. The `daily_pay` Amount uses the provided `prefix` kwarg if present, otherwise `default_prefix` is used.
+        
+        Accepted kwargs:
+        - proposal_id: numeric id of the proposal (converted to Uint64)
+        - creator: account name string (converted to String)
+        - daily_pay: amount specifier (converted to Amount; honors `prefix`)
+        - subject: short subject string (converted to String)
+        - permlink: permlink string (converted to String)
+        - end_date: optional datetime/string; if provided, added as an extension
+        - prefix: optional asset/account prefix for Amount conversion (defaults to module `default_prefix`)
+        
+        No return value; constructs the internal OrderedDict representing the operation.
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
@@ -680,6 +710,30 @@ class Custom_json(GrapheneObject):
 
 class Comment_options(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a Comment_options operation.
+        
+        This constructor builds the serialized fields for a comment options operation from provided keyword arguments or a single dict positional argument. It converts and validates inputs into the expected Graphene types and handles backward compatibility and extensions.
+        
+        Expected kwargs:
+        - author (str): post author.
+        - permlink (str): post permlink.
+        - max_accepted_payout (str|Amount): payout limit; converted to Amount using optional `prefix` and `json_str`.
+        - percent_hbd (int|str): required percent value (primary source) stored as Uint16.
+        - percent_steem_dollars (int|str, optional, deprecated): fallback for `percent_hbd`; using it emits a DeprecationWarning.
+        - allow_votes (bool): whether voting is allowed.
+        - allow_curation_rewards (bool): whether curation rewards are allowed.
+        - beneficiaries (list, optional): if provided, placed into extensions as a beneficiaries extension.
+        - extensions (iterable, optional): explicit extensions; each entry is wrapped with CommentOptionExtensions.
+        - prefix (str, optional): asset/account prefix used when constructing Amount (defaults to module default_prefix).
+        - json_str (bool, optional): if true, construct Amount with json string mode.
+        
+        Behavior and side effects:
+        - If initialized from an existing GrapheneObject (via check_for_class), initialization returns early after copying.
+        - If `beneficiaries` is present and non-empty, it is converted into an extensions entry.
+        - If neither `percent_hbd` nor `percent_steem_dollars` is provided, raises ValueError.
+        - If `percent_steem_dollars` is used, emits a DeprecationWarning.
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
@@ -1014,6 +1068,26 @@ class Cancel_transfer_from_savings(GrapheneObject):
 
 class Claim_reward_balance(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a Claim_reward_balance operation.
+        
+        Constructs the serialized fields for claiming reward balances. Accepts either
+        reward_hbd (HBD) or reward_hive (HIVE) together with reward_vests and account.
+        Behavior:
+        - If `reward_hbd` is provided, serializes ("account", "reward_hbd", "reward_vests").
+        - Else if `reward_hive` is provided and `json_str=True`, serializes `reward_hive` with json string formatting.
+        - Else serializes ("account", "reward_hive", "reward_vests") without json formatting.
+        
+        Recognized kwargs:
+        - account (str): account name claiming rewards.
+        - reward_hbd (str|Amount): HBD amount to claim (mutually exclusive with reward_hive).
+        - reward_hive (str|Amount): HIVE amount to claim.
+        - reward_vests (str|Amount): VESTS amount to claim.
+        - prefix (str): asset prefix to use (defaults to module default_prefix).
+        - json_str (bool): if True and `reward_hive` branch taken, pass amount as JSON-string form to Amount.
+        
+        Also supports initialization from an existing instance via the module's check_for_class helper.
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
@@ -1120,6 +1194,23 @@ class Recover_account(GrapheneObject):
 
 class Escrow_transfer(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize an Escrow_transfer operation object.
+        
+        If constructed from an existing GrapheneObject instance (detected via check_for_class), the initializer returns early after copying data.
+        
+        Accepts either a single dict positional argument or keyword arguments. Expected fields:
+        - from, to, agent (str): account names involved.
+        - escrow_id (int): escrow identifier.
+        - hbd_amount, hive_amount, fee: amounts; when both `hbd_amount` and `hive_amount` are provided, amounts are wrapped with the `json_str` option; otherwise amounts are wrapped without `json_str`.
+        - ratification_deadline, escrow_expiration: datetime-like values for deadlines.
+        - json_meta: optional metadata — if a dict or list it will be JSON-serialized; otherwise used as-is.
+        Optional kwargs:
+        - prefix (str): asset prefix (default "STM").
+        - json_str (bool): whether to force JSON string representation for Amount fields when the branch requires it.
+        
+        No return value; constructs and initializes the underlying ordered field mapping for the operation.
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
@@ -1194,6 +1285,21 @@ class Escrow_dispute(GrapheneObject):
 
 class Escrow_release(GrapheneObject):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize an Escrow_release operation.
+        
+        Constructs the operation fields required to release escrowed funds: from, to, who, escrow_id, hbd_amount, and hive_amount. Accepts either a single dict positional argument or keyword arguments. If initialized from an existing GrapheneObject instance (detected by check_for_class), initialization returns early after cloning.
+        
+        Key kwargs:
+        - from, to, who (str): account names involved in the escrow release.
+        - escrow_id (int): escrow identifier.
+        - hbd_amount, hive_amount (str|Amount): amounts to release; wrapped as Amount objects using the provided prefix.
+        - prefix (str, optional): asset/account prefix passed to Amount (defaults to default_prefix).
+        - json_str (bool, optional): when True and both amount keys are present, amounts are wrapped with json_str enabled.
+        
+        Raises:
+        - KeyError if any required field is missing.
+        """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:

@@ -11,6 +11,13 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Create a class-level Hive client for tests and assign it to cls.appbase.
+        
+        Initializes a Hive instance using get_hive_nodes() and configures it for local testing:
+        nobroadcast=True (no real broadcasts), bundle=False, keys overridden to use the test
+        private key for the "active" role, and num_retries=10.
+        """
         cls.appbase = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,

@@ -30,6 +30,19 @@ class AccountSnapshot(list):
 
     def __init__(self, account, account_history=[], blockchain_instance=None, **kwargs):
         # Warn about any unused kwargs to maintain backward compatibility
+        """
+        Initialize an AccountSnapshot for the given account.
+        
+        Creates an Account object for the target account (using the provided blockchain instance or the shared instance), resets internal snapshot state, and populates the snapshot list with any provided account_history. Any unexpected keyword arguments are accepted but ignored; a DeprecationWarning is emitted for each.
+         
+        Parameters:
+            account (str or Account): Account identifier or existing Account object to build the snapshot for.
+            account_history (iterable, optional): Pre-fetched sequence of account operations to initialize the snapshot with. Defaults to an empty list.
+        
+        Notes:
+            - blockchain_instance is accepted but not documented here as a service-like parameter; if provided it overrides the shared blockchain instance used to construct the Account.
+            - This initializer mutates internal state (calls reset) and appends account_history into the snapshot's underlying list.
+        """
         if kwargs:
             for key in kwargs:
                 warnings.warn(
@@ -44,7 +57,13 @@ class AccountSnapshot(list):
         super(AccountSnapshot, self).__init__(account_history)
 
     def reset(self):
-        """Resets the arrays not the stored account history"""
+        """
+        Reset internal time-series and aggregation arrays while preserving the stored account history.
+        
+        Reinitializes per-timestamp state used to build derived metrics (vesting, Hive/HBD balances, delegations,
+        operation statistics, reward and vote timelines, reputation and voting-power arrays). Does not modify
+        the list contents (the stored raw account history).
+        """
         self.own_vests = [
             Amount(0, self.blockchain.vest_token_symbol, blockchain_instance=self.blockchain)
         ]
@@ -140,7 +159,22 @@ class AccountSnapshot(list):
                 yield op
 
     def get_data(self, timestamp=None, index=0):
-        """Returns snapshot for given timestamp"""
+        """
+        Return a dictionary snapshot of the account state at or immediately before the given timestamp.
+        
+        If timestamp is None the current UTC time is used. The timestamp is normalized to a timezone-aware UTC value. The method finds the most recent stored tick whose timestamp is <= the requested time and returns a dict with the corresponding state:
+        - "timestamp": stored timestamp used
+        - "vests": own vesting shares at that tick
+        - "delegated_vests_in": mapping of incoming delegations at that tick
+        - "delegated_vests_out": mapping of outgoing delegations at that tick
+        - "sp_own": Hive Power equivalent of own vests at that tick
+        - "sp_eff": effective Hive Power (own + delegated_in - delegated_out) at that tick
+        - "hive": liquid HIVE balance at that tick
+        - "hbd": liquid HBD balance at that tick
+        - "index": index into the internal arrays for that tick
+        
+        Returns an empty dict if the requested timestamp is earlier than the earliest stored timestamp.
+        """
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         timestamp = addTzInfo(timestamp)
@@ -175,32 +209,70 @@ class AccountSnapshot(list):
         }
 
     def get_account_history(self, start=None, stop=None, use_block_num=True):
-        """Uses account history to fetch all related ops
-
-        :param start: start number/date of transactions to
-            return (*optional*)
-        :type start: int, datetime
-        :param stop: stop number/date of transactions to
-            return (*optional*)
-        :type stop: int, datetime
-        :param bool use_block_num: if true, start and stop are block numbers,
-            otherwise virtual OP count numbers.
-
+        """
+        Populate the snapshot with the account's history between start and stop.
+        
+        Fetches operations from the underlying Account.history iterator and replaces the snapshot's contents with those operations. If start/stop are provided they may be block numbers or datetimes; set use_block_num=False to interpret them as virtual operation indices/timestamps instead of block numbers.
         """
         super(AccountSnapshot, self).__init__(
             [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
         )
 
     def update_rewards(self, timestamp, curation_reward, author_vests, author_hive, author_hbd):
+        """
+        Record a reward event at a given timestamp.
+        
+        Appends the reward timestamp, the curation portion, and the author's reward components (vests, hive, hbd)
+        to the snapshot's internal reward arrays so they can be used by later aggregation and analysis.
+        
+        Parameters:
+            timestamp (datetime or int): Event time (timezone-aware datetime or block/time integer) for the reward.
+            curation_reward (Amount or number): Curation reward amount (in vests or numeric representation used by the codebase).
+            author_vests (Amount or number): Author reward in vesting shares.
+            author_hive (Amount or number): Author reward in liquid HIVE.
+            author_hbd (Amount or number): Author reward in HBD.
+        
+        Returns:
+            None
+        """
         self.reward_timestamps.append(timestamp)
         self.curation_rewards.append(curation_reward)
         self.author_rewards.append({"vests": author_vests, "hive": author_hive, "hbd": author_hbd})
 
     def update_out_vote(self, timestamp, weight):
+        """
+        Record an outbound vote event.
+        
+        Appends the vote timestamp and weight to the snapshot's outbound-vote arrays for later voting-power and history calculations.
+        
+        Parameters:
+            timestamp (datetime | int): Time of the vote (timezone-aware datetime or block timestamp).
+            weight (int): Vote weight as an integer (e.g., range -10000..10000).
+        """
         self.out_vote_timestamp.append(timestamp)
         self.out_vote_weight.append(weight)
 
     def update_in_vote(self, timestamp, weight, op):
+        """
+        Record an incoming vote event by parsing a Vote operation and appending its data to the snapshot's in-vote arrays.
+        
+        Parses the provided operation into a Vote, refreshes it, and on success appends:
+        - timestamp to in_vote_timestamp
+        - weight to in_vote_weight
+        - the voter's reputation to in_vote_rep (as int)
+        - the vote's rshares to in_vote_rshares (as int)
+        
+        Parameters:
+            timestamp: datetime
+                Time of the vote event (should be timezone-aware).
+            weight: int
+                Vote weight as provided by the operation.
+            op:
+                Raw operation data used to construct the Vote.
+        
+        Notes:
+            If the operation cannot be parsed into a valid Vote, the function prints an error message and returns without modifying the snapshot.
+        """
         v = Vote(op)
         try:
             v.refresh()
@@ -213,18 +285,25 @@ class AccountSnapshot(list):
             return
 
     def update(self, timestamp, own, delegated_in=None, delegated_out=None, hive=0, hbd=0):
-        """Updates the internal state arrays
-
-        :param datetime timestamp: datetime of the update
-        :param own: vests
-        :type own: amount.Amount, float
-        :param dict delegated_in: Incoming delegation
-        :param dict delegated_out: Outgoing delegation
-        :param hive: liquid token amount (HIVE)
-        :type hive: amount.Amount, float
-        :param hbd: backed token amount (HBD)
-        :type hbd: amount.Amount, float
-
+        """
+        Update internal time-series state with a new account event.
+        
+        Appends two timeline entries: a one-second "pre-tick" preserving the previous state at timestamp - 1s, then a tick at timestamp with updated balances and delegation maps. This updates the snapshot's arrays for timestamps, own vests, liquid HIVE/HBD balances, and incoming/outgoing vesting delegations.
+        
+        Parameters:
+            timestamp (datetime): Event time (timezone-aware). A "pre-tick" is created at timestamp - 1s.
+            own (Amount or float): Change in the account's own vesting shares (vests) to apply at the tick.
+            delegated_in (dict or None): Incoming delegation change of form {"account": name, "amount": vests} or None.
+                If amount == 0 the delegation entry for that account is removed.
+            delegated_out (dict or None): Outgoing delegation change. Typical forms:
+                - {"account": name, "amount": vests} to add/update a non-zero outgoing delegation.
+                - {"account": None, "amount": vests} indicates a return_vesting_delegation; the matching outgoing entry with the same amount is removed.
+                If omitted or empty, outgoing delegations are unchanged.
+            hive (Amount or float): Change in liquid HIVE to apply at the tick.
+            hbd (Amount or float): Change in liquid HBD to apply at the tick.
+        
+        Returns:
+            None
         """
         self.timestamps.append(timestamp - timedelta(seconds=1))
         self.own_vests.append(self.own_vests[-1])
@@ -304,7 +383,21 @@ class AccountSnapshot(list):
     def parse_op(
         self, op, only_ops=[], enable_rewards=False, enable_out_votes=False, enable_in_votes=False
     ):
-        """Parse account history operation"""
+        """
+        Parse a single account-history operation and update the snapshot's internal state.
+        
+        Parses the provided operation dictionary `op` (expects keys like "type" and "timestamp"), converts amounts using the snapshot's blockchain instance, and applies its effect to the snapshot by calling the appropriate update methods (e.g. update, update_rewards, update_out_vote, update_in_vote). Handles Hive-specific operations such as account creation, transfers, vesting/delegation, reward payouts, order fills, conversions, interest, votes, and hardfork-related adjustments. Many other operation types are intentionally ignored.
+        
+        Parameters:
+            op (dict): A single operation entry from account history. Must contain a parsable "timestamp" and a "type" key; other required keys depend on the operation type.
+            only_ops (list): If non-empty, treat operations listed here as affecting balances/votes even when reward/vote-collection flags are disabled.
+            enable_rewards (bool): When True, record reward aggregates via update_rewards in addition to applying balance changes.
+            enable_out_votes (bool): When True, record outbound votes (this account as voter) via update_out_vote.
+            enable_in_votes (bool): When True, record inbound votes (this account as author/recipient) via update_in_vote.
+        
+        Returns:
+            None
+        """
         ts = parse_time(op["timestamp"])
 
         if op["type"] == "account_create":
@@ -507,7 +600,19 @@ class AccountSnapshot(list):
             return
 
     def build_sp_arrays(self):
-        """Builds the own_sp and eff_sp array"""
+        """
+        Build timelines of own and effective Hive Power (HP) for each stored timestamp.
+        
+        For every timestamp in the snapshot, convert the account's own vesting shares and the
+        sum of delegated-in/out vesting shares to Hive Power via the blockchain's
+        `vests_to_hp` conversion and populate:
+        - self.own_sp: HP equivalent of the account's own vesting shares at each timestamp.
+        - self.eff_sp: effective HP = own HP + HP delegated in - HP delegated out at each timestamp.
+        
+        This method mutates self.own_sp and self.eff_sp in-place and relies on
+        self.timestamps, self.own_vests, self.delegated_vests_in, self.delegated_vests_out,
+        and self.blockchain.vests_to_hp(timestamp=...).
+        """
         self.own_sp = []
         self.eff_sp = []
         for ts, own, din, dout in zip(
@@ -536,7 +641,22 @@ class AccountSnapshot(list):
             self.rep_timestamp.append(ts)
 
     def build_vp_arrays(self):
-        """Build vote power arrays"""
+        """
+        Build timelines for upvote and downvote voting power.
+        
+        Populates the following instance arrays with parallel timestamps and voting-power values:
+        - self.vp_timestamp, self.vp: upvoting power timeline
+        - self.downvote_vp_timestamp, self.downvote_vp: downvoting power timeline
+        
+        The method iterates over recorded outgoing votes (self.out_vote_timestamp / self.out_vote_weight),
+        applies Hive vote-regeneration rules (using HIVE_VOTE_REGENERATION_SECONDS and HIVE_100_PERCENT),
+        accounts for the HF_21 downvote timing change, and models vote drains via the blockchain's
+        _vote/resulting calculation and the account's manabar recharge intervals (account.get_manabar_recharge_timedelta).
+        Values are stored as integer percentage units where HIVE_100_PERCENT (typically 10000) represents 100.00%.
+        
+        Side effects:
+        - Modifies self.vp_timestamp, self.vp, self.downvote_vp_timestamp, and self.downvote_vp in place.
+        """
         self.vp_timestamp = [self.timestamps[1]]
         self.vp = [HIVE_100_PERCENT]
         HF_21 = datetime(2019, 8, 27, 15, tzinfo=timezone.utc)
@@ -664,7 +784,35 @@ class AccountSnapshot(list):
         self.vp_timestamp.append(datetime.now(timezone.utc))
 
     def build_curation_arrays(self, end_date=None, sum_days=7):
-        """Build curation arrays"""
+        """
+        Compute curation-per-1000-HP time series and store them in
+        self.curation_per_1000_HP_timestamp and self.curation_per_1000_HP.
+        
+        The method walks through recorded reward timestamps and curation rewards, converts
+        each curation reward (vests) to HP using the blockchain conversion, and divides
+        that reward by the effective stake (sp_eff) at the reward time to produce a
+        "curation per 1000 HP" value. Values are aggregated into contiguous windows of
+        length `sum_days`. Each window's aggregate is appended to
+        self.curation_per_1000_HP with the corresponding window end timestamp in
+        self.curation_per_1000_HP_timestamp.
+        
+        Parameters:
+            end_date (datetime.datetime | None): End-boundary for the first aggregation
+                window. If None, it is set to the last reward timestamp minus the total
+                span of full `sum_days` windows that fit into the reward history.
+            sum_days (int): Window length in days for aggregation. Must be > 0.
+        
+        Raises:
+            ValueError: If sum_days <= 0.
+        
+        Notes:
+            - Uses self.blockchain.vests_to_hp(vests, timestamp=ts) to convert vests to HP.
+            - Uses self.get_data(timestamp=ts, index=index) to obtain the effective stake
+              (`sp_eff`) and to advance a cached index for efficient lookups.
+            - The per-window aggregation normalizes values to a "per 1000 HP" basis and
+              scales them by (7 / sum_days) so the resulting numbers are comparable to a
+              7-day baseline.
+        """
         self.curation_per_1000_HP_timestamp = []
         self.curation_per_1000_HP = []
         if sum_days <= 0:

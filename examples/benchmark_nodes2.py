@@ -34,6 +34,31 @@ quit_thread = False
 
 
 def benchmark_node(node, how_many_minutes=10, how_many_seconds=30):
+    """
+    Benchmark a single Hive node by measuring block processing, account history retrieval, and basic RPC access latencies.
+    
+    Performs three timed phases against the provided node:
+    1. Iterates historical blocks starting from a fixed block ID until a time limit (how_many_minutes) or per-call time limit (how_many_seconds) is reached, counting blocks and transactions.
+    2. Iterates the account history of the fixed account "gtg" in reverse (batch_size=100) until the per-call time limit is reached, counting history entries.
+    3. Measures the average latency of four representative operations (Vote, Comment, Account construction, and fetching followers) to produce an access-time metric.
+    
+    Parameters:
+        node (str): URL or identifier of the Hive node to benchmark.
+        how_many_minutes (int): Maximum span (in minutes) of blockchain history to walk from the starting block (default: 10).
+        how_many_seconds (int): Per-phase timeout in seconds to abort a long-running loop/scan (default: 30).
+    
+    Returns:
+        dict: A summary with the following keys:
+            - successful (bool): False if a retriable error occurred during history or access phases.
+            - node (str): The node value passed in.
+            - error (str|None): Error message when a phase failed, otherwise None.
+            - total_duration (float): Total elapsed seconds for the entire benchmark run.
+            - block_count (int): Number of blocks processed (or -1 on error).
+            - history_count (int): Number of account history entries processed (or -1 on error).
+            - access_time (float): Average latency (seconds) of the measured RPC operations (or -1 on error).
+            - follow_time (float): Measured time (seconds) for fetching followers in the access phase.
+            - version (str): Blockchain version string reported by the node.
+    """
     block_count = 0
     history_count = 0
     access_time = 0

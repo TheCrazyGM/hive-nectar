@@ -17,6 +17,11 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Set up shared test fixtures for the Testcases class.
+        
+        Initializes a Hive client configured for testing (no broadcast, provided active key, retry policy), creates a Blockchain wrapper from that client, computes a short test block window (start = current_block - 5, stop = current_block), and registers the Hive client as the shared blockchain instance used by the tests.
+        """
         cls.bts = Hive(
             node=get_hive_nodes(), nobroadcast=True, keys={"active": wif}, num_retries=10
         )

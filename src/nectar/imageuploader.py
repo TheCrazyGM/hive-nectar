@@ -17,26 +17,36 @@ class ImageUploader(object):
         challenge="ImageSigningChallenge",
         blockchain_instance=None,
     ):
+        """
+        Initialize the ImageUploader.
+        
+        Parameters:
+            base_url (str): Base URL of the image upload service (default: "https://images.hive.blog").
+            challenge (str): ASCII string prepended to the image bytes when constructing the signing message; ensures signatures are bound to this uploader's purpose.
+        
+        Notes:
+            blockchain_instance is an optional blockchain client; if not provided a shared instance is used.
+        """
         self.challenge = challenge
         self.base_url = base_url
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
     def upload(self, image, account, image_name=None):
-        """Uploads an image
-
-        :param image: path to the image or image in bytes representation which should be uploaded
-        :type image: str, bytes
-        :param str account: Account which is used to upload. A posting key must be provided.
-        :param str image_name: optional
-
-        .. code-block:: python
-
-            from nectar import Hive
-            from nectar.imageuploader import ImageUploader
-            hv = Hive(keys=["5xxx"])  # private posting key (posting)
-            iu = ImageUploader(blockchain_instance=hv)
-            iu.upload("path/to/image.png", "account_name")  # posting key must belong to account_name
-
+        """
+        Upload an image to the configured image service, signing the upload with the account's posting key.
+        
+        The function accepts a filesystem path (str), raw bytes, or an io.BytesIO for the image. It locates the account's posting private key from the blockchain wallet, signs the image data together with the uploader's challenge string, and POSTs the image under the key `image_name` (defaults to "image") to: <base_url>/<account_name>/<signature_hex>.
+        
+        Parameters:
+            image (str | bytes | io.BytesIO): Path to an image file, raw image bytes, or an in-memory bytes buffer.
+            account (str | Account): Account identifier (must have posting permission); used to select the signing key.
+            image_name (str, optional): Form field name for the uploaded image (defaults to "image").
+        
+        Returns:
+            dict: Parsed JSON response from the image service.
+        
+        Raises:
+            AssertionError: If the account's posting permission (and therefore a posting key) cannot be accessed.
         """
         account = Account(account, blockchain_instance=self.blockchain)
         if "posting" not in account:

@@ -266,7 +266,11 @@ class PointInTime(object):
         self.data = d
 
     def __bytes__(self):
-        """Returns bytes representation."""
+        """
+        Return a 4-byte little-endian Unix timestamp for the stored point-in-time.
+        
+        If the instance holds a datetime, it is converted to a POSIX timestamp using UTC. If it holds a string, the string is parsed (with the module-level `timeformat` and "UTC" appended) and converted to a POSIX timestamp. The timestamp is encoded as a signed 32-bit little-endian integer when negative, otherwise as an unsigned 32-bit little-endian integer.
+        """
         if isinstance(self.data, datetime):
             # Import timegm locally to avoid circular imports
             from calendar import timegm

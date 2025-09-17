@@ -142,38 +142,30 @@ class BlockChainInstance(object):
         data_refresh_time_seconds=900,
         **kwargs,
     ):
-        """Init Hive
-
-        :param str node: Node to connect to *(optional)*
-        :param str rpcuser: RPC user *(optional)*
-        :param str rpcpassword: RPC password *(optional)*
-        :param bool nobroadcast: Do **not** broadcast a transaction!
-            *(optional)*
-        :param bool unsigned: Do **not** sign a transaction! *(optional)*
-        :param bool debug: Enable Debugging *(optional)*
-        :param array,dict,string keys: Predefine the wif keys to shortcut the
-            wallet database *(optional)*
-        :param array,dict,string wif: Predefine the wif keys to shortcut the
-            wallet database *(optional)*
-        :param bool offline: Boolean to prevent connecting to network (defaults
-            to ``False``) *(optional)*
-        :param int expiration: Delay in seconds until transactions are supposed
-            to expire *(optional)* (default is 30)
-        :param str blocking: Wait for broadcast transactions to be included
-            in a block and return full transaction (can be "head" or
-            "irreversible")
-        :param bool bundle: Do not broadcast transactions right away, but allow
-            to bundle operations *(optional)*
-        :param int num_retries: Set the maximum number of reconnects to the nodes before
-            NumRetriesReached is raised. Disabled for -1. (default is -1)
-        :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
-            :param int timeout: Timeout setting for https nodes (default is 60)
-        :param bool use_hs: When True, a HiveSigner object is created. Can be used for broadcast
-            posting op or creating hot_links (default is False)
-        :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
-        :param bool use_ledger: When True, a ledger Nano S is used for signing
-        :param str path: bip32 path from which the pubkey is derived, when use_ledger is True
-
+        """
+        Initialize the BlockChainInstance, set up connection (unless offline), load configuration, initialize caches and transaction buffers, and create the Wallet and optional HiveSigner/ledger signing support.
+        
+        Parameters:
+            node (str): RPC node URL to connect to (optional; ignored if offline).
+            rpcuser (str), rpcpassword (str): Optional RPC credentials for the node.
+            data_refresh_time_seconds (int): Default cache refresh interval in seconds.
+            debug (bool): Enable debug mode.
+            **kwargs: Additional options (commonly used keys)
+                - offline (bool): If True, skip connecting to a node.
+                - nobroadcast (bool): If True, do not broadcast transactions.
+                - unsigned (bool): If True, do not sign transactions.
+                - expiration (int): Transaction expiration delay in seconds.
+                - bundle (bool): If True, enable bundling of operations instead of immediate broadcast.
+                - blocking (str|bool): Wait mode for broadcasts ("head" or "irreversible").
+                - custom_chains (dict): Custom chain definitions.
+                - use_hs (bool): If True, create and enable a HiveSigner instance.
+                - hivesigner (HiveSigner): Provide an existing HiveSigner instance (must be a HiveSigner).
+                - use_ledger (bool): If True, enable Ledger Nano signing.
+                - path (str): BIP32 path to derive pubkey from when using Ledger.
+                - config_store: Configuration store object (defaults to the global default).
+        
+        Raises:
+            ValueError: If a provided `hivesigner` is not an instance of HiveSigner.
         """
 
         self.rpc = None
@@ -220,7 +212,21 @@ class BlockChainInstance(object):
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(self, node="", rpcuser="", rpcpassword="", **kwargs):
-        """Connect to the Hive network (internal use only)"""
+        """
+        Connect to a Hive node and initialize the internal RPC client.
+        
+        If node is empty, the method will attempt to use the configured default nodes; if none are available a ValueError is raised.
+        If rpcuser or rpcpassword are not provided, values are read from self.config when present. The config key "use_tor" (if set) will be used to enable Tor for the connection.
+        Any additional keyword arguments are forwarded to the NodeRPC constructor.
+        
+        Parameters:
+            node (str | list): Node URL or list of node URLs to connect to. If omitted, default nodes are used.
+            rpcuser (str): Optional RPC username; falls back to self.config["rpcuser"] when not supplied.
+            rpcpassword (str): Optional RPC password; falls back to self.config["rpcpassword"] when not supplied.
+        
+        Raises:
+            ValueError: If no node is provided and no default nodes are configured.
+        """
         if not node:
             node = self.get_default_nodes()
             if not bool(node):
@@ -256,7 +262,13 @@ class BlockChainInstance(object):
             return "<%s, nobroadcast=%s>" % (self.__class__.__name__, str(self.nobroadcast))
 
     def clear_data(self):
-        """Clears all stored blockchain parameters"""
+        """
+        Reset the internal cache of blockchain-derived data.
+        
+        This clears stored values used to cache node-dependent blockchain parameters (dynamic global properties, feed history,
+        hardfork properties, network info, witness schedule, config, reward funds) and their per-key refresh timestamps. It does
+        not affect network connection, wallet state, transaction buffers, or other non-cache attributes.
+        """
         self.data = {
             "last_refresh": None,
             "last_node": None,
@@ -278,12 +290,24 @@ class BlockChainInstance(object):
         }
 
     def refresh_data(self, chain_property, force_refresh=False, data_refresh_time_seconds=None):
-        """Read and store Hive blockchain parameters
-        If the last data refresh is older than data_refresh_time_seconds, data will be refreshed
-
-        :param bool force_refresh: if True, a refresh of the data is enforced
-        :param float data_refresh_time_seconds: set a new minimal refresh time in seconds
-
+        """
+        Refresh and cache a specific blockchain data category in self.data.
+        
+        This updates the cached value for the given chain_property (one of:
+        "dynamic_global_properties", "feed_history", "hardfork_properties",
+        "witness_schedule", "config", "reward_funds"). If the cached value was
+        refreshed recently (within self.data_refresh_time_seconds) and force_refresh
+        is False, the method will skip the RPC call. When online, timestamps
+        (last_refresh_*) and last_node are updated to reflect the refresh.
+        
+        Parameters:
+            chain_property (str): The cache key to refresh; must be one of the supported properties.
+            force_refresh (bool): If True, bypass the time-based refresh guard and force an update.
+            data_refresh_time_seconds (float | None): If provided, set a new minimal refresh interval
+                (in seconds) before evaluating whether to skip refreshing.
+        
+        Raises:
+            ValueError: If chain_property is not one of the supported keys.
         """
         # if self.offline:
         #    return
@@ -605,7 +629,17 @@ class BlockChainInstance(object):
         return self.rpc.get_resource_pool(api="rc")["resource_pool"]
 
     def get_rc_cost(self, resource_count):
-        """Returns the RC costs based on the resource_count"""
+        """
+        Compute the total Resource Credits (RC) cost for a set of resource usages.
+        
+        This queries the current resource pool, price curve parameters, and dynamic global properties to compute the RC cost for each resource type in `resource_count` and returns their sum. If the RC regeneration rate is zero, returns 0.
+        
+        Parameters:
+            resource_count (dict): Mapping of resource type keys to requested usage counts. Counts are interpreted in resource-specific units and will be scaled by the resource's `resource_unit` parameter.
+        
+        Returns:
+            int: Total RC cost (rounded as produced by internal cost calculation).
+        """
         pools = self.get_resource_pool()
         params = self.get_resource_params()
         dyn_param = self.get_dynamic_global_properties()
@@ -639,6 +673,21 @@ class BlockChainInstance(object):
 
     def _max_vote_denom(self, use_stored_data=True):
         # get props
+        """
+        Compute the maximum vote denominator used to scale voting power consumption.
+        
+        This reads the current `vote_power_reserve_rate` from dynamic global properties
+        (and may use cached data when `use_stored_data` is True) and multiplies it by
+        HIVE_VOTE_REGENERATION_SECONDS to produce the denominator used in vote power
+        calculations.
+        
+        Parameters:
+            use_stored_data (bool): If True, allow using cached dynamic global properties
+                rather than fetching fresh values from the node.
+        
+        Returns:
+            int: The computed maximum vote denominator.
+        """
         global_properties = self.get_dynamic_global_properties(use_stored_data=use_stored_data)
         vote_power_reserve_rate = global_properties["vote_power_reserve_rate"]
         max_vote_denom = vote_power_reserve_rate * HIVE_VOTE_REGENERATION_SECONDS
@@ -648,6 +697,19 @@ class BlockChainInstance(object):
         self, voting_power=HIVE_100_PERCENT, vote_pct=HIVE_100_PERCENT, use_stored_data=True
     ):
         # determine voting power used
+        """
+        Calculate the internal "used power" for a vote given current voting power and vote percentage.
+        
+        This converts a voter's remaining voting_power and a requested vote_pct (both expressed on the same internal scale where HIVE_100_PERCENT represents 100%) into the integer unit the chain uses for vote consumption. The computation uses the absolute value of vote_pct, scales by a 24-hour factor (60*60*24), then normalizes by the chain's maximum vote denominator (retrieved via _max_vote_denom) with upward rounding.
+        
+        Parameters:
+            voting_power (int): Current voting power expressed in the node's internal units (HIVE_100_PERCENT == full power).
+            vote_pct (int): Requested vote percentage on the same scale as voting_power (can be negative for downvotes).
+            use_stored_data (bool): If True, allow using cached chain parameters when determining the max vote denominator.
+        
+        Returns:
+            int: The computed used voting power in the chain's internal units.
+        """
         used_power = int((voting_power * abs(vote_pct)) / HIVE_100_PERCENT * (60 * 60 * 24))
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
         used_power = int((used_power + max_vote_denom - 1) / max_vote_denom)
@@ -695,12 +757,20 @@ class BlockChainInstance(object):
         subtract_dust_threshold=True,
         use_stored_data=True,
     ):
-        """Obtain the r-shares from vests
-
-        :param number vests: vesting shares
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
-
+        """
+        Convert vesting shares to reward r-shares used for voting.
+        
+        Calculates the signed r-shares produced by a vote from a given amount of vesting shares, taking into account current voting power and vote percentage. Optionally subtracts the chain's dust threshold so small votes become zero.
+        
+        Parameters:
+            vests (float|int): Vesting shares (in VESTS units) to convert.
+            voting_power (int, optional): Voter's current voting power, where 100% == 10000. Defaults to HIVE_100_PERCENT.
+            vote_pct (int, optional): Intended vote strength, where 100% == 10000. Can be negative for downvotes. Defaults to HIVE_100_PERCENT.
+            subtract_dust_threshold (bool, optional): If True, subtract the chain's dust threshold from the absolute r-shares and return 0 when the result is at-or-below the threshold. Defaults to True.
+            use_stored_data (bool, optional): If True, prefer cached chain parameters when computing vote cost; otherwise fetch fresh values from the node. Defaults to True.
+        
+        Returns:
+            int: Signed r-shares corresponding to the provided vesting shares and vote parameters. Returns 0 if the computed r-shares are at-or-below the dust threshold when subtraction is enabled.
         """
         used_power = self._calc_resulting_vote(
             voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
@@ -758,30 +828,48 @@ class BlockChainInstance(object):
         not_broadcasted_vote=True,
         use_stored_data=True,
     ):
-        """Obtain the resulting Token backed dollar vote value from Token power
-
-        :param number hive_power: Token Power
-        :param int post_rshares: rshares of post which is voted
-        :param int voting_power: voting power (100% = 10000)
-        :param int vote_pct: voting percentage (100% = 10000)
-        :param bool not_broadcasted_vote: not_broadcasted or already broadcasted vote (True = not_broadcasted vote).
-
-        Only impactful for very big votes. Slight modification to the value calculation, as the not_broadcasted
-        vote rshares decreases the reward pool.
+        """
+        Estimate the token-backed-dollar (HBD-like) value that a vote from the given token power would yield.
+        
+        Calculates the expected payout (in the blockchain's backed token units) that a vote of `vote_pct` from an account
+        with `voting_power` and `token_power` would contribute to a post with `post_rshares`. The estimate accounts for
+        the vote rshares mechanics and the reduction of the reward pool when a not-yet-broadcast vote is included.
+        
+        Parameters:
+            token_power (float): Voter's token power (in vest/token-equivalent units used by the chain).
+            post_rshares (int, optional): Current rshares of the post being voted on. Defaults to 0.
+            voting_power (int, optional): Voter's current voting power where 100% == HIVE_100_PERCENT (default full power).
+            vote_pct (int, optional): Vote percentage where 100% == HIVE_100_PERCENT (default full vote).
+            not_broadcasted_vote (bool, optional): If True, treat the vote as not yet broadcast (reduces available reward pool accordingly).
+            use_stored_data (bool, optional): If True, prefer cached chain parameters; otherwise fetch fresh values.
+        
+        Returns:
+            float: Estimated payout denominated in the backed token (e.g., HBD).
+        
+        Raises:
+            Exception: Not implemented (function is a placeholder).
         """
         raise Exception("not implemented")
 
     def get_chain_properties(self, use_stored_data=True):
-        """Return witness elected chain properties
-
-        Properties:::
-
-            {
-                'account_creation_fee': '30.000 HIVE',
-                'maximum_block_size': 65536,
-                'hbd_interest_rate': 250
-            }
-
+        """
+        Return the witness-elected chain properties (median_props) used by the network.
+        
+        When cached data is allowed (use_stored_data=True) this reads from the instance cache
+        (populated by refresh_data). Otherwise it fetches the latest witness schedule and
+        returns its `median_props` object.
+        
+        Parameters:
+            use_stored_data (bool): If True, return cached properties when available; if False,
+                force fetching the current witness schedule.
+        
+        Returns:
+            dict: The `median_props` mapping, e.g.:
+                {
+                    'account_creation_fee': '30.000 HIVE',
+                    'maximum_block_size': 65536,
+                    'hbd_interest_rate': 250
+                }
         """
         if use_stored_data:
             self.refresh_data("witness_schedule")
@@ -840,22 +928,48 @@ class BlockChainInstance(object):
 
     @property
     def is_hive(self):
+        """
+        Return True if the connected chain appears to be Hive.
+        
+        Checks the cached chain configuration and returns True when the key "HIVE_CHAIN_ID"
+        is present; returns False if configuration is unavailable or the key is absent.
+        """
         config = self.get_config(use_stored_data=True)
         if config is None:
             return False
         return "HIVE_CHAIN_ID" in config
 
     def set_default_account(self, account):
-        """Set the default account to be used"""
+        """
+        Set the instance default account.
+        
+        If given an account name or an Account object, validate/resolve it (an Account is
+        constructed with this blockchain instance) and store the account identifier in
+        the instance configuration under "default_account". This makes the account the
+        implicit default for subsequent operations that omit an explicit account.
+        
+        Parameters:
+            account (str | Account): Account name or Account object to set as default.
+        
+        Notes:
+            The Account constructor is invoked for validation; errors from account
+            resolution/lookup may propagate.
+        """
         Account(account, blockchain_instance=self)
         self.config["default_account"] = account
 
     def switch_blockchain(self, blockchain, update_nodes=False):
-        """Switches the connected blockchain. Hive only.
-
-        :param str blockchain: must be "hive"
-        :param bool update_nodes: When true, the nodes are updated, using
-            NodeList.update_nodes()
+        """
+        Switch the instance to the specified blockchain (Hive only).
+        
+        If the requested blockchain is already the configured default and update_nodes is False, this is a no-op.
+        When update_nodes is True, the node list is refreshed via NodeList.update_nodes() and the default nodes
+        are replaced with the Hive node list. The instance's config["default_chain"] is updated and, if the
+        instance is not offline, a reconnect is attempted.
+        
+        Parameters:
+            blockchain (str): Target blockchain; must be "hive".
+            update_nodes (bool): If True, refresh and replace the known node list before switching.
         """
         assert blockchain in ["hive"]
         if blockchain == self.config["default_chain"] and not update_nodes:
@@ -1000,19 +1114,18 @@ class BlockChainInstance(object):
             return ret
 
     def sign(self, tx=None, wifs=[], reconstruct_tx=True):
-        """Sign a provided transaction with the provided key(s)
-
-        :param dict tx: The transaction to be signed and returned
-        :param string wifs: One or many wif keys to use for signing
-            a transaction. If not present, the keys will be loaded
-            from the wallet as defined in "missing_signatures" key
-            of the transactions.
-        :param bool reconstruct_tx: when set to False and tx
-            is already contructed, it will not reconstructed
-            and already added signatures remain
-
-        .. note:: The trx_id is added to the returned dict
-
+        """
+        Sign a transaction using provided WIFs or the wallet's missing signatures and return the signed transaction.
+        
+        If tx is provided, it is wrapped in a TransactionBuilder; otherwise the instance's current txbuffer is used. Provided wifs (single string or list) are appended before missing required signatures are added. If reconstruct_tx is False and the transaction already contains signatures, it will not be reconstructed.
+        
+        Parameters:
+            tx (dict, optional): A transaction object to sign. If omitted, the active txbuffer is used.
+            wifs (str | list[str], optional): One or more WIF private keys to use for signing. If not provided, keys from the wallet for any missing signatures are used.
+            reconstruct_tx (bool, optional): If False, do not reconstruct an already-built transaction; existing signatures are preserved. Defaults to True.
+        
+        Returns:
+            dict: The signed transaction JSON with an added "trx_id" field containing the transaction id.
         """
         if tx:
             txbuffer = TransactionBuilder(tx, blockchain_instance=self)
@@ -1093,15 +1206,22 @@ class BlockChainInstance(object):
     # Account related calls
     # -------------------------------------------------------------------------
     def claim_account(self, creator, fee=None, **kwargs):
-        """Claim account for claimed account creation.
-
-        When fee is 0 HIVE a subsidized account is claimed and can be created
-        later with create_claimed_account.
-        The number of subsidized account is limited.
-
-        :param str creator: which account should pay the registration fee (RC or HIVE)
-                (defaults to ``default_account``)
-        :param str fee: when set to 0 HIVE (default), claim account is paid by RC
+        """
+        Claim a subsidized account slot or pay the account-creation fee.
+        
+        When `fee` is "0 <TOKEN>" (default), the claim consumes an account slot paid from RC (resource credits)
+        allowing a later call to `create_claimed_account` to create the account. Supplying a nonzero `fee`
+        will pay the registration fee in the chain token (e.g., HIVE).
+        
+        Parameters:
+            creator (str): Account that will pay or consume the claim (defaults to configured `default_account`).
+            fee (str, optional): Fee as a string with asset symbol (e.g., "0 HIVE" or "3.000 HIVE"). If omitted, defaults to "0 <token_symbol>".
+        
+        Returns:
+            The result of finalizeOp for the submitted Claim_account operation (signed/broadcast transaction or unsigned/buffered result, depending on instance configuration).
+        
+        Raises:
+            ValueError: If no `creator` is provided and no `default_account` is configured.
         """
         fee = fee if fee is not None else "0 %s" % (self.token_symbol)
         if not creator and self.config["default_account"]:
@@ -1735,21 +1855,29 @@ class BlockChainInstance(object):
         return tb.broadcast()
 
     def witness_update(self, signing_key, url, props, account=None, **kwargs):
-        """Creates/updates a witness
-
-        :param str signing_key: Public signing key
-        :param str url: URL
-        :param dict props: Properties
-        :param str account: (optional) witness account name
-
-        Properties:::
-
-            {
-                "account_creation_fee": "3.000 HIVE",
-                "maximum_block_size": 65536,
-                "hbd_interest_rate": 0,
-            }
-
+        """
+        Create or update a witness (register or modify a block producer).
+        
+        Creates a Witness_update operation for the given account with the provided signing key, node URL, and witness properties, then finalizes (signs/broadcasts or returns) the operation via the transaction pipeline.
+        
+        Parameters:
+            signing_key (str): Witness block signing public key (must be valid for the chain prefix).
+            url (str): URL for the witness (website or endpoint).
+            props (dict): Witness properties, e.g.:
+                {
+                    "account_creation_fee": "3.000 HIVE",
+                    "maximum_block_size": 65536,
+                    "hbd_interest_rate": 0,
+                }
+                The "account_creation_fee" value will be converted to an Amount if present.
+            account (str, optional): Witness account name. If omitted, the instance default_account config is used.
+        
+        Returns:
+            The value returned by finalizeOp (typically a transaction/broadcast result or a transaction builder when unsigned/bundled).
+        
+        Raises:
+            ValueError: If no account is provided or resolvable.
+            Exception: If the signing_key is not a valid public key for the chain prefix (propagates the underlying PublicKey error).
         """
         if not account and self.config["default_account"]:
             account = self.config["default_account"]
@@ -1825,23 +1953,20 @@ class BlockChainInstance(object):
             raise ValueError("Cannot have threshold of 0")
 
     def custom_json(self, id, json_data, required_auths=[], required_posting_auths=[], **kwargs):
-        """Create a custom json operation
-
-        :param str id: identifier for the custom json (max length 32 bytes)
-        :param json json_data: the json data to put into the custom_json
-            operation
-        :param list required_auths: (optional) required auths
-        :param list required_posting_auths: (optional) posting auths
-
-        .. note:: While reqired auths and required_posting_auths are both
-                  optional, one of the two are needed in order to send the custom
-                  json.
-
-        .. code-block:: python
-
-           hive.custom_json("id", "json_data",
-           required_posting_auths=['account'])
-
+        """
+        Create and submit a Custom_json operation.
+        
+        Parameters:
+            id (str): Identifier for the custom JSON (max 32 bytes).
+            json_data: JSON-serializable payload to include in the operation.
+            required_auths (list): Accounts that must authorize with active permission. If non-empty, the operation will be finalized using active permission.
+            required_posting_auths (list): Accounts that must authorize with posting permission. Used when `required_auths` is empty.
+        
+        Returns:
+            The result returned by finalizeOp (signed and/or broadcast transaction), which may vary based on the instance configuration (e.g., unsigned, nobroadcast, bundle).
+        
+        Raises:
+            Exception: If neither `required_auths` nor `required_posting_auths` contains an account.
         """
         account = None
         if len(required_auths):
@@ -1981,6 +2106,18 @@ class BlockChainInstance(object):
                 return list(dict.fromkeys(urls))
 
             def get_users(mdstring):
+                """
+                Extract usernames mentioned in a Markdown string.
+                
+                Searches mdstring for @-mentions (ASCII @ or fullwidth ＠) and returns the usernames found in order of appearance.
+                Usernames must start with a lowercase ASCII letter, may contain lowercase letters, digits, hyphens, dots (including fullwidth dot), and must end with a letter or digit.
+                
+                Parameters:
+                    mdstring (str): Text to scan for @-mentions.
+                
+                Returns:
+                    list[str]: List of matched username strings in the order they were found (may contain duplicates).
+                """
                 users = []
                 for u in re.findall(
                     r"(^|[^a-zA-Z0-9_!#$%&*@＠／]|(^|[^a-zA-Z0-9_+~.-／#]))[@＠]([a-z][-．a-z\d]+[a-z\d])",
@@ -2086,15 +2223,21 @@ class BlockChainInstance(object):
         return self.finalizeOp(ops, account, "posting", **kwargs)
 
     def vote(self, weight, identifier, account=None, **kwargs):
-        """Vote for a post
-
-        :param float weight: Voting weight. Range: -100.0 - +100.0.
-        :param str identifier: Identifier for the post to vote. Takes the
-            form ``@author/permlink``.
-        :param str account: (optional) Account to use for voting. If
-            ``account`` is not defined, the ``default_account`` will be used
-            or a ValueError will be raised
-
+        """
+        Cast a vote on a post.
+        
+        Parameters:
+            weight (float): Vote weight in percent, range -100.0 to 100.0. This is
+                converted to the chain's internal weight units (multiplied by
+                HIVE_1_PERCENT) and clamped to the allowed range.
+            identifier (str): Post identifier in the form "@author/permlink".
+            account (str, optional): Name of the account to use for voting. If not
+                provided, the instance's `default_account` from config is used. A
+                ValueError is raised if no account can be determined.
+        
+        Returns:
+            The result from finalizeOp (operation signing/broadcast buffer or broadcast
+            response) after creating a Vote operation using posting permission.
         """
         if not account:
             if "default_account" in self.config:
@@ -2123,25 +2266,26 @@ class BlockChainInstance(object):
         return self.finalizeOp(op, account, "posting", **kwargs)
 
     def comment_options(self, options, identifier, beneficiaries=[], account=None, **kwargs):
-        """Set the comment options
-
-        :param dict options: The options to define.
-        :param str identifier: Post identifier
-        :param list beneficiaries: (optional) list of beneficiaries
-        :param str account: (optional) the account to allow access
-            to (defaults to ``default_account``)
-
-        For the options, you have these defaults:::
-
-            {
-                "author": "",
-                "permlink": "",
-                "max_accepted_payout": "1000000.000 HBD",
-                "percent_hbd": 10000,
-                "allow_votes": True,
-                "allow_curation_rewards": True,
-            }
-
+        """
+        Set comment/post options for a post (Comment_options operation) and submit the operation.
+        
+        Parameters:
+            options (dict): Comment options to set. Common keys include:
+                - max_accepted_payout (str): e.g. "1000000.000 HBD"
+                - percent_hbd (int): e.g. 10000 for 100%
+                - allow_votes (bool)
+                - allow_curation_rewards (bool)
+                Other valid keys accepted by the chain's Comment_options operation are supported.
+            identifier (str): Post identifier in the form "author/permlink" or a permlink for the default author.
+            beneficiaries (list): Optional list of beneficiaries (each entry typically a dict with `account` and `weight`).
+            account (str): Account that authorizes this operation; defaults to the instance's `default_account` if not provided.
+            **kwargs: Additional keyword arguments forwarded to finalizeOp (e.g., broadcast/signing options).
+        
+        Returns:
+            The result of finalizeOp for the created Comment_options operation (signed/broadcasted transaction or unsigned buffer), depending on instance configuration.
+        
+        Raises:
+            ValueError: If no account is provided and no default account is configured.
         """
         if not account and self.config["default_account"]:
             account = self.config["default_account"]
@@ -2153,6 +2297,27 @@ class BlockChainInstance(object):
         return self.finalizeOp(op, account, "posting", **kwargs)
 
     def _build_comment_options_op(self, author, permlink, options, beneficiaries):
+        """
+        Build and return a Comment_options operation for a post, validating and normalizing provided options and beneficiaries.
+        
+        Parameters:
+            author (str): The post author's account name.
+            permlink (str): The permlink of the post to set options for.
+            options (dict): Optional comment options; supported keys include
+                "max_accepted_payout", "percent_hbd", "allow_votes",
+                "allow_curation_rewards", and "extensions". Keys not listed are removed.
+            beneficiaries (list): Optional list of beneficiary dicts, each with
+                "account" (str) and optional "weight" (int, 1..HIVE_100_PERCENT). If provided,
+                beneficiaries override any beneficiaries in `options`.
+        
+        Returns:
+            operations.Comment_options: A Comment_options operation ready to be appended to a transaction.
+        
+        Raises:
+            ValueError: If a beneficiary is missing the "account" field, has an account name
+                longer than 16 characters, has an invalid weight (not in 1..HIVE_100_PERCENT),
+                or if the sum of beneficiary weights exceeds HIVE_100_PERCENT.
+        """
         options = remove_from_dict(
             options or {},
             [
@@ -2203,7 +2368,12 @@ class BlockChainInstance(object):
         return comment_op
 
     def get_api_methods(self):
-        """Returns all supported api methods"""
+        """
+        Return the list of all JSON-RPC API methods supported by the connected node.
+        
+        Returns:
+            list: Method names (strings) provided by the node's JSON-RPC API.
+        """
         return self.rpc.get_methods(api="jsonrpc")
 
     def get_apis(self):
@@ -2217,10 +2387,20 @@ class BlockChainInstance(object):
         return api_list
 
     def _get_asset_symbol(self, asset_id):
-        """get the asset symbol from an asset id
-
-        :@param int asset_id: 0 -> HBD, 1 -> HIVE, 2 -> VESTS
-
+        """
+        Return the asset symbol for a given asset id.
+        
+        Asset ids are looked up in self.chain_params["chain_assets"]. Common mappings include
+        0 -> HBD, 1 -> HIVE, 2 -> VESTS.
+        
+        Parameters:
+            asset_id (int): Numeric asset id as used in chain_params.
+        
+        Returns:
+            str: The asset symbol for the provided id.
+        
+        Raises:
+            KeyError: If the asset id is not present in self.chain_params["chain_assets"].
         """
         for asset in self.chain_params["chain_assets"]:
             if asset["id"] == asset_id:
@@ -2230,7 +2410,11 @@ class BlockChainInstance(object):
 
     @property
     def backed_token_symbol(self):
-        """get the current chains symbol for HBD (e.g. "TBD" on testnet)"""
+        """
+        Return the symbol for the chain's backed asset (HBD-like).
+        
+        Attempts to read the asset symbol at asset id 0 (typical HBD). If that key is missing, falls back to asset id 1 (main token) and returns that symbol. Returns a string (e.g., "HBD", "TBD", or the chain's main token symbol). May propagate KeyError if neither asset id is available.
+        """
         # some networks (e.g. whaleshares) do not have HBD
         try:
             symbol = self._get_asset_symbol(0)

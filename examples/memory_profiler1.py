@@ -16,6 +16,26 @@ logging.basicConfig(level=logging.INFO)
 
 @profile
 def profiling(name_list):
+    """
+    Profile memory while retrieving account histories and recent blockchain blocks.
+    
+    Creates a Hive instance and registers it as the shared blockchain instance, then iterates over each account name in name_list to:
+    - print the account name,
+    - instantiate an Account and print its virtual operation count,
+    - scan the account history in reverse up to 2018-04-22 00:00:00 and print the last history element found.
+    
+    After processing accounts, it constructs a Blockchain instance, determines the current block number, streams the last 20 blocks (current_num-20..current_num), prints each block number as it is streamed, and prints the last block element seen.
+    
+    Parameters:
+        name_list (iterable[str]): Iterable of account name strings to process.
+    
+    Side effects:
+        - Registers a shared blockchain instance via set_shared_blockchain_instance(hv).
+        - Prints progress and results to standard output.
+    
+    Returns:
+        None
+    """
     hv = Hive()
     set_shared_blockchain_instance(hv)
     del hv

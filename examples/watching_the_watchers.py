@@ -72,6 +72,20 @@ class WatchingTheWatchersBot:
         self.looked_up = set()
 
     def vote(self, vote_event):
+        """
+        Process a vote event and record downvote statistics and account metadata.
+        
+        When the incoming vote_event represents a negative vote (weight < 0), this method:
+        - Extracts the corresponding Comment and inspects its active_votes to find the voter's negative vote(s), splitting any contribution into `downvote_power` and `flag_power`, then records those values with the WatchingTheWatchers instance.
+        - Ensures voter and author account information is loaded once: looks up account objects, computes vesting power (VP) from vesting shares, received vesting shares, and delegated vesting shares, then classifies accounts into fish categories ("redfish", "minnow", "dolphin", "orca", "whale") by VP thresholds.
+        - Collects related accounts from the account's `recovery_account` (excluded when empty or equal to "hive") and `proxy`, and stores that metadata.
+        
+        Parameters:
+            vote_event (dict): A vote operation dictionary with at least the keys "weight", "voter", "author", and "permlink". For negative weights this method reads the referenced comment's "active_votes" to compute downvote and flag powers.
+        
+        Returns:
+            None
+        """
         def process_vote_content(event):
             start_rshares = 0.0
             for vote in event["active_votes"]:
@@ -84,6 +98,18 @@ class WatchingTheWatchersBot:
                     self.wtw.update(vote["voter"], vote_event["author"], downvote_power, flag_power)
 
         def lookup_accounts(acclist):
+            """
+            Lookup account records for the given account names, compute each account's vesting power (VP) and a fish-category based on VP, collect related accounts (recovery_account except "hive" and non-empty proxy), and store the results by calling self.wtw.set_account_info(account, fish, related). If any related accounts (recovery or proxy) are found and not already processed, they are queued for recursive lookup.
+            
+            Parameters:
+                acclist (list[str]): List of account names to fetch and process.
+            
+            Notes:
+                - VP is computed as (vesting_shares + received_vesting_shares - delegated_vesting_shares) / 1_000_000.
+                - Fish categories: "redfish" (default), "minnow" (VP >= 1), "dolphin" (VP >= 10), "orca" (VP >= 100), "whale" (VP > 1000).
+                - Prints an "OOPS" line if the number of fetched Account objects does not match the input list length.
+                - Side effects: calls self.wtw.set_account_info and may call lookup_accounts recursively for related accounts not yet seen.
+            """
             def user_info(accounts):
                 if len(acclist) != len(accounts):
                     print("OOPS:", len(acclist), len(accounts), acclist)

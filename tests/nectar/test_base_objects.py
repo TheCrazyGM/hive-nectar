@@ -12,6 +12,13 @@ from .nodes import get_hive_nodes
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Set up a shared Hive blockchain instance for the test class.
+        
+        Creates a Hive client configured with the test node(s), nobroadcast=True, and num_retries=10,
+        assigns it to the class attribute `bts`, and registers it as the global shared blockchain instance
+        used by tests.
+        """
         cls.bts = Hive(node=get_hive_nodes(), nobroadcast=True, num_retries=10)
         set_shared_blockchain_instance(cls.bts)
 

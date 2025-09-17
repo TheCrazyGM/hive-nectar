@@ -32,6 +32,19 @@ core_unit = "STM"
 class Testcases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """
+        Prepare class-wide test fixtures for the test suite.
+        
+        Initializes a temporary Hive to refresh backup data and default nodes, collects available node URLs, creates a persistent Hive instance used as the shared blockchain instance for tests, and builds lightweight objects to extract test values. Sets the following class attributes for use by tests:
+        - urls: list of Hive node URLs retrieved from get_hive_nodes()
+        - bts: Hive instance used as the shared blockchain instance (nobroadcast, num_retries=10)
+        - authorperm: authorperm string from a sample Comment
+        - authorpermvoter: combination of authorperm and the last vote's voter in the form "authorperm|voter"
+        
+        Side effects:
+        - Registers bts as the shared blockchain instance via set_shared_blockchain_instance.
+        - Mutates class state (adds urls, bts, authorperm, authorpermvoter).
+        """
         hv = Hive(node=get_hive_nodes())
         hv.config.refreshBackup()
         hv.set_default_nodes(["xyz"])
@@ -49,6 +62,11 @@ class Testcases(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """
+        Tear down class-level test fixtures by restoring the shared Hive configuration from the latest backup.
+        
+        Creates a temporary Hive instance using the configured test nodes and calls its configuration recovery to restore the most recent backup, ensuring any global configuration changes made during tests are reverted.
+        """
         hv = Hive(node=get_hive_nodes())
         hv.config.recover_with_latest_backup()
 
