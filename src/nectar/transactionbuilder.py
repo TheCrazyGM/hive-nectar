@@ -239,6 +239,9 @@ class TransactionBuilder(dict):
         if self.blockchain.wallet.locked():
             raise WalletLocked()
         if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # HiveSigner only supports posting permission
+            if permission != "posting":
+                raise ValueError(f"HiveSigner only supports 'posting' permission, got '{permission}'")
             self.blockchain.hivesigner.set_username(account["name"], permission)
             return
 
@@ -409,8 +412,20 @@ class TransactionBuilder(dict):
             self.constructTx()
         if "operations" not in self or not self["operations"]:
             return
-        if self.blockchain.use_hs:
-            return
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # Use HiveSigner for signing
+            try:
+                signed_tx = self.blockchain.hivesigner.sign(self.json())
+                if signed_tx and "signatures" in signed_tx:
+                    # Attach the signatures from HiveSigner to the transaction
+                    self["signatures"] = signed_tx["signatures"]
+                    return signed_tx
+                else:
+                    raise ValueError("HiveSigner failed to sign transaction")
+            except Exception as e:
+                log.error(f"HiveSigner signing failed: {e}")
+                # Fall back to regular signing if HiveSigner fails
+                pass
         # We need to set the default prefix, otherwise pubkeys are
         # presented wrongly!
         if self.blockchain.rpc is not None:
@@ -533,6 +548,17 @@ class TransactionBuilder(dict):
         else:
             args = self.json()
             broadcast_api = "condenser"
+
+        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
+            # Use HiveSigner for broadcasting
+            try:
+                ret = self.blockchain.hivesigner.broadcast(self.json())
+                self.clear()
+                return ret
+            except Exception as e:
+                log.error(f"HiveSigner broadcast failed: {e}")
+                # Fall back to RPC broadcasting if HiveSigner fails
+                pass
 
         if self.blockchain.nobroadcast:
             log.info("Not broadcasting anything!")

@@ -378,7 +378,7 @@ class Amount(dict):
     def __idiv__(self, other):
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] / other["amount"]
+            self["amount"] = self["amount"] / other["amount"]
         else:
             self["amount"] /= Decimal(other)
         if self.fixed_point_arithmetic:
@@ -440,7 +440,9 @@ class Amount(dict):
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] != quantize(other["amount"], self["asset"]["precision"])
+            return quantize(self["amount"], self["asset"]["precision"]) != quantize(
+                other["amount"], self["asset"]["precision"]
+            )
         else:
             return quant_amount != quantize((other or 0), self["asset"]["precision"])
 
@@ -448,7 +450,7 @@ class Amount(dict):
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return self["amount"] >= quantize(other["amount"], self["asset"]["precision"])
+            return quant_amount >= quantize(other["amount"], self["asset"]["precision"])
         else:
             return quant_amount >= quantize((other or 0), self["asset"]["precision"])
 
@@ -462,4 +464,5 @@ class Amount(dict):
 
     __repr__ = __str__
     __truediv__ = __div__
+    __itruediv__ = __idiv__
     __truemul__ = __mul__

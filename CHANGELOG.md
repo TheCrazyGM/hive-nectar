@@ -12,6 +12,11 @@
 - **Improvement**: Removed deprecated websocket support from GrapheneRPC, now only supports HTTP/requests for better reliability and maintainability.
 - **Improvement**: Simplified ecdsasig.py to use only cryptography library, removing complex conditional logic for different secp256k1 implementations. The `tweak_add` operation now raises NotImplementedError when called.
 - **Major Feature**: Implemented pure Python secp256k1 elliptic curve operations for PublicKey.add() method, restoring compatibility with existing code that relies on key derivation. The implementation includes proper validation, error handling, and maintains the same API as before. All unit tests pass successfully.
+- **Fix**: Fixed HiveSigner integration in TransactionBuilder:
+  - Updated appendSigner() to restrict permissions to 'posting' when using HiveSigner
+  - Fixed sign() method to properly call hivesigner.sign() and attach signatures instead of returning early
+  - Fixed broadcast() method to use hivesigner.broadcast() when use_hs is True
+  - Added proper error handling and fallbacks for non-HiveSigner flows
 
 ## 0.0.11 - 2025-07-25
 

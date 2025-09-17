@@ -29,15 +29,15 @@ def _is_canonical(sig):
 
 
 def compressedPubkey(pk):
-    if not isinstance(pk, ecdsa.keys.VerifyingKey):
+    if isinstance(pk, ecdsa.keys.VerifyingKey):
         order = ecdsa.SECP256k1.order
-        x = pk.public_numbers().x
-        y = pk.public_numbers().y
-    else:
-        order = pk.curve.generator.order()
         p = pk.pubkey.point
         x = p.x()
         y = p.y()
+    else:
+        order = ecdsa.SECP256k1.order
+        x = pk.public_numbers().x
+        y = pk.public_numbers().y
     x_str = ecdsa.util.number_to_string(x, order)
     return bytes(chr(2 + (y & 1)), "ascii") + x_str
 

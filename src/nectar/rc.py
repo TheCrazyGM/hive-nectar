@@ -32,8 +32,7 @@ class RC(object):
             operations=ops,
         )
         tx = tx.sign([wif], chain=prefix)
-        txWire = hexlify(bytes(tx)).decode("ascii")
-        tx_size = len(txWire)
+        tx_size = len(bytes(tx))
         return tx_size
 
     def get_resource_count(

@@ -3,9 +3,10 @@ import json
 import struct
 import time
 from binascii import hexlify, unhexlify
-from calendar import timegm
+# Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
 
+# Import calendar only when needed to avoid circular imports
 timeformat = "%Y-%m-%dT%H:%M:%S%Z"
 
 
@@ -267,8 +268,12 @@ class PointInTime(object):
     def __bytes__(self):
         """Returns bytes representation."""
         if isinstance(self.data, datetime):
+            # Import timegm locally to avoid circular imports
+            from calendar import timegm
             unixtime = timegm(self.data.timetuple())
         else:
+            # Import timegm locally to avoid circular imports
+            from calendar import timegm
             unixtime = timegm(time.strptime((self.data + "UTC"), timeformat))
         if unixtime < 0:
             return struct.pack("<i", unixtime)

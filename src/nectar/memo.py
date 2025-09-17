@@ -277,10 +277,10 @@ class Memo(object):
             return None
         memo_wif = None
         # We first try to decode assuming we received the memo
-        if isinstance(memo, dict) and "to" in memo and "from" in memo and "memo" in memo:
+        if isinstance(memo, dict) and "to" in memo and "from" in memo and ("memo" in memo or "message" in memo):
             memo_to = Account(memo["to"], blockchain_instance=self.blockchain)
             memo_from = Account(memo["from"], blockchain_instance=self.blockchain)
-            message = memo["memo"]
+            message = memo.get("memo") or memo.get("message")
         else:
             memo_to = self.to_account
             memo_from = self.from_account

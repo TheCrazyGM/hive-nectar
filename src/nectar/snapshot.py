@@ -358,14 +358,14 @@ class AccountSnapshot(list):
             amount = Amount(op["amount"], blockchain_instance=self.blockchain)
             if op["from"] == self.account["name"]:
                 if amount.symbol == self.blockchain.blockchain_symbol:
-                    self.update(ts, 0, 0, 0, amount * (-1), 0)
+                    self.update(ts, 0, None, None, hive=amount * (-1), hbd=0)
                 elif amount.symbol == self.blockchain.backed_token_symbol:
-                    self.update(ts, 0, 0, 0, 0, amount * (-1))
+                    self.update(ts, 0, None, None, hive=0, hbd=amount * (-1))
             if op["to"] == self.account["name"]:
                 if amount.symbol == self.blockchain.blockchain_symbol:
-                    self.update(ts, 0, 0, 0, amount, 0)
+                    self.update(ts, 0, None, None, hive=amount, hbd=0)
                 elif amount.symbol == self.blockchain.backed_token_symbol:
-                    self.update(ts, 0, 0, 0, 0, amount)
+                    self.update(ts, 0, None, None, hive=0, hbd=amount)
             return
 
         elif op["type"] == "fill_order":
@@ -373,14 +373,14 @@ class AccountSnapshot(list):
             open_pays = Amount(op["open_pays"], blockchain_instance=self.blockchain)
             if op["current_owner"] == self.account["name"]:
                 if current_pays.symbol == self.blockchain.token_symbol:
-                    self.update(ts, 0, 0, 0, current_pays * (-1), open_pays)
+                    self.update(ts, 0, None, None, hive=current_pays * (-1), hbd=open_pays)
                 elif current_pays.symbol == self.blockchain.backed_token_symbol:
-                    self.update(ts, 0, 0, 0, open_pays, current_pays * (-1))
+                    self.update(ts, 0, None, None, hive=open_pays, hbd=current_pays * (-1))
             if op["open_owner"] == self.account["name"]:
                 if current_pays.symbol == self.blockchain.token_symbol:
-                    self.update(ts, 0, 0, 0, current_pays, open_pays * (-1))
+                    self.update(ts, 0, None, None, hive=current_pays, hbd=open_pays * (-1))
                 elif current_pays.symbol == self.blockchain.backed_token_symbol:
-                    self.update(ts, 0, 0, 0, open_pays * (-1), current_pays)
+                    self.update(ts, 0, None, None, hive=open_pays * (-1), hbd=current_pays)
             return
 
         elif op["type"] == "transfer_to_vesting":
@@ -398,7 +398,7 @@ class AccountSnapshot(list):
 
         elif op["type"] == "fill_vesting_withdraw":
             vests = Amount(op["withdrawn"], blockchain_instance=self.blockchain)
-            self.update(ts, vests * (-1), 0, 0)
+            self.update(ts, vests * (-1), None, None, hive=0, hbd=0)
             return
 
         elif op["type"] == "return_vesting_delegation":
@@ -406,21 +406,21 @@ class AccountSnapshot(list):
                 "account": None,
                 "amount": Amount(op["vesting_shares"], blockchain_instance=self.blockchain),
             }
-            self.update(ts, 0, 0, delegation)
+            self.update(ts, 0, None, None, delegation)
             return
 
         elif op["type"] == "claim_reward_balance":
             vests = Amount(op["reward_vests"], blockchain_instance=self.blockchain)
             hive = Amount(op["reward_hive"], blockchain_instance=self.blockchain)
             hbd = Amount(op["reward_hbd"], blockchain_instance=self.blockchain)
-            self.update(ts, vests, 0, 0, hive, hbd)
+            self.update(ts, vests, None, None, hive=hive, hbd=hbd)
             return
 
         elif op["type"] == "curation_reward":
             if "curation_reward" in only_ops or enable_rewards:
                 vests = Amount(op["reward"], blockchain_instance=self.blockchain)
             if "curation_reward" in only_ops:
-                self.update(ts, vests, 0, 0)
+                self.update(ts, vests, None, None, hive=0, hbd=0)
             if enable_rewards:
                 self.update_rewards(ts, vests, 0, 0, 0)
             return
@@ -431,26 +431,26 @@ class AccountSnapshot(list):
                 hive = Amount(op["hive_payout"], blockchain_instance=self.blockchain)
                 hbd = Amount(op["hbd_payout"], blockchain_instance=self.blockchain)
             if "author_reward" in only_ops:
-                self.update(ts, vests, 0, 0, hive, hbd)
+                self.update(ts, vests, None, None, hive=hive, hbd=hbd)
             if enable_rewards:
                 self.update_rewards(ts, 0, vests, hive, hbd)
             return
 
         elif op["type"] == "producer_reward":
             vests = Amount(op["vesting_shares"], blockchain_instance=self.blockchain)
-            self.update(ts, vests, 0, 0)
+            self.update(ts, vests, None, None, hive=0, hbd=0)
             return
 
         elif op["type"] == "comment_benefactor_reward":
             if op["benefactor"] == self.account["name"]:
                 if "reward" in op:
                     vests = Amount(op["reward"], blockchain_instance=self.blockchain)
-                    self.update(ts, vests, 0, 0)
+                    self.update(ts, vests, None, None, hive=0, hbd=0)
                 else:
                     vests = Amount(op["vesting_payout"], blockchain_instance=self.blockchain)
                     hive = Amount(op["hive_payout"], blockchain_instance=self.blockchain)
                     hbd = Amount(op["hbd_payout"], blockchain_instance=self.blockchain)
-                    self.update(ts, vests, 0, 0, hive, hbd)
+                    self.update(ts, vests, None, None, hive=hive, hbd=hbd)
                 return
             else:
                 return
@@ -459,12 +459,12 @@ class AccountSnapshot(list):
             amount_in = Amount(op["amount_in"], blockchain_instance=self.blockchain)
             amount_out = Amount(op["amount_out"], blockchain_instance=self.blockchain)
             if op["owner"] == self.account["name"]:
-                self.update(ts, 0, 0, 0, amount_out, amount_in * (-1))
+                self.update(ts, 0, None, None, hive=amount_out, hbd=amount_in * (-1))
             return
 
         elif op["type"] == "interest":
             interest = Amount(op["interest"], blockchain_instance=self.blockchain)
-            self.update(ts, 0, 0, 0, 0, interest)
+            self.update(ts, 0, None, None, hive=0, hbd=interest)
             return
 
         elif op["type"] == "vote":
@@ -481,7 +481,7 @@ class AccountSnapshot(list):
             vests = Amount(op["vests_converted"])
             hbd = Amount(op["hbd_transferred"])
             hive = Amount(op["hive_transferred"])
-            self.update(ts, vests * (-1), 0, 0, hive * (-1), hbd * (-1))
+            self.update(ts, vests * (-1), None, None, hive=hive * (-1), hbd=hbd * (-1))
 
         elif op["type"] in [
             "comment",

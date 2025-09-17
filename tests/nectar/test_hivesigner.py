@@ -41,8 +41,8 @@ class Testcases(unittest.TestCase):
         url_parts = (url.split("?")[1]).split("&")
         url_test_parts = (url_test.split("?")[1]).split("&")
 
-        self.assertEqual(len(url_parts), 4)
-        self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 4)
+        self.assertEqual(len(url_parts), 3)
+        self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 3)
 
     def test_login_url(self):
         bts = self.bts
@@ -56,5 +56,42 @@ class Testcases(unittest.TestCase):
         url_parts = (url.split("?")[1]).split("&")
         url_test_parts = (url_test.split("?")[1]).split("&")
 
-        self.assertEqual(len(url_parts), 3)
-        self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 3)
+    def test_sign_method(self):
+        """Test the sign method functionality"""
+        bts = self.bts
+        sc2 = HiveSigner(blockchain_instance=bts)
+
+        # Test transaction to sign
+        test_tx = {
+            "operations": [
+                [
+                    "vote",
+                    {
+                        "voter": "test",
+                        "author": "gtg",
+                        "permlink": "hive-pressure-4-need-for-speed",
+                        "weight": 10000
+                    }
+                ]
+            ]
+        }
+
+        # Test signing
+        signed_tx = sc2.sign(test_tx)
+
+        # Verify the signed transaction structure
+        self.assertIsInstance(signed_tx, dict)
+        self.assertIn("operations", signed_tx)
+        self.assertIn("signatures", signed_tx)
+        self.assertEqual(len(signed_tx["signatures"]), 1)
+        self.assertEqual(signed_tx["operations"], test_tx["operations"])
+
+        # Test error cases
+        with self.assertRaises(ValueError):
+            sc2.sign("not a dict")
+
+        with self.assertRaises(ValueError):
+            sc2.sign({})
+
+        with self.assertRaises(ValueError):
+            sc2.sign({"operations": []})

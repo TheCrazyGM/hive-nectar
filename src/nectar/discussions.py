@@ -38,9 +38,9 @@ class Query(dict):
         limit=0,
         tag="",
         truncate_body=0,
-        filter_tags=[],
-        select_authors=[],
-        select_tags=[],
+        filter_tags=None,
+        select_authors=None,
+        select_tags=None,
         start_author=None,
         start_permlink=None,
         start_tag=None,
@@ -53,9 +53,9 @@ class Query(dict):
         self["limit"] = limit
         self["truncate_body"] = truncate_body
         self["tag"] = tag
-        self["filter_tags"] = filter_tags
-        self["select_authors"] = select_authors
-        self["select_tags"] = select_tags
+        self["filter_tags"] = filter_tags or []
+        self["select_authors"] = select_authors or []
+        self["select_tags"] = select_tags or []
         self["start_author"] = start_author
         self["start_permlink"] = start_permlink
         self["start_tag"] = start_tag
