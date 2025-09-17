@@ -73,12 +73,12 @@ class Testcases(unittest.TestCase):
 
     def test_balance(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["balance", "thecrazygm", "hive-nectar"])
+        result = runner.invoke(cli, ["balance", "thecrazygm", "nectarflower"])
         self.assertEqual(result.exit_code, 0)
 
     def test_interest(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "interest", "thecrazygm", "hive-nectar"])
+        result = runner.invoke(cli, ["-dx", "interest", "thecrazygm", "nectarflower"])
         self.assertEqual(result.exit_code, 0)
 
     def test_config(self):
@@ -280,13 +280,21 @@ class Testcases(unittest.TestCase):
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["-dx", "allow", "--account", "thecrazygm", "--permission", "posting", "hive-nectar"],
+            ["-dx", "allow", "--account", "thecrazygm", "--permission", "posting", "nectarflower"],
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
             cli,
-            ["-dx", "disallow", "--account", "thecrazygm", "--permission", "posting", "rewarding"],
+            [
+                "-dx",
+                "disallow",
+                "--account",
+                "thecrazygm",
+                "--permission",
+                "posting",
+                "nectarflower",
+            ],
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
@@ -307,21 +315,21 @@ class Testcases(unittest.TestCase):
     def test_approvewitness(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "approvewitness", "-a", "hive-nectar", "thecrazygm"], input="test\n"
+            cli, ["-dx", "approvewitness", "-a", "nectarflower", "thecrazygm"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_disapprovewitness(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "disapprovewitness", "-a", "hive-nectar", "thecrazygm"], input="test\n"
+            cli, ["-dx", "disapprovewitness", "-a", "nectarflower", "thecrazygm"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_addproxy(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "setproxy", "-a", "hive-nectar", "thecrazygm"], input="test\n"
+            cli, ["-dx", "setproxy", "-a", "nectarflower", "thecrazygm"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
 
@@ -471,16 +479,16 @@ class Testcases(unittest.TestCase):
 
     def test_follow_unfollow(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dto", "follow", "hive-nectar"], input="test\n")
+        result = runner.invoke(cli, ["-dto", "follow", "nectarflower"], input="test\n")
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dto", "unfollow", "hive-nectar"], input="test\n")
+        result = runner.invoke(cli, ["-dto", "unfollow", "nectarflower"], input="test\n")
         self.assertEqual(result.exit_code, 0)
 
     def test_mute_unmute(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dto", "mute", "hive-nectar"], input="test\n")
+        result = runner.invoke(cli, ["-dto", "mute", "nectarflower"], input="test\n")
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dto", "unfollow", "hive-nectar"], input="test\n")
+        result = runner.invoke(cli, ["-dto", "unfollow", "nectarflower"], input="test\n")
         self.assertEqual(result.exit_code, 0)
 
     def test_witnesscreate(self):
@@ -511,10 +519,10 @@ class Testcases(unittest.TestCase):
     def test_profile(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "setprofile", "url", "https://google.de"], input="test\n"
+            cli, ["-dx", "setprofile", "-a", "nectar", "url", "https://google.de"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dx", "delprofile", "url"], input="test\n")
+        result = runner.invoke(cli, ["-dx", "delprofile", "-a", "nectar", "url"], input="test\n")
         self.assertEqual(result.exit_code, 0)
 
     def test_claimreward(self):

@@ -24,7 +24,7 @@ class Testcases(unittest.TestCase):
 
     def test_Account(self):
         with self.assertRaises(exceptions.AccountDoesNotExistsException):
-            Account("FOObarNonExisting")
+            Account("foobarnonexist")
 
         c = Account("test")
         self.assertEqual(c["name"], "test")
@@ -32,7 +32,7 @@ class Testcases(unittest.TestCase):
 
     def test_Witness(self):
         with self.assertRaises(exceptions.WitnessDoesNotExistsException):
-            Witness("FOObarNonExisting")
+            Witness("foobarnonexist")
 
         c = Witness("jesta")
         self.assertEqual(c["owner"], "jesta")

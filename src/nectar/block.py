@@ -310,7 +310,8 @@ class Block(BlockchainObject):
                     op_type = op_type[:-10]
             else:
                 op_type = op[0]
-            ops_stat[op_type] += 1
+            if op_type in ops_stat:
+                ops_stat[op_type] += 1
         return ops_stat
 
 
