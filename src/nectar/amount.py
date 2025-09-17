@@ -8,7 +8,7 @@ from nectar.instance import shared_blockchain_instance
 def check_asset(other, self, hv):
     """
     Assert that two asset representations refer to the same asset.
-    
+
     If both `other` and `self` are dicts containing an "asset" key, each asset id is wrapped in an Asset using the provided blockchain instance and compared for equality. Otherwise the two values are compared directly. Raises AssertionError if the values do not match.
     """
     if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
@@ -91,7 +91,7 @@ class Amount(dict):
     ):
         """
         Initialize an Amount object representing a quantity of a specific blockchain asset.
-        
+
         The constructor accepts many input formats and normalizes them into internal keys:
         - amount may be another Amount, a three-element list [amount, precision, asset],
           a new appbase-format dict with keys ("amount", "nai", "precision"), a legacy dict
@@ -99,12 +99,12 @@ class Amount(dict):
           or a numeric value (int, float, Decimal) paired with an `asset` argument.
         - asset may be an Asset instance, an asset dict, or a symbol string; when omitted,
           the asset will be inferred from the provided `amount` representation.
-        
+
         After parsing, the instance stores:
         - "amount" as a Decimal (or quantized Decimal when fixed-point mode is enabled),
         - "symbol" as the asset symbol,
         - "asset" as an Asset-like object.
-        
+
         Parameters:
             amount: Various accepted formats (see description) representing the quantity.
             asset: Asset instance, asset dict, or asset symbol string used when `amount`
@@ -113,7 +113,7 @@ class Amount(dict):
                 to the asset's precision using floor rounding.
             new_appbase_format (bool): Indicates whether to prefer the new appbase JSON
                 format when producing serialized representations.
-        
+
         Raises:
             ValueError: If `amount` and `asset` do not match any supported input format.
         """
@@ -251,12 +251,12 @@ class Amount(dict):
     def asset(self):
         """
         Return the Asset object for this Amount, constructing it lazily if missing.
-        
+
         If the internal 'asset' entry is falsy, this creates a nectar.asset.Asset using the stored symbol
         and this Amount's blockchain instance, stores it in 'asset', and returns it. Always returns an
         Asset instance.
         """
-        if not self["asset"]:
+        if not isinstance(self["asset"], Asset):
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
         return self["asset"]
 
@@ -417,12 +417,12 @@ class Amount(dict):
     def __idiv__(self, other):
         """
         In-place division: divide this Amount by another Amount or numeric value and return self.
-        
+
         If `other` is an Amount, asserts asset compatibility and divides this object's internal amount by the other's amount. If `other` is numeric, divides by Decimal(other). When `fixed_point_arithmetic` is enabled, the result is quantized to this asset's precision.
-        
+
         Returns:
             self (Amount): The mutated Amount instance.
-        
+
         Raises:
             AssertionError: If `other` is an Amount with a different asset (via check_asset).
         """
@@ -489,11 +489,11 @@ class Amount(dict):
     def __ne__(self, other):
         """
         Return True if this Amount is not equal to `other`.
-        
+
         Compares values after quantizing both sides to this amount's asset precision. If `other` is an Amount, its asset must match this Amount's asset (an assertion is raised on mismatch) and the comparison uses both amounts quantized to the shared precision. If `other` is numeric or None, it is treated as a numeric value (None → 0) and compared after quantization.
-        
+
         Returns:
-        	bool: True when the quantized values differ, False otherwise.
+                bool: True when the quantized values differ, False otherwise.
         """
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
@@ -507,7 +507,7 @@ class Amount(dict):
     def __ge__(self, other):
         """
         Return True if this Amount is greater than or equal to `other`.
-        
+
         Performs comparison after quantizing both values to this Amount's asset precision. If `other` is an Amount, its asset must match this Amount's asset (an AssertionError is raised on mismatch). If `other` is None, it is treated as zero. Returns a boolean.
         """
         quant_amount = quantize(self["amount"], self["asset"]["precision"])

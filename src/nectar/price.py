@@ -4,34 +4,10 @@ from fractions import Fraction
 
 from nectar.instance import shared_blockchain_instance
 
-from .amount import Amount
+from .amount import Amount, check_asset
 from .asset import Asset
 from .exceptions import InvalidAssetException
 from .utils import assets_from_string, formatTimeString
-
-
-def check_asset(other, self, hv):
-    """
-    Assert that two assets are the same.
-    
-    If both inputs are dict-like and contain an "asset" key, compares Asset(...) instances constructed with the provided blockchain instance; otherwise compares the inputs directly. Raises AssertionError when the two assets (or values) do not match.
-    
-    Parameters:
-        other: A value or dict with an "asset" key representing the first asset/value.
-        self: A value or dict with an "asset" key representing the second asset/value.
-        hv: Blockchain instance used when constructing Asset objects (omitted from parameter docs for service clients in callers).
-    
-    Raises:
-        AssertionError: If the compared assets or values are not equal.
-    """
-    if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
-        if not Asset(other["asset"], blockchain_instance=hv) == Asset(
-            self["asset"], blockchain_instance=hv
-        ):
-            raise AssertionError()
-    else:
-        if not other == self:
-            raise AssertionError()
 
 
 class Price(dict):

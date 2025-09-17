@@ -618,7 +618,9 @@ class TransactionBuilder(dict):
         if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
             # Use HiveSigner for broadcasting
             try:
-                ret = self.blockchain.hivesigner.broadcast(self.json())
+                # HiveSigner.broadcast expects operations list, not full transaction
+                username = self.signing_accounts[0] if self.signing_accounts else None
+                ret = self.blockchain.hivesigner.broadcast(self.json()["operations"], username=username)
                 self.clear()
                 return ret
             except Exception as e:

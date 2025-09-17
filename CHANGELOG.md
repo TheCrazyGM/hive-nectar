@@ -17,6 +17,7 @@
   - Fixed sign() method to properly call hivesigner.sign() and attach signatures instead of returning early
   - Fixed broadcast() method to use hivesigner.broadcast() when use_hs is True
   - Added proper error handling and fallbacks for non-HiveSigner flows
+  - **Fix**: Fixed HiveSigner.broadcast() call in TransactionBuilder to pass operations list instead of full transaction JSON, and include username when available
 - **Fix**: Fixed Claim_reward_balance operation serialization in nectarbase/operations.py:
   - Removed incorrect mutually-exclusive logic between reward_hive and reward_hbd
   - Updated to always serialize all four fields in canonical order: account, reward_hive, reward_hbd, reward_vests

@@ -83,12 +83,12 @@ class Wallet(object):
     def __init__(self, blockchain_instance=None, *args, **kwargs):
         """
         Initialize the Wallet, binding it to a blockchain instance and setting up the underlying key store.
-        
+
         If a blockchain_instance is provided, it is used; otherwise the shared blockchain instance is used. Accepts legacy "wif" argument (aliased to "keys"). If non-empty "keys" are supplied, an in-memory plain key store is created and populated; otherwise a SQLite-encrypted key store is instantiated (can be overridden via the `key_store` kwarg).
-        
+
         Parameters:
             blockchain_instance (optional): Explicit blockchain/RPC wrapper to use; if omitted the module's shared blockchain instance is used.
-        
+
         Side effects:
             - Creates and assigns self.store to either an in-memory or persistent key store.
             - Calls setKeys when an in-memory store is selected.

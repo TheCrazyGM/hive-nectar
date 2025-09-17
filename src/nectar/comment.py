@@ -5,6 +5,7 @@ import math
 from datetime import date, datetime, timezone
 
 from nectar.constants import (
+    HIVE_100_PERCENT,
     HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6,
     HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20,
     HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21,
@@ -65,16 +66,16 @@ class Comment(BlockchainObject):
     ):
         """
         Create a Comment object representing a Hive post or comment.
-        
+
         Supports initializing from either an author/permlink string ("author/permlink") or a dict containing at least "author" and "permlink". For a string input the constructor resolves and stores author, permlink, and authorperm. For a dict input the constructor normalizes the dict via _parse_json_data (timestamps, amounts, metadata) and sets the canonical "authorperm" before delegating to the BlockchainObject constructor.
-        
+
         Parameters:
             authorperm: Either an "author/permlink" string or a dict with "author" and "permlink".
             api: RPC bridge to use (defaults to "bridge"); stored on the instance.
             observer: Optional observer identifier stored on the instance.
             full: If True, load all fields immediately; if False, allow partial/lazy loading.
             lazy: If True, delay full object loading until needed.
-        
+
         Note: The blockchain instance is taken from blockchain_instance (if provided) or the module's shared_blockchain_instance(). The constructor sets instance attributes and then calls the parent initializer with id_item="authorperm".
         """
         self.full = full
@@ -104,17 +105,17 @@ class Comment(BlockchainObject):
     def _parse_json_data(self, comment):
         """
         Normalize and convert raw comment JSON fields into Python-native types.
-        
+
         This parses and mutates the given comment dict in-place and returns it. Normalizations:
         - Converts known timestamp strings (e.g., "created", "last_update", "cashout_time") to datetime using formatTimeString.
         - Converts monetary fields backed by the chain's backed token (HBD) into Amount objects using the instance's backed_token_symbol.
         - Ensures a "community" key exists and parses `json_metadata` (string/bytes) into a dict; extracts `tags` and `community` from that metadata when present.
         - Converts numeric string fields like `author_reputation` and `net_rshares` to ints.
         - Normalizes each entry in `active_votes`: converts vote `time` to datetime and numeric strings (`rshares`, `reputation`) to ints (falling back to 0 on parse errors).
-        
+
         Parameters:
             comment (dict): Raw comment/post data as returned by the node RPC.
-        
+
         Returns:
             dict: The same comment dict with normalized fields (timestamps as datetimes, amounts as Amount objects, json_metadata as dict, numeric fields as ints).
         """
@@ -253,14 +254,14 @@ class Comment(BlockchainObject):
     def json(self):
         """
         Return a JSON-serializable dict representation of the Comment.
-        
+
         Removes internal-only keys (e.g., "authorperm", "tags"), ensures json-compatible types, and normalizes several fields so the result can be safely serialized to JSON and consumed by external callers or APIs. Normalizations performed:
         - Serializes `json_metadata` to a compact JSON string.
         - Converts datetime/date values in fields like "created", "updated", "last_payout", "cashout_time", "active", and "max_cashout_time" to formatted time strings.
         - Converts Amount instances in HBD-related fields (e.g., "total_payout_value", "pending_payout_value", "curator_payout_value", "promoted", etc.) to their JSON representation via Amount.json().
         - Converts selected integer fields ("author_reputation", "net_rshares") and vote numeric fields ("rshares", "reputation") to strings to preserve precision across transports.
         - Normalizes times and numeric fields inside each entry of "active_votes".
-        
+
         Returns:
             dict: A JSON-safe copy of the comment data suitable for json.dumps or returning from an API.
         """
@@ -420,11 +421,11 @@ class Comment(BlockchainObject):
     def reward(self):
         """
         Return the post's total estimated reward as an Amount.
-        
+
         This is the sum of `total_payout_value`, `curator_payout_value`, and `pending_payout_value`
         (from the comment data). Each component is converted to an Amount using the comment's
         blockchain-backed token symbol before summing.
-        
+
         Returns:
             Amount: Total estimated reward (in the blockchain's backed token, e.g., HBD).
         """
@@ -450,7 +451,7 @@ class Comment(BlockchainObject):
     def time_elapsed(self):
         """
         Return the time elapsed since the post was created as a timedelta.
-        
+
         The difference is computed as now (UTC) minus the post's `created` timestamp (a timezone-aware datetime).
         A positive timedelta indicates the post is in the past; a negative value can occur if `created` is in the future.
         """
@@ -459,9 +460,9 @@ class Comment(BlockchainObject):
     def curation_penalty_compensation_hbd(self):
         """
         Calculate the HBD payout a post would need (after 15 minutes) to fully compensate the curation penalty for voting earlier than 15 minutes.
-        
+
         This refreshes the comment data, selects the reverse-auction window based on the blockchain hardfork (HF6/HF20/HF21), and computes the required payout using the post's current reward and age.
-        
+
         Returns:
             Amount: Estimated HBD payout required to offset the early-vote curation penalty.
         """
@@ -481,13 +482,13 @@ class Comment(BlockchainObject):
     def estimate_curation_hbd(self, vote_value_hbd, estimated_value_hbd=None):
         """
         Estimate the curation reward (in HBD) for a given vote on this post.
-        
+
         Refreshes the post data from the chain before computing. If `estimated_value_hbd` is not provided, the current post reward is used as the estimated total post value. The returned value is an estimate of the curator's HBD payout for a vote of size `vote_value_hbd`, accounting for the current curation penalty.
-        
+
         Parameters:
             vote_value_hbd (float): Vote value in HBD used to compute the curation share.
             estimated_value_hbd (float, optional): Estimated total post value in HBD to scale the curation; defaults to the post's current reward.
-        
+
         Returns:
             float: Estimated curation reward in HBD for the provided vote value.
         """
@@ -502,21 +503,21 @@ class Comment(BlockchainObject):
     def get_curation_penalty(self, vote_time=None):
         """
         Return the curation penalty factor for a vote at a given time.
-        
+
         Calculates a value in [0.0, 1.0] representing the fraction of curation rewards
         that will be removed due to early voting (0.0 = no penalty, 1.0 = full penalty).
         The penalty is based on the elapsed time between the post's creation and
         the vote time, scaled by the Hive reverse-auction window for the node's
         current hardfork (HF21, HF20, or HF6).
-        
+
         Parameters:
             vote_time (datetime | date | str | None): Time of the vote. If None,
                 the current time is used. If a string is given it will be parsed
                 with the module's time formatter.
-        
+
         Returns:
             float: Penalty fraction in the range [0.0, 1.0].
-        
+
         Raises:
             ValueError: If vote_time is not None and not a datetime, date, or parseable string.
         """
@@ -541,18 +542,18 @@ class Comment(BlockchainObject):
     def get_vote_with_curation(self, voter=None, raw_data=False, pending_payout_value=None):
         """
         Return the specified voter's vote for this comment, optionally augmented with curation data.
-        
+
         If `voter` is not found in the comment's votes returns None. When a vote is found:
         - If `raw_data` is True or the post is not pending payout, returns the raw vote dict.
         - If the post is pending and `raw_data` is False, returns the vote dict augmented with:
           - `curation_reward`: the vote's curation reward (in HBD)
           - `ROI`: percent return on the voter's effective voting value
-        
+
         Parameters:
             voter (str or Account, optional): Voter name or Account. If omitted, defaults to the post author as an Account.
             raw_data (bool, optional): If True, return the found vote without adding curation/ROI fields.
             pending_payout_value (float or str, optional): If provided, use this HBD value instead of the current pending payout when computing curation rewards.
-        
+
         Returns:
             dict or None: The vote dictionary (possibly augmented with `curation_reward` and `ROI`) or None if the voter has not voted.
         """
@@ -593,23 +594,23 @@ class Comment(BlockchainObject):
     def get_beneficiaries_pct(self):
         """
         Return the sum of beneficiary weights as a fraction of the full payout.
-        
+
         If the post has a `beneficiaries` list of dicts with integer `weight` fields (0–10000 representing 0%–100%), this returns the total weight divided by 100.0 (i.e., a float in 0.0–100.0/100 range; typical values are 0.0–1.0).
         """
         beneficiaries = self["beneficiaries"]
         weight = 0
         for b in beneficiaries:
             weight += b["weight"]
-        return weight / 100.0
+        return weight / HIVE_100_PERCENT
 
     def get_rewards(self):
         """
         Return the post's total, author, and curator payouts as Amount objects (HBD).
-        
+
         If the post is pending, returns an estimated total based on pending_payout_value and derives the author's share via get_author_rewards(); curator_payout is computed as the difference. For finalized posts, uses total_payout_value and curator_payout_value.
-        
+
         Note: beneficiary rewards (if any) are already deducted from the returned author_payout and total_payout.
-        
+
         Returns:
             dict: {
                 "total_payout": Amount,
@@ -636,9 +637,9 @@ class Comment(BlockchainObject):
     def get_author_rewards(self):
         """
         Return the computed author-side rewards for this post.
-        
+
         If the post payout is not pending, returns zero HP/HBD payouts and the concrete total payout as `total_payout_HBD`. If the payout is pending, computes the author’s share after curation and beneficiaries, and—when price history and percent_hbd are available—splits that share into HBD and HP equivalents.
-        
+
         Returns:
             dict: A dictionary with the following keys:
                 - pending_rewards (bool): True when the post payout is still pending.
@@ -647,7 +648,7 @@ class Comment(BlockchainObject):
                 - total_payout_HBD (Amount): Total author-side payout expressed in HBD-equivalent units when pending, or the concrete total payout when not pending.
                 - total_payout (Amount, optional): Present only for pending payouts in the non-convertible branch; the author-side token amount before HBD/HP splitting.
                 - Note: When price/percent data is not available, `payout_HP` and `payout_HBD` will be None and only `total_payout_HBD`/`total_payout` convey the author share.
-        
+
         Example:
             {
                 "pending_rewards": True,
@@ -680,7 +681,7 @@ class Comment(BlockchainObject):
         if self.blockchain.hardfork >= 20 and median_hist is not None:
             author_tokens += median_price * curation_rewards["unclaimed_rewards"]
 
-        benefactor_tokens = author_tokens * beneficiaries_pct / 100.0
+        benefactor_tokens = author_tokens * beneficiaries_pct / HIVE_100_PERCENT
         author_tokens -= benefactor_tokens
 
         if median_hist is not None and "percent_hbd" in self:
@@ -707,20 +708,20 @@ class Comment(BlockchainObject):
     def get_curation_rewards(self, pending_payout_hbd=False, pending_payout_value=None):
         """
         Calculate curation rewards for this post and distribute them across active voters.
-        
+
         Parameters:
             pending_payout_hbd (bool): If True, compute and return rewards in HBD (do not convert to HIVE/HP). Default False.
             pending_payout_value (float | str | Amount | None): Optional override for the post's pending payout value used when the post is still pending.
                 - If None and the post is pending, the function uses the post's stored pending_payout_value.
                 - Accepted types: numeric, string amount, or an Amount instance.
-        
+
         Returns:
             dict: {
                 "pending_rewards": bool,        # True if the post is still within the payout window (uses pending_payout_value)
                 "unclaimed_rewards": Amount,    # Amount reserved for unclaimed curation (e.g., self-votes or early votes)
                 "active_votes": dict            # Mapping voter_name -> Amount of curation reward allocated to that voter
             }
-        
+
         Notes:
             - The function splits the curation pool using the protocol's curator share (50% by default) and prorates per-voter claims by vote weight.
             - When a current median price history is available, rewards may be converted between HBD and the chain's token (HP) according to pending_payout_hbd.
@@ -1004,18 +1005,18 @@ class Comment(BlockchainObject):
     def delete(self, account=None, identifier=None):
         """
         Delete this post or comment from the blockchain.
-        
+
         If `identifier` is provided it must be an author/permlink string (e.g. "@author/permlink"); otherwise the current Comment's author and permlink are used. If `account` is not provided the method will use `blockchain.config["default_account"]` when present; otherwise a ValueError is raised.
-        
+
         Note: a post/comment can only be deleted if it has no replies and no positive rshares.
-        
+
         Parameters:
             account (str, optional): Account name to perform the deletion. If omitted, the configured default_account is used.
             identifier (str, optional): Author/permlink of the post to delete (format "@author/permlink"). Defaults to the current Comment.
-        
+
         Returns:
             dict: Result of the blockchain finalizeOp / transaction broadcast.
-        
+
         Raises:
             ValueError: If no account is provided and no default_account is configured.
         """
@@ -1036,14 +1037,14 @@ class Comment(BlockchainObject):
     def reblog(self, identifier=None, account=None):
         """
         Create a reblog (resteem) for the specified post.
-        
+
         Parameters:
             identifier (str, optional): Post identifier in the form "@author/permlink". If omitted, uses this Comment's identifier.
             account (str, optional): Name of the posting account to perform the reblog. If omitted, the configured `default_account` is used.
-        
+
         Returns:
             dict: Result from the blockchain custom_json operation.
-        
+
         Raises:
             ValueError: If no account is provided and no `default_account` is configured.
         """
@@ -1082,9 +1083,9 @@ class RecentReplies(list):
     ):
         """
         Create a list of recent replies to a given account.
-        
+
         Initializes the instance as a list of Comment objects built from the account's recent "replies" feed. By default replies authored by the same account are omitted when skip_own is True. If no blockchain connection is available during construction, initialization is aborted (the constructor returns early).
-        
+
         Parameters:
             author (str): Account name whose replies to collect.
             skip_own (bool): If True, omit replies authored by `author`. Default True.
@@ -1092,7 +1093,7 @@ class RecentReplies(list):
             limit (int): Maximum number of replies to collect; currently ignored (the underlying API call controls results).
             lazy (bool): If True, create Comment objects in lazy mode.
             full (bool): If True, create Comment objects with full data populated.
-        
+
         Notes:
             - The blockchain_instance parameter is used to resolve RPC access and is intentionally undocumented here as a shared service.
             - The underlying account.get_account_posts(sort="replies", raw_data=True) call provides the source data; when it returns None or the instance is not connected, construction exits early.
@@ -1136,7 +1137,7 @@ class RecentByPath(list):
     ):
         """
         Create a RecentByPath list by fetching ranked posts for a given path/tag and initializing the list with those posts.
-        
+
         Parameters:
             path (str): Ranking category to fetch (e.g., "trending", "hot").
             tag (str): Optional tag to filter posts.
@@ -1188,7 +1189,7 @@ class RankedPosts(list):
     ):
         """
         Initialize a RankedPosts list by fetching paginated ranked posts from the blockchain.
-        
+
         Fetches up to `limit` posts for the given `sort` and `tag` using the bridge `get_ranked_posts`
         RPC, paging with `start_author` / `start_permlink`. Results are appended to the list as raw
         post dicts when `raw_data` is True, or as Comment objects otherwise. The constructor:
@@ -1196,7 +1197,7 @@ class RankedPosts(list):
         - pages through results with an API page size up to 100, updating `start_author`/`start_permlink`;
         - avoids repeating the last item returned by the API; and
         - on an RPC error, returns partial results if any posts were already collected, otherwise re-raises.
-        
+
         Parameters:
             sort (str): Ranking to query (e.g., "trending", "hot", "created").
             tag (str): Optional tag/category to filter by.
@@ -1290,11 +1291,11 @@ class AccountPosts(list):
     ):
         """
         Initialize an AccountPosts list by fetching posts for a given account (paginated).
-        
+
         This constructor populates the list with posts returned by the bridge.get_account_posts RPC call,
         respecting paging (start_author/start_permlink) and the requested limit. Each item is either the
         raw post dict (when raw_data=True) or a Comment object constructed with the same blockchain instance.
-        
+
         Parameters:
             sort (str): The post list type to fetch (e.g., "blog", "comments", "replies", "feed").
             account (str): Account name whose posts are requested.
@@ -1305,7 +1306,7 @@ class AccountPosts(list):
             lazy (bool): If False, Comment objects are fully loaded; if True, they are initialized lazily.
             full (bool): If True, Comment objects include full data; otherwise minimal fields.
             raw_data (bool): If True, return raw post dicts instead of Comment objects.
-        
+
         Behavior notes:
             - If the blockchain instance is not connected, initialization returns early (no posts are fetched).
             - On an RPC error, if some posts have already been collected, the constructor returns those partial results;
