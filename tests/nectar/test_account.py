@@ -23,7 +23,7 @@ class Testcases(unittest.TestCase):
         Sets up class-level fixtures:
         - Creates a Hive instance configured for testing (no broadcast, unsigned transactions, no bundling, retry attempts).
         - Stores the instance on `cls.bts`.
-        - Constructs an Account for "thecrazygm" using that blockchain instance and stores it on `cls.account`.
+        - Constructs an Account for "open.mithril" using that blockchain instance and stores it on `cls.account`.
         - Configures the module-wide shared blockchain instance to the created Hive instance.
 
         This method has no return value; it mutates the test class and global shared instance used by tests.
@@ -37,18 +37,18 @@ class Testcases(unittest.TestCase):
             keys={"active": wif},
             num_retries=10,
         )
-        cls.account = Account("thecrazygm", blockchain_instance=cls.bts)
+        cls.account = Account("open.mithril", blockchain_instance=cls.bts)
         set_shared_blockchain_instance(cls.bts)
 
     def test_account(self):
         hv = self.bts
         account = self.account
-        Account("thecrazygm", blockchain_instance=hv)
+        Account("open.mithril", blockchain_instance=hv)
         with self.assertRaises(exceptions.AccountDoesNotExistsException):
             Account("DoesNotExistsXXX", blockchain_instance=hv)
         # asset = Asset("1.3.0")
         # symbol = asset["symbol"]
-        self.assertEqual(account.name, "thecrazygm")
+        self.assertEqual(account.name, "open.mithril")
         self.assertEqual(account["name"], account.name)
         self.assertIsInstance(account.get_balance("available", "HBD"), Amount)
         account.print_info()
@@ -63,7 +63,7 @@ class Testcases(unittest.TestCase):
         self.assertIn("id", account)
         account.cached = False
         # self.assertEqual(account["id"], "1.2.1")
-        self.assertEqual(str(account), "<Account thecrazygm>")
+        self.assertEqual(str(account), "<Account open.mithril>")
         self.assertIsInstance(Account(account), Account)
 
     def test_history(self):
@@ -196,7 +196,7 @@ class Testcases(unittest.TestCase):
 
     def test_history2(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         h_list = []
         max_index = account.virtual_op_count()
         for h in account.history(
@@ -238,7 +238,7 @@ class Testcases(unittest.TestCase):
 
     def test_history_index(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         h_list = []
         for h in account.history(
             start=1, stop=10, use_block_num=False, batch_size=10, raw_output=True
@@ -257,7 +257,7 @@ class Testcases(unittest.TestCase):
 
     def test_history_reverse2(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         h_list = []
         max_index = account.virtual_op_count()
         for h in account.history_reverse(
@@ -297,7 +297,7 @@ class Testcases(unittest.TestCase):
 
     def test_history_block_num(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         h_all_raw = []
         for h in account.history_reverse(use_block_num=False, stop=-15, raw_output=True):
             h_all_raw.append(h)
@@ -365,7 +365,7 @@ class Testcases(unittest.TestCase):
         tx = w.withdraw_vesting("100 VESTS")
         self.assertEqual((tx["operations"][0][0]), "withdraw_vesting")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["account"])
+        self.assertIn("open.mithril", op["account"])
 
     def test_delegate_vesting_shares(self):
         w = self.account
@@ -373,7 +373,7 @@ class Testcases(unittest.TestCase):
         tx = w.delegate_vesting_shares("test1", "100 VESTS")
         self.assertEqual((tx["operations"][0][0]), "delegate_vesting_shares")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["delegator"])
+        self.assertIn("open.mithril", op["delegator"])
 
     def test_claim_reward_balance(self):
         w = self.account
@@ -381,7 +381,7 @@ class Testcases(unittest.TestCase):
         tx = w.claim_reward_balance()
         self.assertEqual((tx["operations"][0][0]), "claim_reward_balance")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["account"])
+        self.assertIn("open.mithril", op["account"])
 
     def test_cancel_transfer_from_savings(self):
         w = self.account
@@ -389,7 +389,7 @@ class Testcases(unittest.TestCase):
         tx = w.cancel_transfer_from_savings(0)
         self.assertEqual((tx["operations"][0][0]), "cancel_transfer_from_savings")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
+        self.assertIn("open.mithril", op["from"])
 
     def test_transfer_from_savings(self):
         w = self.account
@@ -397,7 +397,7 @@ class Testcases(unittest.TestCase):
         tx = w.transfer_from_savings(1, "HIVE", "")
         self.assertEqual((tx["operations"][0][0]), "transfer_from_savings")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
+        self.assertIn("open.mithril", op["from"])
 
     def test_transfer_to_savings(self):
         w = self.account
@@ -405,7 +405,7 @@ class Testcases(unittest.TestCase):
         tx = w.transfer_to_savings(1, "HIVE", "")
         self.assertEqual((tx["operations"][0][0]), "transfer_to_savings")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
+        self.assertIn("open.mithril", op["from"])
 
     def test_convert(self):
         w = self.account
@@ -413,7 +413,7 @@ class Testcases(unittest.TestCase):
         tx = w.convert("1 HBD")
         self.assertEqual((tx["operations"][0][0]), "convert")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["owner"])
+        self.assertIn("open.mithril", op["owner"])
 
     def test_proxy(self):
         w = self.account
@@ -429,32 +429,32 @@ class Testcases(unittest.TestCase):
         tx = w.transfer_to_vesting("1 HIVE")
         self.assertEqual((tx["operations"][0][0]), "transfer_to_vesting")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
+        self.assertIn("open.mithril", op["from"])
 
         w.blockchain.txbuffer.clear()
         tx = w.transfer_to_vesting("1 HIVE", skip_account_check=True)
         self.assertEqual((tx["operations"][0][0]), "transfer_to_vesting")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
+        self.assertIn("open.mithril", op["from"])
 
     def test_transfer(self):
         w = self.account
         w.blockchain.txbuffer.clear()
-        tx = w.transfer("thecrazygm", "1", "HIVE")
+        tx = w.transfer("open.mithril", "1", "HIVE")
         self.assertEqual((tx["operations"][0][0]), "transfer")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
-        self.assertIn("thecrazygm", op["to"])
+        self.assertIn("open.mithril", op["from"])
+        self.assertIn("open.mithril", op["to"])
 
         w.blockchain.txbuffer.clear()
-        tx = w.transfer("thecrazygm", "1", "HIVE", skip_account_check=True)
+        tx = w.transfer("open.mithril", "1", "HIVE", skip_account_check=True)
         self.assertEqual((tx["operations"][0][0]), "transfer")
         op = tx["operations"][0][1]
-        self.assertIn("thecrazygm", op["from"])
-        self.assertIn("thecrazygm", op["to"])
+        self.assertIn("open.mithril", op["from"])
+        self.assertIn("open.mithril", op["to"])
 
     def test_json_export(self):
-        account = Account("thecrazygm", blockchain_instance=self.bts)
+        account = Account("open.mithril", blockchain_instance=self.bts)
         if account.blockchain.rpc.get_use_appbase():
             content = self.bts.rpc.find_accounts({"accounts": [account["name"]]}, api="database")[
                 "accounts"
@@ -536,7 +536,7 @@ class Testcases(unittest.TestCase):
             votes_list2.append(v)
         self.assertTrue(abs(len(votes_list) - len(votes_list2)) < 2)
 
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"]))
         votes_list2 = list(account.history_reverse(only_ops=["vote"]))
         self.assertEqual(len(votes_list), len(votes_list2))
@@ -545,7 +545,7 @@ class Testcases(unittest.TestCase):
 
     def test_history_op_filter(self):
         hv = Hive("https://api.hive.blog")
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"]))
         other_list = list(account.history(exclude_ops=["vote"]))
         all_list = list(account.history())
@@ -566,7 +566,7 @@ class Testcases(unittest.TestCase):
     def test_history_op_filter2(self):
         hv = Hive("https://api.hive.blog")
         batch_size = 100
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"], batch_size=batch_size))
         other_list = list(account.history(exclude_ops=["vote"], batch_size=batch_size))
         all_list = list(account.history(batch_size=batch_size))
@@ -595,7 +595,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(comments[0].depth > 0)
 
     def test_blog_history(self):
-        account = Account("thecrazygm", blockchain_instance=self.bts)
+        account = Account("open.mithril", blockchain_instance=self.bts)
         posts = []
         for p in account.blog_history(limit=5):
             if p["author"] != account["name"]:
@@ -629,12 +629,12 @@ class Testcases(unittest.TestCase):
 
     def test_list_subscriptions(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         assert len(account.list_all_subscriptions()) > 0
 
     def test_account_feeds(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         assert len(account.get_account_posts()) > 0
 
     def test_notifications(self):
@@ -644,15 +644,15 @@ class Testcases(unittest.TestCase):
 
     def test_extract_account_name(self):
         hv = self.bts
-        account = Account("thecrazygm", blockchain_instance=hv)
-        self.assertEqual(extract_account_name(account), "thecrazygm")
-        self.assertEqual(extract_account_name("thecrazygm"), "thecrazygm")
-        self.assertEqual(extract_account_name({"name": "thecrazygm"}), "thecrazygm")
+        account = Account("open.mithril", blockchain_instance=hv)
+        self.assertEqual(extract_account_name(account), "open.mithril")
+        self.assertEqual(extract_account_name("open.mithril"), "open.mithril")
+        self.assertEqual(extract_account_name({"name": "open.mithril"}), "open.mithril")
         self.assertEqual(extract_account_name(""), "")
 
     def test_get_blocknum_from_hist(self):
         hv = Hive("https://api.hive.blog")
-        account = Account("thecrazygm", blockchain_instance=hv)
+        account = Account("open.mithril", blockchain_instance=hv)
         created, min_index = account._get_first_blocknum()
         if min_index == 0:
             self.assertEqual(created, 11675061)

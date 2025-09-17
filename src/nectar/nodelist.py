@@ -131,22 +131,6 @@ class NodeList(list):
                 "score": 40,
             },
             {
-                "url": "https://hive-api.dlux.io",
-                "version": "1.27.8",
-                "type": "appbase",
-                "owner": "dlux",
-                "hive": True,
-                "score": 30,
-            },
-            {
-                "url": "https://api.hive.blue",
-                "version": "1.27.5",
-                "type": "appbase",
-                "owner": "hive.blue",
-                "hive": True,
-                "score": 30,
-            },
-            {
                 "url": "https://hiveapi.actifit.io",
                 "version": "1.27.8",
                 "type": "appbase",
@@ -161,14 +145,6 @@ class NodeList(list):
                 "owner": "techcoderx",
                 "hive": True,
                 "score": 20,
-            },
-            {
-                "url": "https://hive-test-beeabode.roelandp.nl",
-                "version": "0.23.0",
-                "type": "testnet",
-                "owner": "roelandp",
-                "hive": True,
-                "score": 5,
             },
         ]
         super(NodeList, self).__init__(nodes)

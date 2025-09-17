@@ -15,29 +15,22 @@ class Testcases(unittest.TestCase):
 
     def test_get_nodes(self):
         nodelist = NodeList()
-        all_nodes = nodelist.get_nodes(
-            exclude_limited=False, dev=True, testnet=True, testnetdev=True
-        )
-        self.assertEqual(len(nodelist) - 16, len(all_nodes))
+        all_nodes = nodelist.get_nodes()
+        self.assertEqual(len(nodelist) - 1, len(all_nodes))
         https_nodes = nodelist.get_nodes(wss=False)
         self.assertEqual(https_nodes[0][:5], "https")
 
     def test_hive_nodes(self):
         nodelist = NodeList()
         nodelist.update_nodes()
-        hive_nodes = nodelist.get_hive_nodes()
+        hive_nodes = nodelist.get_nodes()
         for node in hive_nodes:
             blockchainobject = Hive(node=node)
             assert blockchainobject.is_hive
 
     def test_nodes_update(self):
         nodelist = NodeList()
-        all_nodes = nodelist.get_hive_nodes()
+        all_nodes = nodelist.get_nodes()
         nodelist.update_nodes(blockchain_instance=self.bts)
-        nodes = nodelist.get_hive_nodes()
-        self.assertIn(nodes[0], all_nodes)
-
-        all_nodes = nodelist.get_hive_nodes()
-        nodelist.update_nodes(blockchain_instance=self.bts)
-        nodes = nodelist.get_hive_nodes()
+        nodes = nodelist.get_nodes()
         self.assertIn(nodes[0], all_nodes)
