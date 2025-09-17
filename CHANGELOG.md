@@ -9,8 +9,7 @@
   - `ActiveVotes.__init__`: Added support for deprecated `steem_instance` and `hive_instance` kwargs with deprecation warnings.
   - `Witness.__init__`: Added `**kwargs` with warnings for unexpected parameters.
   - `Comment_options.__init__`: Added fallback support for deprecated `percent_steem_dollars` parameter.
-- **Improvement**: Updated comment parsing to use `hbd_amounts` instead of deprecated `sbd_amounts`.
-- **Improvement**: Updated tests to reflect current operation field names (`percent_hbd`).
+- **Improvement**: Removed deprecated websocket support from GrapheneRPC, now only supports HTTP/requests for better reliability and maintainability.
 
 ## 0.0.11 - 2025-07-25
 
