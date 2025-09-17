@@ -7,11 +7,9 @@ import os
 import sys
 import unittest
 
-from nectargraphenebase.account import PublicKey
-
 # Add src to path so we can import nectargraphenebase
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
+from nectargraphenebase.account import PublicKey
 
 class TestTweakAdd(unittest.TestCase):
     """Test cases for pure Python secp256k1 tweak-add implementation"""
