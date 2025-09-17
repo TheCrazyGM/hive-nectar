@@ -1,8 +1,16 @@
 # Changelog
 
-## 0.1.0b - 2025-08-27
+## 0.1.0b - 2025-09-17
 
 - **Breaking Change**: Killed everything that was not specifcally HIVE related. If you used this for STEEM and / or Blurt, they are no longer supported.
+- **Fix**: Corrected inverted fallback logic in chain detection to prefer HIVE over STEEM when `blockchain_name` is None.
+- **Fix**: Restored backward compatibility for constructor parameters:
+  - `Vote.__init__`: Added support for deprecated `steem_instance` and `hive_instance` kwargs with deprecation warnings.
+  - `ActiveVotes.__init__`: Added support for deprecated `steem_instance` and `hive_instance` kwargs with deprecation warnings.
+  - `Witness.__init__`: Added `**kwargs` with warnings for unexpected parameters.
+  - `Comment_options.__init__`: Added fallback support for deprecated `percent_steem_dollars` parameter.
+- **Improvement**: Updated comment parsing to use `hbd_amounts` instead of deprecated `sbd_amounts`.
+- **Improvement**: Updated tests to reflect current operation field names (`percent_hbd`).
 
 ## 0.0.11 - 2025-07-25
 
