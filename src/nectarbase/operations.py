@@ -1070,22 +1070,25 @@ class Claim_reward_balance(GrapheneObject):
     def __init__(self, *args, **kwargs):
         """
         Initialize a Claim_reward_balance operation.
-        
-        Constructs the serialized fields for claiming reward balances. Accepts either
-        reward_hbd (HBD) or reward_hive (HIVE) together with reward_vests and account.
+
+        Constructs the serialized fields for claiming reward balances. Requires
+        account, reward_hive, reward_hbd, and reward_vests in the canonical order.
+        All reward fields are required asset strings - use "0.000 HIVE" or "0.000 HBD"
+        when nothing to claim for that asset.
+
         Behavior:
-        - If `reward_hbd` is provided, serializes ("account", "reward_hbd", "reward_vests").
-        - Else if `reward_hive` is provided and `json_str=True`, serializes `reward_hive` with json string formatting.
-        - Else serializes ("account", "reward_hive", "reward_vests") without json formatting.
-        
+        - Always serializes ("account", "reward_hive", "reward_hbd", "reward_vests")
+        - Converts provided values to Amount objects, respecting prefix/json_str behavior
+        - Uses zero-asset strings ("0.000 HIVE"/"0.000 HBD") for any missing reward fields
+
         Recognized kwargs:
         - account (str): account name claiming rewards.
-        - reward_hbd (str|Amount): HBD amount to claim (mutually exclusive with reward_hive).
-        - reward_hive (str|Amount): HIVE amount to claim.
+        - reward_hive (str|Amount): HIVE amount to claim (required, use "0.000 HIVE" if none).
+        - reward_hbd (str|Amount): HBD amount to claim (required, use "0.000 HBD" if none).
         - reward_vests (str|Amount): VESTS amount to claim.
         - prefix (str): asset prefix to use (defaults to module default_prefix).
-        - json_str (bool): if True and `reward_hive` branch taken, pass amount as JSON-string form to Amount.
-        
+        - json_str (bool): if True, pass amounts as JSON-string form to Amount.
+
         Also supports initialization from an existing instance via the module's check_for_class helper.
         """
         if check_for_class(self, args):
@@ -1094,39 +1097,23 @@ class Claim_reward_balance(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        if "reward_hbd" in kwargs:
-            super(Claim_reward_balance, self).__init__(
-                OrderedDict(
-                    [
-                        ("account", String(kwargs["account"])),
-                        ("reward_hbd", Amount(kwargs["reward_hbd"], prefix=prefix)),
-                        ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
-                    ]
-                )
+
+        # Ensure all required fields are present, using zero amounts for missing rewards
+        account = kwargs["account"]
+        reward_hive = kwargs.get("reward_hive", "0.000 HIVE")
+        reward_hbd = kwargs.get("reward_hbd", "0.000 HBD")
+        reward_vests = kwargs["reward_vests"]
+
+        super(Claim_reward_balance, self).__init__(
+            OrderedDict(
+                [
+                    ("account", String(account)),
+                    ("reward_hive", Amount(reward_hive, prefix=prefix, json_str=json_str)),
+                    ("reward_hbd", Amount(reward_hbd, prefix=prefix, json_str=json_str)),
+                    ("reward_vests", Amount(reward_vests, prefix=prefix, json_str=json_str)),
+                ]
             )
-        elif "reward_hive" in kwargs:
-            super(Claim_reward_balance, self).__init__(
-                OrderedDict(
-                    [
-                        ("account", String(kwargs["account"])),
-                        (
-                            "reward_hive",
-                            Amount(kwargs["reward_hive"], prefix=prefix, json_str=json_str),
-                        ),
-                        ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
-                    ]
-                )
-            )
-        else:
-            super(Claim_reward_balance, self).__init__(
-                OrderedDict(
-                    [
-                        ("account", String(kwargs["account"])),
-                        ("reward_hive", Amount(kwargs["reward_hive"], prefix=prefix)),
-                        ("reward_vests", Amount(kwargs["reward_vests"], prefix=prefix)),
-                    ]
-                )
-            )
+        )
 
 
 class Transfer_to_savings(GrapheneObject):
