@@ -590,7 +590,12 @@ def updatenodes(show, test, only_https, only_wss):
     nodelist = NodeList()
     try:
         nodelist.update_nodes(blockchain_instance=hv)
+        # Flags are mutually exclusive; at least one transport must be enabled
+        if only_https and only_wss:
+            raise click.UsageError("Use at most one of --only-https or --only-wss.")
         nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+        if not nodes:
+            raise RuntimeError("No nodes matched the selected filters.")
         if hv.config["default_chain"] != "hive":
             hv.config["default_chain"] = "hive"
         if show or test:
@@ -603,11 +608,10 @@ def updatenodes(show, test, only_https, only_wss):
         if not test:
             hv.set_default_nodes(nodes)
             hv.rpc.nodes.set_node_urls(nodes)
-            hv.rpc.current_rpc = 0
             hv.rpc.rpcconnect()
-    except Exception as e:
-        print(str(e))
-        raise e
+    except Exception:
+        log.exception("Failed to update nodes")
+        raise
 
 
 @cli.command()
