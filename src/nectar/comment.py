@@ -43,7 +43,7 @@ class Comment(BlockchainObject):
     >>> from nectar.comment import Comment
     >>> from nectar.account import Account
     >>> # Create a Hive blockchain instance
-    >>> from nectar.blockchain import Blockchain as Hive
+    >>> from nectar import Hive
     >>> hv = Hive()
     >>> acc = Account("gtg", blockchain_instance=hv)
     >>> authorperm = acc.get_blog(limit=1)[0]["authorperm"]

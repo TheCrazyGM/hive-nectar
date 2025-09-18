@@ -25,9 +25,9 @@ class HAF(object):
     .. code-block:: python
 
         >>> from nectar.haf import HAF
-        >>> haf = HAF()
-        >>> reputation = haf.reputation("thecrazygm")
-        >>> print(reputation)
+        >>> haf = HAF()  # doctest: +SKIP
+        >>> reputation = haf.reputation("thecrazygm")  # doctest: +SKIP
+        >>> print(reputation)  # doctest: +SKIP
 
     """
 
@@ -106,9 +106,9 @@ class HAF(object):
                          or None if the request fails or account is not found
 
         Example:
-            >>> haf = HAF()
-            >>> rep = haf.reputation("thecrazygm")
-            >>> print(rep)
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> rep = haf.reputation("thecrazygm")  # doctest: +SKIP
+            >>> print(rep)  # doctest: +SKIP
             {'account': 'thecrazygm', 'reputation': '71', ...}
 
         """
@@ -181,9 +181,9 @@ class HAF(object):
             dict or None: Account balance data or None if request fails
 
         Example:
-            >>> haf = HAF()
-            >>> balances = haf.get_account_balances("thecrazygm")
-            >>> print(balances['hive_balance'])
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> balances = haf.get_account_balances("thecrazygm")  # doctest: +SKIP
+            >>> print(balances['hive_balance'])  # doctest: +SKIP
         """
         if not account or not isinstance(account, str):
             raise ValueError("Account name must be a non-empty string")
@@ -215,9 +215,9 @@ class HAF(object):
             dict or None: Delegation data containing incoming and outgoing delegations
 
         Example:
-            >>> haf = HAF()
-            >>> delegations = haf.get_account_delegations("thecrazygm")
-            >>> print(delegations['incoming_delegations'])
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> delegations = haf.get_account_delegations("thecrazygm")  # doctest: +SKIP
+            >>> print(delegations['incoming_delegations'])  # doctest: +SKIP
         """
         if not account or not isinstance(account, str):
             raise ValueError("Account name must be a non-empty string")
@@ -249,9 +249,9 @@ class HAF(object):
             dict or None: Recurrent transfer data containing incoming and outgoing transfers
 
         Example:
-            >>> haf = HAF()
-            >>> transfers = haf.get_account_recurrent_transfers("thecrazygm")
-            >>> print(transfers['outgoing_recurrent_transfers'])
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> transfers = haf.get_account_recurrent_transfers("thecrazygm")  # doctest: +SKIP
+            >>> print(transfers['outgoing_recurrent_transfers'])  # doctest: +SKIP
         """
         if not account or not isinstance(account, str):
             raise ValueError("Account name must be a non-empty string")
@@ -278,9 +278,9 @@ class HAF(object):
             str or None: Version string or None if request fails
 
         Example:
-            >>> haf = HAF()
-            >>> version = haf.get_reputation_version()
-            >>> print(version)
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> version = haf.get_reputation_version()  # doctest: +SKIP
+            >>> print(version)  # doctest: +SKIP
         """
         try:
             endpoint = "reputation-api/version"
@@ -304,9 +304,9 @@ class HAF(object):
             int or None: Last synced block number or None if request fails
 
         Example:
-            >>> haf = HAF()
-            >>> block = haf.get_reputation_last_synced_block()
-            >>> print(block)
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> block = haf.get_reputation_last_synced_block()  # doctest: +SKIP
+            >>> print(block)  # doctest: +SKIP
         """
         try:
             endpoint = "reputation-api/last-synced-block"
@@ -330,9 +330,9 @@ class HAF(object):
             str or None: Version string or None if request fails
 
         Example:
-            >>> haf = HAF()
-            >>> version = haf.get_balance_version()
-            >>> print(version)
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> version = haf.get_balance_version()  # doctest: +SKIP
+            >>> print(version)  # doctest: +SKIP
         """
         try:
             endpoint = "balance-api/version"
@@ -356,9 +356,9 @@ class HAF(object):
             int or None: Last synced block number or None if request fails
 
         Example:
-            >>> haf = HAF()
-            >>> block = haf.get_balance_last_synced_block()
-            >>> print(block)
+            >>> haf = HAF()  # doctest: +SKIP
+            >>> block = haf.get_balance_last_synced_block()  # doctest: +SKIP
+            >>> print(block)  # doctest: +SKIP
         """
         try:
             endpoint = "balance-api/last-synced-block"
