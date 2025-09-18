@@ -614,19 +614,19 @@ class Account(BlockchainObject):
         """
         Return the account's normalized reputation score.
 
-        If the node is offline, returns None. When connected, tries the HAF reputation API first
+        If the node is offline, returns a default reputation score. When connected, tries the HAF reputation API first
         which returns the final normalized score directly. Falls back to the cached reputation
         field if HAF fails.
         """
         if not self.blockchain.is_connected():
-            return None
+            return reputation_to_score(0)
 
         # Try HAF API first - returns final normalized score
-        try:
-            haf = HAF(blockchain_instance=self.blockchain)
-            rep_data = haf.reputation(self["name"])
-            if rep_data is not None:
-                # Handle both dict and direct responses
+        haf = HAF(blockchain_instance=self.blockchain)
+        rep_data = haf.reputation(self["name"])
+        if rep_data is not None:
+            # Handle both dict and direct responses
+            try:
                 if isinstance(rep_data, dict) and "reputation" in rep_data:
                     return float(rep_data["reputation"])
                 elif isinstance(rep_data, (int, float)):
@@ -634,14 +634,18 @@ class Account(BlockchainObject):
                 else:
                     # Try to convert to float if it's a string
                     return float(rep_data)
-        except Exception as e:
-            log.warning(f"Failed to get reputation from HAF API for {self['name']}: {e}")
+            except (ValueError, TypeError, KeyError) as e:
+                log.warning(f"Failed to parse reputation data from HAF for {self['name']}: {e}")
 
         # Fallback to cached reputation field (old behavior)
         if "reputation" in self:
-            rep = int(self["reputation"])
-            log.debug(f"Using cached reputation for {self['name']}: {rep}")
-            return reputation_to_score(rep)
+            try:
+                rep = int(self["reputation"])
+                log.debug(f"Using cached reputation for {self['name']}: {rep}")
+                return reputation_to_score(rep)
+            except (ValueError, TypeError) as e:
+                log.warning(f"Invalid cached reputation for {self['name']}: {e}")
+                return reputation_to_score(0)
         else:
             log.warning(f"No reputation data available for {self['name']}")
             return reputation_to_score(0)
