@@ -67,21 +67,18 @@ def test_get_available_apis():
     assert all(api.startswith("http") for api in apis)
 
 
-def test_reputation_success(patch_requests):
+def test_reputation_success(monkeypatch):
     # Arrange: respond with a simple reputation payload
     def responder(method, url, headers=None, **kwargs):
         return FakeResponse(payload={"account": "alice", "reputation": 70})
 
-    import requests
-
-    requests.request = responder  # type: ignore
+    monkeypatch.setattr("requests.request", responder)
 
     haf = HAF()
     data = haf.reputation("alice")
     assert data is not None
     assert data["account"] == "alice"
     assert "reputation" in data
-
 
 def test_reputation_invalid_account_raises_value_error():
     haf = HAF()
