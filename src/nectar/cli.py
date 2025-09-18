@@ -2033,6 +2033,7 @@ def allow(foreign_account, permission, account, weight, threshold, export):
 @click.option(
     "--weight",
     "-w",
+    type=int,
     help="The weight to use instead of the (full) threshold. "
     "If the weight is smaller than the threshold, "
     "additional signatures are required",
