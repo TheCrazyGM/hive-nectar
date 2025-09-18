@@ -1209,9 +1209,10 @@ class RankedPosts(list):
         if not self.blockchain.is_connected():
             return None
         comments = []
-        api_limit = limit
-        if api_limit > 100:
-            api_limit = 100
+        # Bridge API enforces a maximum page size (typically 20). Cap
+        # per-request size accordingly and page until `limit` is reached.
+        # Previously capped to 100 which can trigger Invalid parameters.
+        api_limit = min(limit, 20)
         last_n = -1
         while len(comments) < limit and last_n != len(comments):
             last_n = len(comments)
@@ -1248,8 +1249,9 @@ class RankedPosts(list):
                 if len(comments) > 0:
                     start_author = comments[-1]["author"]
                     start_permlink = comments[-1]["permlink"]
-                if limit - len(comments) < 100:
-                    api_limit = limit - len(comments) + 1
+                # Recompute per-request limit, capped to bridge max (20)
+                remaining = limit - len(comments)
+                api_limit = min(20, remaining + 1) if remaining < 20 else 20
             except Exception as e:
                 # If we get an error but have some posts, return what we have
                 if len(comments) > 0:
@@ -1312,9 +1314,9 @@ class AccountPosts(list):
         if not self.blockchain.is_connected():
             return None
         comments = []
-        api_limit = limit
-        if api_limit > 100:
-            api_limit = 100
+        # Bridge API typically restricts page size to 20; cap per-request size
+        # and page as needed until overall `limit` is satisfied.
+        api_limit = min(limit, 20)
         last_n = -1
         while len(comments) < limit and last_n != len(comments):
             last_n = len(comments)
@@ -1351,8 +1353,9 @@ class AccountPosts(list):
                 if len(comments) > 0:
                     start_author = comments[-1]["author"]
                     start_permlink = comments[-1]["permlink"]
-                if limit - len(comments) < 100:
-                    api_limit = limit - len(comments) + 1
+                # Recompute per-request limit for next page, still capped at 20
+                remaining = limit - len(comments)
+                api_limit = min(20, remaining + 1) if remaining < 20 else 20
             except Exception as e:
                 # If we get an error but have some posts, return what we have
                 if len(comments) > 0:
