@@ -4424,7 +4424,9 @@ def curation(
             if not account:
                 account = hv.config["default_account"]
             # Using built-in timezone support
-            limit_time = datetime.now(timezone.utc) - timedelta(days=7)
+            # Respect CLI --days (help already documents max=7)
+            _days = min(float(days), 7.0)
+            limit_time = datetime.now(timezone.utc) - timedelta(days=_days)
             votes = AccountVotes(account, start=limit_time, blockchain_instance=hv)
             authorperm_list = [vote.authorperm for vote in votes]
             if authorperm.isdigit():
