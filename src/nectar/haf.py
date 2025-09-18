@@ -33,16 +33,20 @@ class HAF(object):
 
     DEFAULT_APIS = ["https://api.hive.blog", "https://api.syncad.com"]
 
-    def __init__(self, api: Optional[str] = None, blockchain_instance=None):
+    def __init__(
+        self, api: Optional[str] = None, blockchain_instance=None, timeout: Optional[float] = None
+    ):
         """
         Initialize the HAF client.
 
         Parameters:
             api (str, optional): Base API URL. If None, uses the first available default API.
             blockchain_instance: Blockchain instance for ecosystem compatibility.
+            timeout (float, optional): Timeout for requests in seconds.
         """
         self.api = api or self.DEFAULT_APIS[0]
         self.blockchain = blockchain_instance or shared_blockchain_instance()
+        self._timeout = float(timeout) if timeout else 30.0
 
         # Validate API URL
         if not self.api.startswith(("http://", "https://")):
@@ -53,7 +57,7 @@ class HAF(object):
 
         log.debug(f"Initialized HAF client with API: {self.api}")
 
-    def _make_request(self, endpoint: str, method: str = "GET", **kwargs) -> Dict[str, Any]:
+    def _make_request(self, endpoint: str, method: str = "GET", **kwargs) -> Any:
         """
         Make an HTTP request to the HAF API.
 
@@ -74,12 +78,13 @@ class HAF(object):
         # Set default headers
         headers = kwargs.pop("headers", {})
         headers.setdefault("accept", "application/json")
-        headers.setdefault("User-Agent", "hive-nectar/0.1.2")
+        headers.setdefault("User-Agent", "hive-nectar/0.1.3")
 
         log.debug(f"Making {method} request to: {url}")
 
         try:
-            response = requests.request(method, url, headers=headers, **kwargs)
+            timeout = kwargs.pop("timeout", self._timeout)
+            response = requests.request(method, url, headers=headers, timeout=timeout, **kwargs)
             response.raise_for_status()
 
             return response.json()
