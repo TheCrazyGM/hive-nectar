@@ -262,7 +262,7 @@ class Memo(object):
         )
         enc = unhexlify(base58decode(enc[1:]))
         shared_secret = BtsMemo.get_shared_secret(priv, pub)
-        aes, check = BtsMemo.init_aes(shared_secret, nonce)
+        aes, check = BtsMemo.init_aes2(shared_secret, nonce)
         with open(outfile, "wb") as fout:
             fout.write(struct.pack("<Q", len(enc)))
             fout.write(enc)
@@ -449,7 +449,7 @@ class Memo(object):
         nectar_version = BtsMemo.decode_memo(priv, memo)
         shared_secret = BtsMemo.get_shared_secret(priv, pubkey)
         # Init encryption
-        aes, checksum = BtsMemo.init_aes(shared_secret, nonce)
+        aes, checksum = BtsMemo.init_aes2(shared_secret, nonce)
         with open(infile, "rb") as fin:
             memo_size = struct.unpack("<Q", fin.read(struct.calcsize("<Q")))[0]
             memo = fin.read(memo_size)

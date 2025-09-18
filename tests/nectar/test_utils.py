@@ -173,39 +173,32 @@ class Testcases(unittest.TestCase):
         t = "thecrazygm:10"
         b = derive_beneficiaries(t)
         self.assertEqual(b, [{"account": "thecrazygm", "weight": 1000}])
+
         t = "thecrazygm"
         b = derive_beneficiaries(t)
         self.assertEqual(b, [{"account": "thecrazygm", "weight": 10000}])
+
+        # Duplicate accounts should be merged (known + known)
         t = "thecrazygm:30,thecrazygm:40"
         b = derive_beneficiaries(t)
-        self.assertEqual(
-            b,
-            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
-        )
+        self.assertEqual(b, [{"account": "thecrazygm", "weight": 7000}])
+
         t = "thecrazygm:30.00%,thecrazygm:40.00%"
         b = derive_beneficiaries(t)
-        self.assertEqual(
-            b,
-            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
-        )
+        self.assertEqual(b, [{"account": "thecrazygm", "weight": 7000}])
+
         t = "thecrazygm:30%, thecrazygm:40%"
         b = derive_beneficiaries(t)
-        self.assertEqual(
-            b,
-            [{"account": "thecrazygm", "weight": 4000}, {"account": "thecrazygm", "weight": 3000}],
-        )
+        self.assertEqual(b, [{"account": "thecrazygm", "weight": 7000}])
+
+        # Known + unknown for the same account => full remainder applied to that account
         t = "thecrazygm:30,thecrazygm"
         b = derive_beneficiaries(t)
-        self.assertEqual(
-            b,
-            [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}],
-        )
+        self.assertEqual(b, [{"account": "thecrazygm", "weight": 10000}])
+
         t = ["thecrazygm:30", "thecrazygm"]
         b = derive_beneficiaries(t)
-        self.assertEqual(
-            b,
-            [{"account": "thecrazygm", "weight": 7000}, {"account": "thecrazygm", "weight": 3000}],
-        )
+        self.assertEqual(b, [{"account": "thecrazygm", "weight": 10000}])
 
     def test_derive_tags(self):
         t = "test1,test2"

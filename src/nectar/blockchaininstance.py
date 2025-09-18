@@ -939,6 +939,11 @@ class BlockChainInstance(object):
             return False
         return "HIVE_CHAIN_ID" in config
 
+    @property
+    def is_steem(self):
+        """Deprecated compatibility flag; always False in Hive-only nectar."""
+        return False
+
     def set_default_account(self, account):
         """
         Set the instance default account.

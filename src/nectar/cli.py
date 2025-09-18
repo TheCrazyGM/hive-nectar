@@ -14,7 +14,6 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import click
-from click_shell import shell
 from prettytable import PrettyTable
 
 from nectar import exceptions
@@ -256,11 +255,7 @@ def export_trx(tx, export):
             json.dump(tx, f)
 
 
-@shell(
-    prompt="hive-nectar> ",
-    intro="Starting hive-nectar... (use help to list all commands)",
-    chain=True,
-)
+@click.group(chain=True)
 # @click.group(chain=True)
 @click.option(
     "--node", "-n", default="", help="URL for public Hive API (e.g. https://api.hive.blog)"
@@ -609,7 +604,6 @@ def updatenodes(show, test, only_https, only_wss):
             hv.set_default_nodes(nodes)
             hv.rpc.nodes.set_node_urls(nodes)
             hv.rpc.current_rpc = 0
-            hv.rpc.rpcclose()
             hv.rpc.rpcconnect()
     except Exception as e:
         print(str(e))
@@ -2037,12 +2031,19 @@ def allow(foreign_account, permission, account, weight, threshold, export):
 )
 @click.option("--account", "-a", help="The account to disallow action for")
 @click.option(
+    "--weight",
+    "-w",
+    help="The weight to use instead of the (full) threshold. "
+    "If the weight is smaller than the threshold, "
+    "additional signatures are required",
+)
+@click.option(
     "--threshold",
     "-t",
     help="The permission's threshold that needs to be reached by signatures to be able to interact",
 )
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
-def disallow(foreign_account, permission, account, threshold, export):
+def disallow(foreign_account, permission, account, weight, threshold, export):
     """Remove allowance an account/key to interact with your account"""
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
@@ -2062,7 +2063,7 @@ def disallow(foreign_account, permission, account, threshold, export):
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
         foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
-    tx = acc.disallow(foreign_account, permission=permission, threshold=threshold)
+    tx = acc.disallow(foreign_account, permission=permission, weight=weight, threshold=threshold)
     if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
         tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)

@@ -40,7 +40,7 @@ class Testcases(unittest.TestCase):
         result = runner.invoke(cli, ["-o", "set", "default_vote_weight", "100"])
         if result.exit_code != 0:
             raise AssertionError(str(result))
-        result = runner.invoke(cli, ["-o", "set", "default_account", "nectar"])
+        result = runner.invoke(cli, ["-o", "set", "default_account", "nectarflower"])
         if result.exit_code != 0:
             raise AssertionError(str(result))
         result = runner.invoke(cli, ["-o", "set", "nodes", str(cls.node_list)])
@@ -273,14 +273,14 @@ class Testcases(unittest.TestCase):
 
     def test_muting(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["muting", "nectar"])
+        result = runner.invoke(cli, ["muting", "thecrazygm"])
         self.assertEqual(result.exit_code, 0)
 
     def test_allow_disallow(self):
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["-dx", "allow", "--account", "thecrazygm", "--permission", "posting", "nectarflower"],
+            ["-dx", "allow", "--account", "nectarflower", "--permission", "posting", "thecrazygm"],
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
@@ -290,10 +290,10 @@ class Testcases(unittest.TestCase):
                 "-dx",
                 "disallow",
                 "--account",
-                "thecrazygm",
+                "nectarflower",
                 "--permission",
                 "posting",
-                "nectarflower",
+                "thecrazygm",
             ],
             input="test\n",
         )
@@ -307,22 +307,24 @@ class Testcases(unittest.TestCase):
     @unittest.skip
     def test_votes(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["votes", "--direction", "out", "fullnodeupdate"])
+        result = runner.invoke(cli, ["votes", "--direction", "out", "nectarflower"])
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["votes", "--direction", "in", "fullnodeupdate"])
+        result = runner.invoke(cli, ["votes", "--direction", "in", "nectarflower"])
         self.assertEqual(result.exit_code, 0)
 
     def test_approvewitness(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "approvewitness", "-a", "nectarflower", "thecrazygm"], input="test\n"
+            cli, ["-dx", "approvewitness", "-a", "nectarflower", "synergy.witness"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_disapprovewitness(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "disapprovewitness", "-a", "nectarflower", "thecrazygm"], input="test\n"
+            cli,
+            ["-dx", "disapprovewitness", "-a", "nectarflower", "synergy.witness"],
+            input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
 
@@ -335,7 +337,7 @@ class Testcases(unittest.TestCase):
 
     def test_delproxy(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "delproxy", "-a", "fullnodeupdate"], input="test\n")
+        result = runner.invoke(cli, ["-dx", "delproxy", "-a", "nectarflower"], input="test\n")
         self.assertEqual(result.exit_code, 0)
 
     def test_newaccount(self):
@@ -430,17 +432,19 @@ class Testcases(unittest.TestCase):
         hv = shared_blockchain_instance()
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", hv.token_symbol, "2.2"], input="test\n"
-        )
-        self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dt", "-x", "buy", "1", hv.token_symbol], input="y\ntest\n")
-        self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol, "2.2"], input="test\n"
+            cli, ["-dt", "-x", "buy", "0.001", hv.token_symbol, "0.002"], input="test\n"
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(
-            cli, ["-dt", "-x", "buy", "1", hv.backed_token_symbol], input="y\ntest\n"
+            cli, ["-dt", "-x", "buy", "0.001", hv.token_symbol], input="y\ntest\n"
+        )
+        self.assertEqual(result.exit_code, 0)
+        result = runner.invoke(
+            cli, ["-dt", "-x", "buy", "0.001", hv.backed_token_symbol, "0.002"], input="test\n"
+        )
+        self.assertEqual(result.exit_code, 0)
+        result = runner.invoke(
+            cli, ["-dt", "-x", "buy", "0.001", hv.backed_token_symbol], input="y\ntest\n"
         )
         self.assertEqual(result.exit_code, 0)
 
@@ -493,7 +497,7 @@ class Testcases(unittest.TestCase):
 
     def test_witnesscreate(self):
         runner = CliRunner()
-        _ = runner.invoke(cli, ["-dx", "witnesscreate", "nectar", pub_key], input="test\n")
+        _ = runner.invoke(cli, ["-dx", "witnesscreate", "nectarflower", pub_key], input="test\n")
 
     def test_witnessupdate(self):
         runner = CliRunner()
@@ -519,7 +523,9 @@ class Testcases(unittest.TestCase):
     def test_profile(self):
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["-dx", "setprofile", "-a", "nectar", "url", "https://google.de"], input="test\n"
+            cli,
+            ["-dx", "setprofile", "-a", "nectarflower", "url", "https://google.de"],
+            input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(cli, ["-dx", "delprofile", "-a", "nectar", "url"], input="test\n")
@@ -584,14 +590,6 @@ class Testcases(unittest.TestCase):
     def test_updatenodes(self):
         runner = CliRunner()
         runner.invoke(cli, ["-o", "set", "nodes", self.node_list])
-        result = runner.invoke(cli, ["updatenodes", "--hive", "--test"])
-        self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["updatenodes", "--steem"])
-        self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["updatenodes"])
-        self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["updatenodes", "--hive"])
-        self.assertEqual(result.exit_code, 0)
         result = runner.invoke(cli, ["updatenodes"])
         self.assertEqual(result.exit_code, 0)
         runner.invoke(cli, ["-o", "set", "nodes", str(self.node_list)])
@@ -619,12 +617,12 @@ class Testcases(unittest.TestCase):
 
     def test_notifications(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["notifications", "fullnodeupdate"])
+        result = runner.invoke(cli, ["notifications", "nectarflower"])
         self.assertEqual(result.exit_code, 0)
 
     def test_pending(self):
         runner = CliRunner()
-        account_name = "fullnodeupdate"
+        account_name = "nectarflower"
         result = runner.invoke(cli, ["pending", account_name])
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(cli, ["pending", "--post", "--comment", account_name])
@@ -656,7 +654,7 @@ class Testcases(unittest.TestCase):
 
     def test_rewards(self):
         runner = CliRunner()
-        account_name = "fullnodeupdate"
+        account_name = "nectarflower"
         result = runner.invoke(cli, ["rewards", account_name])
         self.assertEqual(result.exit_code, 0)
         result = runner.invoke(cli, ["rewards", "--post", "--comment", "--curation", account_name])

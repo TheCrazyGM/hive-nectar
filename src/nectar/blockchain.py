@@ -1021,7 +1021,7 @@ class Blockchain(object):
                 ret = self.blockchain.rpc.get_account_reputations(lastname, steps, api="condenser")
             for account in ret:
                 if isinstance(account, dict):
-                    account_name = account["name"]
+                    account_name = account["account"]
                 else:
                     account_name = account
                 if account_name != lastname or skip_first is False:

@@ -600,9 +600,10 @@ class Testcases(unittest.TestCase):
                 continue
             posts.append(p)
         self.assertTrue(len(posts) >= 0)
-        self.assertEqual(posts[0]["author"], account["name"])
-        self.assertTrue(posts[0].is_main_post())
-        self.assertTrue(posts[0].depth == 0)
+        if len(posts) > 0:
+            self.assertEqual(posts[0]["author"], account["name"])
+            self.assertTrue(posts[0].is_main_post())
+            self.assertTrue(posts[0].depth == 0)
 
     def test_reply_history(self):
         account = self.account

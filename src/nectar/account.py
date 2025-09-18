@@ -1570,7 +1570,12 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        return self.blockchain.rpc.list_all_subscriptions({"account": account}, api="bridge")
+        subscriptions = self.blockchain.rpc.list_all_subscriptions(
+            {"account": account}, api="bridge"
+        )
+        if subscriptions is None:
+            return []
+        return subscriptions
 
     def get_account_posts(self, sort="feed", limit=20, account=None, observer=None, raw_data=False):
         """Returns account feed"""
@@ -4030,7 +4035,9 @@ class Account(BlockchainObject):
         else:
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def disallow(self, foreign, permission="posting", account=None, threshold=None, **kwargs):
+    def disallow(
+        self, foreign, permission="posting", account=None, weight=None, threshold=None, **kwargs
+    ):
         """Remove additional access to an account by some other public
         key or account.
 
@@ -4053,19 +4060,47 @@ class Account(BlockchainObject):
 
         try:
             pubkey = PublicKey(foreign, prefix=self.blockchain.prefix)
-            affected_items = list([x for x in authority["key_auths"] if x[0] == str(pubkey)])
-            authority["key_auths"] = list(
-                [x for x in authority["key_auths"] if x[0] != str(pubkey)]
-            )
+            if weight:
+                affected_items = list(
+                    [x for x in authority["key_auths"] if x[0] == str(pubkey) and x[1] == weight]
+                )
+                authority["key_auths"] = list(
+                    [
+                        x
+                        for x in authority["key_auths"]
+                        if not (x[0] == str(pubkey) and x[1] == weight)
+                    ]
+                )
+            else:
+                affected_items = list([x for x in authority["key_auths"] if x[0] == str(pubkey)])
+                authority["key_auths"] = list(
+                    [x for x in authority["key_auths"] if x[0] != str(pubkey)]
+                )
         except Exception:
             try:
                 foreign_account = Account(foreign, blockchain_instance=self.blockchain)
-                affected_items = list(
-                    [x for x in authority["account_auths"] if x[0] == foreign_account["name"]]
-                )
-                authority["account_auths"] = list(
-                    [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
-                )
+                if weight:
+                    affected_items = list(
+                        [
+                            x
+                            for x in authority["account_auths"]
+                            if x[0] == foreign_account["name"] and x[1] == weight
+                        ]
+                    )
+                    authority["account_auths"] = list(
+                        [
+                            x
+                            for x in authority["account_auths"]
+                            if not (x[0] == foreign_account["name"] and x[1] == weight)
+                        ]
+                    )
+                else:
+                    affected_items = list(
+                        [x for x in authority["account_auths"] if x[0] == foreign_account["name"]]
+                    )
+                    authority["account_auths"] = list(
+                        [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
+                    )
             except Exception:
                 raise ValueError("Unknown foreign account or unvalid public key")
 

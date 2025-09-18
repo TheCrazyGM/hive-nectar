@@ -330,9 +330,8 @@ class Market(dict):
         :param int limit: Defines how many trades are fetched at each intervall point
         :param bool raw_data: when True, the raw data are returned
         """
-        utc = timezone.utc
         if not stop:
-            stop = utc.localize(datetime.now())
+            stop = datetime.now(timezone.utc)
         if not start:
             start = stop - timedelta(hours=1)
         start = addTzInfo(start)
@@ -370,9 +369,8 @@ class Market(dict):
         """
         # FIXME, this call should also return whether it was a buy or
         # sell
-        utc = timezone.utc
         if not stop:
-            stop = utc.localize(datetime.now())
+            stop = datetime.now(timezone.utc)
         if not start:
             start = stop - timedelta(hours=24)
         start = addTzInfo(start)

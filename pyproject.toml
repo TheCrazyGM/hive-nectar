@@ -33,7 +33,6 @@ dependencies = [
   "scrypt",
   "pycryptodomex",
   "Click",
-  "click_shell",
   "prettytable",
   "ruamel.yaml",
   "diff_match_patch",

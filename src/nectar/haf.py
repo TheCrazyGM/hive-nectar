@@ -109,7 +109,7 @@ class HAF(object):
             >>> haf = HAF()
             >>> rep = haf.reputation("thecrazygm")
             >>> print(rep)
-            {'account': 'thecrazygm', 'reputation': '1234567890', ...}
+            {'account': 'thecrazygm', 'reputation': '71', ...}
 
         """
         if not account or not isinstance(account, str):

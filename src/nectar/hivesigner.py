@@ -374,6 +374,15 @@ class HiveSigner(object):
 
         return r.json()
 
+    def create_hot_sign_url(self, operation, params, redirect_uri=None):
+        url = urljoin(self.hs_oauth_base_url, "sign/" + operation)
+        if redirect_uri:
+            params["redirect_uri"] = redirect_uri
+        if PY2:
+            return url + "?" + urlencode(params).replace("%2C", ",")
+        else:
+            return url + "?" + urlencode(params, safe=",")
+
     def url_from_tx(self, tx, redirect_uri=None):
         """
         Generate HiveSigner hot-sign URLs for each operation in a transaction.
