@@ -1,6 +1,21 @@
 Changelog
 =========
 
+0.1.3 - 2025-09-18
+------------------
+
+-  **Test**: Working on getting 100% test coverage
+-  **Feature**: Added some HAF features for things like reputation.
+
+.. _section-1:
+
+0.1.2 - 2025-09-17
+------------------
+
+-  **Fix**: Replaced missing ``**kwargs`` in ``Blocks`` constructor.
+
+.. _section-2:
+
 0.1.1 - 2025-09-17
 ------------------
 
@@ -81,7 +96,7 @@ Changelog
 -  **Feature**: Add a pure-Python fallback for public key derivation
    when the ``ecdsa`` library is unavailable, improving portability.
 
-.. _section-1:
+.. _section-3:
 
 0.0.11 - 2025-07-25
 -------------------
@@ -90,7 +105,7 @@ Changelog
    (``Comment``) and improved ``weighted_score`` type check in node list
    ranking (``NodeList``).
 
-.. _section-2:
+.. _section-4:
 
 0.0.10 - 2025-07-12
 -------------------
@@ -99,7 +114,7 @@ Changelog
    generation (in ``derive_permlink``) to resolve validation errors
    caused by the uppercase ``U``.
 
-.. _section-3:
+.. _section-5:
 
 0.0.9 - 2025-07-12
 ------------------
@@ -114,14 +129,14 @@ Changelog
       ensuring completeness.
    -  Removed unused fall-back paths and cleaned up internal code.
 
-.. _section-4:
+.. _section-6:
 
 0.0.8
 -----
 
 Added new documentation and type hints to community
 
-.. _section-5:
+.. _section-7:
 
 0.0.7
 -----
@@ -129,42 +144,42 @@ Added new documentation and type hints to community
 Removed all python2 legacy dependencies, drop python3 version
 requirement to >=3.10
 
-.. _section-6:
+.. _section-8:
 
 0.0.6
 -----
 
 Updated to more robust error reporting
 
-.. _section-7:
+.. _section-9:
 
 0.0.5
 -----
 
 More community fixes, including the Community Title Property
 
-.. _section-8:
+.. _section-10:
 
 0.0.4
 -----
 
 Small community fixes
 
-.. _section-9:
+.. _section-11:
 
 0.0.3
 -----
 
 Working on bridge api
 
-.. _section-10:
+.. _section-12:
 
 0.0.2
 -----
 
 Rebranded to Nectar
 
-.. _section-11:
+.. _section-13:
 
 0.0.1
 -----

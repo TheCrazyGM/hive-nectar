@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.3 - 2025-09-17
+## 0.1.3 - 2025-09-18
 
 - **Test**: Working on getting 100% test coverage
 - **Feature**: Added some HAF features for things like reputation.
