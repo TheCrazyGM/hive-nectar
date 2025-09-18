@@ -78,12 +78,14 @@ class Testcases(unittest.TestCase):
             self.assertIn(acc.blockchain.rpc.url, self.urls)
             self.assertIn(acc["balance"].blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Account(
+                acc = Account(
                     "test",
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
                 )
+                # Force a network call to trigger RPCConnection on bad node
+                acc.blockchain.get_config()
         else:
             set_shared_blockchain_instance(
                 Hive(node="https://abc.d", autoconnect=False, num_retries=1)
@@ -93,7 +95,9 @@ class Testcases(unittest.TestCase):
             self.assertIn(acc.blockchain.rpc.url, self.urls)
             self.assertIn(acc["balance"].blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Account("test")
+                acc = Account("test")
+                # Force a network call to trigger RPCConnection on bad shared instance
+                acc.blockchain.get_config()
 
     @parameterized.expand([("instance"), ("hive")])
     def test_amount(self, node_param):
@@ -121,12 +125,13 @@ class Testcases(unittest.TestCase):
             o = Block(1)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Block(
+                o = Block(
                     1,
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
                 )
+                o.blockchain.get_config()
         else:
             set_shared_blockchain_instance(
                 Hive(node="https://abc.d", autoconnect=False, num_retries=1)
@@ -135,7 +140,8 @@ class Testcases(unittest.TestCase):
             o = Block(1, blockchain_instance=hv)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Block(1)
+                o = Block(1)
+                o.blockchain.get_config()
 
     @parameterized.expand([("instance"), ("hive")])
     def test_blockchain(self, node_param):
@@ -164,12 +170,13 @@ class Testcases(unittest.TestCase):
             o = Comment(self.authorperm)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Comment(
+                o = Comment(
                     self.authorperm,
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
                 )
+                o.blockchain.get_config()
         else:
             set_shared_blockchain_instance(
                 Hive(node="https://abc.d", autoconnect=False, num_retries=1)
@@ -178,7 +185,8 @@ class Testcases(unittest.TestCase):
             o = Comment(self.authorperm, blockchain_instance=hv)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Comment(self.authorperm)
+                o = Comment(self.authorperm)
+                o.blockchain.get_config()
 
     @parameterized.expand([("instance"), ("hive")])
     def test_market(self, node_param):
@@ -235,12 +243,13 @@ class Testcases(unittest.TestCase):
             o = Vote(self.authorpermvoter)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Vote(
+                o = Vote(
                     self.authorpermvoter,
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
                 )
+                o.blockchain.get_config()
         else:
             set_shared_blockchain_instance(
                 Hive(node="https://abc.d", autoconnect=False, num_retries=1)
@@ -249,7 +258,8 @@ class Testcases(unittest.TestCase):
             o = Vote(self.authorpermvoter, blockchain_instance=hv)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Vote(self.authorpermvoter)
+                o = Vote(self.authorpermvoter)
+                o.blockchain.get_config()
 
     @parameterized.expand([("instance"), ("hive")])
     def test_wallet(self, node_param):
@@ -280,12 +290,13 @@ class Testcases(unittest.TestCase):
             o = Witness("gtg")
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Witness(
+                o = Witness(
                     "gtg",
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
                 )
+                o.blockchain.get_config()
         else:
             set_shared_blockchain_instance(
                 Hive(node="https://abc.d", autoconnect=False, num_retries=1)
@@ -294,7 +305,8 @@ class Testcases(unittest.TestCase):
             o = Witness("gtg", blockchain_instance=hv)
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Witness("gtg")
+                o = Witness("gtg")
+                o.blockchain.get_config()
 
     @parameterized.expand([("instance"), ("hive")])
     def test_transactionbuilder(self, node_param):

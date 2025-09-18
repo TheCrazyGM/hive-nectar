@@ -528,7 +528,9 @@ class Testcases(unittest.TestCase):
             input="test\n",
         )
         self.assertEqual(result.exit_code, 0)
-        result = runner.invoke(cli, ["-dx", "delprofile", "-a", "nectar", "url"], input="test\n")
+        result = runner.invoke(
+            cli, ["-dx", "delprofile", "-a", "nectarflower", "url"], input="test\n"
+        )
         self.assertEqual(result.exit_code, 0)
 
     def test_claimreward(self):
@@ -564,13 +566,13 @@ class Testcases(unittest.TestCase):
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["-dx", "witnessenable", "thecrazygm", "STM1111111111111111111111111111111114T1Anm"],
+            ["-dx", "witnessenable", "gtg", "STM1111111111111111111111111111111114T1Anm"],
         )
         self.assertEqual(result.exit_code, 0)
 
     def test_witnessdisable(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["-dx", "witnessdisable", "thecrazygm"])
+        result = runner.invoke(cli, ["-dx", "witnessdisable", "gtg"])
         self.assertEqual(result.exit_code, 0)
 
     def test_nextnode(self):
