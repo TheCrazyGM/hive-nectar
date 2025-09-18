@@ -247,7 +247,12 @@ class BlockChainInstance(object):
 
     def is_connected(self):
         """Returns if rpc is connected"""
-        return self.rpc is not None
+        # Consider the instance connected only if an RPC client exists AND
+        # it has an active URL set by rpcconnect(). Previously, this returned
+        # True when self.rpc was merely instantiated but without a selected
+        # working node (i.e., self.rpc.url was None), which caused downstream
+        # RPC calls to raise RPCConnection("RPC is not connected!").
+        return self.rpc is not None and bool(getattr(self.rpc, "url", None))
 
     def __repr__(self):
         if self.offline:
