@@ -338,8 +338,8 @@ class Testcases(unittest.TestCase):
         self.assertFalse(bts.get_blockchain_version() == "0.0.0")
 
     def test_offline(self):
+        # In offline mode, avoid fetching/updating remote node lists
         bts = Hive(
-            node=get_hive_nodes(),
             offline=True,
             data_refresh_time_seconds=900,
             keys={"active": wif, "owner": wif2, "memo": wif3},
@@ -443,7 +443,8 @@ class Testcases(unittest.TestCase):
 
     def test_switch_blockchain(self):
         bts = self.bts
-        bts.switch_blockchain("steem", update_nodes=True)
-        assert not bts.is_hive
+        # Hive-only: switching to non-Hive should raise
+        with self.assertRaises(AssertionError):
+            bts.switch_blockchain("steem", update_nodes=True)
         bts.switch_blockchain("hive", update_nodes=True)
         assert bts.is_hive

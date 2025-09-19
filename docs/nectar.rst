@@ -21,6 +21,7 @@ Submodules
    nectar.constants
    nectar.discussions
    nectar.exceptions
+   nectar.haf
    nectar.hive
    nectar.hivesigner
    nectar.imageuploader

@@ -14,7 +14,6 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import click
-from click_shell import shell
 from prettytable import PrettyTable
 
 from nectar import exceptions
@@ -256,11 +255,7 @@ def export_trx(tx, export):
             json.dump(tx, f)
 
 
-@shell(
-    prompt="hive-nectar> ",
-    intro="Starting hive-nectar... (use help to list all commands)",
-    chain=True,
-)
+@click.group(chain=True)
 # @click.group(chain=True)
 @click.option(
     "--node", "-n", default="", help="URL for public Hive API (e.g. https://api.hive.blog)"
@@ -593,23 +588,30 @@ def updatenodes(show, test, only_https, only_wss):
     t = PrettyTable(["node", "Version", "score"])
     t.align = "l"
     nodelist = NodeList()
-    nodelist.update_nodes(blockchain_instance=hv)
-    nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
-    if hv.config["default_chain"] != "hive":
-        hv.config["default_chain"] = "hive"
-    if show or test:
-        sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
-        for node in sorted_nodes:
-            if node["url"] in nodes:
-                score = float("{0:.1f}".format(node["score"]))
-                t.add_row([node["url"], node["version"], score])
-        print(t)
-    if not test:
-        hv.set_default_nodes(nodes)
-        hv.rpc.nodes.set_node_urls(nodes)
-        hv.rpc.current_rpc = 0
-        hv.rpc.rpcclose()
-        hv.rpc.rpcconnect()
+    try:
+        nodelist.update_nodes(blockchain_instance=hv)
+        # Flags are mutually exclusive; at least one transport must be enabled
+        if only_https and only_wss:
+            raise click.UsageError("Use at most one of --only-https or --only-wss.")
+        nodes = nodelist.get_hive_nodes(wss=not only_https, https=not only_wss)
+        if not nodes:
+            raise RuntimeError("No nodes matched the selected filters.")
+        if hv.config["default_chain"] != "hive":
+            hv.config["default_chain"] = "hive"
+        if show or test:
+            sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
+            for node in sorted_nodes:
+                if node["url"] in nodes:
+                    score = float("{0:.1f}".format(node["score"]))
+                    t.add_row([node["url"], node["version"], score])
+            print(t)
+        if not test:
+            hv.set_default_nodes(nodes)
+            hv.rpc.nodes.set_node_urls(nodes)
+            hv.rpc.rpcconnect()
+    except Exception:
+        log.exception("Failed to update nodes")
+        raise
 
 
 @cli.command()
@@ -2033,12 +2035,20 @@ def allow(foreign_account, permission, account, weight, threshold, export):
 )
 @click.option("--account", "-a", help="The account to disallow action for")
 @click.option(
+    "--weight",
+    "-w",
+    type=int,
+    help="The weight to use instead of the (full) threshold. "
+    "If the weight is smaller than the threshold, "
+    "additional signatures are required",
+)
+@click.option(
     "--threshold",
     "-t",
     help="The permission's threshold that needs to be reached by signatures to be able to interact",
 )
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
-def disallow(foreign_account, permission, account, threshold, export):
+def disallow(foreign_account, permission, account, weight, threshold, export):
     """Remove allowance an account/key to interact with your account"""
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
@@ -2058,7 +2068,7 @@ def disallow(foreign_account, permission, account, threshold, export):
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
         foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
-    tx = acc.disallow(foreign_account, permission=permission, threshold=threshold)
+    tx = acc.disallow(foreign_account, permission=permission, weight=weight, threshold=threshold)
     if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
         tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
@@ -2364,7 +2374,7 @@ def setprofile(variable, value, account, pair, export):
 @click.option("--account", "-a", help="delprofile as this user")
 @click.option("--export", "-e", help="When set, transaction is stored in a file")
 def delprofile(variable, account, export):
-    """Delete a variable in an account\'s profile"""
+    """Delete a variable in an account's profile"""
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
@@ -4402,255 +4412,271 @@ def curation(
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    HP_symbol = "HP"
-    if authorperm is None:
-        authorperm = "all"
-    if account is None and authorperm != "all":
-        show_all_voter = True
-    else:
-        show_all_voter = False
-    if authorperm == "all" or authorperm.isdigit():
-        if not account:
-            account = hv.config["default_account"]
-        # Using built-in timezone support
-        limit_time = datetime.now(timezone.utc) - timedelta(days=7)
-        votes = AccountVotes(account, start=limit_time, blockchain_instance=hv)
-        authorperm_list = [vote.authorperm for vote in votes]
-        if authorperm.isdigit():
-            if len(authorperm_list) < int(authorperm):
-                raise ValueError("Authorperm id must be lower than %d" % (len(authorperm_list) + 1))
-            authorperm_list = [authorperm_list[int(authorperm) - 1]]
-            all_posts = False
+    try:
+        HP_symbol = "HP"
+        if authorperm is None:
+            authorperm = "all"
+        if account is None and authorperm != "all":
+            show_all_voter = True
         else:
-            all_posts = True
-    else:
-        authorperm_list = [authorperm]
-        all_posts = False
-    if (all_posts) and permlink:
-        t = PrettyTable(
-            [
-                "Author",
-                "permlink",
-                "Voting time",
-                "Vote",
-                "Early vote loss",
-                "Curation",
-                "Performance",
-            ]
-        )
-        t.align = "l"
-    elif (all_posts) and title:
-        t = PrettyTable(
-            [
-                "Author",
-                "permlink",
-                "Voting time",
-                "Vote",
-                "Early vote loss",
-                "Curation",
-                "Performance",
-            ]
-        )
-        t.align = "l"
-    elif all_posts:
-        t = PrettyTable(
-            ["Author", "Voting time", "Vote", "Early vote loss", "Curation", "Performance"]
-        )
-        t.align = "l"
-    elif (export) and permlink:
-        t = PrettyTable(
-            [
-                "Author",
-                "permlink",
-                "Voter",
-                "Voting time",
-                "Vote",
-                "Early vote loss",
-                "Curation",
-                "Performance",
-            ]
-        )
-        t.align = "l"
-    elif (export) and title:
-        t = PrettyTable(
-            [
-                "Author",
-                "permlink",
-                "Voter",
-                "Voting time",
-                "Vote",
-                "Early vote loss",
-                "Curation",
-                "Performance",
-            ]
-        )
-        t.align = "l"
-    elif export:
-        t = PrettyTable(
-            ["Author", "Voter", "Voting time", "Vote", "Early vote loss", "Curation", "Performance"]
-        )
-        t.align = "l"
-    else:
-        t = PrettyTable(
-            ["Voter", "Voting time", "Vote", "Early vote loss", "Curation", "Performance"]
-        )
-        t.align = "l"
-    index = 0
-    for authorperm in authorperm_list:
-        index += 1
-        comment = Comment(authorperm, blockchain_instance=hv)
-        if payout is not None and comment.is_pending():
-            payout = float(payout)
-        elif payout is not None:
-            payout = None
-        curation_rewards_HBD = comment.get_curation_rewards(
-            pending_payout_hbd=True, pending_payout_value=payout
-        )
-        curation_rewards_HP = comment.get_curation_rewards(
-            pending_payout_hbd=False, pending_payout_value=payout
-        )
-        rows = []
-        sum_curation = [0, 0, 0, 0]
-        max_curation = [0, 0, 0, 0, 0, 0]
-        highest_vote = [0, 0, 0, 0, 0, 0]
-        for vote in comment.get_votes():
-            vote_time = vote["time"]
+            show_all_voter = False
+        if authorperm == "all" or authorperm.isdigit():
+            if not account:
+                account = hv.config["default_account"]
+            # Using built-in timezone support
+            # Respect CLI --days (help already documents max=7)
+            _days = min(float(days), 7.0)
+            limit_time = datetime.now(timezone.utc) - timedelta(days=_days)
+            votes = AccountVotes(account, start=limit_time, blockchain_instance=hv)
+            authorperm_list = [vote.authorperm for vote in votes]
+            if authorperm.isdigit():
+                if len(authorperm_list) < int(authorperm):
+                    raise ValueError(
+                        "Authorperm id must be lower than %d" % (len(authorperm_list) + 1)
+                    )
+                authorperm_list = [authorperm_list[int(authorperm) - 1]]
+                all_posts = False
+            else:
+                all_posts = True
+        else:
+            authorperm_list = [authorperm]
+            all_posts = False
+        if (all_posts) and permlink:
+            t = PrettyTable(
+                [
+                    "Author",
+                    "permlink",
+                    "Voting time",
+                    "Vote",
+                    "Early vote loss",
+                    "Curation",
+                    "Performance",
+                ]
+            )
+            t.align = "l"
+        elif (all_posts) and title:
+            t = PrettyTable(
+                [
+                    "Author",
+                    "permlink",
+                    "Voting time",
+                    "Vote",
+                    "Early vote loss",
+                    "Curation",
+                    "Performance",
+                ]
+            )
+            t.align = "l"
+        elif all_posts:
+            t = PrettyTable(
+                ["Author", "Voting time", "Vote", "Early vote loss", "Curation", "Performance"]
+            )
+            t.align = "l"
+        elif (export) and permlink:
+            t = PrettyTable(
+                [
+                    "Author",
+                    "permlink",
+                    "Voter",
+                    "Voting time",
+                    "Vote",
+                    "Early vote loss",
+                    "Curation",
+                    "Performance",
+                ]
+            )
+            t.align = "l"
+        elif (export) and title:
+            t = PrettyTable(
+                [
+                    "Author",
+                    "permlink",
+                    "Voter",
+                    "Voting time",
+                    "Vote",
+                    "Early vote loss",
+                    "Curation",
+                    "Performance",
+                ]
+            )
+            t.align = "l"
+        elif export:
+            t = PrettyTable(
+                [
+                    "Author",
+                    "Voter",
+                    "Voting time",
+                    "Vote",
+                    "Early vote loss",
+                    "Curation",
+                    "Performance",
+                ]
+            )
+            t.align = "l"
+        else:
+            t = PrettyTable(
+                ["Voter", "Voting time", "Vote", "Early vote loss", "Curation", "Performance"]
+            )
+            t.align = "l"
+        index = 0
+        for authorperm in authorperm_list:
+            index += 1
+            comment = Comment(authorperm, blockchain_instance=hv)
+            if payout is not None and comment.is_pending():
+                payout = float(payout)
+            elif payout is not None:
+                payout = None
+            curation_rewards_HBD = comment.get_curation_rewards(
+                pending_payout_hbd=True, pending_payout_value=payout
+            )
+            curation_rewards_HP = comment.get_curation_rewards(
+                pending_payout_hbd=False, pending_payout_value=payout
+            )
+            rows = []
+            sum_curation = [0, 0, 0, 0]
+            max_curation = [0, 0, 0, 0, 0, 0]
+            highest_vote = [0, 0, 0, 0, 0, 0]
+            for vote in comment.get_votes():
+                vote_time = vote["time"]
 
-            vote_HBD = hv.rshares_to_token_backed_dollar(int(vote["rshares"]))
-            curation_HBD = curation_rewards_HBD["active_votes"][vote["voter"]]
-            curation_HP = curation_rewards_HP["active_votes"][vote["voter"]]
-            if vote_HBD > 0:
-                penalty = (comment.get_curation_penalty(vote_time=vote_time)) * vote_HBD
-                performance = float(curation_HBD) / vote_HBD * 100
-            else:
-                performance = 0
-                penalty = 0
-            vote_befor_min = ((vote_time) - comment["created"]).total_seconds() / 60
-            sum_curation[0] += vote_HBD
-            sum_curation[1] += penalty
-            sum_curation[2] += float(curation_HP)
-            sum_curation[3] += float(curation_HBD)
-            row = [
-                vote["voter"],
-                vote_befor_min,
-                vote_HBD,
-                penalty,
-                float(curation_HP),
-                performance,
-            ]
+                vote_HBD = hv.rshares_to_token_backed_dollar(int(vote["rshares"]))
+                curation_HBD = curation_rewards_HBD["active_votes"][vote["voter"]]
+                curation_HP = curation_rewards_HP["active_votes"][vote["voter"]]
+                if vote_HBD > 0:
+                    penalty = (comment.get_curation_penalty(vote_time=vote_time)) * vote_HBD
+                    performance = float(curation_HBD) / vote_HBD * 100
+                else:
+                    performance = 0
+                    penalty = 0
+                vote_befor_min = ((vote_time) - comment["created"]).total_seconds() / 60
+                sum_curation[0] += vote_HBD
+                sum_curation[1] += penalty
+                sum_curation[2] += float(curation_HP)
+                sum_curation[3] += float(curation_HBD)
+                row = [
+                    vote["voter"],
+                    vote_befor_min,
+                    vote_HBD,
+                    penalty,
+                    float(curation_HP),
+                    performance,
+                ]
 
-            rows.append(row)
-        sortedList = sorted(rows, key=lambda row: (row[1]), reverse=False)
-        new_row = []
-        new_row2 = []
-        voter = []
-        voter2 = []
-        if (all_posts or export) and permlink:
-            if length:
-                new_row = [comment.author, comment.permlink[: int(length)]]
-            else:
-                new_row = [comment.author, comment.permlink]
-            new_row2 = ["", ""]
-        elif (all_posts or export) and title:
-            if length:
-                new_row = [comment.author, comment.title[: int(length)]]
-            else:
-                new_row = [comment.author, comment.title]
-            new_row2 = ["", ""]
-        elif all_posts or export:
-            new_row = [comment.author]
-            new_row2 = [""]
-        if not all_posts:
-            voter = [""]
-            voter2 = [""]
-        found_voter = False
-        for row in sortedList:
-            if limit is not None and row[1] > float(limit):
-                continue
-            if min_vote is not None and float(row[2]) < float(min_vote):
-                continue
-            if max_vote is not None and float(row[2]) > float(max_vote):
-                continue
-            if min_performance is not None and float(row[5]) < float(min_performance):
-                continue
-            if max_performance is not None and float(row[5]) > float(max_performance):
-                continue
-            if row[-1] > max_curation[-1]:
-                max_curation = row
-            if row[2] > highest_vote[2]:
-                highest_vote = row
-            if show_all_voter or account == row[0]:
-                if not all_posts:
-                    voter = [row[0]]
-                if all_posts:
-                    new_row[0] = "%d. %s" % (index, comment.author)
-                if not found_voter:
-                    found_voter = True
+                rows.append(row)
+            sortedList = sorted(rows, key=lambda row: (row[1]), reverse=False)
+            new_row = []
+            new_row2 = []
+            voter = []
+            voter2 = []
+            if (all_posts or export) and permlink:
+                if length:
+                    new_row = [comment.author, comment.permlink[: int(length)]]
+                else:
+                    new_row = [comment.author, comment.permlink]
+                new_row2 = ["", ""]
+            elif (all_posts or export) and title:
+                if length:
+                    new_row = [comment.author, comment.title[: int(length)]]
+                else:
+                    new_row = [comment.author, comment.title]
+                new_row2 = ["", ""]
+            elif all_posts or export:
+                new_row = [comment.author]
+                new_row2 = [""]
+            if not all_posts:
+                voter = [""]
+                voter2 = [""]
+            found_voter = False
+            for row in sortedList:
+                if limit is not None and row[1] > float(limit):
+                    continue
+                if min_vote is not None and float(row[2]) < float(min_vote):
+                    continue
+                if max_vote is not None and float(row[2]) > float(max_vote):
+                    continue
+                if min_performance is not None and float(row[5]) < float(min_performance):
+                    continue
+                if max_performance is not None and float(row[5]) > float(max_performance):
+                    continue
+                if row[-1] > max_curation[-1]:
+                    max_curation = row
+                if row[2] > highest_vote[2]:
+                    highest_vote = row
+                if show_all_voter or account == row[0]:
+                    if not all_posts:
+                        voter = [row[0]]
+                    if all_posts:
+                        new_row[0] = "%d. %s" % (index, comment.author)
+                    if not found_voter:
+                        found_voter = True
+                    t.add_row(
+                        new_row
+                        + voter
+                        + [
+                            "%.1f min" % row[1],
+                            "%.3f %s" % (float(row[2]), hv.backed_token_symbol),
+                            "%.3f %s" % (float(row[3]), hv.backed_token_symbol),
+                            "%.3f %s" % (row[4], HP_symbol),
+                            "%.1f %%" % (row[5]),
+                        ]
+                    )
+                    if len(authorperm_list) == 1:
+                        new_row = new_row2
+            if not short and found_voter:
+                t.add_row(new_row2 + voter2 + ["", "", "", "", ""])
+                if sum_curation[0] > 0:
+                    curation_sum_percentage = sum_curation[3] / sum_curation[0] * 100
+                else:
+                    curation_sum_percentage = 0
+                sum_line = new_row2 + voter2
+                sum_line[-1] = "High. vote"
+
                 t.add_row(
-                    new_row
-                    + voter
+                    sum_line
                     + [
-                        "%.1f min" % row[1],
-                        "%.3f %s" % (float(row[2]), hv.backed_token_symbol),
-                        "%.3f %s" % (float(row[3]), hv.backed_token_symbol),
-                        "%.3f %s" % (row[4], HP_symbol),
-                        "%.1f %%" % (row[5]),
+                        "%.1f min" % highest_vote[1],
+                        "%.3f %s" % (float(highest_vote[2]), hv.backed_token_symbol),
+                        "%.3f %s" % (float(highest_vote[3]), hv.backed_token_symbol),
+                        "%.3f %s" % (highest_vote[4], HP_symbol),
+                        "%.1f %%" % (highest_vote[5]),
                     ]
                 )
-                if len(authorperm_list) == 1:
-                    new_row = new_row2
-        if not short and found_voter:
-            t.add_row(new_row2 + voter2 + ["", "", "", "", ""])
-            if sum_curation[0] > 0:
-                curation_sum_percentage = sum_curation[3] / sum_curation[0] * 100
-            else:
-                curation_sum_percentage = 0
-            sum_line = new_row2 + voter2
-            sum_line[-1] = "High. vote"
-
-            t.add_row(
-                sum_line
-                + [
-                    "%.1f min" % highest_vote[1],
-                    "%.3f %s" % (float(highest_vote[2]), hv.backed_token_symbol),
-                    "%.3f %s" % (float(highest_vote[3]), hv.backed_token_symbol),
-                    "%.3f %s" % (highest_vote[4], HP_symbol),
-                    "%.1f %%" % (highest_vote[5]),
-                ]
-            )
-            sum_line[-1] = "High. Cur."
-            t.add_row(
-                sum_line
-                + [
-                    "%.1f min" % max_curation[1],
-                    "%.3f %s" % (float(max_curation[2]), hv.backed_token_symbol),
-                    "%.3f %s" % (float(max_curation[3]), hv.backed_token_symbol),
-                    "%.3f %s" % (max_curation[4], HP_symbol),
-                    "%.1f %%" % (max_curation[5]),
-                ]
-            )
-            sum_line[-1] = "Sum"
-            t.add_row(
-                sum_line
-                + [
-                    "-",
-                    "%.3f %s" % (sum_curation[0], hv.backed_token_symbol),
-                    "%.3f %s" % (sum_curation[1], hv.backed_token_symbol),
-                    "%.3f %s" % (sum_curation[2], HP_symbol),
-                    "%.2f %%" % curation_sum_percentage,
-                ]
-            )
-            if all_posts or export:
-                t.add_row(new_row2 + voter2 + ["-", "-", "-", "-", "-"])
-        if not (all_posts or export):
-            print("curation for %s" % (authorperm))
+                sum_line[-1] = "High. Cur."
+                t.add_row(
+                    sum_line
+                    + [
+                        "%.1f min" % max_curation[1],
+                        "%.3f %s" % (float(max_curation[2]), hv.backed_token_symbol),
+                        "%.3f %s" % (float(max_curation[3]), hv.backed_token_symbol),
+                        "%.3f %s" % (max_curation[4], HP_symbol),
+                        "%.1f %%" % (max_curation[5]),
+                    ]
+                )
+                sum_line[-1] = "Sum"
+                t.add_row(
+                    sum_line
+                    + [
+                        "-",
+                        "%.3f %s" % (sum_curation[0], hv.backed_token_symbol),
+                        "%.3f %s" % (sum_curation[1], hv.backed_token_symbol),
+                        "%.3f %s" % (sum_curation[2], HP_symbol),
+                        "%.2f %%" % curation_sum_percentage,
+                    ]
+                )
+                if all_posts or export:
+                    t.add_row(new_row2 + voter2 + ["-", "-", "-", "-", "-"])
+            if not (all_posts or export):
+                print("curation for %s" % (authorperm))
+                print(t)
+        if export:
+            with open(export, "w") as w:
+                w.write(str(t.get_html_string()))
+        elif all_posts:
+            print("curation for @%s" % account)
             print(t)
-    if export:
-        with open(export, "w") as w:
-            w.write(str(t.get_html_string()))
-    elif all_posts:
-        print("curation for @%s" % account)
-        print(t)
+    except Exception as e:
+        print(str(e))
+        raise e
 
 
 @cli.command()

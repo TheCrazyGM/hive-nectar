@@ -258,12 +258,12 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(reps_limit) == limit)
         for rep in reps_limit:  # expect format {'name': [str], 'reputation': [int]}
             self.assertTrue(isinstance(rep, dict))
-            self.assertTrue("name" in rep and "reputation" in rep)
-            self.assertTrue(isinstance(rep["name"], str))
+            self.assertTrue("account" in rep and "reputation" in rep)
+            self.assertTrue(isinstance(rep["account"], str))
             self.assertTrue(isinstance(rep["reputation"], int))
 
-        first = reps_limit[0]["name"]
-        last = reps_limit[-1]["name"]
+        first = reps_limit[0]["account"]
+        last = reps_limit[-1]["account"]
         # get the same account reputations via start/stop constraints
         reps_constr = list(b.get_account_reputations(start=first, stop=last))
         self.assertTrue(len(reps_constr) >= limit)
@@ -271,6 +271,6 @@ class Testcases(unittest.TestCase):
         # reputation values may be different between the two API
         # calls, but each account of the first call should be
         # contained in the second as well
-        accounts = [rep["name"] for rep in reps_constr]
+        accounts = [rep["account"] for rep in reps_constr]
         for rep in reps_limit:
-            self.assertTrue(rep["name"] in accounts)
+            self.assertTrue(rep["account"] in accounts)

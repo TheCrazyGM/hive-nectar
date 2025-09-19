@@ -43,7 +43,7 @@ class Comment(BlockchainObject):
     >>> from nectar.comment import Comment
     >>> from nectar.account import Account
     >>> # Create a Hive blockchain instance
-    >>> from nectar.blockchain import Blockchain as Hive
+    >>> from nectar import Hive
     >>> hv = Hive()
     >>> acc = Account("gtg", blockchain_instance=hv)
     >>> authorperm = acc.get_blog(limit=1)[0]["authorperm"]
@@ -467,9 +467,9 @@ class Comment(BlockchainObject):
             Amount: Estimated HBD payout required to offset the early-vote curation penalty.
         """
         self.refresh()
-        if self.blockchain.hardfork() >= 21:
+        if self.blockchain.hardfork >= 21:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork() >= 20:
+        elif self.blockchain.hardfork >= 20:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -526,9 +526,9 @@ class Comment(BlockchainObject):
             elapsed_seconds = (vote_time - self["created"]).total_seconds()
         else:
             raise ValueError("vote_time must be a string or a datetime")
-        if self.blockchain.hardfork() >= 21:
+        if self.blockchain.hardfork >= 21:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork() >= 20:
+        elif self.blockchain.hardfork >= 20:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -675,7 +675,7 @@ class Comment(BlockchainObject):
         curation_tokens = self.reward * author_reward_factor
         author_tokens = self.reward - curation_tokens
         curation_rewards = self.get_curation_rewards()
-        if self.blockchain.hardfork() >= 20 and median_hist is not None:
+        if self.blockchain.hardfork >= 20 and median_hist is not None:
             author_tokens += median_price * curation_rewards["unclaimed_rewards"]
         benefactor_tokens = author_tokens * beneficiaries_pct / HIVE_100_PERCENT
         author_tokens -= benefactor_tokens
@@ -1209,9 +1209,10 @@ class RankedPosts(list):
         if not self.blockchain.is_connected():
             return None
         comments = []
-        api_limit = limit
-        if api_limit > 100:
-            api_limit = 100
+        # Bridge API enforces a maximum page size (typically 20). Cap
+        # per-request size accordingly and page until `limit` is reached.
+        # Previously capped to 100 which can trigger Invalid parameters.
+        api_limit = min(limit, 20)
         last_n = -1
         while len(comments) < limit and last_n != len(comments):
             last_n = len(comments)
@@ -1248,8 +1249,9 @@ class RankedPosts(list):
                 if len(comments) > 0:
                     start_author = comments[-1]["author"]
                     start_permlink = comments[-1]["permlink"]
-                if limit - len(comments) < 100:
-                    api_limit = limit - len(comments) + 1
+                # Recompute per-request limit, capped to bridge max (20)
+                remaining = limit - len(comments)
+                api_limit = min(20, remaining + 1) if remaining < 20 else 20
             except Exception as e:
                 # If we get an error but have some posts, return what we have
                 if len(comments) > 0:
@@ -1312,9 +1314,9 @@ class AccountPosts(list):
         if not self.blockchain.is_connected():
             return None
         comments = []
-        api_limit = limit
-        if api_limit > 100:
-            api_limit = 100
+        # Bridge API typically restricts page size to 20; cap per-request size
+        # and page as needed until overall `limit` is satisfied.
+        api_limit = min(limit, 20)
         last_n = -1
         while len(comments) < limit and last_n != len(comments):
             last_n = len(comments)
@@ -1351,8 +1353,9 @@ class AccountPosts(list):
                 if len(comments) > 0:
                     start_author = comments[-1]["author"]
                     start_permlink = comments[-1]["permlink"]
-                if limit - len(comments) < 100:
-                    api_limit = limit - len(comments) + 1
+                # Recompute per-request limit for next page, still capped at 20
+                remaining = limit - len(comments)
+                api_limit = min(20, remaining + 1) if remaining < 20 else 20
             except Exception as e:
                 # If we get an error but have some posts, return what we have
                 if len(comments) > 0:

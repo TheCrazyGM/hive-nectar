@@ -241,18 +241,6 @@ wheels = [
 ]
 
 [[package]]
-name = "click-shell"
-version = "2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/26/93dd93fb1714f64376989b9e809982fd64d5f26e666b6d55458066c40b53/click-shell-2.1.tar.gz", hash = "sha256:ce0c91faae284c41a39bec966f928791ad4a45763755445f1fe2041fd091aa37", size = 8421, upload-time = "2021-06-27T00:07:00.845Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/ce/d81dcb726c436bf3f77d0145e03bf364c189cc95e6551e797bc0511dcea0/click_shell-2.1-py2.py3-none-any.whl", hash = "sha256:2d971a2e50eb7ad387cf0ce79ba4b844e66e0580784e2efe2df58b50a2f047f0", size = 8582, upload-time = "2021-06-27T00:06:59.938Z" },
-]
-
-[[package]]
 name = "codacy-coverage"
 version = "1.3.11"
 source = { registry = "https://pypi.org/simple" }
@@ -498,13 +486,12 @@ wheels = [
 
 [[package]]
 name = "hive-nectar"
-version = "0.1.2"
+version = "0.1.3"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
     { name = "asn1crypto" },
     { name = "click" },
-    { name = "click-shell" },
     { name = "cryptography" },
     { name = "diff-match-patch" },
     { name = "ecdsa" },
@@ -543,7 +530,6 @@ requires-dist = [
     { name = "appdirs" },
     { name = "asn1crypto" },
     { name = "click" },
-    { name = "click-shell" },
     { name = "cryptography" },
     { name = "diff-match-patch" },
     { name = "ecdsa" },

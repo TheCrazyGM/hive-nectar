@@ -1,7 +1,6 @@
 import getpass
 
 from flask import Flask, request
-
 from nectar.hiveconnect import HiveConnect
 
 app = Flask(__name__)

@@ -318,44 +318,67 @@ def findall_patch_hunks(body=None):
 
 
 def derive_beneficiaries(beneficiaries):
-    beneficiaries_list = []
-    beneficiaries_accounts = []
-    beneficiaries_sum = 0
-    if not isinstance(beneficiaries, list):
-        beneficiaries = beneficiaries.split(",")
+    """
+    Parse beneficiaries and return a normalized, merged list of unique accounts with weights in basis points.
 
-    for w in beneficiaries:
-        account_name = w.strip().split(":")[0]
-        if account_name[0] == "@":
-            account_name = account_name[1:]
-        if account_name in beneficiaries_accounts:
+    Accepts a comma-separated string or list with items like "account:10", "@account:10%", or "account" (unknown
+    percentage). Duplicate accounts are merged by summing their explicit percentages and any share of the remaining
+    percentage allocated to unknown entries. Unknown entries are distributed equally across all unknown slots.
+
+    Returns a list of dicts sorted by account name: [{"account": str, "weight": int_basis_points}]
+    where weight is expressed in basis points (e.g., 1000 == 10%).
+    """
+    # Normalize input to list of entries
+    entries = beneficiaries if isinstance(beneficiaries, list) else beneficiaries.split(",")
+
+    # Collect known percentages and unknown slots per account
+    accounts = {}
+    total_known_bp = 0  # basis points (1% == 100)
+    total_unknown_slots = 0
+
+    for raw in entries:
+        token = raw.strip()
+        if not token:
             continue
-        if w.find(":") == -1:
-            percentage = -1
-        else:
-            percentage = w.strip().split(":")[1]
-            if "%" in percentage:
-                percentage = percentage.strip().split("%")[0].strip()
-            percentage = float(percentage)
-            beneficiaries_sum += percentage
-        beneficiaries_list.append({"account": account_name, "weight": int(percentage * 100)})
-        beneficiaries_accounts.append(account_name)
+        name_part = token.split(":")[0].strip()
+        account = name_part[1:] if name_part.startswith("@") else name_part
+        if account not in accounts:
+            accounts[account] = {"known_bp": 0, "unknown_slots": 0}
 
-    missing = 0
-    for bene in beneficiaries_list:
-        if bene["weight"] < 0:
-            missing += 1
-    index = 0
-    for bene in beneficiaries_list:
-        if bene["weight"] < 0:
-            beneficiaries_list[index]["weight"] = int(
-                (int(100 * 100) - int(beneficiaries_sum * 100)) / missing
-            )
-        index += 1
-    sorted_beneficiaries = sorted(
-        beneficiaries_list, key=lambda beneficiaries_list: beneficiaries_list["account"]
-    )
-    return sorted_beneficiaries
+        if ":" not in token:
+            # Unknown slot for this account
+            accounts[account]["unknown_slots"] += 1
+            total_unknown_slots += 1
+            continue
+
+        # Parse percentage
+        perc_str = token.split(":", 1)[1].strip()
+        if perc_str.endswith("%"):
+            perc_str = perc_str[:-1].strip()
+        try:
+            perc = float(perc_str)
+        except Exception:
+            # Treat unparsable as unknown slot
+            accounts[account]["unknown_slots"] += 1
+            total_unknown_slots += 1
+            continue
+        bp = int(perc * 100)
+        accounts[account]["known_bp"] += bp
+        total_known_bp += bp
+
+    # Distribute remaining to unknown slots equally (in bp)
+    remaining_bp = max(0, 10000 - total_known_bp)
+    if total_unknown_slots > 0 and remaining_bp > 0:
+        for account, data in accounts.items():
+            slots = data["unknown_slots"]
+            if slots > 0:
+                share_bp = int((remaining_bp * slots) / total_unknown_slots)
+                data["known_bp"] += share_bp
+
+    # Build final list (unique accounts) and sort deterministically
+    result = [{"account": acc, "weight": data["known_bp"]} for acc, data in accounts.items()]
+    result.sort(key=lambda x: x["account"])
+    return result
 
 
 def derive_tags(tags):

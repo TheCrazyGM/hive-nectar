@@ -29,6 +29,7 @@ from nectargraphenebase.account import PasswordKey, PublicKey
 from .blockchain import Blockchain
 from .blockchainobject import BlockchainObject
 from .exceptions import AccountDoesNotExistsException, OfflineHasNoRPCException
+from .haf import HAF
 from .utils import (
     addTzInfo,
     formatTimedelta,
@@ -613,26 +614,41 @@ class Account(BlockchainObject):
         """
         Return the account's normalized reputation score.
 
-        If the node is offline, returns None. When connected, prefers the appbase `reputation` API to fetch the latest reputation; if that call fails or is unavailable, falls back to the account's cached `reputation` field. The returned value is the normalized reputation computed by `reputation_to_score`.
+        If the node is offline, returns a default reputation score. When connected, tries the HAF reputation API first
+        which returns the final normalized score directly. Falls back to the cached reputation
+        field if HAF fails.
         """
         if not self.blockchain.is_connected():
-            return None
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
+            return reputation_to_score(0)
+
+        # Try HAF API first - returns final normalized score
+        haf = HAF(blockchain_instance=self.blockchain)
+        rep_data = haf.reputation(self["name"])
+        if rep_data is not None:
+            # Handle both dict and direct responses
             try:
-                rep = self.blockchain.rpc.get_account_reputations(
-                    {"account_lower_bound": self["name"], "limit": 1}, api="reputation"
-                )["reputations"]
-                if len(rep) > 0:
-                    rep = int(rep[0]["reputation"])
-            except Exception:
-                if "reputation" in self:
-                    rep = int(self["reputation"])
+                if isinstance(rep_data, dict) and "reputation" in rep_data:
+                    return float(rep_data["reputation"])
+                elif isinstance(rep_data, (int, float)):
+                    return float(rep_data)
                 else:
-                    rep = 0
+                    # Try to convert to float if it's a string
+                    return float(rep_data)
+            except (ValueError, TypeError, KeyError) as e:
+                log.warning(f"Failed to parse reputation data from HAF for {self['name']}: {e}")
+
+        # Fallback to cached reputation field (old behavior)
+        if "reputation" in self:
+            try:
+                rep = int(self["reputation"])
+                log.debug(f"Using cached reputation for {self['name']}: {rep}")
+                return reputation_to_score(rep)
+            except (ValueError, TypeError) as e:
+                log.warning(f"Invalid cached reputation for {self['name']}: {e}")
+                return reputation_to_score(0)
         else:
-            rep = int(self["reputation"])
-        return reputation_to_score(rep)
+            log.warning(f"No reputation data available for {self['name']}")
+            return reputation_to_score(0)
 
     def get_manabar(self):
         """
@@ -999,14 +1015,12 @@ class Account(BlockchainObject):
             raise AssertionError(
                 "Should input %s, not any other asset!" % self.blockchain.backed_token_symbol
             )
-            vote_pct = self.blockchain.rshares_to_vote_pct(
-                self.blockchain.hbd_to_rshares(
-                    token_units, not_broadcasted_vote=not_broadcasted_vote
-                ),
-                post_rshares=post_rshares,
-                voting_power=voting_power * 100,
-                hive_power=token_power,
-            )
+        vote_pct = self.blockchain.rshares_to_vote_pct(
+            self.blockchain.hbd_to_rshares(token_units, not_broadcasted_vote=not_broadcasted_vote),
+            post_rshares=post_rshares,
+            voting_power=voting_power * 100,
+            hive_power=token_power,
+        )
         return vote_pct
 
     def get_creator(self):
@@ -1282,6 +1296,8 @@ class Account(BlockchainObject):
             unread_notes = self.blockchain.rpc.unread_notifications(
                 {"account": account}, api="bridge"
             )
+            if unread_notes is None:
+                return []
             if limit is None or limit > unread_notes["unread"]:
                 limit = unread_notes["unread"]
         if limit is None or limit == 0:
@@ -1558,7 +1574,12 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        return self.blockchain.rpc.list_all_subscriptions({"account": account}, api="bridge")
+        subscriptions = self.blockchain.rpc.list_all_subscriptions(
+            {"account": account}, api="bridge"
+        )
+        if subscriptions is None:
+            return []
+        return subscriptions
 
     def get_account_posts(self, sort="feed", limit=20, account=None, observer=None, raw_data=False):
         """Returns account feed"""
@@ -4018,7 +4039,9 @@ class Account(BlockchainObject):
         else:
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def disallow(self, foreign, permission="posting", account=None, threshold=None, **kwargs):
+    def disallow(
+        self, foreign, permission="posting", account=None, weight=None, threshold=None, **kwargs
+    ):
         """Remove additional access to an account by some other public
         key or account.
 
@@ -4041,19 +4064,47 @@ class Account(BlockchainObject):
 
         try:
             pubkey = PublicKey(foreign, prefix=self.blockchain.prefix)
-            affected_items = list([x for x in authority["key_auths"] if x[0] == str(pubkey)])
-            authority["key_auths"] = list(
-                [x for x in authority["key_auths"] if x[0] != str(pubkey)]
-            )
+            if weight:
+                affected_items = list(
+                    [x for x in authority["key_auths"] if x[0] == str(pubkey) and x[1] == weight]
+                )
+                authority["key_auths"] = list(
+                    [
+                        x
+                        for x in authority["key_auths"]
+                        if not (x[0] == str(pubkey) and x[1] == weight)
+                    ]
+                )
+            else:
+                affected_items = list([x for x in authority["key_auths"] if x[0] == str(pubkey)])
+                authority["key_auths"] = list(
+                    [x for x in authority["key_auths"] if x[0] != str(pubkey)]
+                )
         except Exception:
             try:
                 foreign_account = Account(foreign, blockchain_instance=self.blockchain)
-                affected_items = list(
-                    [x for x in authority["account_auths"] if x[0] == foreign_account["name"]]
-                )
-                authority["account_auths"] = list(
-                    [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
-                )
+                if weight:
+                    affected_items = list(
+                        [
+                            x
+                            for x in authority["account_auths"]
+                            if x[0] == foreign_account["name"] and x[1] == weight
+                        ]
+                    )
+                    authority["account_auths"] = list(
+                        [
+                            x
+                            for x in authority["account_auths"]
+                            if not (x[0] == foreign_account["name"] and x[1] == weight)
+                        ]
+                    )
+                else:
+                    affected_items = list(
+                        [x for x in authority["account_auths"] if x[0] == foreign_account["name"]]
+                    )
+                    authority["account_auths"] = list(
+                        [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
+                    )
             except Exception:
                 raise ValueError("Unknown foreign account or unvalid public key")
 

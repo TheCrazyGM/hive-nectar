@@ -36,17 +36,17 @@ class Testcases(unittest.TestCase):
         tx = acc.transfer("test1", 1.000, "HIVE", memo="test")
         sc2 = HiveSigner(blockchain_instance=bts)
         url = sc2.url_from_tx(tx)
-        url_test = (
-            "https://hivesigner.com/sign/transfer?from=test&to=test1&amount=1.000+HIVE&memo=test"
-        )
+        url_test = "https://hivesigner.com/oauth2/sign/transfer?from=test&to=test1&amount=1.000+HIVE&memo=test"
+        print(f"Generated URL: {url} (length {len(url)})")
+        print(f"Expected URL: {url_test} (length {len(url_test)})")
         self.assertEqual(len(url), len(url_test))
         self.assertEqual(len(url.split("?")), 2)
         self.assertEqual(url.split("?")[0], url_test.split("?")[0])
         # Compare query components irrespective of order
         url_parts = (url.split("?")[1]).split("&")
         url_test_parts = (url_test.split("?")[1]).split("&")
-        self.assertEqual(len(url_parts), 3)
-        self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 3)
+        self.assertEqual(len(url_parts), 4)
+        self.assertEqual(len(list(set(url_parts).intersection(set(url_test_parts)))), 4)
 
     def test_login_url(self):
         bts = self.bts
