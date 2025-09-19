@@ -8,6 +8,7 @@ from prettytable import PrettyTable
 from nectarapi.exceptions import InvalidParameters, UnknownKey
 
 from .account import Account
+from .amount import Amount
 from .blockchainobject import BlockchainObject
 from .comment import Comment
 from .exceptions import VoteDoesNotExistsException
@@ -620,6 +621,80 @@ class ActiveVotes(VotesObject):
                 for x in votes
             ]
         )
+
+    def get_downvote_pct_to_zero(self, account):
+        """
+        Calculate the vote percent (internal units; -10000 = -100%) required for the given
+        account to downvote this post's pending payout to zero USING THE PAYOUT FORMULA
+        shared as reference (reward fund + median price + effective vesting shares),
+        adjusted by the account's current downvoting power.
+
+        If the account's full 100% downvote (at current downvoting power) is insufficient,
+        returns -10000.
+        """
+        from .account import Account
+
+        account = Account(account, blockchain_instance=self.blockchain)
+
+        # Obtain pending payout for the target post
+        # self.identifier is the authorperm set in ActiveVotes initializer
+        authorperm = getattr(self, "identifier", "")
+        if not authorperm:
+            return 0.0
+        comment = Comment(authorperm, blockchain_instance=self.blockchain)
+        try:
+            pending_payout = float(
+                Amount(
+                    comment.get("pending_payout_value", "0.000 HBD"),
+                    blockchain_instance=self.blockchain,
+                )
+            )
+        except Exception:
+            pending_payout = 0.0
+        if pending_payout <= 0:
+            return 0.0
+
+        # Reward fund and price inputs
+        reward_fund = self.blockchain.get_reward_funds()
+        recent_claims = int(reward_fund["recent_claims"]) if reward_fund else 0
+        if recent_claims == 0:
+            return -10000.0
+        reward_balance = float(
+            Amount(reward_fund["reward_balance"], blockchain_instance=self.blockchain)
+        )
+        median_price = self.blockchain.get_median_price()
+        if median_price is None:
+            return -10000.0
+        # Convert 1 HIVE at median price to HBD
+        HBD_per_HIVE = float(
+            median_price
+            * Amount(1, self.blockchain.hive_symbol, blockchain_instance=self.blockchain)
+        )
+
+        # Account stake and power (effective vests + downvoting power)
+        effective_vests = float(account.get_effective_vesting_shares())
+        final_vests = effective_vests * 1e6  # micro-vests as in reference
+        get_dvp = getattr(account, "get_downvoting_power", None)
+        downvote_power_pct = get_dvp() if callable(get_dvp) else account.get_voting_power()
+
+        # Reference power model (vote_power=100, vote_weight=100) with divisor 50
+        power = (100 * 100 / 10000) / 50.0  # = 0.0002
+        rshares_full = power * final_vests / 10000.0
+        current_downvote_value_hbd = (rshares_full * reward_balance / recent_claims) * HBD_per_HIVE
+        # Scale by current downvoting power percentage
+        current_downvote_value_hbd *= downvote_power_pct / 100.0
+
+        if current_downvote_value_hbd <= 0:
+            return -10000.0
+
+        # Percent needed in UI terms, convert to internal units (-10000..0)
+        percent_needed = (pending_payout / current_downvote_value_hbd) * 100.0
+        internal = -percent_needed * 100.0
+        if internal < -10000.0:
+            return -10000.0
+        if internal > 0.0:
+            return 0.0
+        return internal
 
 
 class AccountVotes(VotesObject):

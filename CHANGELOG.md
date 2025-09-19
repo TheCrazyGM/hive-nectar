@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.4 - 2025-09-19
+
+- **Feature**: Added payout-based vote helpers on `Comment` :
+  - `Comment.to_zero(account, partial=100.0, broadcast=False)` computes the UI downvote percent to reduce a post's pending payout to approximately zero (uses reward fund + median price + effective vesting shares; scales by the account's downvoting power). Returns negative UI percent, can broadcast when requested.
+  - `Comment.to_token_value(account, hbd, partial=100.0, broadcast=False)` computes the UI upvote percent to contribute approximately the given HBD value. Returns positive UI percent, can broadcast when requested.
+- **Fix**: Corrected vote value math to align with the beem reference formula:
+  - Restored `get_hbd_per_rshares()` to derive HBD/share as `(reward_balance / recent_claims) * median_price(HBD/HIVE)` .
+  - Applied the missing `/ 100` scale factor from the sample when converting rshares to HBD-equivalent in payout-based helpers.
+  - `ActiveVotes.get_downvote_pct_to_zero()` updated to use effective vesting shares and the account's downvoting power; analytic path improved and payout-based path added via `Comment.to_zero()` .
+  - `vests_to_rshares()` reverted to chain-accurate power computation via `_calc_resulting_vote` and dust-threshold handling.
+  - `rshares_to_vote_pct()` updated to invert the chain power model consistently (taking max_vote_denom into account).
+- **Docs/Examples**: Added `examples/get_vote_pct_script.py` showing how to compute both the downvote-to-zero percent and the upvote percent to reach a target HBD.
+
 ## 0.1.3 - 2025-09-18
 
 - **Test**: Working on getting 100% test coverage
