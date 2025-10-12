@@ -606,7 +606,7 @@ class Testcases(unittest.TestCase):
             self.assertTrue(posts[0].depth == 0)
 
     def test_reply_history(self):
-        account = self.account
+        account = Account("thecrazygm", blockchain_instance=self.bts)
         replies = []
         for r in account.reply_history(limit=1):
             replies.append(r)
@@ -616,7 +616,7 @@ class Testcases(unittest.TestCase):
             self.assertTrue(replies[0].depth > 0)
 
     def test_get_vote_pct_for_vote_value(self):
-        account = self.account
+        account = Account("thecrazygm", blockchain_instance=self.bts)
         for vote_pwr in range(5, 100, 5):
             self.assertTrue(
                 9900

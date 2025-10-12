@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import math
 import random
 import warnings
 from datetime import date, datetime, time, timedelta, timezone
@@ -1002,25 +1003,41 @@ class Account(BlockchainObject):
             token_power = self.get_token_power()
 
         if isinstance(token_units, Amount):
-            token_units = Amount(token_units, blockchain_instance=self.blockchain)
+            desired_value = Amount(token_units, blockchain_instance=self.blockchain)
         elif isinstance(token_units, str):
-            token_units = Amount(token_units, blockchain_instance=self.blockchain)
+            desired_value = Amount(token_units, blockchain_instance=self.blockchain)
         else:
-            token_units = Amount(
+            desired_value = Amount(
                 token_units,
                 self.blockchain.backed_token_symbol,
                 blockchain_instance=self.blockchain,
             )
-        if token_units["symbol"] != self.blockchain.backed_token_symbol:
+        if desired_value["symbol"] != self.blockchain.backed_token_symbol:
             raise AssertionError(
                 "Should input %s, not any other asset!" % self.blockchain.backed_token_symbol
             )
-        vote_pct = self.blockchain.rshares_to_vote_pct(
-            self.blockchain.hbd_to_rshares(token_units, not_broadcasted_vote=not_broadcasted_vote),
+
+        full_vote_value = self.get_voting_value(
             post_rshares=post_rshares,
-            voting_power=voting_power * 100,
-            hive_power=token_power,
+            voting_weight=100,
+            voting_power=voting_power,
+            token_power=token_power,
+            not_broadcasted_vote=not_broadcasted_vote,
         )
+
+        full_vote = float(full_vote_value)
+        desired = float(desired_value)
+        if full_vote == 0:
+            return 0
+
+        ratio = desired / full_vote
+        # Clamp to avoid returning excessively large values due to tiny full_vote
+        if math.isfinite(ratio):
+            ratio = max(min(ratio, 10), -10)
+        else:
+            ratio = 0
+
+        vote_pct = int(round(ratio * HIVE_100_PERCENT))
         return vote_pct
 
     def get_creator(self):
