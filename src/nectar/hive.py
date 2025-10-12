@@ -378,6 +378,9 @@ class Hive(BlockChainInstance):
         Returns:
             int: Signed r-shares resulting from the provided vesting shares and vote parameters.
         """
+        # Calculate chain-accurate used power and derive rshares per core formula
+        if isinstance(vests, Amount):
+            vests = float(vests)
         used_power = self._calc_resulting_vote(
             voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
         )
@@ -505,13 +508,17 @@ class Hive(BlockChainInstance):
                 self._calc_revert_vote_claim(abs(rshares), post_rshares), rshares
             )
 
+        # Invert the chain-accurate power model used above:
+        # rshares ≈ sign * (vests*1e6 * used_power / HIVE_100_PERCENT)
+        # used_power ≈ abs(rshares) * HIVE_100_PERCENT / (vests*1e6)
+        # and used_power ≈ ceil((voting_power * abs(vote_pct) / HIVE_100_PERCENT * 86400) / max_vote_denom)
+        if vests == 0 or voting_power == 0:
+            return 0
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
-
-        used_power = int(math.ceil(abs(rshares) * HIVE_100_PERCENT / vests))
-        used_power = used_power * max_vote_denom
-
-        vote_pct = used_power * HIVE_100_PERCENT / (60 * 60 * 24) / voting_power
-        return int(math.copysign(vote_pct, rshares))
+        used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests * 1e6)
+        # Invert the linear relation (ignoring ceil):
+        vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
+        return int(math.copysign(vote_pct_abs, rshares))
 
     def hbd_to_vote_pct(
         self,

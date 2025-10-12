@@ -326,6 +326,140 @@ class Comment(BlockchainObject):
             output["active_votes"] = new_active_votes
         return json.loads(str(json.dumps(output)))
 
+    def to_zero(self, account, partial: float = 100.0, broadcast: bool = False) -> float:
+        """
+        Compute the UI downvote percent needed for `account` to reduce this post's
+        pending payout to approximately zero using payout-based math (reward fund
+        + median price + effective vests) scaled by the account's current downvoting power.
+
+        - Returns a negative UI percent (e.g., -75.0 means a 75% downvote).
+        - If `broadcast=True`, casts the downvote and returns the same UI percent.
+
+        If the account's current 100% downvote value is insufficient, returns -100.0.
+        If the post has no pending payout, returns 0.0.
+        """
+        from .account import Account
+
+        # Pending payout in HBD
+        pending_amt = self.get(
+            "pending_payout_value",
+            Amount(0, self.blockchain.backed_token_symbol, blockchain_instance=self.blockchain),
+        )
+        pending_payout = float(Amount(pending_amt, blockchain_instance=self.blockchain))
+        if pending_payout <= 0:
+            return 0.0
+
+        # Reward fund and price
+        reward_fund = self.blockchain.get_reward_funds()
+        recent_claims = int(reward_fund["recent_claims"]) if reward_fund else 0
+        if recent_claims == 0:
+            return -100.0
+        reward_balance = float(
+            Amount(reward_fund["reward_balance"], blockchain_instance=self.blockchain)
+        )
+        median_price = self.blockchain.get_median_price()
+        if median_price is None:
+            return -100.0
+        HBD_per_HIVE = float(
+            median_price
+            * Amount(1, self.blockchain.token_symbol, blockchain_instance=self.blockchain)
+        )
+
+        # Stake and downvoting power
+        acct = Account(account, blockchain_instance=self.blockchain)
+        effective_vests = float(acct.get_effective_vesting_shares())
+        final_vests = effective_vests * 1e6
+        get_dvp = getattr(acct, "get_downvoting_power", None)
+        downvote_power_pct = float(get_dvp() if callable(get_dvp) else acct.get_voting_power())
+
+        # Reference 100% downvote value using provided sample formula
+        power = (100 * 100 / 10000.0) / 50.0  # (vote_power * vote_weight / 10000) / 50
+        rshares_full = power * final_vests / 10000.0
+        current_downvote_value_hbd = (
+            (rshares_full * reward_balance / recent_claims) * HBD_per_HIVE
+        ) / 100.0
+        current_downvote_value_hbd *= downvote_power_pct / 100.0
+        if current_downvote_value_hbd <= 0:
+            return -100.0
+
+        percent_needed_ui = pending_payout / current_downvote_value_hbd  # fraction of a 100% vote
+        ui_pct = -percent_needed_ui * (partial / 100.0)
+        # Scale to UI percent
+        ui_pct_scaled = ui_pct * 100.0
+        if ui_pct_scaled < -100.0:
+            ui_pct_scaled = -100.0
+        if ui_pct_scaled > 0.0:
+            ui_pct_scaled = 0.0
+
+        if broadcast and ui_pct_scaled < 0.0:
+            self.downvote(abs(ui_pct_scaled), voter=account)
+        return ui_pct_scaled
+
+    def to_token_value(
+        self, account, hbd, partial: float = 100.0, broadcast: bool = False
+    ) -> float:
+        """
+        Compute the UI upvote percent needed for `account` so the vote contributes
+        approximately `hbd` HBD to payout (payout-based math).
+
+        - Returns a positive UI percent (e.g., 75.0 means 75% upvote).
+        - If `broadcast=True`, casts the upvote and returns the same UI percent.
+        """
+        from .account import Account
+
+        # Normalize target HBD
+        try:
+            target_hbd = float(Amount(hbd, blockchain_instance=self.blockchain))
+        except Exception:
+            target_hbd = float(hbd)
+        if target_hbd <= 0:
+            return 0.0
+
+        # Reward fund and price
+        reward_fund = self.blockchain.get_reward_funds()
+        recent_claims = int(reward_fund["recent_claims"]) if reward_fund else 0
+        if recent_claims == 0:
+            return 0.0
+        reward_balance = float(
+            Amount(reward_fund["reward_balance"], blockchain_instance=self.blockchain)
+        )
+        median_price = self.blockchain.get_median_price()
+        if median_price is None:
+            return 0.0
+        HBD_per_HIVE = float(
+            median_price
+            * Amount(1, self.blockchain.token_symbol, blockchain_instance=self.blockchain)
+        )
+
+        # Stake and voting power
+        acct = Account(account, blockchain_instance=self.blockchain)
+        effective_vests = float(acct.get_effective_vesting_shares())
+        final_vests = effective_vests * 1e6
+        voting_power_pct = float(acct.get_voting_power())
+
+        # Reference 100% upvote value using provided sample formula
+        power = (100 * 100 / 10000.0) / 50.0
+        rshares_full = power * final_vests / 10000.0
+        current_upvote_value_hbd = (
+            (rshares_full * reward_balance / recent_claims) * HBD_per_HIVE
+        ) / 100.0
+        current_upvote_value_hbd *= voting_power_pct / 100.0
+        if current_upvote_value_hbd <= 0:
+            return 0.0
+
+        percent_needed_ui = target_hbd / current_upvote_value_hbd  # fraction of a 100% vote
+        ui_pct = percent_needed_ui * (partial / 100.0)
+        # Scale to UI percent
+        ui_pct_scaled = ui_pct * 100.0
+        if ui_pct_scaled > 100.0:
+            ui_pct_scaled = 100.0
+        if ui_pct_scaled < 0.0:
+            ui_pct_scaled = 0.0
+
+        if broadcast and ui_pct_scaled > 0.0:
+            self.upvote(ui_pct_scaled, voter=account)
+        return ui_pct_scaled
+
     @property
     def id(self):
         return self["id"]
