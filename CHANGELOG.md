@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.1.4 - 2025-09-19
+## 0.1.4b - 2025-10-12
+
+- **Refactor**: Refactored **Account**’s vote‑pct calculation to correctly convert the desired token value to an `Amount`, introduce a safe ratio clamp (‑10 to 10) to avoid extreme values, and return 0 for zero‑vote scenarios; updated all discussion query fallbacks to use the *condenser* API and handle dict‑style responses, and tweaked tests to instantiate `Account` directly.
+
+## 0.1.4b - 2025-09-19
 
 - **Feature**: Added payout-based vote helpers on `Comment` :
   - `Comment.to_zero(account, partial=100.0, broadcast=False)` computes the UI downvote percent to reduce a post's pending payout to approximately zero (uses reward fund + median price + effective vesting shares; scales by the account's downvoting power). Returns negative UI percent, can broadcast when requested.
