@@ -545,8 +545,6 @@ class GrapheneRPC(object):
 
         def method(*args, **kwargs):
             api_name = get_api_name(self.is_appbase_ready(), *args, **kwargs)
-            if self.is_appbase_ready() and self.use_condenser and api_name != "bridge":
-                api_name = "condenser_api"
             if api_name is None:
                 api_name = "database_api"
 
@@ -559,7 +557,7 @@ class GrapheneRPC(object):
                 self.get_request_id(),
                 api_name,
                 name,
-                args,
+                list(args),
             )
             if add_to_queue:
                 self.rpc_queue.append(query)

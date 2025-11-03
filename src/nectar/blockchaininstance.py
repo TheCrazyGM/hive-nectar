@@ -243,6 +243,9 @@ class BlockChainInstance(object):
         else:
             use_tor = False
 
+        if "use_condenser" not in kwargs and "use_condenser" in self.config:
+            kwargs["use_condenser"] = bool(self.config["use_condenser"])
+
         self.rpc = NodeRPC(node, rpcuser, rpcpassword, use_tor=use_tor, **kwargs)
 
     def is_connected(self):
