@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import math
 import random
 import warnings
 from datetime import date, datetime, time, timedelta, timezone
@@ -1002,25 +1003,41 @@ class Account(BlockchainObject):
             token_power = self.get_token_power()
 
         if isinstance(token_units, Amount):
-            token_units = Amount(token_units, blockchain_instance=self.blockchain)
+            desired_value = Amount(token_units, blockchain_instance=self.blockchain)
         elif isinstance(token_units, str):
-            token_units = Amount(token_units, blockchain_instance=self.blockchain)
+            desired_value = Amount(token_units, blockchain_instance=self.blockchain)
         else:
-            token_units = Amount(
+            desired_value = Amount(
                 token_units,
                 self.blockchain.backed_token_symbol,
                 blockchain_instance=self.blockchain,
             )
-        if token_units["symbol"] != self.blockchain.backed_token_symbol:
+        if desired_value["symbol"] != self.blockchain.backed_token_symbol:
             raise AssertionError(
                 "Should input %s, not any other asset!" % self.blockchain.backed_token_symbol
             )
-        vote_pct = self.blockchain.rshares_to_vote_pct(
-            self.blockchain.hbd_to_rshares(token_units, not_broadcasted_vote=not_broadcasted_vote),
+
+        full_vote_value = self.get_voting_value(
             post_rshares=post_rshares,
-            voting_power=voting_power * 100,
-            hive_power=token_power,
+            voting_weight=100,
+            voting_power=voting_power,
+            token_power=token_power,
+            not_broadcasted_vote=not_broadcasted_vote,
         )
+
+        full_vote = float(full_vote_value)
+        desired = float(desired_value)
+        if full_vote == 0:
+            return 0
+
+        ratio = desired / full_vote
+        # Clamp to avoid returning excessively large values due to tiny full_vote
+        if math.isfinite(ratio):
+            ratio = max(min(ratio, 10), -10)
+        else:
+            ratio = 0
+
+        vote_pct = int(round(ratio * HIVE_100_PERCENT))
         return vote_pct
 
     def get_creator(self):
@@ -1165,7 +1182,7 @@ class Account(BlockchainObject):
             account=account,
         )
 
-    def get_blog_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
+    def get_blog_entries(self, start_entry_id=0, limit=50, raw_data=True, account=None):
         """
         Return the account's blog entries.
 
@@ -1173,13 +1190,19 @@ class Account(BlockchainObject):
 
         Parameters:
             start_entry_id (int): Entry index to start from (default 0).
-            limit (int): Maximum number of entries to return (default 100).
+            limit (int): Maximum number of entries to return (default 50, max 100).
             raw_data (bool): If True return raw RPC dicts; if False return Comment objects (default True).
             account (str): Optional account name to fetch entries for (default is this Account's name).
 
         Returns:
             list: A list of entries (dicts when `raw_data` is True, Comment objects when False).
         """
+        # Validate and cap the limit to prevent invalid parameter errors
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        if limit > 100:
+            limit = 100
+
         return self.get_blog(
             start_entry_id=start_entry_id,
             limit=limit,
@@ -1189,7 +1212,7 @@ class Account(BlockchainObject):
         )
 
     def get_blog(
-        self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
+        self, start_entry_id=0, limit=50, raw_data=False, short_entries=False, account=None
     ):
         """
         Return the blog entries for an account.
@@ -1198,7 +1221,7 @@ class Account(BlockchainObject):
 
         Parameters:
             start_entry_id (int): ID offset to start from (default 0).
-            limit (int): Maximum number of entries to return (default 100).
+            limit (int): Maximum number of entries to return (default 50, max 100).
             raw_data (bool): If True, return raw API dictionaries instead of Comment objects.
             short_entries (bool): When True and raw_data is True, use the shorter `get_blog_entries` API.
             account (str|Account|dict|None): Account to query; if None uses this Account.
@@ -1213,10 +1236,24 @@ class Account(BlockchainObject):
             account = self["name"]
         account = extract_account_name(account)
 
+        # Validate and cap the limit to prevent invalid parameter errors
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        if limit > 100:
+            limit = 100
+
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         success = True
+
+        def _extract_blog_items(payload):
+            if isinstance(payload, dict):
+                for key in ("blog", "blog_entries", "result"):
+                    if key in payload:
+                        return payload[key]
+            return payload
+
         if self.blockchain.rpc.get_use_appbase():
             try:
                 if raw_data and short_entries:
@@ -1224,26 +1261,23 @@ class Account(BlockchainObject):
                         {"account": account, "start_entry_id": start_entry_id, "limit": limit},
                         api="condenser",
                     )
-                    if isinstance(ret, dict) and "blog" in ret:
-                        ret = ret["blog"]
+                    ret = _extract_blog_items(ret)
                     return [c for c in ret]
                 elif raw_data:
                     ret = self.blockchain.rpc.get_blog(
                         {"account": account, "start_entry_id": start_entry_id, "limit": limit},
                         api="condenser",
                     )
-                    if isinstance(ret, dict) and "blog" in ret:
-                        ret = ret["blog"]
+                    ret = _extract_blog_items(ret)
                     return [c for c in ret]
-                elif not raw_data:
+                else:
                     from .comment import Comment
 
                     ret = self.blockchain.rpc.get_blog(
                         {"account": account, "start_entry_id": start_entry_id, "limit": limit},
                         api="condenser",
                     )
-                    if isinstance(ret, dict) and "blog" in ret:
-                        ret = ret["blog"]
+                    ret = _extract_blog_items(ret)
                     return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
             except Exception:
                 success = False
@@ -1361,9 +1395,13 @@ class Account(BlockchainObject):
                     {"blog_account": account}, api="condenser"
                 )["blog_authors"]
             except Exception:
-                return self.blockchain.rpc.get_blog_authors(account, api="condenser")
+                return self.blockchain.rpc.get_blog_authors(
+                    {"blog_account": account}, api="condenser"
+                )["blog_authors"]
         else:
-            return self.blockchain.rpc.get_blog_authors(account, api="condenser")
+            return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+                "blog_authors"
+            ]
 
     def get_follow_count(self, account=None):
         """get_follow_count"""

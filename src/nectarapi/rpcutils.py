@@ -28,7 +28,7 @@ def get_query(appbase, request_id, api_name, name, args):
     if not appbase or api_name == "condenser_api":
         query = {
             "method": "call",
-            "params": [api_name, name, list(args)],
+            "params": [api_name, name, args],
             "jsonrpc": "2.0",
             "id": request_id,
         }
@@ -62,7 +62,7 @@ def get_query(appbase, request_id, api_name, name, args):
         elif args:
             query = {
                 "method": "call",
-                "params": [api_name, name, list(args)],
+                "params": [api_name, name, args],
                 "jsonrpc": "2.0",
                 "id": request_id,
             }

@@ -465,16 +465,22 @@ class Discussions_by_trending(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_trending(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_trending(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_trending(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -583,7 +589,7 @@ class Discussions_by_author_before_date(list):
                             filtered_posts.append(post)
                     posts = filtered_posts
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 discussion_query = {
                     "author": author,
@@ -592,12 +598,22 @@ class Discussions_by_author_before_date(list):
                     "limit": limit,
                 }
                 posts = self.blockchain.rpc.get_discussions_by_author_before_date(
-                    discussion_query, api="tags"
-                )["discussions"]
-            if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_author_before_date(
-                    author, start_permlink, before_date, limit
+                    discussion_query, api="condenser"
                 )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
+            if len(posts) == 0 and author:
+                discussion_query = {
+                    "author": author,
+                    "start_permlink": start_permlink,
+                    "before_date": before_date,
+                    "limit": limit,
+                }
+                posts = self.blockchain.rpc.get_discussions_by_author_before_date(
+                    discussion_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -709,16 +725,22 @@ class Comment_discussions_by_payout(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_comment_discussions_by_payout(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_comment_discussions_by_payout(reduced_query)
+                posts = self.blockchain.rpc.get_comment_discussions_by_payout(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -829,16 +851,22 @@ class Post_discussions_by_payout(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_post_discussions_by_payout(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_post_discussions_by_payout(reduced_query)
+                posts = self.blockchain.rpc.get_post_discussions_by_payout(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -951,16 +979,22 @@ class Discussions_by_created(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_created(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_created(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_created(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1076,16 +1110,22 @@ class Discussions_by_active(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_active(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_active(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_active(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1193,16 +1233,22 @@ class Discussions_by_cashout(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_cashout(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_cashout(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_cashout(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1315,16 +1361,20 @@ class Discussions_by_votes(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
-                    posts = self.blockchain.rpc.get_discussions_by_votes(reduced_query, api="tags")[
-                        "discussions"
-                    ]
+                    posts = self.blockchain.rpc.get_discussions_by_votes(
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_votes(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_votes(reduced_query, api="condenser")
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1444,16 +1494,22 @@ class Discussions_by_children(list):
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
             # We could try to sort posts by their children count here if needed
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_children(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_children(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_children(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1565,16 +1621,20 @@ class Discussions_by_hot(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
-                    posts = self.blockchain.rpc.get_discussions_by_hot(reduced_query, api="tags")[
-                        "discussions"
-                    ]
+                    posts = self.blockchain.rpc.get_discussions_by_hot(
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_hot(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_hot(reduced_query, api="condenser")
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1698,16 +1758,20 @@ class Discussions_by_feed(list):
                     bridge_query["start_permlink"] = reduced_query["start_permlink"]
                 posts = self.blockchain.rpc.get_account_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
-                    posts = self.blockchain.rpc.get_discussions_by_feed(reduced_query, api="tags")[
-                        "discussions"
-                    ]
+                    posts = self.blockchain.rpc.get_discussions_by_feed(
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_feed(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_feed(reduced_query, api="condenser")
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1821,17 +1885,21 @@ class Discussions_by_blog(list):
                     bridge_query["start_permlink"] = reduced_query["start_permlink"]
                 posts = self.blockchain.rpc.get_account_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
-                    posts = self.blockchain.rpc.get_discussions_by_blog(reduced_query, api="tags")
+                    posts = self.blockchain.rpc.get_discussions_by_blog(
+                        reduced_query, api="condenser"
+                    )
                     if isinstance(posts, dict) and "discussions" in posts:
                         posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
                 self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                posts = self.blockchain.rpc.get_discussions_by_blog(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_blog(reduced_query, api="condenser")
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -1919,22 +1987,22 @@ class Discussions_by_comments(list):
                     if "limit" in reduced_query and len(posts) > reduced_query["limit"]:
                         posts = posts[: reduced_query["limit"]]
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_comments(
-                        reduced_query, api="tags"
+                        reduced_query, api="condenser"
                     )
                     if "discussions" in posts:
                         posts = posts["discussions"]  # inconsistent format across node types
                 except Exception:
-                    posts = self.blockchain.rpc.get_discussions_by_comments(
-                        reduced_query["start_author"],
-                        reduced_query["start_permlink"],
-                        reduced_query["limit"],
-                    )
+                    posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_comments(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_comments(
+                    reduced_query, api="condenser"
+                )
+                if "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -2026,16 +2094,22 @@ class Discussions_by_promoted(list):
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
             posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API
             if self.blockchain.rpc.get_use_appbase() and use_appbase:
                 try:
                     posts = self.blockchain.rpc.get_discussions_by_promoted(
-                        reduced_query, api="tags"
-                    )["discussions"]
+                        reduced_query, api="condenser"
+                    )
+                    if isinstance(posts, dict) and "discussions" in posts:
+                        posts = posts["discussions"]
                 except Exception:
                     posts = []
             if len(posts) == 0:
-                posts = self.blockchain.rpc.get_discussions_by_promoted(reduced_query)
+                posts = self.blockchain.rpc.get_discussions_by_promoted(
+                    reduced_query, api="condenser"
+                )
+                if isinstance(posts, dict) and "discussions" in posts:
+                    posts = posts["discussions"]
         if posts is None:
             posts = []
         if raw_data:
@@ -2144,37 +2218,31 @@ class Discussions_by_replies(list):
                     if "limit" in reduced_query and len(posts) > reduced_query["limit"]:
                         posts = posts[: reduced_query["limit"]]
         except Exception:
-            # Fall back to old API methods
+            # Fall back to condenser API using positional parameters
             posts = []
-            if self.blockchain.rpc.get_use_appbase() and use_appbase:
+            author = reduced_query.get("start_parent_author")
+            permlink = reduced_query.get("start_permlink")
+            limit_value = reduced_query.get("limit", 100)
+            if self.blockchain.rpc.get_use_appbase() and use_appbase and author and permlink:
                 try:
                     posts = self.blockchain.rpc.get_replies_by_last_update(
-                        reduced_query, api="tags"
+                        author,
+                        permlink,
+                        limit_value,
+                        api="condenser",
                     )
-                    if "discussions" in posts:
-                        posts = posts["discussions"]
                 except Exception:
+                    posts = []
+            if len(posts) == 0 and author and permlink:
+                try:
                     posts = self.blockchain.rpc.get_replies_by_last_update(
-                        reduced_query["start_parent_author"],
-                        reduced_query["start_permlink"],
-                        reduced_query["limit"],
+                        author,
+                        permlink,
+                        limit_value,
+                        api="condenser",
                     )
-            if len(posts) == 0:
-                if (
-                    "start_parent_author" in reduced_query and reduced_query["start_parent_author"]
-                ) and ("start_permlink" in reduced_query and reduced_query["start_permlink"]):
-                    if "limit" in reduced_query:
-                        posts = self.blockchain.rpc.get_replies_by_last_update(
-                            reduced_query["start_parent_author"],
-                            reduced_query["start_permlink"],
-                            reduced_query["limit"],
-                        )
-                    else:
-                        posts = self.blockchain.rpc.get_replies_by_last_update(
-                            reduced_query["start_parent_author"],
-                            reduced_query["start_permlink"],
-                            100,
-                        )
+                except Exception:
+                    posts = []
         if posts is None:
             posts = []
         if raw_data:
@@ -2256,23 +2324,29 @@ class Replies_by_last_update(list):
             self.blockchain.rpc.get_use_appbase() and use_appbase
         )
         posts = []
-        if self.blockchain.rpc.get_use_appbase() and use_appbase:
+        author = discussion_query.get("start_author")
+        permlink = discussion_query.get("start_permlink")
+        limit_value = discussion_query.get("limit", 100)
+        if self.blockchain.rpc.get_use_appbase() and use_appbase and author and permlink:
             try:
-                posts = self.blockchain.rpc.get_replies_by_last_update(discussion_query, api="tags")
-                if "discussions" in posts:
-                    posts = posts["discussions"]
-            except Exception:
                 posts = self.blockchain.rpc.get_replies_by_last_update(
-                    discussion_query["start_author"],
-                    discussion_query["start_permlink"],
-                    discussion_query["limit"],
+                    author,
+                    permlink,
+                    limit_value,
+                    api="condenser",
                 )
-        if len(posts) == 0:
-            posts = self.blockchain.rpc.get_replies_by_last_update(
-                discussion_query["start_author"],
-                discussion_query["start_permlink"],
-                discussion_query["limit"],
-            )
+            except Exception:
+                posts = []
+        if len(posts) == 0 and author and permlink:
+            try:
+                posts = self.blockchain.rpc.get_replies_by_last_update(
+                    author,
+                    permlink,
+                    limit_value,
+                    api="condenser",
+                )
+            except Exception:
+                posts = []
         if posts is None:
             posts = []
         if raw_data:
