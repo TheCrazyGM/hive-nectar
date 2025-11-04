@@ -4694,14 +4694,23 @@ def curation(
 @click.option(
     "--days", "-d", default=7.0, help="Limit shown rewards by this amount of days (default: 7)"
 )
-def rewards(accounts, only_sum, post, comment, curation, length, author, permlink, title, days):
+@click.option(
+    "--witness",
+    "-w",
+    help="Show witness (producer) rewards",
+    is_flag=True,
+    default=False,
+)
+def rewards(
+    accounts, only_sum, post, comment, curation, length, author, permlink, title, days, witness
+):
     """Lists received rewards"""
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
     if not accounts:
         accounts = [hv.config["default_account"]]
-    if not comment and not curation and not post:
+    if not witness and not comment and not curation and not post:
         post = True
         permlink = True
     if days < 0:
@@ -4710,10 +4719,83 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
     # Using built-in timezone support
     now = datetime.now(timezone.utc)
     limit_time = now - timedelta(days=days)
+    hp_symbol = f"{hv.token_symbol[0]}P"
+    current_median_history = hv.get_current_median_history()
+    median_price_fallback = (
+        float(Price(current_median_history, blockchain_instance=hv))
+        if current_median_history
+        else 0.0
+    )
+
+    def _render_witness_rewards(account_obj, median_price_obj):
+        t = PrettyTable(["Received", hp_symbol, "Invested USD"])
+        t.align = "l"
+        rows = []
+        sum_hp = 0.0
+        sum_invested = 0.0
+        start_op = account_obj.estimate_virtual_op_num(limit_time)
+        if start_op > 0:
+            start_op -= 1
+        progress_length = (account_obj.virtual_op_count() - start_op) / 1000
+        try:
+            median_price_value = float(median_price_obj)
+        except Exception:
+            median_price_value = median_price_fallback
+        with click.progressbar(
+            account_obj.history(start=start_op, use_block_num=False),
+            length=progress_length,
+        ) as witness_hist:
+            for v in witness_hist:
+                timestamp = v.get("timestamp")
+                if isinstance(timestamp, (int, float)):
+                    received = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                else:
+                    received = formatTimeString(timestamp)
+                if received < limit_time:
+                    continue
+                if v["type"] != "producer_reward":
+                    continue
+                reward_vests = hv.vests_to_token_power(
+                    Amount(v["vesting_shares"], blockchain_instance=hv)
+                )
+                reward_hp = float(reward_vests)
+                invested_usd = reward_hp * median_price_value
+                sum_hp += reward_hp
+                sum_invested += invested_usd
+                if only_sum:
+                    continue
+                received_days = (now - received).total_seconds() / 86400.0
+                rows.append((received_days, reward_hp, invested_usd))
+        if not only_sum:
+            sorted_rows = sorted(rows, key=lambda row: row[0])
+            for days_ago, reward_hp, invested_usd in sorted_rows:
+                t.add_row(
+                    [
+                        f"{days_ago:.1f} days",
+                        f"{reward_hp:.3f} {hp_symbol}",
+                        f"{invested_usd:.2f} $",
+                    ]
+                )
+            if sorted_rows:
+                t.add_row(["", "", ""])
+        t.add_row(
+            [
+                "Sum",
+                f"{sum_hp:.3f} {hp_symbol}",
+                f"{sum_invested:.2f} $",
+            ]
+        )
+        message = "\nShowing witness rewards for @%s" % account_obj.name
+        print(message)
+        print(t)
+
     for account in accounts:
         sum_reward = [0, 0, 0, 0, 0]
         account = Account(account, blockchain_instance=hv)
         median_price = Price(hv.get_current_median_history(), blockchain_instance=hv)
+        if witness:
+            _render_witness_rewards(account, median_price)
+            continue
         m = Market(blockchain_instance=hv)
         latest = m.ticker()["latest"]
         if author and permlink:
@@ -4859,17 +4941,21 @@ def rewards(accounts, only_sum, post, comment, curation, length, author, permlin
                     invested_USD = float(payout_VESTS) * float(median_price)
                     sum_reward[2] += float(payout_VESTS)
                     sum_reward[4] += invested_USD
-                    if title:
-                        c = Comment(
-                            construct_authorperm(v["comment_author"], v["comment_permlink"]),
-                            blockchain_instance=hv,
-                        )
-                        permlink_row = c.title
-                    else:
-                        permlink_row = v["comment_permlink"]
+                    comment_author = v.get("comment_author", v.get("author", ""))
+                    comment_permlink = v.get("comment_permlink", v.get("permlink", ""))
+                    permlink_row = comment_permlink
+                    if title and comment_author and comment_permlink:
+                        try:
+                            c = Comment(
+                                construct_authorperm(comment_author, comment_permlink),
+                                blockchain_instance=hv,
+                            )
+                            permlink_row = c.title
+                        except Exception:
+                            permlink_row = comment_permlink
                     rows.append(
                         [
-                            v["comment_author"],
+                            comment_author,
                             permlink_row,
                             (
                                 (now - formatTimeString(v["timestamp"])).total_seconds()

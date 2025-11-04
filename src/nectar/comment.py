@@ -326,14 +326,15 @@ class Comment(BlockchainObject):
             output["active_votes"] = new_active_votes
         return json.loads(str(json.dumps(output)))
 
-    def to_zero(self, account, partial: float = 100.0, broadcast: bool = False) -> float:
+    def to_zero(self, account, partial: float = 100.0) -> float:
         """
         Compute the UI downvote percent needed for `account` to reduce this post's
         pending payout to approximately zero using payout-based math (reward fund
         + median price + effective vests) scaled by the account's current downvoting power.
 
         - Returns a negative UI percent (e.g., -75.0 means a 75% downvote).
-        - If `broadcast=True`, casts the downvote and returns the same UI percent.
+        - Automatically casts the downvote (use the blockchain instance's ``no_broadcast``
+          flag to suppress broadcasting when needed).
 
         If the account's current 100% downvote value is insufficient, returns -100.0.
         If the post has no pending payout, returns 0.0.
@@ -391,19 +392,18 @@ class Comment(BlockchainObject):
         if ui_pct_scaled > 0.0:
             ui_pct_scaled = 0.0
 
-        if broadcast and ui_pct_scaled < 0.0:
+        if ui_pct_scaled < 0.0:
             self.downvote(abs(ui_pct_scaled), voter=account)
         return ui_pct_scaled
 
-    def to_token_value(
-        self, account, hbd, partial: float = 100.0, broadcast: bool = False
-    ) -> float:
+    def to_token_value(self, account, hbd, partial: float = 100.0) -> float:
         """
         Compute the UI upvote percent needed for `account` so the vote contributes
         approximately `hbd` HBD to payout (payout-based math).
 
         - Returns a positive UI percent (e.g., 75.0 means 75% upvote).
-        - If `broadcast=True`, casts the upvote and returns the same UI percent.
+        - Automatically casts the upvote (use the blockchain instance's ``no_broadcast``
+          flag to suppress broadcasting when needed).
         """
         from .account import Account
 
@@ -456,7 +456,7 @@ class Comment(BlockchainObject):
         if ui_pct_scaled < 0.0:
             ui_pct_scaled = 0.0
 
-        if broadcast and ui_pct_scaled > 0.0:
+        if ui_pct_scaled > 0.0:
             self.upvote(ui_pct_scaled, voter=account)
         return ui_pct_scaled
 

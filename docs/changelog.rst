@@ -1,20 +1,44 @@
 Changelog
 =========
 
-0.1.4 - 2025-09-19
+0.1.5 - 2025-11-04
 ------------------
+
+-  **Feature**: Added a ``--witness/-w`` flag to the
+   ``hive-nectar rewards`` CLI that aggregates producer rewards into a
+   PrettyTable, respecting the requested date window.
+-  **Fix**: Resolved ``KeyError`` and zero-output issues in the rewards
+   CLI by iterating over all relevant operations, normalizing producer
+   reward timestamps, and gracefully handling curation entries missing
+   ``comment_permlink`` data.
+-  **Tests**: Extended CLI coverage to ensure the new witness mode runs
+   without errors.
+
+0.1.4b - 2025-10-12
+-------------------
+
+-  **Refactor**: Refactored **Account**\ ’s vote‑pct calculation to
+   correctly convert the desired token value to an ``Amount``, introduce
+   a safe ratio clamp (‑10 to 10) to avoid extreme values, and return 0
+   for zero‑vote scenarios; updated all discussion query fallbacks to
+   use the *condenser* API and handle dict‑style responses, and tweaked
+   tests to instantiate ``Account`` directly.
+
+0.1.4b - 2025-09-19
+-------------------
 
 -  **Feature**: Added payout-based vote helpers on ``Comment`` :
 
-   -  ``Comment.to_zero(account, partial=100.0, broadcast=False)``
-      computes the UI downvote percent to reduce a post’s pending payout
-      to approximately zero (uses reward fund + median price + effective
+   -  ``Comment.to_zero(account, partial=100.0)`` computes the UI
+      downvote percent to reduce a post’s pending payout to
+      approximately zero (uses reward fund + median price + effective
       vesting shares; scales by the account’s downvoting power). Returns
-      negative UI percent, can broadcast when requested.
-   -  ``Comment.to_token_value(account, hbd, partial=100.0, broadcast=False)``
-      computes the UI upvote percent to contribute approximately the
-      given HBD value. Returns positive UI percent, can broadcast when
-      requested.
+      negative UI percent and broadcasts automatically (suppress via the
+      blockchain instance’s ``no_broadcast``).
+   -  ``Comment.to_token_value(account, hbd, partial=100.0)`` computes
+      the UI upvote percent to contribute approximately the given HBD
+      value. Returns positive UI percent and broadcasts automatically
+      (suppress via ``no_broadcast``).
 
 -  **Fix**: Corrected vote value math to align with the beem reference
    formula:
