@@ -687,6 +687,8 @@ class Testcases(unittest.TestCase):
             ],
         )
         self.assertEqual(result.exit_code, 0)
+        result = runner.invoke(cli, ["rewards", "--witness", account_name])
+        self.assertEqual(result.exit_code, 0)
 
     def test_curation(self):
         runner = CliRunner()
