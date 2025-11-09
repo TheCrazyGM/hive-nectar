@@ -261,17 +261,49 @@ class Amount(dict):
         return self["asset"]
 
     def json(self):
-        if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
-            if self.new_appbase_format:
-                return {
-                    "amount": str(int(self)),
-                    "nai": self["asset"]["asset"],
-                    "precision": self["asset"]["precision"],
-                }
-            else:
-                return [str(int(self)), self["asset"]["precision"], self["asset"]["asset"]]
+        asset_obj = self["asset"]
+        if isinstance(asset_obj, Asset):
+            asset_precision = asset_obj["precision"]
+            asset_identifier = asset_obj["asset"]
+        elif isinstance(asset_obj, dict):
+            asset_precision = asset_obj.get("precision")
+            asset_identifier = asset_obj.get("asset")
         else:
+            resolved_asset = Asset(self["symbol"], blockchain_instance=self.blockchain)
+            self["asset"] = resolved_asset
+            asset_precision = resolved_asset["precision"]
+            asset_identifier = resolved_asset["asset"]
+
+        if asset_precision is None or asset_identifier is None:
             return str(self)
+
+        amount_value = str(int(self))
+
+        try:
+            connected = bool(self.blockchain and self.blockchain.is_connected())
+        except Exception:  # pragma: no cover - defensive
+            connected = False
+
+        use_appbase = False
+        if connected and getattr(self.blockchain, "rpc", None) is not None:
+            try:
+                use_appbase = bool(self.blockchain.rpc.get_use_appbase())
+            except Exception:  # pragma: no cover - defensive
+                use_appbase = False
+
+        if self.new_appbase_format:
+            payload = {
+                "amount": amount_value,
+                "nai": asset_identifier,
+                "precision": asset_precision,
+            }
+        else:
+            payload = [amount_value, asset_precision, asset_identifier]
+
+        if use_appbase or not connected:
+            return payload
+
+        return str(self)
 
     def __str__(self):
         amount = quantize(self["amount"], self["asset"]["precision"])
