@@ -299,8 +299,9 @@ class Amount(dict):
             }
         else:
             payload = [amount_value, asset_precision, asset_identifier]
-
-        if use_appbase or not connected:
+        # If we're using appbase or condenser, return the payload
+        is_condenser = getattr(self.blockchain.rpc, "use_condenser", False)
+        if use_appbase or is_condenser:
             return payload
 
         return str(self)
