@@ -335,9 +335,7 @@ class Memo(object):
                 except MissingKeyError:
                     # if all fails, raise exception
                     raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [str(to_key), str(from_key)]
-                        )
+                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"
                     )
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
@@ -359,9 +357,9 @@ class Memo(object):
                 except MissingKeyError:
                     # if all fails, raise exception
                     raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [memo_to["name"], memo_from["name"]]
-                        )
+                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"[
+                            memo_to["name"], memo_from["name"]
+                        ]
                     )
 
         if not hasattr(self, "chain_prefix"):
@@ -407,9 +405,7 @@ class Memo(object):
                 except MissingKeyError:
                     # if all fails, raise exception
                     raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [str(to_key), str(from_key)]
-                        )
+                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"
                     )
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
@@ -437,9 +433,9 @@ class Memo(object):
                 except MissingKeyError:
                     # if all fails, raise exception
                     raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [memo_to["name"], memo_from["name"]]
-                        )
+                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"[
+                            memo_to["name"], memo_from["name"]
+                        ]
                     )
 
         if not hasattr(self, "chain_prefix"):

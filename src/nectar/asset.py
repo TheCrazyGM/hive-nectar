@@ -45,7 +45,7 @@ class Asset(BlockchainObject):
                 break
         if not found_asset:
             raise AssetDoesNotExistsException(
-                self.identifier + " chain_assets:" + str(self.chain_params["chain_assets"])
+                f"{self.identifier} chain_assets:{self.chain_params['chain_assets']}"
             )
 
     @property

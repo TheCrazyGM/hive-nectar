@@ -218,7 +218,7 @@ the complete queue is sended at once to the node. The result is a list with repl
 
 .. code-block:: python
 
-    result = hv.rpc.get_block({"block_num":1}, api="block", add_to_queue=False)
+    result = hv.rpc.get_block({"block_num":1}, api="block_api", add_to_queue=False)
     len(result)
 
 .. code-block:: python

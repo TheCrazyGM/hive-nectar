@@ -74,7 +74,7 @@ class ObjectCache(dict):
         n = 0
         with self.lock:
             n = len(list(self.keys()))
-        return "ObjectCache(n={}, default_expiration={})".format(n, self.default_expiration)
+        return f"ObjectCache(n={n}, default_expiration={self.default_expiration})"
 
     def set_expiration(self, expiration):
         """Set new default expiration time in seconds (default: 10s)"""
@@ -180,6 +180,14 @@ class BlockchainObject(dict):
         if use_cache and not lazy:
             self.cache()
             self.cached = True
+
+    def refresh(self):
+        """Refresh the object's data from the API.
+
+        This method should be overridden by subclasses to implement
+        specific refresh logic. The base implementation does nothing.
+        """
+        pass
 
     @staticmethod
     def clear_cache():

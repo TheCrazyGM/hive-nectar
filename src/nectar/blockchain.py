@@ -622,7 +622,7 @@ class Blockchain(object):
                     )
                 else:
                     block_batch = self.blockchain.rpc.get_block(
-                        {"block_num": blocknum}, api="block", add_to_queue=add_to_queue
+                        {"block_num": blocknum}, api="block_api", add_to_queue=add_to_queue
                     )
 
                     if not bool(block_batch):

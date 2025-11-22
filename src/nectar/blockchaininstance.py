@@ -235,7 +235,7 @@ class BlockChainInstance(object):
     def __repr__(self):
         if self.offline:
             return "<%s offline=True>" % (self.__class__.__name__)
-        elif self.rpc is not None and len(self.rpc.url) > 0:
+        elif self.rpc is not None and self.rpc.url and len(self.rpc.url) > 0:
             return "<%s node=%s, nobroadcast=%s>" % (
                 self.__class__.__name__,
                 str(self.rpc.url),
@@ -846,7 +846,10 @@ class BlockChainInstance(object):
         """
         if use_stored_data:
             self.refresh_data("witness_schedule")
-            return self.data["witness_schedule"]["median_props"]
+            witness_schedule = self.data.get("witness_schedule")
+            if witness_schedule:
+                return witness_schedule["median_props"]
+            return {}
         else:
             return self.get_witness_schedule(use_stored_data)["median_props"]
 
@@ -1170,6 +1173,8 @@ class BlockChainInstance(object):
         :returns: id of the new txbuffer
         :rtype: int
         """
+        # Remove blockchain_instance from kwargs if it exists to avoid duplicate
+        kwargs.pop("blockchain_instance", None)
         builder = TransactionBuilder(*args, blockchain_instance=self, **kwargs)
         self._txbuffers.append(builder)
         return builder

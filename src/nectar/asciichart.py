@@ -164,7 +164,7 @@ class AsciiChart(object):
             self.n = n
         self._calc_plot_parameter()
         self.canvas = [
-            [" "] * (int(self.n / self.skip) + self.offset) for i in range(self.rows + 1)
+            [" "] * (int(self.n / (self.skip or 1)) + self.offset) for i in range(self.rows + 1)
         ]
 
     def add_axis(self):
@@ -187,9 +187,7 @@ class AsciiChart(object):
         intmin2 = int(self.min2)
         intmax2 = int(self.max2)
         for y in range(intmin2, intmax2 + 1):
-            label = self.placeholder.format(
-                float(self.maximum) - ((y - intmin2) * interval / self.rows)
-            )
+            label = f"{float(self.maximum) - ((y - intmin2) * interval / self.rows)}"
             if label:
                 self._set_y_axis_elem(y, label)
 

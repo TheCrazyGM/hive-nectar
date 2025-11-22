@@ -4,7 +4,7 @@ import logging
 import math
 import random
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from prettytable import PrettyTable
 
@@ -38,10 +38,13 @@ from .utils import (
     reputation_to_score,
 )
 
+if TYPE_CHECKING:
+    from typing import Any
+
 log = logging.getLogger(__name__)
 
 
-def extract_account_name(account):
+def extract_account_name(account: str | "Account" | dict) -> str:
     if isinstance(account, str):
         return account
     elif isinstance(account, Account):
@@ -91,7 +94,14 @@ class Account(BlockchainObject):
 
     type_id = 2
 
-    def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        account: str | dict,
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance=None,
+        **kwargs,
+    ):
         """
         Create an Account wrapper for a blockchain account.
 
@@ -109,7 +119,7 @@ class Account(BlockchainObject):
             account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh/Obtain an account's data from the API server"""
         if not self.blockchain.is_connected():
             return
@@ -134,7 +144,7 @@ class Account(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, account):
+    def _parse_json_data(self, account: dict) -> dict:
         """
         Normalize and convert raw account JSON fields into proper Python types.
 
@@ -292,7 +302,9 @@ class Account(BlockchainObject):
         for p in amounts:
             if p in output:
                 if p in output:
-                    output[p] = output.get(p).json()
+                    obj = output.get(p)
+                    if obj and hasattr(obj, "json"):
+                        output[p] = obj.json()
         return json.loads(str(json.dumps(output)))
 
     def getSimilarAccountNames(self, limit=5):
@@ -445,7 +457,9 @@ class Account(BlockchainObject):
             allocated_mb = bandwidth["allocated"] / 1024 / 1024
         last_vote_time_str = formatTimedelta(
             datetime.now(timezone.utc)
-            - datetime.strptime(self["last_vote_time"], "%Y-%m-%dT%H:%M:%S")
+            - datetime.strptime(self["last_vote_time"], "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
         )
         try:
             rc_mana = self.get_rc_manabar()
@@ -647,9 +661,7 @@ class Account(BlockchainObject):
         last_mana = int(self["voting_manabar"]["current_mana"])
         last_update_time = self["voting_manabar"]["last_update_time"]
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
-        diff_in_seconds = (
-            addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
-        ).total_seconds()
+        diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
             last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
@@ -693,9 +705,7 @@ class Account(BlockchainObject):
         last_mana = int(self["downvote_manabar"]["current_mana"])
         last_update_time = self["downvote_manabar"]["last_update_time"]
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
-        diff_in_seconds = (
-            addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
-        ).total_seconds()
+        diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
             last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
@@ -737,9 +747,7 @@ class Account(BlockchainObject):
         elif "voting_power" in self:
             if with_regeneration:
                 last_vote_time = self["last_vote_time"]
-                diff_in_seconds = (
-                    addTzInfo(datetime.now(timezone.utc)) - (last_vote_time)
-                ).total_seconds()
+                diff_in_seconds = (datetime.now(timezone.utc) - (last_vote_time)).total_seconds()
                 regenerated_vp = (
                     diff_in_seconds * HIVE_100_PERCENT / HIVE_VOTE_REGENERATION_SECONDS / 100
                 )
@@ -812,8 +820,10 @@ class Account(BlockchainObject):
                 + int(self["received_vesting_shares"])
             )
         timestamp = (
-            datetime.strptime(self["next_vesting_withdrawal"], "%Y-%m-%dT%H:%M:%S")
-            - datetime(1970, 1, 1)
+            datetime.strptime(self["next_vesting_withdrawal"], "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+            - datetime(1970, 1, 1, tzinfo=timezone.utc)
         ).total_seconds()
         if (
             timestamp > 0
@@ -1069,7 +1079,7 @@ class Account(BlockchainObject):
             the provided value.
 
         """
-        return addTzInfo(datetime.now(timezone.utc)) + self.get_recharge_timedelta(
+        return datetime.now(timezone.utc) + self.get_recharge_timedelta(
             voting_power_goal, starting_voting_power
         )
 
@@ -1121,9 +1131,43 @@ class Account(BlockchainObject):
         Returns:
             datetime: Timezone-aware UTC datetime when the manabar is expected to reach the target percentage.
         """
-        return addTzInfo(datetime.now(timezone.utc)) + self.get_manabar_recharge_timedelta(
+        return datetime.now(timezone.utc) + self.get_manabar_recharge_timedelta(
             manabar, recharge_pct_goal
         )
+
+    def get_feed(
+        self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
+    ):
+        """
+        Return the feed entries for an account.
+
+        By default this returns a list of Comment objects for the account's feed. If raw_data=True the raw API dicts are returned instead. When both raw_data and short_entries are True the `get_feed_entries` API is used (returns shorter entry objects). If account is None the current Account's name is used.
+
+        Parameters:
+            start_entry_id (int): ID offset to start from (default 0).
+            limit (int): Maximum number of entries to return (default 100, max 100).
+            raw_data (bool): If True, return raw API dictionaries instead of Comment objects.
+            short_entries (bool): If True, use get_feed_entries API (shorter entries).
+            account (str, optional): Override account name to fetch feed for (default uses this Account).
+
+        Returns:
+            list: A list of feed entries (Comment objects or raw dicts depending on `raw_data`).
+        """
+        if short_entries or raw_data:
+            return self.get_feed_entries(
+                start_entry_id=start_entry_id,
+                limit=limit,
+                raw_data=raw_data,
+                account=account,
+            )
+        else:
+            return self.get_account_posts(
+                sort="feed",
+                limit=limit,
+                account=account,
+                observer=self["name"],
+                raw_data=raw_data,
+            )
 
     def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
         """
@@ -1719,7 +1763,7 @@ class Account(BlockchainObject):
             "interest": interest_amount,
             "last_payment": last_payment,
             "next_payment": next_payment,
-            "next_payment_duration": next_payment - addTzInfo(datetime.now(timezone.utc)),
+            "next_payment_duration": next_payment - datetime.now(timezone.utc),
             "interest_rate": interest_rate,
         }
 
@@ -1796,7 +1840,7 @@ class Account(BlockchainObject):
         average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
-        seconds_since_last_update = addTzInfo(datetime.now(timezone.utc)) - last_bandwidth_update
+        seconds_since_last_update = datetime.now(timezone.utc) - last_bandwidth_update
         seconds_since_last_update = seconds_since_last_update.total_seconds()
         used_bandwidth = 0
         if seconds_since_last_update < total_seconds:
@@ -2068,7 +2112,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if after is None:
-            after = addTzInfo(datetime.now(timezone.utc)) - timedelta(days=8)
+            after = datetime.now(timezone.utc) - timedelta(days=8)
         return self.blockchain.rpc.find_vesting_delegation_expirations(
             {"account": account}, api="database_api"
         )["delegations"]
@@ -2385,7 +2429,7 @@ class Account(BlockchainObject):
 
         :param int days: limit number of days to be included int the return value
         """
-        stop = addTzInfo(datetime.now(timezone.utc)) - timedelta(days=days)
+        stop = datetime.now(timezone.utc) - timedelta(days=days)
         reward_vests = Amount(
             0, self.blockchain.vest_token_symbol, blockchain_instance=self.blockchain
         )
@@ -2515,7 +2559,10 @@ class Account(BlockchainObject):
         for item in txs_list:
             item_index, event = item
             if start and isinstance(start, (datetime, date, time)):
-                timediff = start - formatTimeString(event["timestamp"])
+                event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                timediff = start - event_time
                 if timediff.total_seconds() * float(order) > 0:
                     continue
             elif start is not None and use_block_num and order == 1 and event["block"] < start:
@@ -2527,7 +2574,10 @@ class Account(BlockchainObject):
             elif start is not None and not use_block_num and order == -1 and item_index > start:
                 continue
             if stop is not None and isinstance(stop, (datetime, date, time)):
-                timediff = stop - formatTimeString(event["timestamp"])
+                event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                timediff = stop - event_time
                 if timediff.total_seconds() * float(order) < 0:
                     return
             elif stop is not None and use_block_num and order == 1 and event["block"] > stop:
@@ -2695,13 +2745,17 @@ class Account(BlockchainObject):
             est_diff = 0
             if isinstance(start, (datetime, date, time)):
                 for h in self.get_account_history(op_est, 0):
-                    block_date = formatTimeString(h["timestamp"])
+                    block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
                 while op_est > est_diff + batch_size and block_date > start:
                     est_diff += batch_size
                     if op_est - est_diff < 0:
                         est_diff = op_est
                     for h in self.get_account_history(op_est - est_diff, 0):
-                        block_date = formatTimeString(h["timestamp"])
+                        block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
             elif not isinstance(start, (datetime, date, time)):
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
@@ -2769,7 +2823,10 @@ class Account(BlockchainObject):
                     timestamp = item["timestamp"]
                     block_num = item["block"]
                 if start is not None and isinstance(start, (datetime, date, time)):
-                    timediff = start - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
                     if timediff.total_seconds() > 0:
                         continue
                 elif start is not None and use_block_num and block_num < start:
@@ -2779,7 +2836,10 @@ class Account(BlockchainObject):
                 elif last_item_index >= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
-                    timediff = stop - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
                     if timediff.total_seconds() < 0:
                         first = max_index + _limit
                         return
@@ -2922,13 +2982,17 @@ class Account(BlockchainObject):
                 op_est = min_index
             if isinstance(start, (datetime, date, time)):
                 for h in self.get_account_history(op_est, 0):
-                    block_date = formatTimeString(h["timestamp"])
+                    block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
                 while op_est + est_diff + batch_size < first and block_date < start:
                     est_diff += batch_size
                     if op_est + est_diff > first:
                         est_diff = first - op_est
                     for h in self.get_account_history(op_est + est_diff, 0):
-                        block_date = formatTimeString(h["timestamp"])
+                        block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
             else:
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
@@ -2979,7 +3043,10 @@ class Account(BlockchainObject):
                     timestamp = item["timestamp"]
                     block_num = item["block"]
                 if start is not None and isinstance(start, (datetime, date, time)):
-                    timediff = start - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
                     if timediff.total_seconds() < 0:
                         continue
                 elif start is not None and use_block_num and block_num > start:
@@ -2989,7 +3056,10 @@ class Account(BlockchainObject):
                 elif last_item_index <= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
-                    timediff = stop - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
                     if timediff.total_seconds() > 0:
                         first = 0
                         return
@@ -4322,12 +4392,12 @@ class AccountsObject(list):
             rep.append(f.rep)
             own_mvest.append(float(f.balances["available"][2]) / 1e6)
             eff_sp.append(f.get_token_power())
-            last_vote = addTzInfo(datetime.now(timezone.utc)) - (f["last_vote_time"])
+            last_vote = datetime.now(timezone.utc) - (f["last_vote_time"])
             if last_vote.days >= 365:
                 no_vote += 1
             else:
                 last_vote_h.append(last_vote.total_seconds() / 60 / 60)
-            last_post = addTzInfo(datetime.now(timezone.utc)) - (f["last_root_post"])
+            last_post = datetime.now(timezone.utc) - (f["last_root_post"])
             if last_post.days >= 365:
                 no_post += 1
             else:

@@ -3,6 +3,8 @@ import logging
 import random
 from datetime import datetime, timedelta, timezone
 
+import httpx
+
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
 
@@ -10,17 +12,7 @@ from .account import Account
 from .amount import Amount
 from .asset import Asset
 from .price import FilledOrder, Order, Price
-from .utils import (
-    addTzInfo,
-    assets_from_string,
-    formatTimeFromNow,
-    formatTimeString,
-)
-
-try:
-    import httpx
-except ImportError:
-    httpx = None
+from .utils import addTzInfo, assets_from_string, formatTimeFromNow, formatTimeString
 
 log = logging.getLogger(__name__)
 
@@ -368,7 +360,11 @@ class Market(dict):
         stop = addTzInfo(stop)
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         orders = self.blockchain.rpc.get_trade_history(
-            {"start": formatTimeString(start), "end": formatTimeString(stop), "limit": limit},
+            {
+                "start": formatTimeString(start) if start else None,
+                "end": formatTimeString(stop) if stop else None,
+                "limit": limit,
+            },
             api="market_history",
         )["trades"]
         if raw_data:
@@ -704,34 +700,34 @@ class Market(dict):
                 if hasattr(x, "status_code") and x.status_code == 200 and x.json()
             ]:
                 try:
-                    if "bitfinex" in r.url:
+                    if "bitfinex" in str(r.url):
                         data = r.json()
                         prices["bitfinex"] = {
                             "price": float(data["last_price"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "gdax" in r.url:
+                    elif "gdax" in str(r.url):
                         data = r.json()
                         prices["gdax"] = {
                             "price": float(data["price"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "kraken" in r.url:
+                    elif "kraken" in str(r.url):
                         data = r.json()["result"]["XXBTZUSD"]["p"]
                         prices["kraken"] = {"price": float(data[0]), "volume": float(data[1])}
-                    elif "okcoin" in r.url:
+                    elif "okcoin" in str(r.url):
                         data = r.json()["ticker"]
                         prices["okcoin"] = {
                             "price": float(data["last"]),
                             "volume": float(data["vol"]),
                         }
-                    elif "bitstamp" in r.url:
+                    elif "bitstamp" in str(r.url):
                         data = r.json()
                         prices["bitstamp"] = {
                             "price": float(data["last"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "coingecko" in r.url:
+                    elif "coingecko" in str(r.url):
                         data = r.json()["bitcoin"]
                         if "usd_24h_vol" in data:
                             volume = float(data["usd_24h_vol"])
@@ -791,41 +787,41 @@ class Market(dict):
                 if hasattr(x, "status_code") and x.status_code == 200 and x.json()
             ]:
                 try:
-                    if "poloniex" in r.url:
+                    if "poloniex" in str(r.url):
                         data = r.json()["BTC_HIVE"]
                         prices["poloniex"] = {
                             "price": float(data["last"]),
                             "volume": float(data["baseVolume"]),
                         }
-                    elif "bittrex" in r.url:
+                    elif "bittrex" in str(r.url):
                         data = r.json()["result"][0]
                         price = (data["Bid"] + data["Ask"]) / 2
                         prices["bittrex"] = {"price": price, "volume": data["BaseVolume"]}
-                    elif "binance" in r.url:
+                    elif "binance" in str(r.url):
                         data = [x for x in r.json() if x["symbol"] == "HIVEBTC"][0]
                         prices["binance"] = {
                             "price": float(data["lastPrice"]),
                             "volume": float(data["quoteVolume"]),
                         }
-                    elif "huobi" in r.url:
+                    elif "huobi" in str(r.url):
                         data = r.json()["data"][-1]
                         prices["huobi"] = {
                             "price": float(data["close"]),
                             "volume": float(data["vol"]),
                         }
-                    elif "upbit" in r.url:
+                    elif "upbit" in str(r.url):
                         data = r.json()[-1]
                         prices["upbit"] = {
                             "price": float(data["tradePrice"]),
                             "volume": float(data["tradeVolume"]),
                         }
-                    elif "probit" in r.url:
+                    elif "probit" in str(r.url):
                         data = r.json()["data"]
                         prices["huobi"] = {
                             "price": float(data["last"]),
                             "volume": float(data["base_volume"]),
                         }
-                    elif "coingecko" in r.url:
+                    elif "coingecko" in str(r.url):
                         data = r.json()["hive"]
                         if "btc_24h_vol":
                             volume = float(data["btc_24h_vol"])

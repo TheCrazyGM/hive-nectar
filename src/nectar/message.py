@@ -129,9 +129,9 @@ timestamp={meta[timestamp]}
         # Parse the meta data
         meta = dict(re.findall(r"(\S+)=(.*)", parts[1]))
 
-        log.info("Message is: {}".format(message))
-        log.info("Meta is: {}".format(json.dumps(meta)))
-        log.info("Signature is: {}".format(signature))
+        log.info(f"Message is: {message}")
+        log.info(f"Meta is: {json.dumps(meta)}")
+        log.info(f"Signature is: {signature}")
 
         # Ensure we have all the data in meta
         assert "account" in meta, "No 'account' could be found in meta data"
@@ -139,8 +139,8 @@ timestamp={meta[timestamp]}
         assert "block" in meta, "No 'block' could be found in meta data"
         assert "timestamp" in meta, "No 'timestamp' could be found in meta data"
 
-        account_name = meta.get("account").strip()
-        memo_key = meta["memokey"].strip()
+        account_name = meta.get("account", "").strip()
+        memo_key = meta.get("memokey", "").strip()
 
         try:
             PublicKey(memo_key, prefix=self.blockchain.prefix)
@@ -263,8 +263,8 @@ class MessageV2(object):
         payload_dict = {k[0]: k[1] for k in zip(payload[::2], payload[1::2])}
         signature = self.message.get("signature")
 
-        account_name = payload_dict.get("from").strip()
-        memo_key = payload_dict.get("key").strip()
+        account_name = payload_dict.get("from", "").strip()
+        memo_key = payload_dict.get("key", "").strip()
 
         assert account_name, "Missing account name 'from'"
         assert memo_key, "missing 'key'"

@@ -172,11 +172,13 @@ class Block(BlockchainObject):
                 }
         else:
             try:
-                block = self.blockchain.rpc.get_block({"block_num": self.identifier}, api="block")
+                block = self.blockchain.rpc.get_block(
+                    {"block_num": self.identifier}, api="block_api"
+                )
                 if block and "block" in block:
                     block = block["block"]
             except ApiNotSupported:
-                block = self.blockchain.rpc.get_block(self.identifier, api="block")
+                block = self.blockchain.rpc.get_block(self.identifier, api="block_api")
         if not block:
             message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
             raise BlockDoesNotExistsException(message)
@@ -363,7 +365,9 @@ class BlockHeader(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        block = self.blockchain.rpc.get_block_header({"block_num": self.identifier}, api="block")
+        block = self.blockchain.rpc.get_block_header(
+            {"block_num": self.identifier}, api="block_api"
+        )
         if block is not None and "header" in block:
             block = block["header"]
         if not block:
@@ -449,7 +453,7 @@ class Blocks(list):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
 
         blocks = self.blockchain.rpc.get_block_range(
-            {"starting_block_num": starting_block_num, "count": count}, api="block"
+            {"starting_block_num": starting_block_num, "count": count}, api="block_api"
         )["blocks"]
 
         super(Blocks, self).__init__(
