@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import re
-import warnings
 from binascii import hexlify
 from collections import OrderedDict
 
@@ -713,14 +712,13 @@ class Comment_options(GrapheneObject):
         """
         Initialize a Comment_options operation.
 
-        This constructor builds the serialized fields for a comment options operation from provided keyword arguments or a single dict positional argument. It converts and validates inputs into the expected Graphene types and handles backward compatibility and extensions.
+        This constructor builds the serialized fields for a comment options operation from provided keyword arguments or a single dict positional argument. It converts and validates inputs into the expected Graphene types and handles extensions.
 
         Expected kwargs:
         - author (str): post author.
         - permlink (str): post permlink.
         - max_accepted_payout (str|Amount): payout limit; converted to Amount using optional `prefix` and `json_str`.
         - percent_hbd (int|str): required percent value (primary source) stored as Uint16.
-        - percent_steem_dollars (int|str, optional, deprecated): fallback for `percent_hbd`; using it emits a DeprecationWarning.
         - allow_votes (bool): whether voting is allowed.
         - allow_curation_rewards (bool): whether curation rewards are allowed.
         - beneficiaries (list, optional): if provided, placed into extensions as a beneficiaries extension.
@@ -731,8 +729,6 @@ class Comment_options(GrapheneObject):
         Behavior and side effects:
         - If initialized from an existing GrapheneObject (via check_for_class), initialization returns early after copying.
         - If `beneficiaries` is present and non-empty, it is converted into an extensions entry.
-        - If neither `percent_hbd` nor `percent_steem_dollars` is provided, raises ValueError.
-        - If `percent_steem_dollars` is used, emits a DeprecationWarning.
         """
         if check_for_class(self, args):
             return
@@ -748,16 +744,7 @@ class Comment_options(GrapheneObject):
             extensions = Array([CommentOptionExtensions(o) for o in kwargs["extensions"]])
         percent_value = kwargs.get("percent_hbd")
         if percent_value is None:
-            # Backward compatibility: fall back to percent_steem_dollars
-            percent_value = kwargs.get("percent_steem_dollars")
-            if percent_value is not None:
-                warnings.warn(
-                    "Parameter 'percent_steem_dollars' is deprecated. Use 'percent_hbd' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            else:
-                raise ValueError("Comment_options requires 'percent_hbd'")
+            raise ValueError("Comment_options requires 'percent_hbd'")
         super(Comment_options, self).__init__(
             OrderedDict(
                 [

@@ -279,18 +279,7 @@ class Amount(dict):
 
         amount_value = str(int(self))
 
-        try:
-            connected = bool(self.blockchain and self.blockchain.is_connected())
-        except Exception:  # pragma: no cover - defensive
-            connected = False
-
-        use_appbase = False
-        if connected and getattr(self.blockchain, "rpc", None) is not None:
-            try:
-                use_appbase = bool(self.blockchain.rpc.get_use_appbase())
-            except Exception:  # pragma: no cover - defensive
-                use_appbase = False
-
+        use_appbase = True
         if self.new_appbase_format:
             payload = {
                 "amount": amount_value,

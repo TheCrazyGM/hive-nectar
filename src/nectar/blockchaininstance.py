@@ -24,7 +24,6 @@ from nectargraphenebase.chains import known_chains
 from .account import Account
 from .amount import Amount
 from .exceptions import AccountDoesNotExistsException, AccountExistsException
-from .hivesigner import HiveSigner
 from .price import Price
 from .storage import get_default_config_store
 from .transactionbuilder import TransactionBuilder
@@ -72,9 +71,6 @@ class BlockChainInstance(object):
         NumRetriesReached is raised. Disabled for -1. (default is -1)
     :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
     :param int timeout: Timeout setting for https nodes (default is 60)
-    :param bool use_hs: When True, a HiveSigner object is created. Can be used for
-        broadcast posting op or creating hot_links (default is False)
-    :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
     :param dict custom_chains: custom chain which should be added to the known chains
 
     Three wallet operation modes are possible:
@@ -158,14 +154,9 @@ class BlockChainInstance(object):
                 - bundle (bool): If True, enable bundling of operations instead of immediate broadcast.
                 - blocking (str|bool): Wait mode for broadcasts ("head" or "irreversible").
                 - custom_chains (dict): Custom chain definitions.
-                - use_hs (bool): If True, create and enable a HiveSigner instance.
-                - hivesigner (HiveSigner): Provide an existing HiveSigner instance (must be a HiveSigner).
                 - use_ledger (bool): If True, enable Ledger Nano signing.
                 - path (str): BIP32 path to derive pubkey from when using Ledger.
                 - config_store: Configuration store object (defaults to the global default).
-
-        Raises:
-            ValueError: If a provided `hivesigner` is not an instance of HiveSigner.
         """
 
         self.rpc = None
@@ -176,8 +167,6 @@ class BlockChainInstance(object):
         self.unsigned = bool(kwargs.get("unsigned", False))
         self.expiration = int(kwargs.get("expiration", 30))
         self.bundle = bool(kwargs.get("bundle", False))
-        self.hivesigner = kwargs.get("hivesigner", None)
-        self.use_hs = bool(kwargs.get("use_hs", False))
         self.blocking = kwargs.get("blocking", False)
         self.custom_chains = kwargs.get("custom_chains", {})
         self.use_ledger = bool(kwargs.get("use_ledger", False))
@@ -199,14 +188,6 @@ class BlockChainInstance(object):
         self.clear()
 
         self.wallet = Wallet(blockchain_instance=self, **kwargs)
-
-        # set hivesigner
-        if self.hivesigner is not None and not isinstance(self.hivesigner, (HiveSigner)):
-            raise ValueError("hivesigner musst be HiveSigner object")
-        if self.hivesigner is None and self.use_hs:
-            self.hivesigner = HiveSigner(blockchain_instance=self, **kwargs)
-        elif self.hivesigner is not None and not self.use_hs:
-            self.use_hs = True
 
     # -------------------------------------------------------------------------
     # Basic Calls
@@ -439,7 +420,7 @@ class BlockChainInstance(object):
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_dynamic_global_properties(api="database")
+        return self.rpc.get_dynamic_global_properties(api="database_api")
 
     def get_reserve_ratio(self):
         """This call returns the *reserve ratio*"""
@@ -478,7 +459,7 @@ class BlockChainInstance(object):
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_feed_history(api="database")
+        return self.rpc.get_feed_history(api="database_api")
 
     def get_reward_funds(self, use_stored_data=True):
         """Get details for a reward fund.
@@ -495,17 +476,14 @@ class BlockChainInstance(object):
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        if self.rpc.get_use_appbase():
-            funds = self.rpc.get_reward_funds(api="database")
-            if funds is not None:
-                funds = funds["funds"]
-            else:
-                return None
-            if len(funds) > 0:
-                funds = funds[0]
-            ret = funds
+        funds = self.rpc.get_reward_funds(api="database_api")
+        if funds is not None:
+            funds = funds["funds"]
         else:
-            ret = self.rpc.get_reward_fund("post", api="database")
+            return None
+        if len(funds) > 0:
+            funds = funds[0]
+        ret = funds
         return ret
 
     def get_current_median_history(self, use_stored_data=True):
@@ -524,10 +502,7 @@ class BlockChainInstance(object):
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        if self.rpc.get_use_appbase():
-            ret = self.rpc.get_feed_history(api="database")["current_median_history"]
-        else:
-            ret = self.rpc.get_current_median_history_price(api="database")
+        ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
         return ret
 
     def get_hardfork_properties(self, use_stored_data=True):
@@ -543,11 +518,7 @@ class BlockChainInstance(object):
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        if self.rpc.get_use_appbase():
-            ret = self.rpc.get_hardfork_properties(api="database")
-        else:
-            ret = self.rpc.get_next_scheduled_hardfork(api="database")
-
+        ret = self.rpc.get_hardfork_properties(api="database_api")
         return ret
 
     def get_network(self, use_stored_data=True, config=None):
@@ -894,7 +865,7 @@ class BlockChainInstance(object):
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_witness_schedule(api="database")
+        return self.rpc.get_witness_schedule(api="database_api")
 
     def get_config(self, use_stored_data=True):
         """Returns internal chain configuration.
@@ -908,7 +879,7 @@ class BlockChainInstance(object):
             if self.rpc is None:
                 return None
             self.rpc.set_next_node_on_empty_reply(True)
-            config = self.rpc.get_config(api="database")
+            config = self.rpc.get_config(api="database_api")
         return config
 
     @property

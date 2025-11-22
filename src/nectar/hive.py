@@ -45,9 +45,6 @@ class Hive(BlockChainInstance):
         NumRetriesReached is raised. Disabled for -1. (default is -1)
     :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
     :param int timeout: Timeout setting for https nodes (default is 60)
-    :param bool use_hs: When True, a hivesigner object is created. Can be used for
-        broadcast posting op or creating hot_links (default is False)
-    :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
     :param dict custom_chains: custom chain which should be added to the known chains
 
     Three wallet operation modes are possible:

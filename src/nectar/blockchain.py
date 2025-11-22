@@ -279,10 +279,7 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history")
-        else:
-            ret = self.blockchain.rpc.get_transaction(transaction_id, api="database")
+        ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history")
         return ret
 
     def get_transaction_hex(self, transaction):
@@ -293,12 +290,9 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction}, api="database")[
-                "hex"
-            ]
-        else:
-            ret = self.blockchain.rpc.get_transaction_hex(transaction, api="database")
+        ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction}, api="database_api")[
+            "hex"
+        ]
         return ret
 
     def get_current_block_num(self):
@@ -613,32 +607,23 @@ class Blockchain(object):
                     if (head_block - blocknumblock) < batches:
                         batches = head_block - blocknumblock + 1
                     # add up to 'batches' calls to the queue
-                    block_batch = []
-                    for blocknum in range(blocknumblock, blocknumblock + batches):
-                        if blocknum == blocknumblock + batches - 1:
-                            add_to_queue = False  # execute the call with the last request
-                        else:
-                            add_to_queue = True  # append request to the queue w/o executing
-                        if only_virtual_ops:
-                            if self.blockchain.rpc.get_use_appbase():
-                                block_batch = self.blockchain.rpc.get_ops_in_block(
-                                    {"block_num": blocknum, "only_virtual": only_virtual_ops},
-                                    api="account_history",
-                                    add_to_queue=add_to_queue,
-                                )
-                            else:
-                                block_batch = self.blockchain.rpc.get_ops_in_block(
-                                    blocknum, only_virtual_ops, add_to_queue=add_to_queue
-                                )
-                        else:
-                            if self.blockchain.rpc.get_use_appbase():
-                                block_batch = self.blockchain.rpc.get_block(
-                                    {"block_num": blocknum}, api="block", add_to_queue=add_to_queue
-                                )
-                            else:
-                                block_batch = self.blockchain.rpc.get_block(
-                                    blocknum, add_to_queue=add_to_queue
-                                )
+            block_batch = []
+            for blocknum in range(blocknumblock, blocknumblock + batches):
+                # Get full block
+                if blocknum == blocknumblock + batches - 1:
+                    add_to_queue = False  # execute the call with the last request
+                else:
+                    add_to_queue = True  # append request to the queue w/o executing
+                if only_virtual_ops:
+                    block_batch = self.blockchain.rpc.get_ops_in_block(
+                        {"block_num": blocknum, "only_virtual": only_virtual_ops},
+                        api="account_history",
+                        add_to_queue=add_to_queue,
+                    )
+                else:
+                    block_batch = self.blockchain.rpc.get_block(
+                        {"block_num": blocknum}, api="block", add_to_queue=add_to_queue
+                    )
 
                     if not bool(block_batch):
                         raise BatchedCallsNotSupported(
@@ -649,16 +634,15 @@ class Blockchain(object):
                     for block in block_batch:
                         if not bool(block):
                             continue
-                        if self.blockchain.rpc.get_use_appbase():
-                            if only_virtual_ops:
-                                block = {
-                                    "block": block["ops"][0]["block"],
-                                    "timestamp": block["ops"][0]["timestamp"],
-                                    "id": block["ops"][0]["block"],
-                                    "operations": block["ops"],
-                                }
-                            else:
-                                block = block["block"]
+                        if only_virtual_ops:
+                            block = {
+                                "block": block["ops"][0]["block"],
+                                "timestamp": block["ops"][0]["timestamp"],
+                                "id": block["ops"][0]["block"],
+                                "operations": block["ops"],
+                            }
+                        else:
+                            block = block["block"]
                         block = Block(
                             block,
                             only_ops=only_ops,
@@ -959,18 +943,15 @@ class Blockchain(object):
         cnt = 1
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        if self.blockchain.rpc.get_use_appbase() and start == "":
+        if start == "":
             lastname = None
         else:
             lastname = start
-        self.blockchain.rpc.set_next_node_on_empty_reply(self.blockchain.rpc.get_use_appbase())
+        self.blockchain.rpc.set_next_node_on_empty_reply(True)
         while True:
-            if self.blockchain.rpc.get_use_appbase():
-                ret = self.blockchain.rpc.list_accounts(
-                    {"start": lastname, "limit": steps, "order": "by_name"}, api="database"
-                )["accounts"]
-            else:
-                ret = self.blockchain.rpc.lookup_accounts(lastname, steps)
+            ret = self.blockchain.rpc.list_accounts(
+                {"start": lastname, "limit": steps, "order": "by_name"}, api="database_api"
+            )["accounts"]
             for account in ret:
                 if isinstance(account, dict):
                     account_name = account["name"]
@@ -990,10 +971,7 @@ class Blockchain(object):
     def get_account_count(self):
         """Returns the number of accounts"""
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_account_count(api="condenser")
-        else:
-            ret = self.blockchain.rpc.get_account_count()
+        ret = self.blockchain.rpc.get_account_count()
         return ret
 
     def get_account_reputations(self, start="", stop="", steps=1e3, limit=-1, **kwargs):
@@ -1006,19 +984,16 @@ class Blockchain(object):
         cnt = 1
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        if self.blockchain.rpc.get_use_appbase() and start == "":
+        if start == "":
             lastname = None
         else:
             lastname = start
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         skip_first = False
         while True:
-            if self.blockchain.rpc.get_use_appbase():
-                ret = self.blockchain.rpc.get_account_reputations(
-                    {"account_lower_bound": lastname, "limit": steps}, api="condenser"
-                )
-            else:
-                ret = self.blockchain.rpc.get_account_reputations(lastname, steps, api="condenser")
+            ret = self.blockchain.rpc.get_account_reputations(
+                {"account_lower_bound": lastname, "limit": steps}, api="condenser"
+            )
             for account in ret:
                 if isinstance(account, dict):
                     account_name = account["account"]
@@ -1057,14 +1032,11 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            account = self.blockchain.rpc.list_accounts(
-                {"start": name, "limit": limit, "order": "by_name"}, api="database"
-            )
-            if bool(account):
-                return account["accounts"]
-        else:
-            return self.blockchain.rpc.lookup_accounts(name, limit)
+        account = self.blockchain.rpc.list_accounts(
+            {"start": name, "limit": limit, "order": "by_name"}, api="database_api"
+        )
+        if bool(account):
+            return account["accounts"]
 
     def find_rc_accounts(self, name):
         """
@@ -1113,7 +1085,7 @@ class Blockchain(object):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         requests = self.blockchain.rpc.list_change_recovery_account_requests(
-            {"start": start, "limit": limit, "order": order}, api="database"
+            {"start": start, "limit": limit, "order": order}, api="database_api"
         )
         if bool(requests):
             return requests["requests"]
@@ -1139,7 +1111,7 @@ class Blockchain(object):
         if isinstance(accounts, str):
             accounts = [accounts]
         requests = self.blockchain.rpc.find_change_recovery_account_requests(
-            {"accounts": accounts}, api="database"
+            {"accounts": accounts}, api="database_api"
         )
         if bool(requests):
             return requests["requests"]

@@ -17,14 +17,11 @@ from .utils import (
     formatTimeString,
 )
 
-REQUEST_MODULE = None
-if not REQUEST_MODULE:
-    try:
-        import requests
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
-        REQUEST_MODULE = "requests"
-    except ImportError:
-        REQUEST_MODULE = None
 log = logging.getLogger(__name__)
 
 
@@ -258,10 +255,7 @@ class Market(dict):
 
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history")
-        else:
-            orders = self.blockchain.rpc.get_order_book(limit, api="database_api")
+        orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history")
         if raw_data:
             return orders
         asks = list(
@@ -303,12 +297,9 @@ class Market(dict):
             list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(limit > 0)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history")[
-                "trades"
-            ]
-        else:
-            orders = self.blockchain.rpc.get_recent_trades(limit, api="market_history")
+        orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history")[
+            "trades"
+        ]
         if raw_data:
             return orders
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
@@ -376,15 +367,10 @@ class Market(dict):
         start = addTzInfo(start)
         stop = addTzInfo(stop)
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_trade_history(
-                {"start": formatTimeString(start), "end": formatTimeString(stop), "limit": limit},
-                api="market_history",
-            )["trades"]
-        else:
-            orders = self.blockchain.rpc.get_trade_history(
-                formatTimeString(start), formatTimeString(stop), limit, api="market_history"
-            )
+        orders = self.blockchain.rpc.get_trade_history(
+            {"start": formatTimeString(start), "end": formatTimeString(stop), "limit": limit},
+            api="market_history",
+        )["trades"]
         if raw_data:
             return orders
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
@@ -393,10 +379,7 @@ class Market(dict):
     def market_history_buckets(self):
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         ret = self.blockchain.rpc.get_market_history_buckets(api="market_history")
-        if self.blockchain.rpc.get_use_appbase():
-            return ret["bucket_sizes"]
-        else:
-            return ret
+        return ret["bucket_sizes"]
 
     def market_history(self, bucket_seconds=300, start_age=3600, end_age=0, raw_data=False):
         """
@@ -422,31 +405,23 @@ class Market(dict):
         else:
             if bucket_seconds not in buckets:
                 raise ValueError("You need select the bucket_seconds from " + str(buckets))
-        self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            history = self.blockchain.rpc.get_market_history(
-                {
-                    "bucket_seconds": bucket_seconds,
-                    "start": formatTimeFromNow(-start_age - end_age),
-                    "end": formatTimeFromNow(-end_age),
-                },
-                api="market_history",
-            )["buckets"]
-        else:
-            history = self.blockchain.rpc.get_market_history(
-                bucket_seconds,
-                formatTimeFromNow(-start_age - end_age),
-                formatTimeFromNow(-end_age),
-                api="market_history",
-            )
-        if raw_data:
-            return history
-        new_history = []
-        for h in history:
-            if "open" in h and isinstance(h.get("open"), str):
-                h["open"] = formatTimeString(h.get("open", "1970-01-01T00:00:00"))
-            new_history.append(h)
-        return new_history
+                self.blockchain.rpc.set_next_node_on_empty_reply(False)
+                history = self.blockchain.rpc.get_market_history(
+                    {
+                        "bucket_seconds": bucket_seconds,
+                        "start": formatTimeFromNow(-start_age - end_age),
+                        "end": formatTimeFromNow(-end_age),
+                    },
+                    api="market_history",
+                )["buckets"]
+                if raw_data:
+                    return history
+                new_history = []
+                for h in history:
+                    if "open" in h and isinstance(h.get("open"), str):
+                        h["open"] = formatTimeString(h.get("open", "1970-01-01T00:00:00"))
+                        new_history.append(h)
+                return new_history
 
     def accountopenorders(self, account=None, raw_data=False):
         """Returns open Orders
@@ -467,12 +442,9 @@ class Market(dict):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.find_limit_orders(
-                {"account": account["name"]}, api="database"
-            )["orders"]
-        else:
-            orders = self.blockchain.rpc.get_open_orders(account["name"])
+        orders = self.blockchain.rpc.find_limit_orders(
+            {"account": account["name"]}, api="database_api"
+        )["orders"]
         if raw_data:
             return orders
         for o in orders:
@@ -722,7 +694,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, timeout=30) for u in urls)
+                responses = list(httpx.get(u, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -809,7 +781,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
+                responses = list(httpx.get(u, headers=headers, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 

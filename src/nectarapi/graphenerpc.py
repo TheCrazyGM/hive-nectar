@@ -3,8 +3,8 @@ import json
 import logging
 import re
 
-import requests
-from requests.exceptions import ConnectionError
+import httpx
+from httpx import ConnectError
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.version import version as nectar_version
@@ -18,7 +18,7 @@ from .exceptions import (
     WorkingNodeMissing,
 )
 from .node import Nodes
-from .rpcutils import get_api_name, get_query, is_network_appbase_ready
+from .rpcutils import get_query
 
 log = logging.getLogger(__name__)
 
@@ -36,16 +36,16 @@ def set_session_instance(instance):
 
 def shared_session_instance():
     """
-    Return a singleton requests.Session instance, creating it if necessary.
+    Return a singleton httpx.Client instance, creating it if necessary.
 
     Ensures a single shared HTTP session is reused across the process to take advantage
     of connection pooling and shared session state (headers, cookies, adapters).
 
     Returns:
-        requests.Session: The shared session object.
+        httpx.Client: The shared session object.
     """
     if not SessionInstance.instance:
-        SessionInstance.instance = requests.Session()
+        SessionInstance.instance = httpx.Client()
     return SessionInstance.instance
 
 
@@ -75,9 +75,7 @@ class GrapheneRPC(object):
         - timeout (int): request timeout in seconds (default 60).
         - num_retries (int): number of node-retry attempts for node selection (default 100).
         - num_retries_call (int): per-call retry attempts before switching nodes (default 5).
-        - use_condenser (bool): prefer condenser API compatibility (default False).
         - use_tor (bool): enable Tor proxies for the shared HTTP session (default False).
-        - disable_chain_detection (bool): skip automatic chain/appbase detection (default False).
         - custom_chains (dict): mapping of additional known chain configurations to merge into the client's known_chains.
         - autoconnect (bool): if True (default), attempts to connect to a working node immediately via rpcconnect().
 
@@ -93,9 +91,7 @@ class GrapheneRPC(object):
         self.timeout = kwargs.get("timeout", 60)
         num_retries = kwargs.get("num_retries", 100)
         num_retries_call = kwargs.get("num_retries_call", 5)
-        self.use_condenser = kwargs.get("use_condenser", False)
         self.use_tor = kwargs.get("use_tor", False)
-        self.disable_chain_detection = kwargs.get("disable_chain_detection", False)
         self.known_chains = known_chains
         custom_chain = kwargs.get("custom_chains", {})
         if len(custom_chain) > 0:
@@ -142,19 +138,6 @@ class GrapheneRPC(object):
         """
         self.rpcconnect()
 
-    def is_appbase_ready(self):
-        """Check if node is appbase ready"""
-        return self.current_rpc == self.rpc_methods["appbase"]
-
-    def get_use_appbase(self):
-        """
-        Return True if AppBase RPC calls should be used.
-
-        Returns:
-            bool: True when AppBase is ready (is_appbase_ready()) and the instance is not configured to use the condenser API (use_condenser is False).
-        """
-        return not self.use_condenser and self.is_appbase_ready()
-
     def rpcconnect(self, next_url=True):
         """
         Selects and establishes connection to an available RPC node.
@@ -192,25 +175,7 @@ class GrapheneRPC(object):
                     "content-type": "application/json; charset=utf-8",
                 }
             try:
-                if self.disable_chain_detection:
-                    # Set to appbase rpc format
-                    self.current_rpc = self.rpc_methods["appbase"]
-                    break
-                try:
-                    props = None
-                    if not self.use_condenser:
-                        props = self.get_config(api="database")
-                    else:
-                        props = self.get_config()
-                except Exception as e:
-                    if re.search("Bad Cast:Invalid cast from type", str(e)):
-                        # retry with not appbase
-                        self.current_rpc = self.rpc_methods["appbase"]
-                        props = self.get_config(api="database")
-                if props is None:
-                    raise RPCError("Could not receive answer for get_config")
-                if is_network_appbase_ready(props):
-                    self.current_rpc = self.rpc_methods["appbase"]
+                self.current_rpc = self.rpc_methods["appbase"]
                 break
             except KeyboardInterrupt:
                 raise
@@ -274,7 +239,7 @@ class GrapheneRPC(object):
         """
         Detects and returns the network/chain configuration for the connected node.
 
-        If props is not provided, this call fetches node configuration via get_config(api="database") and inspects property keys to determine the chain identifier, address prefix, network/version, and core asset definitions. It builds a chain configuration dict with keys:
+        If props is not provided, this call fetches node configuration via get_config(api="database_api") and inspects property keys to determine the chain identifier, address prefix, network/version, and core asset definitions. It builds a chain configuration dict with keys:
         - chain_id: canonical chain identifier string
         - prefix: account/address prefix for the network
         - min_version: reported chain version string
@@ -283,7 +248,7 @@ class GrapheneRPC(object):
         If the detected chain matches an entry in self.known_chains (preferring the highest compatible known min_version), that known_chains entry is returned instead of the freshly built config.
 
         Special behaviors:
-        - When props is None, get_config(api="database") is called.
+        - When props is None, get_config(api="database_api") is called.
         - If detection finds conflicting blockchain prefixes, the most frequent prefix is used.
         - A legacy fallback removes STEEM_CHAIN_ID from props if no blockchain name is inferred, logging a warning to prefer HIVE.
         - Test-network asset NAIs are mapped to "TBD" or "TESTS" symbols when appropriate.
@@ -296,7 +261,7 @@ class GrapheneRPC(object):
             RPCError: If chain_id cannot be determined or no compatible known chain is found.
         """
         if props is None:
-            props = self.get_config(api="database")
+            props = self.get_config(api="database_api")
         chain_id = None
         network_version = None
         blockchain_name = None
@@ -317,10 +282,6 @@ class GrapheneRPC(object):
                 blockchain_name = sorted_prefix_count[0][0]
 
         # Check for configurable chain preference
-        if blockchain_name is None:
-            if "STEEM_CHAIN_ID" in props:
-                del props["STEEM_CHAIN_ID"]
-                log.warning("Using fallback chain preference: HIVE (STEEM removed from detection)")
 
         for key in props:
             if key[-8:] == "CHAIN_ID" and blockchain_name is None:
@@ -487,7 +448,7 @@ class GrapheneRPC(object):
                     break
             except KeyboardInterrupt:
                 raise
-            except ConnectionError as e:
+            except ConnectError as e:
                 self.nodes.increase_error_cnt()
                 self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
                 self.rpcconnect()
@@ -544,16 +505,13 @@ class GrapheneRPC(object):
         """Map all methods to RPC calls and pass through the arguments."""
 
         def method(*args, **kwargs):
-            api_name = get_api_name(self.is_appbase_ready(), *args, **kwargs)
-            if api_name is None:
-                api_name = "database_api"
+            api_name = kwargs.get("api", "database_api")
 
             # let's be able to define the num_retries per query
             stored_num_retries_call = self.nodes.num_retries_call
             self.nodes.num_retries_call = kwargs.get("num_retries_call", stored_num_retries_call)
             add_to_queue = kwargs.get("add_to_queue", False)
             query = get_query(
-                self.is_appbase_ready() and not self.use_condenser or api_name == "bridge",
                 self.get_request_id(),
                 api_name,
                 name,

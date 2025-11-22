@@ -2,7 +2,7 @@
 import io
 from binascii import hexlify
 
-import requests
+import httpx
 
 from nectar.account import Account
 from nectar.exceptions import MissingKeyError
@@ -77,5 +77,5 @@ class ImageUploader(object):
 
         files = {image_name or "image": image_data}
         url = "%s/%s/%s" % (self.base_url, account["name"], signature_in_hex)
-        r = requests.post(url, files=files)
+        r = httpx.post(url, files=files)
         return r.json()

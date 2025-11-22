@@ -145,28 +145,25 @@ class Block(BlockchainObject):
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if self.only_ops or self.only_virtual_ops:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ops_ops = self.blockchain.rpc.get_ops_in_block(
-                        {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
-                        api="account_history",
-                    )
-                    if ops_ops is None:
-                        ops = None
-                    else:
-                        ops = ops_ops["ops"]
-                except ApiNotSupported:
-                    ops = self.blockchain.rpc.get_ops_in_block(
-                        self.identifier, self.only_virtual_ops, api="condenser"
-                    )
-            else:
-                ops = self.blockchain.rpc.get_ops_in_block(self.identifier, self.only_virtual_ops)
-            if bool(ops):
-                block = {
-                    "block": ops[0]["block"],
-                    "timestamp": ops[0]["timestamp"],
-                    "operations": ops,
-                }
+            try:
+                ops_ops = self.blockchain.rpc.get_ops_in_block(
+                    {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
+                    api="account_history",
+                )
+                if ops_ops is None:
+                    ops = None
+                else:
+                    ops = ops_ops["ops"]
+            except ApiNotSupported:
+                ops = self.blockchain.rpc.get_ops_in_block(
+                    self.identifier, self.only_virtual_ops, api="account_history"
+                )
+                if bool(ops):
+                    block = {
+                        "block": ops[0]["block"],
+                        "timestamp": ops[0]["timestamp"],
+                        "operations": ops,
+                    }
             else:
                 block = {
                     "block": self.identifier,
@@ -174,17 +171,12 @@ class Block(BlockchainObject):
                     "operations": [],
                 }
         else:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    block = self.blockchain.rpc.get_block(
-                        {"block_num": self.identifier}, api="block"
-                    )
-                    if block and "block" in block:
-                        block = block["block"]
-                except ApiNotSupported:
-                    block = self.blockchain.rpc.get_block(self.identifier, api="condenser")
-            else:
-                block = self.blockchain.rpc.get_block(self.identifier)
+            try:
+                block = self.blockchain.rpc.get_block({"block_num": self.identifier}, api="block")
+                if block and "block" in block:
+                    block = block["block"]
+            except ApiNotSupported:
+                block = self.blockchain.rpc.get_block(self.identifier, api="block")
         if not block:
             message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
             raise BlockDoesNotExistsException(message)
@@ -364,14 +356,9 @@ class BlockHeader(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            block = self.blockchain.rpc.get_block_header(
-                {"block_num": self.identifier}, api="block"
-            )
-            if block is not None and "header" in block:
-                block = block["header"]
-        else:
-            block = self.blockchain.rpc.get_block_header(self.identifier)
+        block = self.blockchain.rpc.get_block_header({"block_num": self.identifier}, api="block")
+        if block is not None and "header" in block:
+            block = block["header"]
         if not block:
             raise BlockDoesNotExistsException(str(self.identifier))
         block = self._parse_json_data(block)

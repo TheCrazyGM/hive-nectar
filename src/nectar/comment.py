@@ -204,41 +204,34 @@ class Comment(BlockchainObject):
             return
         [author, permlink] = resolve_authorperm(self.identifier)
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        if self.blockchain.rpc.get_use_appbase():
-            from nectarapi.exceptions import InvalidParameters
+        from nectarapi.exceptions import InvalidParameters
 
-            try:
-                if self.api == "tags":
-                    content = self.blockchain.rpc.get_discussion(
-                        {"author": author, "permlink": permlink}, api="tags"
-                    )
-                elif self.api == "database":
-                    content = self.blockchain.rpc.list_comments(
-                        {"start": [author, permlink], "limit": 1, "order": "by_permlink"},
-                        api="database",
-                    )
-                elif self.api == "bridge":
-                    content = self.blockchain.rpc.get_post(
-                        {"author": author, "permlink": permlink, "observer": self.observer},
-                        api="bridge",
-                    )
-                elif self.api == "condenser":
-                    content = self.blockchain.rpc.get_content(author, permlink, api="condenser")
-                else:
-                    raise ValueError("api must be: tags, database, bridge or condenser")
-                if content is not None and "comments" in content:
-                    content = content["comments"]
-                if isinstance(content, list) and len(content) > 0:
-                    content = content[0]
-            except InvalidParameters:
-                raise ContentDoesNotExistsException(self.identifier)
-        else:
-            from nectarapi.exceptions import InvalidParameters
-
-            try:
-                content = self.blockchain.rpc.get_content(author, permlink)
-            except InvalidParameters:
-                raise ContentDoesNotExistsException(self.identifier)
+        try:
+            if self.api == "tags":
+                content = self.blockchain.rpc.get_discussion(
+                    {"author": author, "permlink": permlink}, api="tags"
+                )
+            elif self.api == "database":
+                content = self.blockchain.rpc.list_comments(
+                    {"start": [author, permlink], "limit": 1, "order": "by_permlink"},
+                    api="database_api",
+                )
+            elif self.api == "bridge":
+                content = self.blockchain.rpc.get_post(
+                    {"author": author, "permlink": permlink, "observer": self.observer},
+                    api="bridge",
+                )
+            else:  # Default to bridge API for all content queries
+                content = self.blockchain.rpc.get_post(
+                    {"author": author, "permlink": permlink, "observer": self.observer},
+                    api="bridge",
+                )
+            if content is not None and "comments" in content:
+                content = content["comments"]
+            if isinstance(content, list) and len(content) > 0:
+                content = content[0]
+        except InvalidParameters:
+            raise ContentDoesNotExistsException(self.identifier)
         if not content or not content["author"] or not content["permlink"]:
             raise ContentDoesNotExistsException(self.identifier)
         content = self._parse_json_data(content)
@@ -269,7 +262,7 @@ class Comment(BlockchainObject):
         if "authorperm" in output:
             output.pop("authorperm")
         if "json_metadata" in output:
-            output["json_metadata"] = json.dumps(output["json_metadata"], separators=[",", ":"])
+            output["json_metadata"] = json.dumps(output["json_metadata"])
         if "tags" in output:
             output.pop("tags")
         parse_times = [
@@ -945,12 +938,9 @@ class Comment(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.get_reblogged_by(
-                {"author": post_author, "permlink": post_permlink}, api="condenser"
-            )["accounts"]
-        else:
-            return self.blockchain.rpc.get_reblogged_by(post_author, post_permlink, api="condenser")
+        return self.blockchain.rpc.get_reblogged_by(
+            {"author": post_author, "permlink": post_permlink}, api="follow"
+        )["accounts"]
 
     def get_replies(self, raw_data=False, identifier=None):
         """Returns content replies

@@ -28,7 +28,6 @@ classifiers = [
 ]
 dependencies = [
   "ecdsa",
-  "requests",
   "appdirs",
   "scrypt",
   "pycryptodomex",
@@ -39,6 +38,7 @@ dependencies = [
   "asn1crypto",
   "types-requests",
   "cryptography",
+  "httpx>=0.28.1",
 ]
 
 [project.urls]

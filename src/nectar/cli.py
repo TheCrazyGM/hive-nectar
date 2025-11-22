@@ -26,7 +26,6 @@ from nectar.blockchain import Blockchain
 from nectar.comment import Comment
 from nectar.community import Communities, Community
 from nectar.hive import Hive
-from nectar.hivesigner import HiveSigner
 from nectar.imageuploader import ImageUploader
 from nectar.instance import set_shared_blockchain_instance, shared_blockchain_instance
 from nectar.market import Market
@@ -202,53 +201,6 @@ def unlock_wallet(hv, password=None, allow_wif=True):
         return True
 
 
-def unlock_token_wallet(hv, hs, password=None):
-    if hv.unsigned and hv.nobroadcast:
-        return True
-    if hv.use_ledger:
-        return True
-    if not hs.locked():
-        return True
-    if not hs.store.is_encrypted():
-        return True
-    password_storage = hv.config["password_storage"]
-    if not password and password_storage == "keyring" and is_keyring_available():
-        import keyring
-
-        password = keyring.get_password("nectar", "wallet")
-    if not password and password_storage == "environment" and "UNLOCK" in os.environ:
-        password = os.environ.get("UNLOCK")
-    if bool(password):
-        hs.unlock(password)
-    else:
-        password = click.prompt(
-            "Password to unlock wallet", confirmation_prompt=False, hide_input=True
-        )
-        try:
-            hs.unlock(password)
-        except Exception:
-            raise exceptions.WrongMasterPasswordException(
-                "entered password is not a valid password"
-            )
-
-    if hs.locked():
-        if password_storage == "keyring" or password_storage == "environment":
-            print("Wallet could not be unlocked with %s!" % password_storage)
-            password = click.prompt(
-                "Password to unlock wallet", confirmation_prompt=False, hide_input=True
-            )
-            if bool(password):
-                unlock_token_wallet(hv, hs, password=password)
-                if not hs.locked():
-                    return True
-        else:
-            print("Wallet could not be unlocked!")
-        return False
-    else:
-        print("Wallet Unlocked!")
-        return True
-
-
 def export_trx(tx, export):
     if export is not None:
         with open(export, "w", encoding="utf-8") as f:
@@ -270,13 +222,6 @@ def export_trx(tx, export):
     default=False,
     help="Nothing will be signed, changes the default value of expires to 3600",
 )
-@click.option(
-    "--create-link",
-    "-l",
-    is_flag=True,
-    default=False,
-    help="Creates hivesigner links from all broadcast operations",
-)
 # Hive is the only supported chain; no chain selection flags
 @click.option(
     "--keys",
@@ -294,13 +239,6 @@ def export_trx(tx, export):
     "--path", help="BIP32 path from which the keys are derived, when not set, default_path is used."
 )
 @click.option(
-    "--token",
-    "-t",
-    is_flag=True,
-    default=False,
-    help="Uses a hivesigner token to broadcast (only broadcast operation with posting permission)",
-)
-@click.option(
     "--expires",
     "-e",
     default=30,
@@ -314,11 +252,9 @@ def cli(
     no_broadcast,
     no_wallet,
     unsigned,
-    create_link,
     keys,
     use_ledger,
     path,
-    token,
     expires,
     verbose,
 ):
@@ -353,12 +289,6 @@ def cli(
                     keys_list.append(keyfile[account][role])
     if len(keys_list) > 0:
         autoconnect = True
-    if create_link:
-        no_broadcast = True
-        unsigned = True
-        hs = HiveSigner()
-    else:
-        hs = None
     debug = verbose > 0
     # Hive-only instance
     hv = Hive(
@@ -368,9 +298,7 @@ def cli(
         offline=offline,
         nowallet=no_wallet,
         unsigned=unsigned,
-        use_hs=token,
         expiration=expires,
-        hivesigner=hs,
         use_ledger=use_ledger,
         path=path,
         debug=debug,
@@ -436,14 +364,6 @@ def set(key, value):
             )
     elif key == "client_id":
         hv.config["client_id"] = value
-    elif key == "hot_sign_redirect_uri":
-        hv.config["hot_sign_redirect_uri"] = value
-    elif key == "hs_api_url":
-        hv.config["hs_api_url"] = value
-    elif key == "oauth_base_url":
-        # Keep generic key and also update HiveSigner oauth base for consistency
-        hv.config["oauth_base_url"] = value
-        hv.config["hs_oauth_base_url"] = value
     elif key == "default_path":
         hv.config["default_path"] = value
     elif key == "default_canonical_url":
@@ -1132,59 +1052,6 @@ def passwordgen(role, account, import_password, import_coldcard, wif, export_pub
 
 
 @cli.command()
-@click.argument("name")
-@click.option(
-    "--unsafe-import-token",
-    help="Private key to import to wallet (unsafe, unless shell history is deleted afterwards)",
-)
-def addtoken(name, unsafe_import_token):
-    """Add key to wallet
-
-    When no [OPTION] is given, a password prompt for unlocking the wallet
-    and a prompt for entering the private key are shown.
-    """
-    hv = shared_blockchain_instance()
-    if hv.rpc is not None:
-        hv.rpc.rpcconnect()
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    if not unsafe_import_token:
-        unsafe_import_token = click.prompt(
-            "Enter private token", confirmation_prompt=False, hide_input=True
-        )
-    hs.addToken(name, unsafe_import_token)
-    set_shared_blockchain_instance(hv)
-
-
-@cli.command()
-@click.option(
-    "--confirm",
-    prompt="Are your sure?",
-    hide_input=False,
-    callback=prompt_flag_callback,
-    is_flag=True,
-    confirmation_prompt=False,
-    help="Please confirm!",
-)
-@click.argument("name")
-def deltoken(confirm, name):
-    """Delete name from the wallet
-
-    name is the public name from the private token
-    which will be deleted from the wallet
-    """
-    hv = shared_blockchain_instance()
-    if hv.rpc is not None:
-        hv.rpc.rpcconnect()
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    hs.removeTokenFromPublicName(name)
-    set_shared_blockchain_instance(hv)
-
-
-@cli.command()
 @click.option("--path", "-p", help="Set path (when using ledger)")
 @click.option(
     "--ledger-approval",
@@ -1219,24 +1086,6 @@ def listkeys(path, ledger_approval):
         t.align = "l"
         for key in hv.wallet.getPublicKeys():
             t.add_row([key])
-    print(t)
-
-
-@cli.command()
-def listtoken():
-    """Show stored token"""
-    hv = shared_blockchain_instance()
-    t = PrettyTable(["name", "scope", "status"])
-    t.align = "l"
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    for name in hs.getPublicNames():
-        ret = hs.me(username=name)
-        if "error" in ret:
-            t.add_row([name, "-", ret["error"]])
-        else:
-            t.add_row([name, ret["scope"], "ok"])
     print(t)
 
 
@@ -1324,8 +1173,6 @@ def upvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.upvote(weight, voter=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not upvote.")
         tx = {}
@@ -1354,8 +1201,6 @@ def delete(post, account, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.delete(account=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Could not delete post.")
         tx = {}
@@ -1391,8 +1236,6 @@ def downvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.downvote(weight, voter=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not downvote.")
         tx = {}
@@ -1421,8 +1264,6 @@ def transfer(to, amount, asset, memo, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.transfer(to, amount, asset, memo)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1448,8 +1289,6 @@ def powerup(amount, account, to, export):
     except Exception:
         amount = str(amount)
     tx = acc.transfer_to_vesting(amount, to=to)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1477,8 +1316,6 @@ def powerdown(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.withdraw_vesting(amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1511,8 +1348,6 @@ def delegate(amount, to_account, account, export):
             amount = hv.hp_to_vests(float(amount))
 
     tx = acc.delegate_vesting_shares(to_account, amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1576,8 +1411,6 @@ def powerdownroute(to, percentage, account, auto_vest, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.set_withdraw_vesting_route(to, percentage, auto_vest=auto_vest)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1619,8 +1452,6 @@ def changerecovery(new_recovery_account, account, export):
         tb.appendWif(str(owner_key))
         tb.sign()
         tx = tb.broadcast()
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1645,8 +1476,6 @@ def convert(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.convert(amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)

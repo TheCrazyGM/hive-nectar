@@ -5,99 +5,54 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def is_network_appbase_ready(props):
-    """
-    Return True if the provided network/node properties indicate an appbase-ready node.
-
-    Checks for the presence of the "HIVE_BLOCKCHAIN_VERSION" key in props.
-
-    Parameters:
-        props (Mapping): Mapping (e.g., dict) of network or node properties.
-
-    Returns:
-        bool: True if "HIVE_BLOCKCHAIN_VERSION" exists in props, otherwise False.
-    """
-    if "HIVE_BLOCKCHAIN_VERSION" in props:
-        return True
-    else:
-        return False
-
-
-def get_query(appbase, request_id, api_name, name, args):
+def get_query(request_id, api_name, name, args):
     query = []
-    if not appbase or api_name == "condenser_api":
+    args = json.loads(json.dumps(args))
+    # Handle dict args (most common case for appbase)
+    if len(args) > 0 and isinstance(args, dict):
+        query = {
+            "method": api_name + "." + name,
+            "params": args,
+            "jsonrpc": "2.0",
+            "id": request_id,
+        }
+    elif len(args) > 0 and isinstance(args, list) and isinstance(args[0], dict):
+        query = {
+            "method": api_name + "." + name,
+            "params": args[0],
+            "jsonrpc": "2.0",
+            "id": request_id,
+        }
+    elif (
+        len(args) > 0
+        and isinstance(args, list)
+        and isinstance(args[0], list)
+        and len(args[0]) > 0
+        and isinstance(args[0][0], dict)
+    ):
+        for a in args[0]:
+            query.append(
+                {
+                    "method": api_name + "." + name,
+                    "params": a,
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                }
+            )
+            request_id += 1
+    elif args:
         query = {
             "method": "call",
             "params": [api_name, name, args],
             "jsonrpc": "2.0",
             "id": request_id,
         }
+        request_id += 1
     else:
-        args = json.loads(json.dumps(args))
-        # print(args)
-        if len(args) > 0 and isinstance(args, list) and isinstance(args[0], dict):
-            query = {
-                "method": api_name + "." + name,
-                "params": args[0],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-        elif (
-            len(args) > 0
-            and isinstance(args, list)
-            and isinstance(args[0], list)
-            and len(args[0]) > 0
-            and isinstance(args[0][0], dict)
-        ):
-            for a in args[0]:
-                query.append(
-                    {
-                        "method": api_name + "." + name,
-                        "params": a,
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                    }
-                )
-                request_id += 1
-        elif args:
-            query = {
-                "method": "call",
-                "params": [api_name, name, args],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-            request_id += 1
-        elif api_name == "condenser_api":
-            query = {
-                "method": api_name + "." + name,
-                "jsonrpc": "2.0",
-                "params": [],
-                "id": request_id,
-            }
-        else:
-            query = {
-                "method": api_name + "." + name,
-                "jsonrpc": "2.0",
-                "params": {},
-                "id": request_id,
-            }
+        query = {
+            "method": api_name + "." + name,
+            "jsonrpc": "2.0",
+            "params": {},
+            "id": request_id,
+        }
     return query
-
-
-def get_api_name(appbase, *args, **kwargs):
-    if not appbase:
-        # Sepcify the api to talk to
-        if ("api" in kwargs) and len(kwargs["api"]) > 0:
-            api_name = kwargs["api"].replace("_api", "") + "_api"
-        else:
-            api_name = None
-    else:
-        # Sepcify the api to talk to
-        if ("api" in kwargs) and len(kwargs["api"]) > 0:
-            if kwargs["api"] not in ["jsonrpc", "hive", "bridge"]:
-                api_name = kwargs["api"].replace("_api", "") + "_api"
-            else:
-                api_name = kwargs["api"]
-        else:
-            api_name = "condenser_api"
-    return api_name

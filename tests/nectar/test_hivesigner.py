@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+from nectar.hivesigner import HiveSigner
+
 from nectar import Hive
 from nectar.account import Account
-from nectar.hivesigner import HiveSigner
 
 from .nodes import get_hive_nodes
 

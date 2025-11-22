@@ -80,6 +80,7 @@ def test_reputation_success(monkeypatch):
     assert data["account"] == "alice"
     assert "reputation" in data
 
+
 def test_reputation_invalid_account_raises_value_error():
     haf = HAF()
     with pytest.raises(ValueError):

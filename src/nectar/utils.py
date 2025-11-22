@@ -2,12 +2,13 @@
 import ast
 import json
 import math
-import os
 import re
 import secrets
 import string
 import time as timenow
 from datetime import date, datetime, time, timedelta, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ruamel.yaml import YAML
 
@@ -21,7 +22,7 @@ RE_HUNK_HEADER = re.compile(
 )
 
 
-def formatTime(t):
+def formatTime(t: Union[float, datetime, date, time]) -> Optional[str]:
     """Properly Format Time for permlinks"""
     if isinstance(t, float):
         return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y%m%dt%H%M%S%Z")
@@ -29,11 +30,13 @@ def formatTime(t):
         return t.strftime("%Y%m%dt%H%M%S%Z")
 
 
-def addTzInfo(t, timezone_str="UTC"):
+def addTzInfo(
+    t: Optional[Union[datetime, date, time]], timezone_str: str = "UTC"
+) -> Optional[Union[datetime, date, time]]:
     """Returns a datetime object with tzinfo added
     Uses Python's built-in timezone when possible
     """
-    if t and isinstance(t, (datetime, date, time)) and t.tzinfo is None:
+    if t and isinstance(t, (datetime, date, time)) and (getattr(t, "tzinfo", None) is None):
         # Use built-in timezone
         if timezone_str.upper() == "UTC":
             if isinstance(t, datetime):
@@ -59,14 +62,19 @@ def addTzInfo(t, timezone_str="UTC"):
     return t
 
 
-def formatTimeString(t):
+def formatTimeString(t: Union[str, datetime, date, time]) -> str:
     """Properly Format Time for permlinks"""
     if isinstance(t, (datetime, date, time)):
+        # Convert date/time to datetime first if needed
+        if isinstance(t, date) and not isinstance(t, datetime):
+            t = datetime.combine(t, time.min)
+        elif isinstance(t, time):
+            t = datetime.combine(date.today(), t)
         return t.strftime(timeFormat)
-    return addTzInfo(datetime.strptime(t, timeFormat))
+    return addTzInfo(datetime.strptime(t, timeFormat)).strftime(timeFormat)
 
 
-def formatToTimeStamp(t):
+def formatToTimeStamp(t: Union[datetime, date, time, str]) -> int:
     """Returns a timestamp integer
 
     :param datetime t: datetime object
@@ -76,11 +84,24 @@ def formatToTimeStamp(t):
         t = addTzInfo(t)
     else:
         t = formatTimeString(t)
+    # Ensure we have a datetime object for subtraction
+    if isinstance(t, str):
+        t = datetime.strptime(t, timeFormat).replace(tzinfo=timezone.utc)
+    elif isinstance(t, (date, time)) and not isinstance(t, datetime):
+        if isinstance(t, date):
+            t = datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
+        else:
+            t = datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
+
+    # At this point, t should be a datetime object
+    if not isinstance(t, datetime):
+        raise TypeError(f"Expected datetime object, got {type(t)}")
+
     epoch = addTzInfo(datetime(1970, 1, 1))
     return int((t - epoch).total_seconds())
 
 
-def formatTimeFromNow(secs=0):
+def formatTimeFromNow(secs: int = 0) -> str:
     """Properly Format Time that is `x` seconds in the future
 
     :param int secs: Seconds to go in the future (`x>0`) or the
@@ -92,7 +113,7 @@ def formatTimeFromNow(secs=0):
     return datetime.fromtimestamp(timenow.time() + int(secs), tz=timezone.utc).strftime(timeFormat)
 
 
-def formatTimedelta(td):
+def formatTimedelta(td: timedelta) -> str:
     """Format timedelta to String"""
     if not isinstance(td, timedelta):
         return ""
@@ -100,26 +121,26 @@ def formatTimedelta(td):
     hours = days * 24 + seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60
-    return "%d:%s:%s" % (hours, str(minutes).zfill(2), str(seconds).zfill(2))
+    return f"{hours}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}"
 
 
-def parse_time(block_time):
+def parse_time(block_time: str) -> datetime:
     """Take a string representation of time from the blockchain, and parse it
     into datetime object.
     """
     return datetime.strptime(block_time, timeFormat).replace(tzinfo=timezone.utc)
 
 
-def assets_from_string(text):
+def assets_from_string(text: str) -> List[str]:
     """Correctly split a string containing an asset pair.
 
     Splits the string into two assets with the separator being on of the
-    following: ``:``, ``/``, or ``-``.
+    following: `:`, `/`, or `-`.
     """
     return re.split(r"[\-:\/]", text)
 
 
-def sanitize_permlink(permlink):
+def sanitize_permlink(permlink: str) -> str:
     permlink = permlink.strip()
     permlink = re.sub(r"_|\s|\.", "-", permlink)
     permlink = re.sub(r"[^\w-]", "", permlink)
@@ -129,14 +150,19 @@ def sanitize_permlink(permlink):
 
 
 def derive_permlink(
-    title, parent_permlink=None, parent_author=None, max_permlink_length=256, with_suffix=True
-):
+    title: str,
+    parent_permlink: Optional[str] = None,
+    parent_author: Optional[str] = None,
+    max_permlink_length: int = 256,
+    with_suffix: bool = True,
+) -> str:
     """Derive a permlink from a comment title (for root level
     comments) or the parent permlink and optionally the parent
     author (for replies).
 
     """
-    suffix = "-" + formatTime(datetime.now(timezone.utc)).lower()
+    formatted_time = formatTime(datetime.now(timezone.utc))
+    suffix = "-" + (formatted_time.lower() if formatted_time else "")
     if parent_permlink and parent_author:
         prefix = "re-" + sanitize_permlink(parent_author) + "-"
         if with_suffix:
@@ -173,7 +199,7 @@ def derive_permlink(
             return body
 
 
-def resolve_authorperm(identifier):
+def resolve_authorperm(identifier: str) -> Tuple[str, str]:
     """
     Parse an author/permlink identifier and return (author, permlink).
 
@@ -196,7 +222,7 @@ def resolve_authorperm(identifier):
     return match.group(2), match.group(3)
 
 
-def construct_authorperm(*args):
+def construct_authorperm(*args: Any) -> str:
     """Create a post identifier from comment/post object or arguments.
     Examples:
 
@@ -218,11 +244,10 @@ def construct_authorperm(*args):
     else:
         raise ValueError("construct_identifier() received unparsable arguments")
 
-    fields = dict(prefix=username_prefix, author=author, permlink=permlink)
-    return "{prefix}{author}/{permlink}".format(**fields)
+    return f"{username_prefix}{author}/{permlink}"
 
 
-def resolve_root_identifier(url):
+def resolve_root_identifier(url: str) -> Tuple[str, str]:
     m = re.match(r"/([^/]*)/@([^/]*)/([^#]*).*", url)
     if not m:
         return "", ""
@@ -233,7 +258,7 @@ def resolve_root_identifier(url):
         return construct_authorperm(author, permlink), category
 
 
-def resolve_authorpermvoter(identifier):
+def resolve_authorpermvoter(identifier: str) -> Tuple[str, str, str]:
     """Correctly split a string containing an authorpermvoter.
 
     Splits the string into author and permlink with the
@@ -246,7 +271,7 @@ def resolve_authorpermvoter(identifier):
     return author, permlink, identifier[pos + 1 :]
 
 
-def construct_authorpermvoter(*args):
+def construct_authorpermvoter(*args: Any) -> str:
     """Create a vote identifier from vote object or arguments.
     Examples:
 
@@ -275,11 +300,10 @@ def construct_authorpermvoter(*args):
     else:
         raise ValueError("construct_identifier() received unparsable arguments")
 
-    fields = dict(prefix=username_prefix, author=author, permlink=permlink, voter=voter)
-    return "{prefix}{author}/{permlink}|{voter}".format(**fields)
+    return f"{username_prefix}{author}/{permlink}|{voter}"
 
 
-def reputation_to_score(rep):
+def reputation_to_score(rep: Union[str, int]) -> float:
     """Converts the account reputation value into the reputation score"""
     if isinstance(rep, str):
         rep = int(rep)
@@ -292,7 +316,7 @@ def reputation_to_score(rep):
     return score
 
 
-def remove_from_dict(obj, keys=list(), keep_keys=True):
+def remove_from_dict(obj: Any, keys: List[str] = list(), keep_keys: bool = True) -> Dict[str, Any]:
     """Prune a class or dictionary of all but keys (keep_keys=True).
     Prune a class or dictionary of specified keys.(keep_keys=False).
     """
@@ -304,7 +328,7 @@ def remove_from_dict(obj, keys=list(), keep_keys=True):
         return {k: v for k, v in obj.items() if k not in keys}
 
 
-def make_patch(a, b):
+def make_patch(a: str, b: str) -> str:
     import diff_match_patch as dmp_module
 
     dmp = dmp_module.diff_match_patch()
@@ -313,11 +337,13 @@ def make_patch(a, b):
     return patch_text
 
 
-def findall_patch_hunks(body=None):
+def findall_patch_hunks(body: Optional[str] = None) -> List[Tuple]:
+    if body is None:
+        return []
     return RE_HUNK_HEADER.findall(body)
 
 
-def derive_beneficiaries(beneficiaries):
+def derive_beneficiaries(beneficiaries: Union[str, List[str]]) -> List[Dict[str, Any]]:
     """
     Parse beneficiaries and return a normalized, merged list of unique accounts with weights in basis points.
 
@@ -381,7 +407,7 @@ def derive_beneficiaries(beneficiaries):
     return result
 
 
-def derive_tags(tags):
+def derive_tags(tags: str) -> List[str]:
     tags_list = []
     if len(tags.split(",")) > 1:
         for tag in tags.split(","):
@@ -394,7 +420,7 @@ def derive_tags(tags):
     return tags_list
 
 
-def seperate_yaml_dict_from_body(content):
+def seperate_yaml_dict_from_body(content: str) -> Tuple[str, Dict[str, Any]]:
     parameter = {}
     body = ""
     if len(content.split("---\n")) > 1:
@@ -409,7 +435,11 @@ def seperate_yaml_dict_from_body(content):
     return body, parameter
 
 
-def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
+def create_yaml_header(
+    comment: Dict[str, Any],
+    json_metadata: Dict[str, Any] = {},
+    reply_identifier: Optional[str] = None,
+) -> str:
     """
     Create a YAML front-matter header string from post/comment data and metadata.
 
@@ -443,46 +473,46 @@ def create_yaml_header(comment, json_metadata={}, reply_identifier=None):
     """
     yaml_prefix = "---\n"
     if comment["title"] != "":
-        yaml_prefix += 'title: "%s"\n' % comment["title"]
+        yaml_prefix += f'title: "{comment["title"]}"\n'
     if "permlink" in comment:
-        yaml_prefix += "permlink: %s\n" % comment["permlink"]
-    yaml_prefix += "author: %s\n" % comment["author"]
+        yaml_prefix += f"permlink: {comment['permlink']}\n"
+    yaml_prefix += f"author: {comment['author']}\n"
     if "author" in json_metadata:
-        yaml_prefix += "authored by: %s\n" % json_metadata["author"]
+        yaml_prefix += f"authored by: {json_metadata['author']}\n"
     if "description" in json_metadata:
-        yaml_prefix += 'description: "%s"\n' % json_metadata["description"]
+        yaml_prefix += f'description: "{json_metadata["description"]}"\n'
     if "canonical_url" in json_metadata:
-        yaml_prefix += "canonical_url: %s\n" % json_metadata["canonical_url"]
+        yaml_prefix += f"canonical_url: {json_metadata['canonical_url']}\n"
     if "app" in json_metadata:
-        yaml_prefix += "app: %s\n" % json_metadata["app"]
+        yaml_prefix += f"app: {json_metadata['app']}\n"
     if "last_update" in comment:
-        yaml_prefix += "last_update: %s\n" % comment["last_update"]
+        yaml_prefix += f"last_update: {comment['last_update']}\n"
     elif "updated" in comment:
-        yaml_prefix += "last_update: %s\n" % comment["updated"]
-    yaml_prefix += "max_accepted_payout: %s\n" % str(comment["max_accepted_payout"])
+        yaml_prefix += f"last_update: {comment['updated']}\n"
+    yaml_prefix += f"max_accepted_payout: {str(comment['max_accepted_payout'])}\n"
     if "percent_hbd" in comment:
-        yaml_prefix += "percent_hbd: %s\n" % str(comment["percent_hbd"])
+        yaml_prefix += f"percent_hbd: {str(comment['percent_hbd'])}\n"
     if "tags" in json_metadata:
         if (
             len(json_metadata["tags"]) > 0
             and comment["category"] != json_metadata["tags"][0]
             and len(comment["category"]) > 0
         ):
-            yaml_prefix += "community: %s\n" % comment["category"]
-        yaml_prefix += "tags: %s\n" % ",".join(json_metadata["tags"])
+            yaml_prefix += f"community: {comment['category']}\n"
+        yaml_prefix += f"tags: {','.join(json_metadata['tags'])}\n"
     if "beneficiaries" in comment:
         beneficiaries = []
         for b in comment["beneficiaries"]:
-            beneficiaries.append("%s:%.2f%%" % (b["account"], b["weight"] / 10000 * 100))
+            beneficiaries.append(f"{b['account']}:{b['weight'] / 10000 * 100:.2f}%")
         if len(beneficiaries) > 0:
-            yaml_prefix += "beneficiaries: %s\n" % ",".join(beneficiaries)
+            yaml_prefix += f"beneficiaries: {','.join(beneficiaries)}\n"
     if reply_identifier is not None:
-        yaml_prefix += "reply_identifier: %s\n" % reply_identifier
+        yaml_prefix += f"reply_identifier: {reply_identifier}\n"
     yaml_prefix += "---\n"
     return yaml_prefix
 
 
-def load_dirty_json(dirty_json):
+def load_dirty_json(dirty_json: str) -> Dict[str, Any]:
     regex_replace = [
         (r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'),
         (r" False([, \}\]])", r" false\1"),
@@ -494,7 +524,7 @@ def load_dirty_json(dirty_json):
     return clean_json
 
 
-def create_new_password(length=32):
+def create_new_password(length: int = 32) -> str:
     """Creates a random password containing alphanumeric chars with at least 1 number and 1 upper and lower char"""
     alphabet = string.ascii_letters + string.digits
     while True:
@@ -508,7 +538,7 @@ def create_new_password(length=32):
     return import_password
 
 
-def import_coldcard_wif(filename):
+def import_coldcard_wif(filename: Union[str, Path]) -> Tuple[str, str]:
     """Reads a exported coldcard Wif text file and returns the WIF and used path"""
     next_var = ""
     import_password = ""
@@ -531,7 +561,7 @@ def import_coldcard_wif(filename):
     return import_password, path.lstrip().replace("\n", "")
 
 
-def generate_password(import_password, wif=1):
+def generate_password(import_password: str, wif: int = 1) -> str:
     if wif > 0:
         password = import_password
         for _ in range(wif):
@@ -543,9 +573,9 @@ def generate_password(import_password, wif=1):
     return password
 
 
-def import_pubkeys(import_pub):
-    if not os.path.isfile(import_pub):
-        raise Exception("File %s does not exist!" % import_pub)
+def import_pubkeys(import_pub: Union[str, Path]) -> Tuple[str, str, str, str]:
+    if not Path(import_pub).is_file():
+        raise Exception(f"File {import_pub} does not exist!")
     with open(import_pub) as fp:
         pubkeys = fp.read()
     if pubkeys.find("\0") > 0:
@@ -559,7 +589,7 @@ def import_pubkeys(import_pub):
     return owner, active, posting, memo
 
 
-def import_custom_json(jsonid, json_data):
+def import_custom_json(jsonid: str, json_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
     """Returns a list of required authorities for a custom_json operation.
 
     Returns the author and required posting authorities for a custom_json operation.

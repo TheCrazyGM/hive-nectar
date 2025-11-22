@@ -258,10 +258,7 @@ class Wallet(object):
         if key_type not in ["owner", "active", "posting", "memo"]:
             raise AssertionError("Wrong key type")
 
-        if self.rpc.get_use_appbase():
-            account = self.rpc.find_accounts({"accounts": [name]}, api="database")["accounts"]
-        else:
-            account = self.rpc.get_account(name)
+        account = self.rpc.find_accounts({"accounts": [name]}, api="database_api")["accounts"]
         if not account:
             return
         if len(account) == 0:
@@ -293,10 +290,7 @@ class Wallet(object):
         if key_type not in ["owner", "active", "posting", "memo"]:
             raise AssertionError("Wrong key type")
 
-        if self.rpc.get_use_appbase():
-            account = self.rpc.find_accounts({"accounts": [name]}, api="database")["accounts"]
-        else:
-            account = self.rpc.get_account(name)
+        account = self.rpc.find_accounts({"accounts": [name]}, api="database_api")["accounts"]
         if not account:
             return
         if len(account) == 0:
@@ -361,12 +355,9 @@ class Wallet(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            names = self.blockchain.rpc.get_key_references({"keys": [pub]}, api="account_by_key")[
-                "accounts"
-            ]
-        else:
-            names = self.blockchain.rpc.get_key_references([pub], api="account_by_key")
+        names = self.blockchain.rpc.get_key_references({"keys": [pub]}, api="account_by_key")[
+            "accounts"
+        ]
         for name in names:
             for i in name:
                 yield i

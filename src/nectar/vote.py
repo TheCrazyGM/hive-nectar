@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -37,7 +36,6 @@ class Vote(BlockchainObject):
     def __init__(
         self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None, **kwargs
     ):
-        # Handle legacy parameters
         """
         Initialize a Vote object representing a single vote on a post or comment.
 
@@ -50,35 +48,12 @@ class Vote(BlockchainObject):
 
         Behavior:
         - Normalizes numeric/time fields via internal parsing before initializing the underlying BlockchainObject.
-        - Chooses the blockchain instance in this order: explicit `blockchain_instance`, a deprecated legacy instance passed via `steem_instance` or `hive_instance` (emits DeprecationWarning), then a shared default instance.
+        - Chooses the blockchain instance in this order: explicit `blockchain_instance`, then a shared default instance.
         - Validates keyword arguments and raises on unknown or conflicting legacy instance keys.
-
-        Raises:
-        - ValueError: if more than one legacy instance key is supplied.
-        - TypeError: if unexpected keyword arguments are present.
         """
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
         # Check for unknown kwargs
         if kwargs:
             raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
 
         self.full = full
         self.lazy = lazy
@@ -150,16 +125,13 @@ class Vote(BlockchainObject):
         [author, permlink, voter] = resolve_authorpermvoter(self.identifier)
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(True)
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": author, "permlink": permlink}, api="condenser"
-                    )["votes"]
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(self.identifier)
-                except Exception:  # Fallback to condenser API
-                    votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
-            else:
+            try:
+                votes = self.blockchain.rpc.get_active_votes(
+                    {"author": author, "permlink": permlink}, api="condenser"
+                )["votes"]
+            except InvalidParameters:
+                raise VoteDoesNotExistsException(self.identifier)
+            except Exception:  # Fallback to condenser API
                 votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
         except UnknownKey:
             raise VoteDoesNotExistsException(self.identifier)
@@ -517,7 +489,6 @@ class ActiveVotes(VotesObject):
     """
 
     def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None, **kwargs):
-        # Handle legacy parameters
         """
         Initialize an ActiveVotes collection for a post's active votes.
 
@@ -528,31 +499,12 @@ class ActiveVotes(VotesObject):
         - list: treated as a pre-fetched list of vote dicts.
         - dict: expects keys "active_votes" and "authorperm".
 
-        Handles legacy keyword parameters "steem_instance" and "hive_instance" (deprecated; a DeprecationWarning is emitted). If no explicit blockchain instance is provided, a shared instance is used. If the blockchain is not connected or no votes are found, initialization returns without populating the collection.
+        If no explicit blockchain instance is provided, a shared instance is used. If the blockchain is not connected or no votes are found, initialization returns without populating the collection.
 
         Raises:
             ValueError: if multiple legacy instance parameters are provided.
             VoteDoesNotExistsException: when the RPC reports invalid parameters for the requested post (no such post).
         """
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
-
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():
@@ -562,44 +514,36 @@ class ActiveVotes(VotesObject):
         if isinstance(authorperm, Comment):
             # if 'active_votes' in authorperm and len(authorperm["active_votes"]) > 0:
             #    votes = authorperm["active_votes"]
-            if self.blockchain.rpc.get_use_appbase():
-                self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                from nectarapi.exceptions import InvalidParameters
+            self.blockchain.rpc.set_next_node_on_empty_reply(False)
+            from nectarapi.exceptions import InvalidParameters
 
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(
-                        authorperm["author"], authorperm["permlink"], api="condenser"
-                    )
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(
-                        construct_authorperm(authorperm["author"], authorperm["permlink"])
-                    )
-                except Exception:  # Fallback to tags API
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": authorperm["author"], "permlink": authorperm["permlink"]},
-                        api="tags",
-                    )["votes"]
-            else:
+            try:
                 votes = self.blockchain.rpc.get_active_votes(
                     authorperm["author"], authorperm["permlink"], api="condenser"
                 )
+            except InvalidParameters:
+                raise VoteDoesNotExistsException(
+                    construct_authorperm(authorperm["author"], authorperm["permlink"])
+                )
+            except Exception:  # Fallback to tags API
+                votes = self.blockchain.rpc.get_active_votes(
+                    {"author": authorperm["author"], "permlink": authorperm["permlink"]},
+                    api="tags",
+                )["votes"]
             authorperm = authorperm["authorperm"]
         elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
-            if self.blockchain.rpc.get_use_appbase():
-                self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                from nectarapi.exceptions import InvalidParameters
+            self.blockchain.rpc.set_next_node_on_empty_reply(False)
+            from nectarapi.exceptions import InvalidParameters
 
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
-                except Exception:  # Fallback to tags API
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": author, "permlink": permlink}, api="tags"
-                    )["votes"]
-            else:
+            try:
                 votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
+            except InvalidParameters:
+                raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
+            except Exception:  # Fallback to tags API
+                votes = self.blockchain.rpc.get_active_votes(
+                    {"author": author, "permlink": permlink}, api="tags"
+                )["votes"]
         elif isinstance(authorperm, list):
             votes = authorperm
             authorperm = None

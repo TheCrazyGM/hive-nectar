@@ -3,7 +3,6 @@ import json
 import logging
 import math
 import random
-import warnings
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional, Union
 
@@ -100,33 +99,7 @@ class Account(BlockchainObject):
             account (str | dict): Account name or raw account object/dict. If a dict is provided it will be parsed into the internal account representation.
             full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
             lazy (bool): If True, defer fetching/processing of some fields until needed.
-
-        Description:
-            Optionally accepts an explicit blockchain instance via the `blockchain_instance` argument; if not provided a shared instance is used. For backward compatibility the deprecated kwargs `steem_instance` and `hive_instance` are accepted (they emit a DeprecationWarning and are mapped to `blockchain_instance`), but specifying more than one legacy instance raises ValueError.
-
-        Returns:
-            None
         """
-        # Handle legacy parameters
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
-
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()
@@ -140,19 +113,10 @@ class Account(BlockchainObject):
         """Refresh/Obtain an account's data from the API server"""
         if not self.blockchain.is_connected():
             return
-        self.blockchain.rpc.set_next_node_on_empty_reply(self.blockchain.rpc.get_use_appbase())
-        if self.blockchain.rpc.get_use_appbase():
-            account = self.blockchain.rpc.find_accounts(
-                {"accounts": [self.identifier]}, api="database"
-            )
-        else:
-            if self.full:
-                account = self.blockchain.rpc.get_accounts([self.identifier], api="database")
-            else:
-                account = self.blockchain.rpc.lookup_account_names(
-                    [self.identifier], api="database"
-                )
-        if self.blockchain.rpc.get_use_appbase() and "accounts" in account:
+        account = self.blockchain.rpc.find_accounts(
+            {"accounts": [self.identifier]}, api="database_api"
+        )
+        if "accounts" in account:
             account = account["accounts"]
         if account and isinstance(account, list) and len(account) == 1:
             account = account[0]
@@ -1245,7 +1209,6 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        success = True
 
         def _extract_blog_items(payload):
             if isinstance(payload, dict):
@@ -1254,62 +1217,32 @@ class Account(BlockchainObject):
                         return payload[key]
             return payload
 
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                if raw_data and short_entries:
-                    ret = self.blockchain.rpc.get_blog_entries(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [c for c in ret]
-                elif raw_data:
-                    ret = self.blockchain.rpc.get_blog(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [c for c in ret]
-                else:
-                    from .comment import Comment
-
-                    ret = self.blockchain.rpc.get_blog(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
-            except Exception:
-                success = False
-
-        if not self.blockchain.rpc.get_use_appbase() or not success:
+        try:
             if raw_data and short_entries:
-                return [
-                    c
-                    for c in self.blockchain.rpc.get_blog_entries(
-                        account, start_entry_id, limit, api="condenser"
-                    )
-                ]
-
+                ret = self.blockchain.rpc.get_blog_entries(
+                    {"account": account, "start_entry_id": start_entry_id, "limit": limit},
+                    api="condenser",
+                )
+                ret = _extract_blog_items(ret)
+                return [c for c in ret]
             elif raw_data:
-                return [
-                    c
-                    for c in self.blockchain.rpc.get_blog(
-                        account, start_entry_id, limit, api="condenser"
-                    )
-                ]
-
+                ret = self.blockchain.rpc.get_blog(
+                    {"account": account, "start_entry_id": start_entry_id, "limit": limit},
+                    api="condenser",
+                )
+                ret = _extract_blog_items(ret)
+                return [c for c in ret]
             else:
                 from .comment import Comment
 
-                blog_list = self.blockchain.rpc.get_blog(
-                    account, start_entry_id, limit, api="condenser"
+                ret = self.blockchain.rpc.get_blog(
+                    {"account": account, "start_entry_id": start_entry_id, "limit": limit},
+                    api="condenser",
                 )
-                if blog_list is None:
-                    return []
-                return [
-                    Comment(c["comment"], blockchain_instance=self.blockchain) for c in blog_list
-                ]
+                ret = _extract_blog_items(ret)
+                return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
+        except Exception:
+            return []
 
     def get_notifications(self, only_unread=True, limit=100, raw_data=False, account=None):
         """Returns account notifications
@@ -1389,16 +1322,11 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                return self.blockchain.rpc.get_blog_authors(
-                    {"blog_account": account}, api="condenser"
-                )["blog_authors"]
-            except Exception:
-                return self.blockchain.rpc.get_blog_authors(
-                    {"blog_account": account}, api="condenser"
-                )["blog_authors"]
-        else:
+        try:
+            return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+                "blog_authors"
+            ]
+        except Exception:
             return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
                 "blog_authors"
             ]
@@ -1411,12 +1339,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser")
-            except Exception:
-                return self.blockchain.rpc.get_follow_count(account, api="condenser")
-        else:
+        try:
+            return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser")
+        except Exception:
             return self.blockchain.rpc.get_follow_count(account, api="condenser")
 
     def get_followers(self, raw_name_list=True, limit=100):
@@ -1552,45 +1477,26 @@ class Account(BlockchainObject):
         cnt = 0
         while limit_reached:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.rpc.get_use_appbase():
-                query = {"account": self.name, "start": last_user, "type": what, "limit": limit}
-                if direction == "follower":
-                    try:
-                        followers = self.blockchain.rpc.get_followers(query, api="condenser")
-                    except Exception:
-                        followers = self.blockchain.rpc.get_followers(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    if isinstance(followers, dict) and "followers" in followers:
-                        followers = followers["followers"]
-                elif direction == "following":
-                    try:
-                        followers = self.blockchain.rpc.get_following(query, api="condenser")
-                    except Exception:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    if isinstance(followers, dict) and "following" in followers:
-                        followers = followers["following"]
-            else:
-                if direction == "follower":
-                    try:
-                        followers = self.blockchain.rpc.get_followers(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    except Exception:
-                        followers = self.blockchain.rpc.get_followers(
-                            [self.name, last_user, what, limit], api="condenser"
-                        )
-                elif direction == "following":
-                    try:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    except Exception:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
+            query = {"account": self.name, "start": last_user, "type": what, "limit": limit}
+            if direction == "follower":
+                try:
+                    followers = self.blockchain.rpc.get_followers(query, api="condenser")
+                except Exception:
+                    followers = self.blockchain.rpc.get_followers(
+                        self.name, last_user, what, limit, api="condenser"
+                    )
+                if isinstance(followers, dict) and "followers" in followers:
+                    followers = followers["followers"]
+            elif direction == "following":
+                try:
+                    followers = self.blockchain.rpc.get_following(query, api="condenser")
+                except Exception:
+                    followers = self.blockchain.rpc.get_following(
+                        self.name, last_user, what, limit, api="condenser"
+                    )
+                if isinstance(followers, dict) and "following" in followers:
+                    followers = followers["following"]
+
             if cnt == 0:
                 followers_list = followers
             elif followers is not None and len(followers) > 1:
@@ -1878,18 +1784,14 @@ class Account(BlockchainObject):
         )
         allocated_bandwidth = round(allocated_bandwidth / 1000000)
 
-        if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
-            try:
-                account_bandwidth = self.get_account_bandwidth(bandwidth_type=1, account=account)
-            except Exception:
-                account_bandwidth = None
-            if account_bandwidth is None:
-                return {"used": 0, "allocated": allocated_bandwidth}
-            last_bandwidth_update = formatTimeString(account_bandwidth["last_bandwidth_update"])
-            average_bandwidth = float(account_bandwidth["average_bandwidth"])
-        else:
-            last_bandwidth_update = self["last_bandwidth_update"]
-            average_bandwidth = float(self["average_bandwidth"])
+        try:
+            account_bandwidth = self.get_account_bandwidth(bandwidth_type=1, account=account)
+        except Exception:
+            account_bandwidth = None
+        if account_bandwidth is None:
+            return {"used": 0, "allocated": allocated_bandwidth}
+        last_bandwidth_update = formatTimeString(account_bandwidth["last_bandwidth_update"])
+        average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
         seconds_since_last_update = addTzInfo(datetime.now(timezone.utc)) - last_bandwidth_update
@@ -1927,12 +1829,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_owner_histories({"owner": account}, api="database")[
-                "owner_auths"
-            ]
-        else:
-            return self.blockchain.rpc.get_owner_history(account)
+        return self.blockchain.rpc.find_owner_histories({"owner": account}, api="database_api")[
+            "owner_auths"
+        ]
 
     def get_conversion_requests(self, account=None):
         """
@@ -1955,13 +1854,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase() and "sbd_balance" in self:
-            return self.blockchain.rpc.find_sbd_conversion_requests(
-                {"account": account}, api="database"
-            )["requests"]
-        elif self.blockchain.rpc.get_use_appbase() and "hbd_balance" in self:
+        if "hbd_balance" in self:
             return self.blockchain.rpc.find_hbd_conversion_requests(
-                {"account": account}, api="database"
+                {"account": account}, api="database_api"
             )["requests"]
         else:
             return self.blockchain.rpc.get_conversion_requests(account)
@@ -1989,14 +1884,11 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            delegations = self.blockchain.rpc.list_vesting_delegations(
-                {"start": [account, start_account], "limit": limit, "order": "by_delegation"},
-                api="database",
-            )["delegations"]
-            return [d for d in delegations if d["delegator"] == account]
-        else:
-            return self.blockchain.rpc.get_vesting_delegations(account, start_account, limit)
+        delegations = self.blockchain.rpc.list_vesting_delegations(
+            {"start": [account, start_account], "limit": limit, "order": "by_delegation"},
+            api="database_api",
+        )["delegations"]
+        return [d for d in delegations if d["delegator"] == account]
 
     def get_withdraw_routes(self, account=None):
         """
@@ -2020,12 +1912,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_withdraw_vesting_routes(
-                {"account": account, "order": "by_withdraw_route"}, api="database"
-            )["routes"]
-        else:
-            return self.blockchain.rpc.get_withdraw_routes(account, "all")
+        return self.blockchain.rpc.find_withdraw_vesting_routes(
+            {"account": account, "order": "by_withdraw_route"}, api="database_api"
+        )["routes"]
 
     def get_savings_withdrawals(self, direction="from", account=None):
         """
@@ -2049,14 +1938,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_savings_withdrawals(
-                {"account": account}, api="database"
-            )["withdrawals"]
-        elif direction == "from":
-            return self.blockchain.rpc.get_savings_withdraw_from(account)
-        elif direction == "to":
-            return self.blockchain.rpc.get_savings_withdraw_to(account)
+        return self.blockchain.rpc.find_savings_withdrawals(
+            {"account": account}, api="database_api"
+        )["withdrawals"]
 
     def get_recovery_request(self, account=None):
         """Returns the recovery request for an account
@@ -2084,12 +1968,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_account_recovery_requests(
-                {"accounts": [account]}, api="database"
-            )["requests"]
-        else:
-            return self.blockchain.rpc.get_recovery_request(account)
+        return self.blockchain.rpc.find_account_recovery_requests(
+            {"accounts": [account]}, api="database_api"
+        )["requests"]
 
     def get_escrow(self, escrow_id=0, account=None):
         """
@@ -2115,10 +1996,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_escrows({"from": account}, api="database")["escrows"]
-        else:
-            return self.blockchain.rpc.get_escrow(account, escrow_id)
+        return self.blockchain.rpc.find_escrows({"from": account}, api="database_api")["escrows"]
 
     def verify_account_authority(self, keys, account=None):
         """
@@ -2138,12 +2016,9 @@ class Account(BlockchainObject):
             keys = [keys]
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
-            if self.blockchain.rpc.get_use_appbase():
-                return self.blockchain.rpc.verify_account_authority(
-                    {"account": account, "signers": keys}, api="database"
-                )
-            else:
-                return self.blockchain.rpc.verify_account_authority(account, keys)
+            return self.blockchain.rpc.verify_account_authority(
+                {"account": account, "signers": keys}, api="database_api"
+            )
         except MissingRequiredActiveAuthority:
             return {"valid": False}
 
@@ -2161,12 +2036,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.get_tags_used_by_author(
-                {"author": account}, api="condenser"
-            )["tags"]
-        else:
-            return self.blockchain.rpc.get_tags_used_by_author(account, api="condenser")
+        return self.blockchain.rpc.get_tags_used_by_author({"author": account}, api="condenser")[
+            "tags"
+        ]
 
     def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
         """
@@ -2195,14 +2067,9 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if after is None:
             after = addTzInfo(datetime.now(timezone.utc)) - timedelta(days=8)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_vesting_delegation_expirations(
-                {"account": account}, api="database"
-            )["delegations"]
-        else:
-            return self.blockchain.rpc.get_expiring_vesting_delegations(
-                account, formatTimeString(after), limit
-            )
+        return self.blockchain.rpc.find_vesting_delegation_expirations(
+            {"account": account}, api="database_api"
+        )["delegations"]
 
     def get_account_votes(
         self, account=None, start_author="", start_permlink="", limit=1000, start_date=None
@@ -2231,7 +2098,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         # self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        # if self.blockchain.rpc.get_use_appbase():
+
         #     vote_list = self.blockchain.rpc.get_account_votes(account, api="condenser")
         # else:
         #    vote_list = self.blockchain.rpc.get_account_votes(account)
@@ -2247,7 +2114,7 @@ class Account(BlockchainObject):
                         "limit": limit,
                         "order": "by_voter_comment",
                     },
-                    api="database",
+                    api="database_api",
                 )["votes"]
             except SupportedByHivemind:
                 return vote_list
@@ -2334,51 +2201,38 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if operation_filter_low is None and operation_filter_high is None:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ret = self.blockchain.rpc.get_account_history(
-                        {"account": account, "start": start, "limit": limit}, api="account_history"
-                    )
-                    if ret is not None:
-                        ret = ret["history"]
-                except ApiNotSupported:
-                    ret = self.blockchain.rpc.get_account_history(
-                        account, start, limit, api="condenser"
-                    )
-            else:
-                ret = self.blockchain.rpc.get_account_history(account, start, limit, api="database")
+            try:
+                ret = self.blockchain.rpc.get_account_history(
+                    {"account": account, "start": start, "limit": limit}, api="account_history"
+                )
+                if ret is not None:
+                    ret = ret["history"]
+            except ApiNotSupported:
+                ret = self.blockchain.rpc.get_account_history(
+                    account, start, limit, api="condenser"
+                )
         else:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ret = self.blockchain.rpc.get_account_history(
-                        {
-                            "account": account,
-                            "start": start,
-                            "limit": limit,
-                            "operation_filter_low": operation_filter_low,
-                            "operation_filter_high": operation_filter_high,
-                        },
-                        api="account_history",
-                    )
-                    if ret is not None:
-                        ret = ret["history"]
-                except ApiNotSupported:
-                    ret = self.blockchain.rpc.get_account_history(
-                        account,
-                        start,
-                        limit,
-                        operation_filter_low,
-                        operation_filter_high,
-                        api="condenser",
-                    )
-            else:
+            try:
+                ret = self.blockchain.rpc.get_account_history(
+                    {
+                        "account": account,
+                        "start": start,
+                        "limit": limit,
+                        "operation_filter_low": operation_filter_low,
+                        "operation_filter_high": operation_filter_high,
+                    },
+                    api="account_history",
+                )
+                if ret is not None:
+                    ret = ret["history"]
+            except ApiNotSupported:
                 ret = self.blockchain.rpc.get_account_history(
                     account,
                     start,
                     limit,
                     operation_filter_low,
                     operation_filter_high,
-                    api="database",
+                    api="condenser",
                 )
         return ret
 
@@ -4546,7 +4400,7 @@ class Accounts(AccountsObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             if self.blockchain.rpc.get_use_appbase():
                 accounts += self.blockchain.rpc.find_accounts(
-                    {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database"
+                    {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database_api"
                 )["accounts"]
             else:
                 accounts += self.blockchain.rpc.get_accounts(
