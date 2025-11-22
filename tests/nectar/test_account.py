@@ -455,12 +455,9 @@ class Testcases(unittest.TestCase):
 
     def test_json_export(self):
         account = Account("open.mithril", blockchain_instance=self.bts)
-        if account.blockchain.rpc.get_use_appbase():
-            content = self.bts.rpc.find_accounts({"accounts": [account["name"]]}, api="database")[
-                "accounts"
-            ][0]
-        else:
-            content = self.bts.rpc.get_accounts([account["name"]])[0]
+        content = self.bts.rpc.find_accounts({"accounts": [account["name"]]}, api="database_api")[
+            "accounts"
+        ][0]
         keys = list(content.keys())
         json_content = account.json()
         exclude_list = [

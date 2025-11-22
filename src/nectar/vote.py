@@ -29,8 +29,6 @@ class Vote(BlockchainObject):
     :param str authorperm: perm link to post/comment
     :param nectar.nectar.nectar blockchain_instance: nectar
         instance to use when accesing a RPC
-    :param steem_instance: (deprecated) use blockchain_instance instead
-    :param hive_instance: (deprecated) use blockchain_instance instead
     """
 
     def __init__(
@@ -113,7 +111,7 @@ class Vote(BlockchainObject):
         """
         Refresh the Vote object from the blockchain RPC, replacing its internal data with the latest on-chain vote.
 
-        If the object has no identifier or the blockchain is not connected, this method returns immediately. It resolves author, permlink, and voter from the stored identifier and queries the node for active votes (preferring appbase paths with a condenser fallback). If the matching vote is found, the object is reinitialized with the normalized vote data; otherwise VoteDoesNotExistsException is raised.
+        If the object has no identifier or the blockchain is not connected, this method returns immediately. It resolves author, permlink, and voter from the stored identifier and queries the node for active votes. If the matching vote is found, the object is reinitialized with the normalized vote data; otherwise VoteDoesNotExistsException is raised.
 
         Raises:
             VoteDoesNotExistsException: if the vote cannot be found or the RPC indicates the vote does not exist.
@@ -478,7 +476,7 @@ class VotesObject(list):
         return self.printAsTable(return_str=True)
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(self.identifier))
+        return "<%s %s>" % (self.__class__.__name__, str(getattr(self, "identifier", "unknown")))
 
 
 class ActiveVotes(VotesObject):
@@ -652,8 +650,8 @@ class AccountVotes(VotesObject):
     def __init__(
         self,
         account,
-        start=None,
-        stop=None,
+        start: datetime | str | None = None,
+        stop: datetime | str | None = None,
         raw_data=False,
         lazy=False,
         full=False,
@@ -679,8 +677,21 @@ class AccountVotes(VotesObject):
                 Passed to Vote when constructing Vote objects; controls whether to fully populate vote data.
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Convert start/stop to datetime objects for comparison
+        start_dt = None
+        stop_dt = None
+        if start is not None:
+            if isinstance(start, str):
+                start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+            else:
+                start_dt = start
+        if stop is not None:
+            if isinstance(stop, str):
+                stop_dt = datetime.strptime(stop, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+            else:
+                stop_dt = stop
         account = Account(account, blockchain_instance=self.blockchain)
         votes = account.get_account_votes()
         self.identifier = account["name"]
@@ -694,12 +705,12 @@ class AccountVotes(VotesObject):
                 if time != "":
                     x["time"] = time
             if time != "" and isinstance(time, str):
-                d_time = formatTimeString(time)
+                d_time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
             elif isinstance(time, datetime):
                 d_time = time
             else:
-                d_time = addTzInfo(datetime(1970, 1, 1, 0, 0, 0))
-            if (start is None or d_time >= start) and (stop is None or d_time <= stop):
+                d_time = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            if (start_dt is None or d_time >= start_dt) and (stop_dt is None or d_time <= stop_dt):
                 if not raw_data:
                     vote_list.append(
                         Vote(

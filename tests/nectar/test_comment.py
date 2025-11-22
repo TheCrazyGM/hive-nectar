@@ -127,12 +127,9 @@ class Testcases(unittest.TestCase):
     def test_export(self, api):
         bts = self.bts
 
-        if bts.rpc.get_use_appbase():
-            content = bts.rpc.get_discussion(
-                {"author": self.author, "permlink": self.permlink}, api="tags"
-            )
-        else:
-            content = bts.rpc.get_content(self.author, self.permlink)
+        content = bts.rpc.get_discussion(
+            {"author": self.author, "permlink": self.permlink}, api="bridge"
+        )
 
         c = Comment(self.authorperm, api=api, blockchain_instance=bts)
         keys = list(content.keys())

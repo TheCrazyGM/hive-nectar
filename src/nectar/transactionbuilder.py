@@ -4,8 +4,6 @@ import struct
 from binascii import unhexlify
 
 # import time (not currently used)
-from datetime import timedelta
-
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
@@ -21,7 +19,7 @@ from .exceptions import (
     MissingKeyError,
     OfflineHasNoRPCException,
 )
-from .utils import formatTimeFromNow, formatTimeString
+from .utils import formatTimeFromNow
 
 log = logging.getLogger(__name__)
 
@@ -345,9 +343,12 @@ class TransactionBuilder(dict):
         # it fixes transaction expiration error when pushing transactions
         # when blocks are moved forward with debug_produce_block*
         if self.blockchain.is_connected():
-            now = formatTimeString(
-                self.blockchain.get_dynamic_global_properties(use_stored_data=False).get("time")
-            ).replace(tzinfo=None)
+            time_str = self.blockchain.get_dynamic_global_properties(use_stored_data=False).get(
+                "time"
+            )
+            from datetime import datetime, timedelta
+
+            now = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
             expiration = now + timedelta(seconds=int(self.expiration or self.blockchain.expiration))
             expiration = expiration.replace(microsecond=0).isoformat()
         else:

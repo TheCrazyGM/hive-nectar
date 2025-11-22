@@ -444,7 +444,8 @@ class Account(BlockchainObject):
             used_kb = bandwidth["used"] / 1024
             allocated_mb = bandwidth["allocated"] / 1024 / 1024
         last_vote_time_str = formatTimedelta(
-            addTzInfo(datetime.now(timezone.utc)) - self["last_vote_time"]
+            datetime.now(timezone.utc)
+            - datetime.strptime(self["last_vote_time"], "%Y-%m-%dT%H:%M:%S")
         )
         try:
             rc_mana = self.get_rc_manabar()
@@ -811,7 +812,8 @@ class Account(BlockchainObject):
                 + int(self["received_vesting_shares"])
             )
         timestamp = (
-            self["next_vesting_withdrawal"] - addTzInfo(datetime(1970, 1, 1))
+            datetime.strptime(self["next_vesting_withdrawal"], "%Y-%m-%dT%H:%M:%S")
+            - datetime(1970, 1, 1)
         ).total_seconds()
         if (
             timestamp > 0
@@ -2203,7 +2205,7 @@ class Account(BlockchainObject):
         if operation_filter_low is None and operation_filter_high is None:
             try:
                 ret = self.blockchain.rpc.get_account_history(
-                    {"account": account, "start": start, "limit": limit}, api="account_history"
+                    {"account": account, "start": start, "limit": limit}, api="account_history_api"
                 )
                 if ret is not None:
                     ret = ret["history"]
@@ -2221,7 +2223,7 @@ class Account(BlockchainObject):
                         "operation_filter_low": operation_filter_low,
                         "operation_filter_high": operation_filter_high,
                     },
-                    api="account_history",
+                    api="account_history_api",
                 )
                 if ret is not None:
                     ret = ret["history"]
@@ -4398,14 +4400,9 @@ class Accounts(AccountsObject):
 
         while name_cnt < len(name_list):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.rpc.get_use_appbase():
-                accounts += self.blockchain.rpc.find_accounts(
-                    {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database_api"
-                )["accounts"]
-            else:
-                accounts += self.blockchain.rpc.get_accounts(
-                    name_list[name_cnt : batch_limit + name_cnt]
-                )
+            accounts += self.blockchain.rpc.find_accounts(
+                {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database_api"
+            )["accounts"]
             name_cnt += batch_limit
 
         super(Accounts, self).__init__(

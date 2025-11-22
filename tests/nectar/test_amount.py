@@ -138,27 +138,19 @@ class Testcases(unittest.TestCase):
     def test_json_appbase(self):
         asset = Asset("HBD", blockchain_instance=self.bts)
         amount = Amount("1", asset, new_appbase_format=False, blockchain_instance=self.bts)
-        if self.bts.rpc.get_use_appbase():
-            self.assertEqual(
-                amount.json(), [str(1 * 10**asset.precision), asset.precision, asset.asset]
-            )
-        else:
-            self.assertEqual(amount.json(), "1.000 HBD")
+        self.assertEqual(amount.json(), ["1000", 3, "@@000000013"])
 
     def test_json_appbase2(self):
         asset = Asset("HBD", blockchain_instance=self.bts)
         amount = Amount("1", asset, new_appbase_format=True, blockchain_instance=self.bts)
-        if self.bts.rpc.get_use_appbase():
-            self.assertEqual(
-                amount.json(),
-                {
-                    "amount": str(1 * 10**asset.precision),
-                    "nai": asset.asset,
-                    "precision": asset.precision,
-                },
-            )
-        else:
-            self.assertEqual(amount.json(), "1.000 HBD")
+        self.assertEqual(
+            amount.json(),
+            {
+                "amount": str(1 * 10**asset.precision),
+                "nai": asset.asset,
+                "precision": asset.precision,
+            },
+        )
 
     def test_string(self):
         self.assertEqual(str(Amount("10000", self.symbol)), "10000.000 {}".format(self.symbol))

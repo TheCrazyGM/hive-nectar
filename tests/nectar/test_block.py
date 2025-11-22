@@ -77,12 +77,9 @@ class Testcases(unittest.TestCase):
         bts = self.bts
         block_num = 2000000
 
-        if bts.rpc.get_use_appbase():
-            block = bts.rpc.get_block({"block_num": block_num}, api="block")
-            if block and "block" in block:
-                block = block["block"]
-        else:
-            block = bts.rpc.get_block(block_num)
+        block = bts.rpc.get_block({"block_num": block_num}, api="block_api")
+        if block and "block" in block:
+            block = block["block"]
 
         b = Block(block_num, blockchain_instance=bts)
         keys = list(block.keys())
@@ -95,12 +92,9 @@ class Testcases(unittest.TestCase):
                 else:
                     self.assertEqual(block[k], json_content[k])
 
-        if bts.rpc.get_use_appbase():
-            block = bts.rpc.get_block_header({"block_num": block_num}, api="block")
-            if "header" in block:
-                block = block["header"]
-        else:
-            block = bts.rpc.get_block_header(block_num)
+        block = bts.rpc.get_block_header({"block_num": block_num}, api="block_api")
+        if "header" in block:
+            block = block["header"]
 
         b = BlockHeader(block_num, blockchain_instance=bts)
         keys = list(block.keys())

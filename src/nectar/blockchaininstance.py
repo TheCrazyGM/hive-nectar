@@ -65,12 +65,6 @@ class BlockChainInstance(object):
     :param bool bundle: Do not broadcast transactions right away, but allow
         to bundle operations. It is not possible to send out more than one
         vote operation and more than one comment operation in a single broadcast *(optional)*
-    :param bool appbase: Use the new appbase rpc protocol on nodes with version
-        0.19.4 or higher. The settings has no effect on nodes with version of 0.19.3 or lower.
-    :param int num_retries: Set the maximum number of reconnects to the nodes before
-        NumRetriesReached is raised. Disabled for -1. (default is -1)
-    :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
-    :param int timeout: Timeout setting for https nodes (default is 60)
     :param dict custom_chains: custom chain which should be added to the known chains
 
     Three wallet operation modes are possible:

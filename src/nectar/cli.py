@@ -102,9 +102,9 @@ def prompt_flag_callback(ctx, param, value):
 def is_keyring_available():
     KEYRING_AVAILABLE = False
     try:
-        import keyring
+        import keyring  # type: ignore
 
-        if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):
+        if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):  # type: ignore
             KEYRING_AVAILABLE = True
         else:
             KEYRING_AVAILABLE = False
@@ -124,7 +124,7 @@ def unlock_wallet(hv, password=None, allow_wif=True):
         return True
     password_storage = hv.config["password_storage"]
     if not password and password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         password = keyring.get_password("nectar", "wallet")
     if not password and password_storage == "environment" and "UNLOCK" in os.environ:
@@ -343,7 +343,7 @@ def set(key, value):
     elif key == "password_storage":
         hv.config["password_storage"] = value
         if is_keyring_available() and value == "keyring":
-            import keyring
+            import keyring  # type: ignore
 
             password = click.prompt(
                 "Password to unlock wallet (Will be stored in keyring)",
@@ -352,7 +352,7 @@ def set(key, value):
             )
             password = keyring.set_password("nectar", "wallet", password)
         elif is_keyring_available() and value != "keyring":
-            import keyring
+            import keyring  # type: ignore
 
             try:
                 keyring.delete_password("nectar", "wallet")
@@ -588,7 +588,7 @@ def createwallet(wipe):
         return
     password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         password = keyring.set_password("nectar", "wallet", password)
     elif password_storage == "environment":
@@ -1496,7 +1496,7 @@ def changewalletpassphrase():
         return
     password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         keyring.set_password("nectar", "wallet", newpassword)
     elif password_storage == "environment":
@@ -1622,7 +1622,9 @@ def followlist(follow_type, account, limit):
     if follow_type == "blog":
         name_list = account.get_following(limit=limit)
     else:
-        name_list = account.get_follow_list(follow_type, limit=limit)
+        name_list = account.get_follow_list(follow_type)
+        if limit and len(name_list) > limit:
+            name_list = name_list[:limit]
     t = PrettyTable(["index", "name"])
     t.align = "r"
     i = 0
@@ -1850,8 +1852,6 @@ def allow(foreign_account, permission, account, weight, threshold, export):
     if threshold is not None:
         threshold = int(threshold)
     tx = acc.allow(foreign_account, weight=weight, permission=permission, threshold=threshold)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1898,8 +1898,6 @@ def disallow(foreign_account, permission, account, weight, threshold, export):
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
         foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
     tx = acc.disallow(foreign_account, permission=permission, weight=weight, threshold=threshold)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1935,9 +1933,8 @@ def claimaccount(creator, fee, number, export):
     creator = Account(creator, blockchain_instance=hv)
     fee = Amount("%.3f %s" % (float(fee), hv.token_symbol), blockchain_instance=hv)
     tx = None
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+    if float(fee) > 0:
         tx = hv.claim_account(creator, fee=fee)
-        tx = hv.hivesigner.url_from_tx(tx)
     elif float(fee) == 0:
         rc = RC(blockchain_instance=hv)
         current_costs = rc.claim_account(tx_size=200)
@@ -2035,8 +2032,6 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
         memo_key=memo,
         password=None,
     )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2151,8 +2146,6 @@ def newaccount(
                 memo_key=memo,
                 posting_key=posting,
             )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2191,8 +2184,6 @@ def setprofile(variable, value, account, pair, export):
     json_metadata = Profile(acc["json_metadata"] if acc["json_metadata"] else {})
     json_metadata.update(profile)
     tx = acc.update_account_profile(json_metadata)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2219,8 +2210,6 @@ def delprofile(variable, account, export):
         json_metadata.remove(var)
 
     tx = acc.update_account_profile(json_metadata)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2337,8 +2326,6 @@ def updatememokey(account, key, export):
         if not hv.nobroadcast:
             hv.wallet.addPrivateKey(memo_privkey)
     tx = acc.update_memo_key(key)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2377,8 +2364,6 @@ def beneficiaries(authorperm, beneficiaries, export):
     for b in beneficiaries_list_sorted:
         Account(b["account"], blockchain_instance=hv)
     tx = hv.comment_options(options, authorperm, beneficiaries_list_sorted, account=account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2731,12 +2716,12 @@ def createpost(
     if community is None:
         community_found = False
         while not community_found:
-            community = input("community account (name or title): ")
+            community_name = input("community account (name or title): ")
             try:
-                community = Community(community)
+                community = Community(community_name)
             except Exception:
                 c = Communities(limit=1000)
-                comm_cand = c.search_title(community)
+                comm_cand = c.search_title(community_name)
                 if len(comm_cand) == 0:
                     print("No community could be found!")
                     continue
@@ -2907,18 +2892,9 @@ def post(
         parse_body = bool(parameter["parse_body"])
     else:
         parse_body = not no_parse_body
-    max_accepted_payout = None
-    if "max_accepted_payout" in parameter:
-        max_accepted_payout = parameter["max_accepted_payout"]
-    percent_hbd = None
-    if "percent_hbd" in parameter:
-        percent_hbd = parameter["percent_hbd"]
-    max_accepted_payout = None
-    if "max_accepted_payout" in parameter:
-        max_accepted_payout = parameter["max_accepted_payout"]
-    comment_options = None
-    if max_accepted_payout is not None or percent_hbd is not None:
-        comment_options = {}
+    max_accepted_payout = parameter.get("max_accepted_payout")
+    percent_hbd = parameter.get("percent_hbd")
+    comment_options = {}
     if max_accepted_payout is not None:
         if hv.backed_token_symbol not in max_accepted_payout:
             max_accepted_payout = str(
@@ -3026,8 +3002,6 @@ def post(
             parse_body=False,
             app="hive-nectar/%s" % (__version__),
         )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3060,8 +3034,6 @@ def reply(authorperm, body, account, title, export):
         reply_identifier=authorperm,
         app="hive-nectar/%s" % (__version__),
     )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3082,8 +3054,6 @@ def approvewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.approvewitness(witness, approve=True)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3104,8 +3074,6 @@ def disapprovewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.disapprovewitness(witness)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3126,8 +3094,6 @@ def setproxy(proxy, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy(proxy, account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3147,8 +3113,6 @@ def delproxy(account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy("", account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3571,8 +3535,6 @@ def buy(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=hv)
     acc = Account(account, blockchain_instance=hv)
     tx = market.buy(p, a, account=acc, orderid=orderid)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3633,8 +3595,6 @@ def sell(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=hv)
     acc = Account(account, blockchain_instance=hv)
     tx = market.sell(p, a, account=acc, orderid=orderid)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3656,8 +3616,6 @@ def cancel(orderid, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = market.cancel(orderid, account=acc)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3699,8 +3657,6 @@ def reblog(identifier, account):
     acc = Account(account, blockchain_instance=hv)
     post = Comment(identifier, blockchain_instance=hv)
     tx = post.reblog(account=acc)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -3726,8 +3682,6 @@ def follow(follow, account, what, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(follow, what=what)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3751,8 +3705,6 @@ def mute(mute, account, what, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(mute, what=what)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3773,8 +3725,6 @@ def unfollow(unfollow, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.unfollow(unfollow)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3818,8 +3768,6 @@ def witnessupdate(
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     tx = witness.update(signing_key or witness["signing_key"], url or witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3844,8 +3792,6 @@ def witnessdisable(witness, export):
     props = witness["props"]
     null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % hv.prefix
     tx = witness.update(null_key, witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3867,8 +3813,6 @@ def witnessenable(witness, signing_key, export):
     witness = Witness(witness, blockchain_instance=hv)
     props = witness["props"]
     tx = witness.update(signing_key, witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3906,8 +3850,6 @@ def witnesscreate(
     }
 
     tx = hv.witness_update(pub_signing_key, url, props, account=witness)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3959,8 +3901,6 @@ def witnessproperties(
         props["url"] = url
 
     tx = hv.witness_set_properties(wif, witness, props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4037,8 +3977,6 @@ def witnessfeed(witness, wif, base, quote, support_peg):
         tx = hv.witness_set_properties(wif, witness["owner"], props)
     else:
         tx = witness.feed_publish(base, quote=quote)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -5277,8 +5215,6 @@ def claimreward(
         reward_vests = r[1]
 
     tx = acc.claim_reward_balance(reward_sbd, reward_vests)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -5929,7 +5865,7 @@ def draw(
 
 if __name__ == "__main__":
     if getattr(sys, "frozen", False):
-        os.environ["SSL_CERT_FILE"] = os.path.join(sys._MEIPASS, "lib", "cert.pem")
+        os.environ["SSL_CERT_FILE"] = os.path.join(sys._MEIPASS, "lib", "cert.pem")  # type: ignore
         cli(sys.argv[1:])
     else:
         cli()

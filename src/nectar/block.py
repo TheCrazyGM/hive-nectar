@@ -148,7 +148,7 @@ class Block(BlockchainObject):
             try:
                 ops_ops = self.blockchain.rpc.get_ops_in_block(
                     {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
-                    api="account_history",
+                    api="account_history_api",
                 )
                 if ops_ops is None:
                     ops = None
@@ -156,7 +156,7 @@ class Block(BlockchainObject):
                     ops = ops_ops["ops"]
             except ApiNotSupported:
                 ops = self.blockchain.rpc.get_ops_in_block(
-                    self.identifier, self.only_virtual_ops, api="account_history"
+                    self.identifier, self.only_virtual_ops, api="account_history_api"
                 )
                 if bool(ops):
                     block = {
@@ -278,7 +278,14 @@ class Block(BlockchainObject):
                 if "timestamp" in op:
                     p_date = op.get("timestamp", datetime(1970, 1, 1, 0, 0))
                     if isinstance(p_date, (datetime, date)):
-                        op_new.update({"timestamp": formatTimeString(p_date)})
+                        if isinstance(op_new, dict):
+                            op_new.update({"timestamp": formatTimeString(p_date)})
+                        else:
+                            # Handle list case - find timestamp in list and update it
+                            for i, item in enumerate(op_new):
+                                if isinstance(item, dict) and "timestamp" in item:
+                                    op_new[i] = {**item, "timestamp": formatTimeString(p_date)}
+                                    break
                 ops.append(op_new)
         return ops
 

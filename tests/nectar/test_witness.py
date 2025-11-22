@@ -134,12 +134,9 @@ class Testcases(unittest.TestCase):
         else:
             bts = self.hiveio
         owner = "gtg"
-        if bts.rpc.get_use_appbase():
-            witness = bts.rpc.find_witnesses({"owners": [owner]}, api="database")["witnesses"]
-            if len(witness) > 0:
-                witness = witness[0]
-        else:
-            witness = bts.rpc.get_witness_by_account(owner)
+        witness = bts.rpc.find_witnesses({"owners": [owner]}, api="database_api")["witnesses"]
+        if len(witness) > 0:
+            witness = witness[0]
 
         w = Witness(owner, blockchain_instance=bts)
         keys = list(witness.keys())

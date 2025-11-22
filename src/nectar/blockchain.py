@@ -279,7 +279,7 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history")
+        ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history_api")
         return ret
 
     def get_transaction_hex(self, transaction):
@@ -617,7 +617,7 @@ class Blockchain(object):
                 if only_virtual_ops:
                     block_batch = self.blockchain.rpc.get_ops_in_block(
                         {"block_num": blocknum, "only_virtual": only_virtual_ops},
-                        api="account_history",
+                        api="account_history_api",
                         add_to_queue=add_to_queue,
                     )
                 else:

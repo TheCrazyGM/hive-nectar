@@ -63,7 +63,7 @@ class Witness(BlockchainObject):
         Refresh the witness data from the blockchain and reinitialize this object.
 
         If the witness identifier is empty or the blockchain is not connected, the method returns early.
-        Fetches witness data via the configured RPC (supports both appbase and legacy RPC paths), parses
+        Fetches witness data via the configured RPC, parses
         timestamps and numeric fields via _parse_json_data, and reinitializes the Witness instance with the
         retrieved data (respecting this object's lazy/full flags and blockchain instance).
 
@@ -316,7 +316,9 @@ class WitnessesObject(list):
                     ]
                 )
             else:
-                td = datetime.now(timezone.utc) - witness[last_bd_exchange_update]
+                td = datetime.now(timezone.utc) - datetime.strptime(
+                    witness[last_bd_exchange_update], "%Y-%m-%dT%H:%M:%S"
+                ).replace(tzinfo=timezone.utc)
                 t.add_row(
                     [
                         witness["owner"],
@@ -326,13 +328,13 @@ class WitnessesObject(list):
                         str(
                             Amount(
                                 witness[bd_exchange_rate]["base"],
-                                blockchain_instance=self.blockchain,
+                                blockchain_instance=witness.blockchain,
                             )
                         ),
                         str(
                             Amount(
                                 witness[bd_exchange_rate]["quote"],
-                                blockchain_instance=self.blockchain,
+                                blockchain_instance=witness.blockchain,
                             )
                         ),
                         str(td.days)
@@ -343,7 +345,7 @@ class WitnessesObject(list):
                         str(
                             Amount(
                                 witness["props"]["account_creation_fee"],
-                                blockchain_instance=self.blockchain,
+                                blockchain_instance=witness.blockchain,
                             )
                         ),
                         str(witness["props"]["maximum_block_size"]),
@@ -367,9 +369,12 @@ class WitnessesObject(list):
 
         if isinstance(item, Account):
             name = item["name"]
-        elif self.blockchain:
-            account = Account(item, blockchain_instance=self.blockchain)
+        elif len(self) > 0 and hasattr(self[0], "blockchain"):
+            account = Account(item, blockchain_instance=self[0].blockchain)
             name = account["name"]
+        else:
+            # Fallback to string comparison
+            name = str(item)
 
         return any([name == x["owner"] for x in self])
 
@@ -377,7 +382,10 @@ class WitnessesObject(list):
         return self.printAsTable(return_str=True)
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(self.identifier))
+        return "<%s %s>" % (
+            self.__class__.__name__,
+            str(getattr(self, "identifier", f"list_{len(self)}")),
+        )
 
 
 class GetWitnesses(WitnessesObject):
@@ -409,11 +417,11 @@ class GetWitnesses(WitnessesObject):
         """
         Initialize the GetWitnesses collection by fetching witness objects for the given list of account names.
 
-        If the connected RPC backend uses appbase, names are fetched in batches (size controlled by `batch_limit`); otherwise each name is queried individually. If no blockchain connection is available the initializer returns early and the collection remains empty.
+        Names are fetched in batches (size controlled by `batch_limit`). If no blockchain connection is available the initializer returns early and the collection remains empty.
 
         Parameters:
             name_list (Iterable[str]): Account names of witnesses to retrieve.
-            batch_limit (int): Maximum number of names to request per batch when using appbase RPC.
+            batch_limit (int): Maximum number of names to request per batch.
             lazy (bool): If True, create Witness objects in lazy-loading mode.
             full (bool): If True, create Witness objects with full data loaded.
         """
@@ -505,7 +513,7 @@ class WitnessesVotedByAccount(WitnessesObject):
         """
         Initialize a WitnessesVotedByAccount collection for the given account.
 
-        Resolves the provided account to a full Account object, reads the list of witnesses that the account voted for (using appbase or legacy RPC paths as appropriate), and populates the list with Witness objects created with the specified loading flags. If the account has no witness votes recorded the constructor returns early and the collection remains empty. The instance identifier is set to the account name.
+        Resolves the provided account to a full Account object, reads the list of witnesses that the account voted for, and populates the list with Witness objects created with the specified loading flags. If the account has no witness votes recorded the constructor returns early and the collection remains empty. The instance identifier is set to the account name.
 
         Parameters:
             account (str|Account): Account name or Account-like object to inspect for witness votes.
@@ -568,8 +576,7 @@ class WitnessesRankedByVote(WitnessesObject):
 
         Builds a WitnessesRankedByVote list starting at `from_account` and returning up to `limit`
         entries. The constructor transparently pages RPC calls when the requested `limit`
-        exceeds the per-call query limit, handles appbase vs legacy RPC paths and condenser
-        mode, and wraps returned witness entries as Witness objects.
+        exceeds the per-call query limit, handles RPC calls and wraps returned witness entries as Witness objects.
 
         Parameters:
             from_account (str): Account name to start ranking from (inclusive). When empty, ranking starts from the top.
