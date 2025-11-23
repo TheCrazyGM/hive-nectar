@@ -130,7 +130,7 @@ class Market(dict):
         data = {}
         # Core Exchange rate
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ticker = self.blockchain.rpc.get_ticker(api="market_history")
+        ticker = self.blockchain.rpc.get_ticker(api="market_history_api")
 
         if raw_data:
             return ticker
@@ -174,7 +174,7 @@ class Market(dict):
             raw_data (bool): If True, return the unprocessed RPC response.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        volume = self.blockchain.rpc.get_volume(api="market_history")
+        volume = self.blockchain.rpc.get_volume(api="market_history_api")
         if raw_data:
             return volume
         if "hbd_volume" in volume and "hive_volume" in volume:
@@ -247,7 +247,7 @@ class Market(dict):
 
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history")
+        orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history_api")
         if raw_data:
             return orders
         asks = list(
@@ -289,7 +289,7 @@ class Market(dict):
             list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(limit > 0)
-        orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history")[
+        orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history_api")[
             "trades"
         ]
         if raw_data:
@@ -365,7 +365,7 @@ class Market(dict):
                 "end": formatTimeString(stop) if stop else None,
                 "limit": limit,
             },
-            api="market_history",
+            api="market_history_api",
         )["trades"]
         if raw_data:
             return orders
@@ -374,7 +374,7 @@ class Market(dict):
 
     def market_history_buckets(self):
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ret = self.blockchain.rpc.get_market_history_buckets(api="market_history")
+        ret = self.blockchain.rpc.get_market_history_buckets(api="market_history_api")
         return ret["bucket_sizes"]
 
     def market_history(self, bucket_seconds=300, start_age=3600, end_age=0, raw_data=False):
@@ -408,7 +408,7 @@ class Market(dict):
                         "start": formatTimeFromNow(-start_age - end_age),
                         "end": formatTimeFromNow(-end_age),
                     },
-                    api="market_history",
+                    api="market_history_api",
                 )["buckets"]
                 if raw_data:
                     return history

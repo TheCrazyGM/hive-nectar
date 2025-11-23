@@ -10,19 +10,56 @@ def get_query(request_id, api_name, name, args):
     args = json.loads(json.dumps(args))
     # Handle dict args (most common case for appbase)
     if len(args) > 0 and isinstance(args, dict):
-        query = {
-            "method": api_name + "." + name,
-            "params": args,
-            "jsonrpc": "2.0",
-            "id": request_id,
-        }
+        # For condenser_api broadcast_transaction, wrap in array
+        if api_name == "condenser_api" and name == "broadcast_transaction":
+            query = {
+                "method": "call",
+                "params": [api_name, name, [args]],
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
+        # For condenser_api, use the "call" method format
+        elif api_name == "condenser_api":
+            query = {
+                "method": "call",
+                "params": [api_name, name, args],
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
+        else:
+            # For other appbase APIs, use direct method format
+            query = {
+                "method": api_name + "." + name,
+                "params": args,
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
     elif len(args) > 0 and isinstance(args, list) and isinstance(args[0], dict):
-        query = {
-            "method": api_name + "." + name,
-            "params": args[0],
-            "jsonrpc": "2.0",
-            "id": request_id,
-        }
+        # For condenser_api, use the "call" method format
+        if api_name == "condenser_api":
+            # For broadcast_transaction, wrap in array
+            if name == "broadcast_transaction":
+                query = {
+                    "method": "call",
+                    "params": [api_name, name, [args[0]]],
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                }
+            else:
+                query = {
+                    "method": "call",
+                    "params": [api_name, name, args[0]],
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                }
+        else:
+            # For other appbase APIs, use direct method format
+            query = {
+                "method": api_name + "." + name,
+                "params": args[0],
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
     elif (
         len(args) > 0
         and isinstance(args, list)
@@ -40,7 +77,8 @@ def get_query(request_id, api_name, name, args):
                 }
             )
             request_id += 1
-    elif args:
+    elif args or api_name == "condenser_api":
+        # For condenser_api, always use the "call" method format, even with empty args
         query = {
             "method": "call",
             "params": [api_name, name, args],

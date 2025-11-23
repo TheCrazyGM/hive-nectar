@@ -2090,7 +2090,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_tags_used_by_author({"author": account}, api="tags")["tags"]
+        return self.blockchain.rpc.get_tags_used_by_author(
+            {"author": account}, api="condenser_api"
+        )["tags"]
 
     def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
         """

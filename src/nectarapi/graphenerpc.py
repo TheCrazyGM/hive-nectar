@@ -505,7 +505,22 @@ class GrapheneRPC(object):
         """Map all methods to RPC calls and pass through the arguments."""
 
         def method(*args, **kwargs):
-            api_name = kwargs.get("api", "database_api")
+            # Detect the appropriate API based on method name patterns
+            # Check specific methods first, then general patterns
+            if name in ["get_key_references", "get_accounts", "get_account_references"]:
+                api_name = kwargs.get("api", "account_by_key_api")
+            elif name in ["broadcast_transaction", "broadcast_transaction_synchronous"]:
+                api_name = kwargs.get("api", "network_broadcast_api")
+            elif name.startswith("get_"):
+                api_name = kwargs.get("api", "condenser_api")
+            elif "account" in name and "history" in name:
+                api_name = kwargs.get("api", "account_history_api")
+            elif "block" in name:
+                api_name = kwargs.get("api", "block_api")
+            elif "follow" in name or "reputation" in name:
+                api_name = kwargs.get("api", "follow_api")
+            else:
+                api_name = kwargs.get("api", "database_api")
 
             # let's be able to define the num_retries per query
             stored_num_retries_call = self.nodes.num_retries_call

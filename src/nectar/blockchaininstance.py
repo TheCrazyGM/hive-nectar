@@ -595,11 +595,11 @@ class BlockChainInstance(object):
 
     def get_resource_params(self):
         """Returns the resource parameter"""
-        return self.rpc.get_resource_params(api="rc")["resource_params"]
+        return self.rpc.get_resource_params(api="rc_api")["resource_params"]
 
     def get_resource_pool(self):
         """Returns the resource pool"""
-        return self.rpc.get_resource_pool(api="rc")["resource_pool"]
+        return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
 
     def get_rc_cost(self, resource_count):
         """
@@ -1966,6 +1966,7 @@ class BlockChainInstance(object):
                 "required_posting_auths": required_posting_auths,
                 "id": id,
                 "prefix": self.prefix,
+                "appbase": not self.txbuffer._use_condenser_api,
             }
         )
         if len(required_auths) > 0:

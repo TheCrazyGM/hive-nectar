@@ -355,7 +355,7 @@ class Wallet(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        names = self.blockchain.rpc.get_key_references({"keys": [pub]}, api="account_by_key")[
+        names = self.blockchain.rpc.get_key_references({"keys": [pub]}, api="account_by_key_api")[
             "accounts"
         ]
         for name in names:

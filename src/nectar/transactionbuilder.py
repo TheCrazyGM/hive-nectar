@@ -94,7 +94,7 @@ class TransactionBuilder(dict):
 
     def list_operations(self):
         """List all ops"""
-        appbase = True
+        appbase = not self._use_condenser_api
         return [Operation(o, appbase=appbase, prefix=self.blockchain.prefix) for o in self.ops]
 
     def _is_signed(self):
@@ -334,7 +334,7 @@ class TransactionBuilder(dict):
 
         """
         ops = list()
-        appbase = True
+        appbase = not self._use_condenser_api
         for op in self.ops:
             # otherwise, we simply wrap ops into Operations
             ops.extend([Operation(op, appbase=appbase, prefix=self.blockchain.prefix)])
@@ -560,11 +560,11 @@ class TransactionBuilder(dict):
 
         # Returns an internal Error at the moment
         if not self._use_condenser_api:
-            args = {"trx": self.json(), "max_block_age": max_block_age}
-            broadcast_api = "network_broadcast"
+            args = self.json()
+            broadcast_api = "network_broadcast_api"
         else:
             args = self.json()
-            broadcast_api = "condenser"
+            broadcast_api = "condenser_api"
 
         if self.blockchain.nobroadcast:
             log.info("Not broadcasting anything!")

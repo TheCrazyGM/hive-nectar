@@ -1056,11 +1056,11 @@ class Blockchain(object):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if isinstance(name, list):
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": name}, api="rc")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": name}, api="rc_api")
             if bool(account):
                 return account["rc_accounts"]
         else:
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]}, api="rc")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]}, api="rc_api")
             if bool(account):
                 return account["rc_accounts"][0]
 

@@ -209,7 +209,7 @@ class Comment(BlockchainObject):
         try:
             if self.api == "tags":
                 content = self.blockchain.rpc.get_discussion(
-                    {"author": author, "permlink": permlink}, api="tags"
+                    {"author": author, "permlink": permlink}, api="condenser_api"
                 )
             elif self.api == "database":
                 content = self.blockchain.rpc.list_comments(
@@ -939,7 +939,7 @@ class Comment(BlockchainObject):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_reblogged_by(
-            {"author": post_author, "permlink": post_permlink}, api="follow"
+            {"author": post_author, "permlink": post_permlink}, api="condenser_api"
         )["accounts"]
 
     def get_replies(self, raw_data=False, identifier=None):
