@@ -76,3 +76,4 @@ __pypackages__/
 .mypy_cache/
 .pre-commit-cache/
 hived-api/
+.venv
