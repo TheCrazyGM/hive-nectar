@@ -3,8 +3,8 @@ import json
 import logging
 import re
 
-import httpx
-from httpx import ConnectError
+import requests
+from requests.exceptions import ConnectionError as ConnectError
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.version import version as nectar_version
@@ -36,16 +36,16 @@ def set_session_instance(instance):
 
 def shared_session_instance():
     """
-    Return a singleton httpx.Client instance, creating it if necessary.
+    Return a singleton requests.Session instance, creating it if necessary.
 
     Ensures a single shared HTTP session is reused across the process to take advantage
     of connection pooling and shared session state (headers, cookies, adapters).
 
     Returns:
-        httpx.Client: The shared session object.
+        requests.Session: The shared session object.
     """
     if not SessionInstance.instance:
-        SessionInstance.instance = httpx.Client()
+        SessionInstance.instance = requests.Session()
     return SessionInstance.instance
 
 
