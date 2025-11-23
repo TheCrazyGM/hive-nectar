@@ -1368,14 +1368,12 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        try:
-            return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
-                "blog_authors"
-            ]
-        except Exception:
-            return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
-                "blog_authors"
-            ]
+        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+        #     "blog_authors"
+        # ]
+        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+        #     "blog_authors"
+        # ]
 
     def get_follow_count(self, account=None):
         """get_follow_count"""
@@ -2082,9 +2080,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_tags_used_by_author({"author": account}, api="condenser")[
-            "tags"
-        ]
+        return self.blockchain.rpc.get_tags_used_by_author({"author": account}, api="tags")["tags"]
 
     def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
         """

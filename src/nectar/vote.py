@@ -523,10 +523,10 @@ class ActiveVotes(VotesObject):
                 raise VoteDoesNotExistsException(
                     construct_authorperm(authorperm["author"], authorperm["permlink"])
                 )
-            except Exception:  # Fallback to tags API
+            except Exception:  # Fallback to bridge API
                 votes = self.blockchain.rpc.get_active_votes(
                     {"author": authorperm["author"], "permlink": authorperm["permlink"]},
-                    api="tags",
+                    api="bridge",
                 )["votes"]
             authorperm = authorperm["authorperm"]
         elif isinstance(authorperm, str):
@@ -538,9 +538,9 @@ class ActiveVotes(VotesObject):
                 votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
             except InvalidParameters:
                 raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
-            except Exception:  # Fallback to tags API
+            except Exception:  # Fallback to bridge API
                 votes = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="tags"
+                    {"author": author, "permlink": permlink}, api="bridge"
                 )["votes"]
         elif isinstance(authorperm, list):
             votes = authorperm
