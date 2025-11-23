@@ -3,11 +3,11 @@ import json
 from datetime import date, datetime
 
 from nectar.instance import shared_blockchain_instance
+from nectar.utils import formatTimeString, parse_time
 from nectarapi.exceptions import ApiNotSupported
 
 from .blockchainobject import BlockchainObject
 from .exceptions import BlockDoesNotExistsException
-from .utils import formatTimeString
 
 
 class Block(BlockchainObject):
@@ -82,13 +82,13 @@ class Block(BlockchainObject):
         ]
         for p in parse_times:
             if p in block and isinstance(block.get(p), str):
-                block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
+                block[p] = parse_time(block.get(p, "1970-01-01T00:00:00"))
         if "transactions" in block:
             for i in range(len(block["transactions"])):
                 if "expiration" in block["transactions"][i] and isinstance(
                     block["transactions"][i]["expiration"], str
                 ):
-                    block["transactions"][i]["expiration"] = formatTimeString(
+                    block["transactions"][i]["expiration"] = parse_time(
                         block["transactions"][i]["expiration"]
                     )
         elif "operations" in block:
@@ -96,7 +96,7 @@ class Block(BlockchainObject):
                 if "timestamp" in block["operations"][i] and isinstance(
                     block["operations"][i]["timestamp"], str
                 ):
-                    block["operations"][i]["timestamp"] = formatTimeString(
+                    block["operations"][i]["timestamp"] = parse_time(
                         block["operations"][i]["timestamp"]
                     )
         return block
@@ -392,7 +392,7 @@ class BlockHeader(BlockchainObject):
         ]
         for p in parse_times:
             if p in block and isinstance(block.get(p), str):
-                block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
+                block[p] = parse_time(block.get(p, "1970-01-01T00:00:00"))
         return block
 
     def json(self):

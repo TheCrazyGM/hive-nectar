@@ -363,93 +363,93 @@ class Testcases(unittest.TestCase):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.withdraw_vesting("100 VESTS")
-        self.assertEqual((tx["operations"][0][0]), "withdraw_vesting")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "withdraw_vesting_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["account"])
 
     def test_delegate_vesting_shares(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.delegate_vesting_shares("test1", "100 VESTS")
-        self.assertEqual((tx["operations"][0][0]), "delegate_vesting_shares")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "delegate_vesting_shares_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["delegator"])
 
     def test_claim_reward_balance(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.claim_reward_balance()
-        self.assertEqual((tx["operations"][0][0]), "claim_reward_balance")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "claim_reward_balance_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["account"])
 
     def test_cancel_transfer_from_savings(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.cancel_transfer_from_savings(0)
-        self.assertEqual((tx["operations"][0][0]), "cancel_transfer_from_savings")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "cancel_transfer_from_savings_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
 
     def test_transfer_from_savings(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.transfer_from_savings(1, "HIVE", "")
-        self.assertEqual((tx["operations"][0][0]), "transfer_from_savings")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_from_savings_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
 
     def test_transfer_to_savings(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.transfer_to_savings(1, "HIVE", "")
-        self.assertEqual((tx["operations"][0][0]), "transfer_to_savings")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_to_savings_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
 
     def test_convert(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.convert("1 HBD")
-        self.assertEqual((tx["operations"][0][0]), "convert")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "convert_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["owner"])
 
     def test_proxy(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.setproxy(proxy="gtg")
-        self.assertEqual((tx["operations"][0][0]), "account_witness_proxy")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "account_witness_proxy_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("gtg", op["proxy"])
 
     def test_transfer_to_vesting(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.transfer_to_vesting("1 HIVE")
-        self.assertEqual((tx["operations"][0][0]), "transfer_to_vesting")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_to_vesting_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
 
         w.blockchain.txbuffer.clear()
         tx = w.transfer_to_vesting("1 HIVE", skip_account_check=True)
-        self.assertEqual((tx["operations"][0][0]), "transfer_to_vesting")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_to_vesting_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
 
     def test_transfer(self):
         w = self.account
         w.blockchain.txbuffer.clear()
         tx = w.transfer("open.mithril", "1", "HIVE")
-        self.assertEqual((tx["operations"][0][0]), "transfer")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
         self.assertIn("open.mithril", op["to"])
 
         w.blockchain.txbuffer.clear()
         tx = w.transfer("open.mithril", "1", "HIVE", skip_account_check=True)
-        self.assertEqual((tx["operations"][0][0]), "transfer")
-        op = tx["operations"][0][1]
+        self.assertEqual((tx["operations"][0]["type"]), "transfer_operation")
+        op = tx["operations"][0]["value"]
         self.assertIn("open.mithril", op["from"])
         self.assertIn("open.mithril", op["to"])
 

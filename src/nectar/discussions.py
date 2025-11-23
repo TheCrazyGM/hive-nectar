@@ -1175,8 +1175,12 @@ class Discussions_by_comments(list):
             if key in discussion_query:
                 reduced_query[key] = discussion_query[key]
         posts = []
-        # Try to use the bridge API first (preferred method)
-        if "start_author" in reduced_query and "start_permlink" in reduced_query:
+        # Try to use the bridge API first (preferred method) when permlink is provided
+        if (
+            "start_author" in reduced_query
+            and "start_permlink" in reduced_query
+            and reduced_query["start_permlink"] is not None
+        ):
             # The bridge.get_discussion API retrieves an entire discussion tree
             author = reduced_query["start_author"]
             permlink = reduced_query["start_permlink"]
@@ -1200,6 +1204,11 @@ class Discussions_by_comments(list):
                 # Limit the number of posts if needed
                 if "limit" in reduced_query and len(posts) > reduced_query["limit"]:
                     posts = posts[: reduced_query["limit"]]
+        elif "start_author" in reduced_query:
+            # When start_permlink is None, we cannot use bridge API as it requires a specific permlink
+            # For now, return empty list since there's no direct API to get all comments by author
+            # This is a limitation of the current API structure
+            posts = []
 
         if posts is None:
             posts = []

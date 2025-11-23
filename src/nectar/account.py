@@ -1562,12 +1562,17 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        subscriptions = self.blockchain.rpc.list_all_subscriptions(
-            {"account": account}, api="bridge"
-        )
-        if subscriptions is None:
+        try:
+            subscriptions = self.blockchain.rpc.list_all_subscriptions(
+                {"account": account}, api="bridge"
+            )
+            if subscriptions is None:
+                return []
+            return subscriptions
+        except Exception:
+            # The list_all_subscriptions API might not be supported on all nodes
+            # Return empty list as fallback
             return []
-        return subscriptions
 
     def get_account_posts(self, sort="feed", limit=20, account=None, observer=None, raw_data=False):
         """Returns account feed"""
@@ -2348,6 +2353,17 @@ class Account(BlockchainObject):
         if isinstance(blocktime, (datetime, date, time)):
             b = Blockchain(blockchain_instance=self.blockchain)
             target_blocknum = b.get_estimated_block_num(addTzInfo(blocktime), accurate=True)
+        elif isinstance(blocktime, str):
+            try:
+                # Try to parse as a time string
+                from nectar.utils import parse_time
+
+                parsed_time = parse_time(blocktime)
+                b = Blockchain(blockchain_instance=self.blockchain)
+                target_blocknum = b.get_estimated_block_num(parsed_time, accurate=True)
+            except (ValueError, TypeError):
+                # If parsing fails, treat it as a block number string
+                target_blocknum = int(blocktime)
         else:
             target_blocknum = blocktime
 
@@ -2561,14 +2577,56 @@ class Account(BlockchainObject):
                 timediff = start - event_time
                 if timediff.total_seconds() * float(order) > 0:
                     continue
-            elif start is not None and use_block_num and order == 1 and event["block"] < start:
-                continue
-            elif start is not None and use_block_num and order == -1 and event["block"] > start:
-                continue
-            elif start is not None and not use_block_num and order == 1 and item_index < start:
-                continue
-            elif start is not None and not use_block_num and order == -1 and item_index > start:
-                continue
+            elif start is not None and use_block_num:
+                # When use_block_num=True, start should be a block number, but if it's a time string, convert it
+                if isinstance(start, str):
+                    # Convert time string to block number
+                    from nectar.blockchain import Blockchain
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                    blockchain = Blockchain(blockchain_instance=self.blockchain)
+                    try:
+                        start_block = blockchain.get_estimated_block_num(start_dt, accurate=True)
+                        if order == 1 and event["block"] < start_block:
+                            continue
+                        elif order == -1 and event["block"] > start_block:
+                            continue
+                    except Exception:
+                        # If conversion fails, skip this filter
+                        pass
+                else:
+                    # start is an integer block number
+                    if order == 1 and event["block"] < start:
+                        continue
+                    elif order == -1 and event["block"] > start:
+                        continue
+            elif start is not None and not use_block_num:
+                # For non-block_num mode, start can be a datetime, time string, or integer
+                if isinstance(start, str):
+                    # Convert time string to datetime for comparison
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start_dt - event_time
+                    if timediff.total_seconds() * float(order) > 0:
+                        continue
+                elif isinstance(start, (datetime, date, time)):
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
+                    if timediff.total_seconds() * float(order) > 0:
+                        continue
+                else:
+                    # start is an integer (virtual operation count)
+                    if order == 1 and item_index < start:
+                        continue
+                    elif order == -1 and item_index > start:
+                        continue
             if stop is not None and isinstance(stop, (datetime, date, time)):
                 event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
                     tzinfo=timezone.utc
@@ -2576,14 +2634,56 @@ class Account(BlockchainObject):
                 timediff = stop - event_time
                 if timediff.total_seconds() * float(order) < 0:
                     return
-            elif stop is not None and use_block_num and order == 1 and event["block"] > stop:
-                return
-            elif stop is not None and use_block_num and order == -1 and event["block"] < stop:
-                return
-            elif stop is not None and not use_block_num and order == 1 and item_index > stop:
-                return
-            elif stop is not None and not use_block_num and order == -1 and item_index < stop:
-                return
+            elif stop is not None and use_block_num:
+                # When use_block_num=True, stop should be a block number, but if it's a time string, convert it
+                if isinstance(stop, str):
+                    # Convert time string to block number
+                    from nectar.blockchain import Blockchain
+                    from nectar.utils import parse_time
+
+                    stop_dt = parse_time(stop)
+                    blockchain = Blockchain(blockchain_instance=self.blockchain)
+                    try:
+                        stop_block = blockchain.get_estimated_block_num(stop_dt, accurate=True)
+                        if order == 1 and event["block"] > stop_block:
+                            return
+                        elif order == -1 and event["block"] < stop_block:
+                            return
+                    except Exception:
+                        # If conversion fails, skip this filter
+                        pass
+                else:
+                    # stop is an integer block number
+                    if order == 1 and event["block"] > stop:
+                        return
+                    elif order == -1 and event["block"] < stop:
+                        return
+            elif stop is not None and not use_block_num:
+                # For non-block_num mode, stop can be a datetime, time string, or integer
+                if isinstance(stop, str):
+                    # Convert time string to datetime for comparison
+                    from nectar.utils import parse_time
+
+                    stop_dt = parse_time(stop)
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop_dt - event_time
+                    if timediff.total_seconds() * float(order) < 0:
+                        return
+                elif isinstance(stop, (datetime, date, time)):
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
+                    if timediff.total_seconds() * float(order) < 0:
+                        return
+                else:
+                    # stop is an integer (virtual operation count)
+                    if order == 1 and item_index > stop:
+                        return
+                    elif order == -1 and item_index < stop:
+                        return
 
             if isinstance(event["op"], list):
                 op_type, op = event["op"]
@@ -2624,6 +2724,8 @@ class Account(BlockchainObject):
                         "type": op_type,
                     }
                 )
+                from nectar.blockchain import Blockchain
+
                 _id = Blockchain.hash_op(immutable)
                 immutable.update(
                     {
@@ -2731,7 +2833,9 @@ class Account(BlockchainObject):
             start is not None
             and not use_block_num
             and not isinstance(start, (datetime, date, time))
+            and not isinstance(start, str)
         ):
+            # start is an integer (virtual operation count)
             start_index = start
         elif start is not None and max_index > batch_size:
             created, min_index = self._get_first_blocknum()
@@ -2739,12 +2843,20 @@ class Account(BlockchainObject):
             if op_est < min_index:
                 op_est = min_index
             est_diff = 0
-            if isinstance(start, (datetime, date, time)):
+            if isinstance(start, (datetime, date, time, str)):
+                # start is a datetime or formatted time string
+                if isinstance(start, str):
+                    # Parse the time string to datetime
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                else:
+                    start_dt = start
                 for h in self.get_account_history(op_est, 0):
                     block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
                         tzinfo=timezone.utc
                     )
-                while op_est > est_diff + batch_size and block_date > start:
+                while op_est > est_diff + batch_size and block_date > start_dt:
                     est_diff += batch_size
                     if op_est - est_diff < 0:
                         est_diff = op_est
@@ -2752,7 +2864,7 @@ class Account(BlockchainObject):
                         block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
                             tzinfo=timezone.utc
                         )
-            elif not isinstance(start, (datetime, date, time)):
+            elif not isinstance(start, (datetime, date, time, str)):
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
                 while op_est > est_diff + batch_size and block_num > start:
@@ -2766,8 +2878,23 @@ class Account(BlockchainObject):
             start_index = 0
 
         if stop is not None and not use_block_num and not isinstance(stop, (datetime, date, time)):
-            if start_index + stop < _limit:
-                _limit = stop
+            # Check if stop is a formatted time string
+            if isinstance(stop, str):
+                try:
+                    # Try to parse it as a time string - if successful, it should be treated as a datetime
+                    from nectar.utils import parse_time
+
+                    parse_time(stop)
+                    # If parsing succeeds, this is a time string, not an integer, so skip the integer arithmetic
+                    pass
+                except (ValueError, TypeError):
+                    # If parsing fails, treat it as an integer
+                    if start_index + stop < _limit:
+                        _limit = stop
+            else:
+                # It's an integer, do the arithmetic
+                if start_index + stop < _limit:
+                    _limit = stop
 
         first = start_index + _limit - 1
         if first > max_index:
@@ -2827,8 +2954,30 @@ class Account(BlockchainObject):
                         continue
                 elif start is not None and use_block_num and block_num < start:
                     continue
-                elif start is not None and not use_block_num and item_index < start:
-                    continue
+                elif start is not None and not use_block_num:
+                    # For non-block_num mode, start can be a datetime, time string, or integer
+                    if isinstance(start, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        start_dt = parse_time(start)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start_dt - event_time
+                        if timediff.total_seconds() > 0:
+                            continue
+                    elif isinstance(start, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start - event_time
+                        if timediff.total_seconds() > 0:
+                            continue
+                    else:
+                        # start is an integer (virtual operation count)
+                        if item_index < start:
+                            continue
                 elif last_item_index >= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
@@ -2841,8 +2990,30 @@ class Account(BlockchainObject):
                         return
                 elif stop is not None and use_block_num and block_num > stop:
                     return
-                elif stop is not None and not use_block_num and item_index > stop:
-                    return
+                elif stop is not None and not use_block_num:
+                    # For non-block_num mode, stop can be a datetime, time string, or integer
+                    if isinstance(stop, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        stop_dt = parse_time(stop)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop_dt - event_time
+                        if timediff.total_seconds() < 0:
+                            return
+                    elif isinstance(stop, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop - event_time
+                        if timediff.total_seconds() < 0:
+                            return
+                    else:
+                        # stop is an integer (virtual operation count)
+                        if item_index > stop:
+                            return
                 if operation_filter:
                     yield item
                 else:
@@ -2976,12 +3147,20 @@ class Account(BlockchainObject):
             est_diff = 0
             if op_est < min_index:
                 op_est = min_index
-            if isinstance(start, (datetime, date, time)):
+            if isinstance(start, (datetime, date, time, str)):
+                # start is a datetime or formatted time string
+                if isinstance(start, str):
+                    # Parse the time string to datetime
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                else:
+                    start_dt = start
                 for h in self.get_account_history(op_est, 0):
                     block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
                         tzinfo=timezone.utc
                     )
-                while op_est + est_diff + batch_size < first and block_date < start:
+                while op_est + est_diff + batch_size < first and block_date < start_dt:
                     est_diff += batch_size
                     if op_est + est_diff > first:
                         est_diff = first - op_est
@@ -2989,7 +3168,7 @@ class Account(BlockchainObject):
                         block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
                             tzinfo=timezone.utc
                         )
-            else:
+            elif not isinstance(start, (datetime, date, time, str)):
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
                 while op_est + est_diff + batch_size < first and block_num < start:
@@ -3047,8 +3226,30 @@ class Account(BlockchainObject):
                         continue
                 elif start is not None and use_block_num and block_num > start:
                     continue
-                elif start is not None and not use_block_num and item_index > start:
-                    continue
+                elif start is not None and not use_block_num:
+                    # For non-block_num mode, start can be a datetime, time string, or integer
+                    if isinstance(start, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        start_dt = parse_time(start)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start_dt - event_time
+                        if timediff.total_seconds() < 0:
+                            continue
+                    elif isinstance(start, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start - event_time
+                        if timediff.total_seconds() < 0:
+                            continue
+                    else:
+                        # start is an integer (virtual operation count)
+                        if item_index > start:
+                            continue
                 elif last_item_index <= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
@@ -3062,9 +3263,33 @@ class Account(BlockchainObject):
                 elif stop is not None and use_block_num and block_num < stop:
                     first = 0
                     return
-                elif stop is not None and not use_block_num and item_index < stop:
-                    first = 0
-                    return
+                elif stop is not None and not use_block_num:
+                    # For non-block_num mode, stop can be a datetime, time string, or integer
+                    if isinstance(stop, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        stop_dt = parse_time(stop)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop_dt - event_time
+                        if timediff.total_seconds() > 0:
+                            first = 0
+                            return
+                    elif isinstance(stop, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop - event_time
+                        if timediff.total_seconds() > 0:
+                            first = 0
+                            return
+                    else:
+                        # stop is an integer (virtual operation count)
+                        if item_index < stop:
+                            first = 0
+                            return
                 if operation_filter:
                     yield item
                 else:
