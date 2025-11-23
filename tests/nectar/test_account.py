@@ -455,6 +455,7 @@ class Testcases(unittest.TestCase):
 
     def test_json_export(self):
         account = Account("open.mithril", blockchain_instance=self.bts)
+        assert self.bts.rpc is not None  # Type assertion
         content = self.bts.rpc.find_accounts({"accounts": [account["name"]]}, api="database_api")[
             "accounts"
         ][0]

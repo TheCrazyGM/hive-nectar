@@ -509,34 +509,38 @@ class Account(BlockchainObject):
                     ]
                 )
                 t.add_row(["Full in ", "%s" % (self.get_manabar_recharge_time_str(rc_mana))])
-                t.add_row(["Est. RC for a comment", "%.2f G RC" % (rc_calc.comment() / 10**9)])
-                t.add_row(["Est. RC for a vote", "%.2f G RC" % (rc_calc.vote() / 10**9)])
-                t.add_row(["Est. RC for a transfer", "%.2f G RC" % (rc_calc.transfer() / 10**9)])
-                t.add_row(
-                    ["Est. RC for a custom_json", "%.2f G RC" % (rc_calc.custom_json() / 10**9)]
-                )
+                if rc_calc is not None:
+                    t.add_row(["Est. RC for a comment", "%.2f G RC" % (rc_calc.comment() / 10**9)])
+                    t.add_row(["Est. RC for a vote", "%.2f G RC" % (rc_calc.vote() / 10**9)])
+                    t.add_row(
+                        ["Est. RC for a transfer", "%.2f G RC" % (rc_calc.transfer() / 10**9)]
+                    )
+                    t.add_row(
+                        ["Est. RC for a custom_json", "%.2f G RC" % (rc_calc.custom_json() / 10**9)]
+                    )
 
-                t.add_row(
-                    [
-                        "Comments with current RC",
-                        "%d comments" % (int(estimated_rc / rc_calc.comment())),
-                    ]
-                )
-                t.add_row(
-                    ["Votes with current RC", "%d votes" % (int(estimated_rc / rc_calc.vote()))]
-                )
-                t.add_row(
-                    [
-                        "Transfer with current RC",
-                        "%d transfers" % (int(estimated_rc / rc_calc.transfer())),
-                    ]
-                )
-                t.add_row(
-                    [
-                        "Custom_json with current RC",
-                        "%d transfers" % (int(estimated_rc / rc_calc.custom_json())),
-                    ]
-                )
+                if estimated_rc is not None and rc_calc is not None:
+                    t.add_row(
+                        [
+                            "Comments with current RC",
+                            "%d comments" % (int(estimated_rc / rc_calc.comment())),
+                        ]
+                    )
+                    t.add_row(
+                        ["Votes with current RC", "%d votes" % (int(estimated_rc / rc_calc.vote()))]
+                    )
+                    t.add_row(
+                        [
+                            "Transfers with current RC",
+                            "%d transfers" % (int(estimated_rc / rc_calc.transfer())),
+                        ]
+                    )
+                    t.add_row(
+                        [
+                            "Custom json with current RC",
+                            "%d json ops" % (int(estimated_rc / rc_calc.custom_json())),
+                        ]
+                    )
 
             if return_str:
                 return t.get_string(**kwargs)
@@ -570,22 +574,23 @@ class Account(BlockchainObject):
                 )
                 ret += "full in %s\n" % (self.get_manabar_recharge_time_str(rc_mana))
                 ret += "--- Approx Costs ---\n"
-                ret += "comment - %.2f G RC - enough RC for %d comments\n" % (
-                    rc_calc.comment() / 10**9,
-                    int(estimated_rc / rc_calc.comment()),
-                )
-                ret += "vote - %.2f G RC - enough RC for %d votes\n" % (
-                    rc_calc.vote() / 10**9,
-                    int(estimated_rc / rc_calc.vote()),
-                )
-                ret += "transfer - %.2f G RC - enough RC for %d transfers\n" % (
-                    rc_calc.transfer() / 10**9,
-                    int(estimated_rc / rc_calc.transfer()),
-                )
-                ret += "custom_json - %.2f G RC - enough RC for %d custom_json\n" % (
-                    rc_calc.custom_json() / 10**9,
-                    int(estimated_rc / rc_calc.custom_json()),
-                )
+                if rc_calc is not None:
+                    ret += "comment - %.2f G RC - enough RC for %d comments\n" % (
+                        rc_calc.comment() / 10**9,
+                        int(estimated_rc / rc_calc.comment()),
+                    )
+                    ret += "vote - %.2f G RC - enough RC for %d votes\n" % (
+                        rc_calc.vote() / 10**9,
+                        int(estimated_rc / rc_calc.vote()),
+                    )
+                    ret += "transfer - %.2f G RC - enough RC for %d transfers\n" % (
+                        rc_calc.transfer() / 10**9,
+                        int(estimated_rc / rc_calc.transfer()),
+                    )
+                    ret += "custom_json - %.2f G RC - enough RC for %d custom_json\n" % (
+                        rc_calc.custom_json() / 10**9,
+                        int(estimated_rc / rc_calc.custom_json()),
+                    )
             if return_str:
                 return ret
             print(ret)
