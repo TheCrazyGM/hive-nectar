@@ -168,6 +168,9 @@ class BlockChainInstance(object):
 
         # Store config for access through other Classes
         self.config = kwargs.get("config_store", get_default_config_store(**kwargs))
+        # Override use_condenser if explicitly provided (bypasses SQLite persistence)
+        if "use_condenser" in kwargs:
+            self.config["use_condenser"] = kwargs["use_condenser"]
         if self.path is None:
             self.path = self.config["default_path"]
 

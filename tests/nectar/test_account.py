@@ -6,7 +6,10 @@ from nectar import Hive, exceptions
 from nectar.account import Account, extract_account_name
 from nectar.amount import Amount
 from nectar.block import Block
-from nectar.instance import set_shared_blockchain_instance
+from nectar.instance import (
+    SharedInstance,
+    set_shared_blockchain_instance,
+)
 from nectar.utils import formatTimeString
 
 from .nodes import get_hive_nodes
@@ -28,6 +31,9 @@ class Testcases(unittest.TestCase):
 
         This method has no return value; it mutates the test class and global shared instance used by tests.
         """
+        # Clear any existing shared instance to ensure clean setup
+        SharedInstance.instance = None
+
         cls.bts = Hive(
             node=get_hive_nodes(),
             nobroadcast=True,
@@ -36,6 +42,7 @@ class Testcases(unittest.TestCase):
             # Overwrite wallet to use this list of wifs only
             keys={"active": wif},
             num_retries=10,
+            use_condenser=False,  # Use appbase format for tests expecting dict format
         )
         cls.account = Account("open.mithril", blockchain_instance=cls.bts)
         set_shared_blockchain_instance(cls.bts)

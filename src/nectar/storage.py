@@ -13,7 +13,7 @@ log.addHandler(logging.StreamHandler())
 timeformat = "%Y%m%d-%H%M%S"
 
 
-def generate_config_store(config, blockchain="hive"):
+def generate_config_store(config, blockchain="hive", **kwargs):
     #: Default configuration
     """
     Populate a configuration mapping with sensible defaults for Hive-related settings and return it.
@@ -44,6 +44,8 @@ def generate_config_store(config, blockchain="hive"):
     config.setdefault("default_canonical_url", "https://hive.blog")
     config.setdefault("default_path", "48'/13'/0'/0'/0'")
     config.setdefault("use_condenser", True)
+    if "use_condenser" in kwargs:
+        config["use_condenser"] = kwargs["use_condenser"]
     config.setdefault("use_tor", False)
     return config
 

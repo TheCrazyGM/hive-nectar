@@ -14,6 +14,6 @@ def get_hive_nodes():
     """
     nodelist = NodeList()
     nodes = nodelist.get_hive_nodes()
-    nodelist.update_nodes(blockchain_instance=Hive(node=nodes, num_retries=10))
+    nodelist.update_nodes(blockchain_instance=Hive(node=nodes, num_retries=10, use_condenser=False))
     return nodelist.get_hive_nodes()
     # return "https://beta.openhive.network"
