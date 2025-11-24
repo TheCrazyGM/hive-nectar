@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from typing import Any, Dict, Union
 
 try:
     from collections.abc import Mapping  # noqa
@@ -8,7 +9,7 @@ except ImportError:
 
 
 class DotDict(dict):
-    def __init__(self, *args):
+    def __init__(self, *args: Any) -> None:
         """This class simplifies the use of "."-separated
         keys when defining a nested dictionary:::
 
@@ -42,7 +43,7 @@ class Profile(DotDict):
     profile according to Hive profile metadata conventions.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Initialize a Profile by delegating to the DotDict initializer.
 
@@ -50,17 +51,17 @@ class Profile(DotDict):
         """
         super(Profile, self).__init__(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self)
 
-    def update(self, u):
+    def update(self, u: Union[Dict[str, Any], Mapping]) -> None:
         for k, v in u.items():
             if isinstance(v, Mapping):
                 self.setdefault(k, {}).update(v)
             else:
                 self[k] = u[k]
 
-    def remove(self, key):
+    def remove(self, key: str) -> None:
         parts = key.split(".")
         if len(parts) > 1:
             self[parts[0]].pop(".".join(parts[1:]))
