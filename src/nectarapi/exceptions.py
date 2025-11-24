@@ -4,7 +4,7 @@ import re
 from builtins import str
 
 
-def decodeRPCErrorMsg(e) -> str:
+def decodeRPCErrorMsg(e: Exception) -> str:
     """Helper function to decode the raised Exception and give it a
     python Exception class
     """

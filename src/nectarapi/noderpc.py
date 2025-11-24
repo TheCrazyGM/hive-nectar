@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
+from typing import Any, Dict, List, Union
 
 from . import exceptions
 from .graphenerpc import GrapheneRPC
@@ -24,7 +25,7 @@ class NodeRPC(GrapheneRPC):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Init NodeRPC
 
         :param str urls: Either a single Websocket/Http URL, or a list of URLs
@@ -39,11 +40,11 @@ class NodeRPC(GrapheneRPC):
         super(NodeRPC, self).__init__(*args, **kwargs)
         self.next_node_on_empty_reply = False
 
-    def set_next_node_on_empty_reply(self, next_node_on_empty_reply=True):
+    def set_next_node_on_empty_reply(self, next_node_on_empty_reply: bool = True) -> None:
         """Switch to next node on empty reply for the next rpc call"""
         self.next_node_on_empty_reply = next_node_on_empty_reply
 
-    def rpcexec(self, payload):
+    def rpcexec(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
         """
         Execute an RPC call with node-aware retry and Hive-specific error handling.
 
@@ -173,7 +174,7 @@ class NodeRPC(GrapheneRPC):
         elif re.search("out_of_rangeEEEE: unknown key", msg) or re.search(
             "unknown key:unknown key", msg
         ):
-            raise exceptions.UnkownKey(msg)
+            raise exceptions.UnknownKey(msg)
         elif re.search("Assert Exception:v.is_object(): Input data have to treated as object", msg):
             raise exceptions.UnhandledRPCError(
                 "Use Operation(op, appbase=True) to prevent error: " + msg

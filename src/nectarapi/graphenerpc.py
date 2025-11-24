@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from requests.exceptions import ConnectionError as ConnectError
@@ -29,12 +30,12 @@ class SessionInstance(object):
     instance = None
 
 
-def set_session_instance(instance):
+def set_session_instance(instance: requests.Session) -> None:
     """Set session instance"""
     SessionInstance.instance = instance
 
 
-def shared_session_instance():
+def shared_session_instance() -> requests.Session:
     """
     Return a singleton requests.Session instance, creating it if necessary.
 
@@ -67,7 +68,13 @@ class GrapheneRPC(object):
     :param dict custom_chains: Custom chains to add to known chains
     """
 
-    def __init__(self, urls, user=None, password=None, **kwargs):
+    def __init__(
+        self,
+        urls: Union[str, List[str]],
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Create a synchronous HTTP RPC client for Graphene-based nodes.
 
@@ -112,33 +119,33 @@ class GrapheneRPC(object):
             self.rpcconnect()
 
     @property
-    def num_retries(self):
+    def num_retries(self) -> int:
         return self.nodes.num_retries
 
     @property
-    def num_retries_call(self):
+    def num_retries_call(self) -> int:
         return self.nodes.num_retries_call
 
     @property
-    def error_cnt_call(self):
+    def error_cnt_call(self) -> int:
         return self.nodes.error_cnt_call
 
     @property
-    def error_cnt(self):
+    def error_cnt(self) -> int:
         return self.nodes.error_cnt
 
-    def get_request_id(self):
+    def get_request_id(self) -> int:
         """Get request id."""
         self._request_id += 1
         return self._request_id
 
-    def next(self):
+    def next(self) -> None:
         """
         Advance to the next available RPC node and attempt to (re)connect.
         """
         self.rpcconnect()
 
-    def rpcconnect(self, next_url=True):
+    def rpcconnect(self, next_url: bool = True) -> None:
         """
         Selects and establishes connection to an available RPC node.
 
@@ -185,7 +192,7 @@ class GrapheneRPC(object):
                 self.nodes.sleep_and_check_retries(str(e), sleep=do_sleep)
                 next_url = True
 
-    def request_send(self, payload):
+    def request_send(self, payload: Union[Dict[str, Any], List[Dict[str, Any]], bytes]) -> Any:
         """
         Send the prepared RPC payload to the currently connected node via HTTP POST.
 
@@ -200,23 +207,27 @@ class GrapheneRPC(object):
         Raises:
             UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
         """
+        assert self.session is not None, "Session must be initialized"
         if self.user is not None and self.password is not None:
             response = self.session.post(
                 self.url,
-                data=payload,
+                data=payload,  # type: ignore
                 headers=self.headers,
                 timeout=self.timeout,
                 auth=(self.user, self.password),
             )
         else:
             response = self.session.post(
-                self.url, data=payload, headers=self.headers, timeout=self.timeout
+                self.url,
+                data=payload,
+                headers=self.headers,
+                timeout=self.timeout,  # type: ignore
             )
         if response.status_code == 401:
             raise UnauthorizedError
         return response
 
-    def version_string_to_int(self, network_version):
+    def version_string_to_int(self, network_version: str) -> int:
         """
         Convert a dotted version string "MAJOR.MINOR.PATCH" into a single integer for easy comparison.
 
@@ -235,7 +246,7 @@ class GrapheneRPC(object):
         version_list = network_version.split(".")
         return int(int(version_list[0]) * 1e8 + int(version_list[1]) * 1e4 + int(version_list[2]))
 
-    def get_network(self, props=None):
+    def get_network(self, props: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Detects and returns the network/chain configuration for the connected node.
 
@@ -351,7 +362,7 @@ class GrapheneRPC(object):
                 continue
             if v["chain_id"] == chain_id and self.version_string_to_int(
                 v["min_version"]
-            ) <= self.version_string_to_int(network_version):
+            ) <= self.version_string_to_int(str(network_version)):
                 if highest_version_chain is None:
                     highest_version_chain = v
                 elif self.version_string_to_int(v["min_version"]) > self.version_string_to_int(
@@ -365,46 +376,83 @@ class GrapheneRPC(object):
         else:
             return highest_version_chain
 
-    def _check_for_server_error(self, reply):
+    def _check_for_server_error(self, reply: Dict[str, Any]) -> None:
         """Checks for server error message in reply"""
-        if re.search("Internal Server Error", reply) or re.search("500", reply):
+        reply_str = str(reply)
+        if re.search("Internal Server Error", reply_str) or re.search("500", reply_str):
             raise RPCErrorDoRetry("Internal Server Error")
-        elif re.search("Not Implemented", reply) or re.search("501", reply):
+        elif re.search("Not Implemented", reply_str) or re.search("501", reply_str):
             raise RPCError("Not Implemented")
-        elif re.search("Bad Gateway", reply) or re.search("502", reply):
+        elif re.search("Bad Gateway", reply_str) or re.search("502", reply_str):
             raise RPCErrorDoRetry("Bad Gateway")
-        elif re.search("Too Many Requests", reply) or re.search("429", reply):
+        elif re.search("Too Many Requests", reply_str) or re.search("429", reply_str):
             raise RPCErrorDoRetry("Too Many Requests")
-        elif (
-            re.search("Service Temporarily Unavailable", reply)
-            or re.search("Service Unavailable", reply)
-            or re.search("503", reply)
-        ):
-            raise RPCErrorDoRetry("Service Temporarily Unavailable")
-        elif (
-            re.search("Gateway Time-out", reply)
-            or re.search("Gateway Timeout", reply)
-            or re.search("504", reply)
-        ):
-            raise RPCErrorDoRetry("Gateway Time-out")
-        elif re.search("HTTP Version not supported", reply) or re.search("505", reply):
-            raise RPCError("HTTP Version not supported")
-        elif re.search("Variant Also Negotiates", reply) or re.search("506", reply):
-            raise RPCError("Variant Also Negotiates")
-        elif re.search("Insufficient Storage", reply) or re.search("507", reply):
-            raise RPCError("Insufficient Storage")
-        elif re.search("Loop Detected", reply) or re.search("508", reply):
+        elif re.search("Service Unavailable", reply_str) or re.search("503", reply_str):
+            raise RPCErrorDoRetry("Service Unavailable")
+        elif re.search("Gateway Timeout", reply_str) or re.search("504", reply_str):
+            raise RPCErrorDoRetry("Gateway Timeout")
+        elif re.search("HTTP Version not supported", reply_str) or re.search("505", reply_str):
+            raise RPCErrorDoRetry("HTTP Version not supported")
+        elif re.search("Proxy Authentication Required", reply_str) or re.search("407", reply_str):
+            raise RPCErrorDoRetry("Proxy Authentication Required")
+        elif re.search("Request Timeout", reply_str) or re.search("408", reply_str):
+            raise RPCErrorDoRetry("Request Timeout")
+        elif re.search("Conflict", reply_str) or re.search("409", reply_str):
+            raise RPCErrorDoRetry("Conflict")
+        elif re.search("Gone", reply_str) or re.search("410", reply_str):
+            raise RPCErrorDoRetry("Gone")
+        elif re.search("Length Required", reply_str) or re.search("411", reply_str):
+            raise RPCErrorDoRetry("Length Required")
+        elif re.search("Precondition Failed", reply_str) or re.search("412", reply_str):
+            raise RPCErrorDoRetry("Precondition Failed")
+        elif re.search("Request Entity Too Large", reply_str) or re.search("413", reply_str):
+            raise RPCErrorDoRetry("Request Entity Too Large")
+        elif re.search("Request-URI Too Long", reply_str) or re.search("414", reply_str):
+            raise RPCErrorDoRetry("Request-URI Too Long")
+        elif re.search("Unsupported Media Type", reply_str) or re.search("415", reply_str):
+            raise RPCErrorDoRetry("Unsupported Media Type")
+        elif re.search("Requested Range Not Satisfiable", reply_str) or re.search("416", reply_str):
+            raise RPCErrorDoRetry("Requested Range Not Satisfiable")
+        elif re.search("Expectation Failed", reply_str) or re.search("417", reply_str):
+            raise RPCErrorDoRetry("Expectation Failed")
+        elif re.search("Unprocessable Entity", reply_str) or re.search("422", reply_str):
+            raise RPCErrorDoRetry("Unprocessable Entity")
+        elif re.search("Locked", reply_str) or re.search("423", reply_str):
+            raise RPCErrorDoRetry("Locked")
+        elif re.search("Failed Dependency", reply_str) or re.search("424", reply_str):
+            raise RPCErrorDoRetry("Failed Dependency")
+        elif re.search("Upgrade Required", reply_str) or re.search("426", reply_str):
+            raise RPCErrorDoRetry("Upgrade Required")
+        elif re.search("Precondition Required", reply_str) or re.search("428", reply_str):
+            raise RPCErrorDoRetry("Precondition Required")
+        elif re.search("Too Many Requests", reply_str) or re.search("429", reply_str):
+            raise RPCErrorDoRetry("Too Many Requests")
+        elif re.search("Request Header Fields Too Large", reply_str) or re.search("431", reply_str):
+            raise RPCErrorDoRetry("Request Header Fields Too Large")
+        elif re.search("Internal Server Error", reply_str) or re.search("500", reply_str):
+            raise RPCErrorDoRetry("Internal Server Error")
+        elif re.search("Not Implemented", reply_str) or re.search("501", reply_str):
+            raise RPCError("Not Implemented")
+        elif re.search("Bad Gateway", reply_str) or re.search("502", reply_str):
+            raise RPCErrorDoRetry("Bad Gateway")
+        elif re.search("Service Unavailable", reply_str) or re.search("503", reply_str):
+            raise RPCErrorDoRetry("Service Unavailable")
+        elif re.search("Gateway Timeout", reply_str) or re.search("504", reply_str):
+            raise RPCErrorDoRetry("Gateway Timeout")
+        elif re.search("HTTP Version not supported", reply_str) or re.search("505", reply_str):
+            raise RPCErrorDoRetry("HTTP Version not supported")
+        elif re.search("Loop Detected", reply_str) or re.search("508", reply_str):
             raise RPCError("Loop Detected")
-        elif re.search("Bandwidth Limit Exceeded", reply) or re.search("509", reply):
+        elif re.search("Bandwidth Limit Exceeded", reply_str) or re.search("509", reply_str):
             raise RPCError("Bandwidth Limit Exceeded")
-        elif re.search("Not Extended", reply) or re.search("510", reply):
+        elif re.search("Not Extended", reply_str) or re.search("510", reply_str):
             raise RPCError("Not Extended")
-        elif re.search("Network Authentication Required", reply) or re.search("511", reply):
+        elif re.search("Network Authentication Required", reply_str) or re.search("511", reply_str):
             raise RPCError("Network Authentication Required")
         else:
             raise RPCError("Client returned invalid format. Expected JSON!")
 
-    def rpcexec(self, payload):
+    def rpcexec(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
         """
         Execute the given JSON-RPC payload against the currently selected node and return the RPC result.
 
