@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 from datetime import date, datetime
+from typing import Any, Dict, List, Optional
 
 from nectar.instance import shared_blockchain_instance
 from nectar.utils import formatTimeString, parse_time
-from nectarapi.exceptions import ApiNotSupported
 
 from .blockchainobject import BlockchainObject
 from .exceptions import BlockDoesNotExistsException
@@ -43,11 +43,11 @@ class Block(BlockchainObject):
 
     def __init__(
         self,
-        block,
-        only_ops=False,
-        only_virtual_ops=False,
-        full=True,
-        lazy=False,
+        block: int | float | dict,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+        full: bool = True,
+        lazy: bool = False,
         blockchain_instance=None,
         **kwargs,
     ):
@@ -76,7 +76,7 @@ class Block(BlockchainObject):
         if self.identifier is None:
             self.identifier = self.block_num
 
-    def _parse_json_data(self, block):
+    def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
             "timestamp",
         ]
@@ -101,7 +101,7 @@ class Block(BlockchainObject):
                     )
         return block
 
-    def json(self):
+    def json(self) -> dict:
         output = self.copy()
         parse_times = [
             "timestamp",
@@ -135,7 +135,7 @@ class Block(BlockchainObject):
         output = self._parse_json_data(output)
         return ret
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Even though blocks never change, you freshly obtain its contents
         from an API with this method
         """
@@ -145,37 +145,21 @@ class Block(BlockchainObject):
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if self.only_ops or self.only_virtual_ops:
-            try:
-                ops_ops = self.blockchain.rpc.get_ops_in_block(
-                    {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
-                    api="account_history_api",
-                )
-                ops = ops_ops["ops"] if ops_ops is not None else None
-            except ApiNotSupported:
-                ops = self.blockchain.rpc.get_ops_in_block(
-                    self.identifier, self.only_virtual_ops, api="account_history_api"
-                )
-                if bool(ops):
-                    block = {
-                        "block": ops[0]["block"],
-                        "timestamp": ops[0]["timestamp"],
-                        "operations": ops,
-                    }
-            else:
-                block = {
-                    "block": self.identifier,
-                    "timestamp": "1970-01-01T00:00:00",
-                    "operations": ops or [],
-                }
+            ops_ops = self.blockchain.rpc.get_ops_in_block(
+                {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
+                api="account_history_api",
+            )
+            ops = ops_ops["ops"] if ops_ops is not None else []
+            timestamp = ops[0]["timestamp"] if ops else "1970-01-01T00:00:00"
+            block = {
+                "block": self.identifier,
+                "timestamp": timestamp,
+                "operations": ops,
+            }
         else:
-            try:
-                block = self.blockchain.rpc.get_block(
-                    {"block_num": self.identifier}, api="block_api"
-                )
-                if block and "block" in block:
-                    block = block["block"]
-            except ApiNotSupported:
-                block = self.blockchain.rpc.get_block(self.identifier, api="block_api")
+            block = self.blockchain.rpc.get_block({"block_num": self.identifier}, api="block_api")
+            if block and "block" in block:
+                block = block["block"]
         if not block:
             message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
             raise BlockDoesNotExistsException(message)
@@ -185,7 +169,7 @@ class Block(BlockchainObject):
         )
 
     @property
-    def block_num(self):
+    def block_num(self) -> Optional[int]:
         """Returns the block number"""
         if "block_id" in self:
             return int(self["block_id"][:8], base=16)
@@ -194,12 +178,12 @@ class Block(BlockchainObject):
         else:
             return None
 
-    def time(self):
+    def time(self) -> datetime:
         """Return a datetime instance for the timestamp of this block"""
         return self["timestamp"]
 
     @property
-    def transactions(self):
+    def transactions(self) -> List[Dict[str, Any]]:
         """Returns all transactions as list"""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -216,7 +200,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def operations(self):
+    def operations(self) -> List:
         """Returns all block operations as list"""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -237,7 +221,7 @@ class Block(BlockchainObject):
         return ops
 
     @property
-    def json_transactions(self):
+    def json_transactions(self) -> List[Dict[str, Any]]:
         """Returns all transactions as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -259,7 +243,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def json_operations(self):
+    def json_operations(self) -> List:
         """Returns all block operations as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -288,7 +272,7 @@ class Block(BlockchainObject):
                 ops.append(op_new)
         return ops
 
-    def ops_statistics(self, add_to_ops_stat=None):
+    def ops_statistics(self, add_to_ops_stat: Optional[Dict[str, int]] = None) -> Dict[str, int]:
         """Returns a statistic with the occurrence of the different operation types"""
         if add_to_ops_stat is None:
             import nectarbase.operationids
@@ -332,7 +316,14 @@ class BlockHeader(BlockchainObject):
 
     """
 
-    def __init__(self, block, full=True, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        block: int | float | dict,
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance=None,
+        **kwargs,
+    ):
         """
         Initialize a BlockHeader.
 
@@ -355,7 +346,7 @@ class BlockHeader(BlockchainObject):
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Even though blocks never change, you freshly obtain its contents
         from an API with this method
         """
@@ -374,16 +365,16 @@ class BlockHeader(BlockchainObject):
             block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
         )
 
-    def time(self):
+    def time(self) -> datetime:
         """Return a datetime instance for the timestamp of this block"""
         return self["timestamp"]
 
     @property
-    def block_num(self):
+    def block_num(self) -> int:
         """Returns the block number"""
         return self.identifier
 
-    def _parse_json_data(self, block):
+    def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
             "timestamp",
         ]
@@ -392,7 +383,7 @@ class BlockHeader(BlockchainObject):
                 block[p] = parse_time(block.get(p, "1970-01-01T00:00:00"))
         return block
 
-    def json(self):
+    def json(self) -> dict:
         output = self.copy()
         parse_times = [
             "timestamp",

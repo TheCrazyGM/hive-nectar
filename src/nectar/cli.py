@@ -214,6 +214,13 @@ def export_trx(tx, export):
 )
 @click.option("--offline", "-o", is_flag=True, default=False, help="Prevent connecting to network")
 @click.option("--no-broadcast", "-d", is_flag=True, default=False, help="Do not broadcast")
+@click.option(
+    "--testnet",
+    "-t",
+    is_flag=True,
+    default=False,
+    help="Legacy compatibility flag (no-op, Hive only).",
+)
 @click.option("--no-wallet", "-p", is_flag=True, default=False, help="Do not load the wallet")
 @click.option(
     "--unsigned",
@@ -250,6 +257,7 @@ def cli(
     node,
     offline,
     no_broadcast,
+    testnet,
     no_wallet,
     unsigned,
     keys,

@@ -18,7 +18,6 @@ from nectar.constants import (
 from nectar.instance import shared_blockchain_instance
 from nectar.rc import RC
 from nectarapi.exceptions import (
-    ApiNotSupported,
     FilteredItemNotFound,
     MissingRequiredActiveAuthority,
 )
@@ -33,6 +32,7 @@ from .utils import (
     addTzInfo,
     formatTimedelta,
     formatTimeString,
+    parse_time,
     remove_from_dict,
     reputation_to_score,
 )
@@ -133,7 +133,6 @@ class Account(BlockchainObject):
             raise AccountDoesNotExistsException(self.identifier)
         account = self._parse_json_data(account)
         self.identifier = account["name"]
-        # self.blockchain.refresh_data()
 
         super(Account, self).__init__(
             account,
@@ -198,7 +197,7 @@ class Account(BlockchainObject):
         ]
         for p in parse_times:
             if p in account and isinstance(account.get(p), str):
-                account[p] = formatTimeString(account.get(p, "1970-01-01T00:00:00"))
+                account[p] = parse_time(account.get(p, "1970-01-01T00:00:00"))
         # Parse Amounts
         amounts = [
             "balance",
@@ -219,7 +218,7 @@ class Account(BlockchainObject):
                 account[p] = Amount(account[p], blockchain_instance=self.blockchain)
         return account
 
-    def json(self):
+    def json(self) -> dict:
         """
         Return a JSON-serializable representation of the account data with normalized field types.
 
@@ -306,16 +305,15 @@ class Account(BlockchainObject):
                         output[p] = obj.json()
         return json.loads(str(json.dumps(output)))
 
-    def getSimilarAccountNames(self, limit=5):
+    def getSimilarAccountNames(self, limit: int = 5) -> List[str]:
         """Deprecated, please use get_similar_account_names"""
         return self.get_similar_account_names(limit=limit)
 
-    def get_rc(self):
-        """Return RC of account"""
-        b = Blockchain(blockchain_instance=self.blockchain)
-        return b.find_rc_accounts(self["name"])
+    def get_rc(self) -> Dict:
+        """Return RC of account."""
+        return Blockchain(blockchain_instance=self.blockchain).find_rc_accounts(self["name"])
 
-    def get_rc_manabar(self):
+    def get_rc_manabar(self) -> Dict[str, Union[int, float]]:
         """
         Return the account's current and maximum Resource Credit (RC) mana.
 
@@ -359,7 +357,7 @@ class Account(BlockchainObject):
             "max_rc_creation_adjustment": max_rc_creation_adjustment,
         }
 
-    def get_similar_account_names(self, limit=5):
+    def get_similar_account_names(self, limit: int = 5) -> List[str]:
         """Returns ``limit`` account names similar to the current account
         name as a list
 
@@ -376,12 +374,12 @@ class Account(BlockchainObject):
         return b.get_similar_account_names(self.name, limit=limit)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the account name"""
         return self["name"]
 
     @property
-    def profile(self):
+    def profile(self) -> dict:
         """Returns the account profile"""
         metadata = self.json_metadata
         if "profile" in metadata:
@@ -390,12 +388,12 @@ class Account(BlockchainObject):
             return {}
 
     @property
-    def rep(self):
+    def rep(self) -> float:
         """Returns the account reputation"""
         return self.get_reputation()
 
     @property
-    def sp(self):
+    def sp(self) -> Amount:
         """
         Return the account's Hive Power (HP).
 
@@ -404,28 +402,34 @@ class Account(BlockchainObject):
         return self.get_token_power()
 
     @property
-    def tp(self):
+    def tp(self) -> Amount:
         """Returns the account Hive Power"""
         return self.get_token_power()
 
     @property
-    def vp(self):
+    def vp(self) -> float:
         """Returns the account voting power in the range of 0-100%"""
         return self.get_voting_power()
 
     @property
-    def json_metadata(self):
+    def json_metadata(self) -> dict:
         if self["json_metadata"] == "":
             return {}
         return json.loads(self["json_metadata"])
 
     @property
-    def posting_json_metadata(self):
+    def posting_json_metadata(self) -> dict:
         if self["posting_json_metadata"] == "":
             return {}
         return json.loads(self["posting_json_metadata"])
 
-    def print_info(self, force_refresh=False, return_str=False, use_table=False, **kwargs):
+    def print_info(
+        self,
+        force_refresh: bool = False,
+        return_str: bool = False,
+        use_table: bool = False,
+        **kwargs,
+    ) -> Optional[str]:
         """
         Print account summary information, either printed or returned as a string.
 
@@ -454,12 +458,14 @@ class Account(BlockchainObject):
             remaining = 100 - bandwidth["used"] / bandwidth["allocated"] * 100
             used_kb = bandwidth["used"] / 1024
             allocated_mb = bandwidth["allocated"] / 1024 / 1024
-        last_vote_time_str = formatTimedelta(
-            datetime.now(timezone.utc)
-            - datetime.strptime(self["last_vote_time"], "%Y-%m-%dT%H:%M:%S").replace(
+        last_vote_raw = self["last_vote_time"]
+        if isinstance(last_vote_raw, str):
+            last_vote_dt = datetime.strptime(last_vote_raw, "%Y-%m-%dT%H:%M:%S").replace(
                 tzinfo=timezone.utc
             )
-        )
+        else:
+            last_vote_dt = addTzInfo(last_vote_raw)
+        last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
         try:
             rc_mana = self.get_rc_manabar()
             rc = self.get_rc()
@@ -594,7 +600,7 @@ class Account(BlockchainObject):
                 return ret
             print(ret)
 
-    def get_reputation(self):
+    def get_reputation(self) -> float:
         """
         Return the account's normalized reputation score.
 
@@ -634,7 +640,7 @@ class Account(BlockchainObject):
             log.warning(f"No reputation data available for {self['name']}")
             return reputation_to_score(0)
 
-    def get_manabar(self):
+    def get_manabar(self) -> Dict[str, Union[int, float]]:
         """
         Return the account's voting manabar state.
 
@@ -683,7 +689,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_downvote_manabar(self):
+    def get_downvote_manabar(self) -> Dict[str, Union[int, float]]:
         """
         Return the account's downvote manabar state and regeneration progress.
 
@@ -727,7 +733,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_voting_power(self, with_regeneration=True):
+    def get_voting_power(self, with_regeneration: bool = True) -> float:
         """
         Return the account's current voting power as a percentage (0–100).
 
@@ -764,7 +770,7 @@ class Account(BlockchainObject):
             return 0
         return total_vp
 
-    def get_downvoting_power(self, with_regeneration=True):
+    def get_downvoting_power(self, with_regeneration: bool = True) -> float:
         """Returns the account downvoting power in the range of 0-100%
 
         :param bool with_regeneration: When True, downvoting power regeneration is
@@ -787,7 +793,7 @@ class Account(BlockchainObject):
             return 0
         return total_down_vp
 
-    def get_vests(self, only_own_vests=False):
+    def get_vests(self, only_own_vests: bool = False) -> Amount:
         """Returns the account vests
 
         :param bool only_own_vests: When True, only owned vests is
@@ -803,7 +809,7 @@ class Account(BlockchainObject):
 
         return vests
 
-    def get_effective_vesting_shares(self):
+    def get_effective_vesting_shares(self) -> Amount:
         """
         Return the account's effective vesting shares as an integer.
 
@@ -841,7 +847,7 @@ class Account(BlockchainObject):
             )
         return vesting_shares
 
-    def get_token_power(self, only_own_vests=False, use_stored_data=True):
+    def get_token_power(self, only_own_vests: bool = False, use_stored_data: bool = True) -> Amount:
         """
         Return the account's Hive Power (HP), including staked tokens and delegated amounts.
 
@@ -858,12 +864,12 @@ class Account(BlockchainObject):
 
     def get_voting_value(
         self,
-        post_rshares=0,
-        voting_weight=100,
-        voting_power=None,
-        token_power=None,
-        not_broadcasted_vote=True,
-    ):
+        post_rshares: int = 0,
+        voting_weight: Union[int, float] = 100,
+        voting_power: Optional[Union[int, float]] = None,
+        token_power: Optional[Union[int, float]] = None,
+        not_broadcasted_vote: bool = True,
+    ) -> Amount:
         """
         Estimate the vote value expressed in HBD for a potential vote by this account.
 
@@ -953,12 +959,12 @@ class Account(BlockchainObject):
 
     def get_vote_pct_for_vote_value(
         self,
-        token_units,
-        post_rshares=0,
-        voting_power=None,
-        token_power=None,
-        not_broadcasted_vote=True,
-    ):
+        token_units: Union[int, float, Amount],
+        post_rshares: int = 0,
+        voting_power: Optional[Union[int, float]] = None,
+        token_power: Optional[Union[int, float]] = None,
+        not_broadcasted_vote: bool = True,
+    ) -> float:
         """
         Return the voting percentage required to produce a specified vote value in the blockchain's backed token (HBD).
 
@@ -1020,7 +1026,7 @@ class Account(BlockchainObject):
         vote_pct = int(round(ratio * HIVE_100_PERCENT))
         return vote_pct
 
-    def get_creator(self):
+    def get_creator(self) -> Optional[str]:
         """Returns the account creator or `None` if the account was mined"""
         if self["mined"]:
             return None
@@ -1029,7 +1035,9 @@ class Account(BlockchainObject):
             return None
         return ops[-1]["creator"]
 
-    def get_recharge_time_str(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_time_str(
+        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+    ) -> str:
         """Returns the account recharge time as string
 
         :param float voting_power_goal: voting power goal in percentage (default is 100)
@@ -1042,7 +1050,9 @@ class Account(BlockchainObject):
         )
         return formatTimedelta(remainingTime)
 
-    def get_recharge_timedelta(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_timedelta(
+        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+    ) -> timedelta:
         """
         Return the timedelta required to recharge the account's voting power to a target percentage.
 
@@ -1075,7 +1085,9 @@ class Account(BlockchainObject):
         )
         return timedelta(seconds=recharge_seconds)
 
-    def get_recharge_time(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_time(
+        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+    ) -> datetime:
         """Returns the account voting power recharge time in minutes
 
         :param float voting_power_goal: voting power goal in percentage (default is 100)
@@ -1087,7 +1099,7 @@ class Account(BlockchainObject):
             voting_power_goal, starting_voting_power
         )
 
-    def get_manabar_recharge_time_str(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_time_str(self, manabar, recharge_pct_goal: float = 100) -> str:
         """Returns the account manabar recharge time as string
 
         :param dict manabar: manabar dict from get_manabar() or get_rc_manabar()
@@ -1099,7 +1111,7 @@ class Account(BlockchainObject):
         )
         return formatTimedelta(remainingTime)
 
-    def get_manabar_recharge_timedelta(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_timedelta(self, manabar, recharge_pct_goal: float = 100) -> timedelta:
         """
         Return the time remaining for a manabar to recharge to a target percentage.
 
@@ -1123,7 +1135,7 @@ class Account(BlockchainObject):
         )
         return timedelta(seconds=recharge_seconds)
 
-    def get_manabar_recharge_time(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_time(self, manabar, recharge_pct_goal: float = 100) -> datetime:
         """
         Return the UTC datetime when the given manabar will reach the specified recovery percentage.
 
@@ -1140,7 +1152,12 @@ class Account(BlockchainObject):
         )
 
     def get_feed(
-        self, start_entry_id=0, limit=100, raw_data=False, short_entries=False, account=None
+        self,
+        start_entry_id: int = 0,
+        limit: int = 100,
+        raw_data: bool = False,
+        short_entries: bool = False,
+        account=None,
     ):
         """
         Return the feed entries for an account.
@@ -1173,7 +1190,9 @@ class Account(BlockchainObject):
                 raw_data=raw_data,
             )
 
-    def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
+    def get_feed_entries(
+        self, start_entry_id: int = 0, limit: int = 100, raw_data: bool = True, account=None
+    ):
         """
         Return a list of feed entries for the account.
 
@@ -1196,7 +1215,9 @@ class Account(BlockchainObject):
             account=account,
         )
 
-    def get_blog_entries(self, start_entry_id=0, limit=50, raw_data=True, account=None):
+    def get_blog_entries(
+        self, start_entry_id: int = 0, limit: int = 50, raw_data: bool = True, account=None
+    ):
         """
         Return the account's blog entries.
 
@@ -1300,7 +1321,13 @@ class Account(BlockchainObject):
         except Exception:
             return []
 
-    def get_notifications(self, only_unread=True, limit=100, raw_data=False, account=None):
+    def get_notifications(
+        self,
+        only_unread: bool = True,
+        limit: Optional[int] = 100,
+        raw_data: bool = False,
+        account=None,
+    ):
         """Returns account notifications
 
         :param bool only_unread: When True, only unread notfications are shown
@@ -1338,7 +1365,7 @@ class Account(BlockchainObject):
             ret.append(note)
         return ret
 
-    def mark_notifications_as_read(self, last_read=None, account=None):
+    def mark_notifications_as_read(self, last_read=None, account=None) -> dict:
         """Broadcast a mark all notification as read custom_json
 
         :param str last_read: When set, this datestring is used to set the mark as read date
@@ -1366,7 +1393,7 @@ class Account(BlockchainObject):
         ]
         return self.blockchain.custom_json("notify", json_body, required_posting_auths=[account])
 
-    def get_blog_authors(self, account=None):
+    def get_blog_authors(self, account=None) -> List[str]:
         """
         Return a list of author account names whose posts have been reblogged on the specified blog account.
 
@@ -1378,14 +1405,14 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser_api")[
-        #     "blog_authors"
-        # ]
-        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser_api")[
-        #     "blog_authors"
-        # ]
+        result = self.blockchain.rpc.get_blog_authors(
+            {"blog_account": account}, api="condenser_api"
+        )
+        if isinstance(result, dict) and "blog_authors" in result:
+            return result["blog_authors"]
+        return []
 
-    def get_follow_count(self, account=None):
+    def get_follow_count(self, account=None) -> dict:
         """get_follow_count"""
         if account is None:
             account = self["name"]
@@ -1395,7 +1422,9 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
 
-    def get_followers(self, raw_name_list=True, limit=100):
+    def get_followers(
+        self, raw_name_list: bool = True, limit: int = 100
+    ) -> Union[List[str], "Accounts"]:
         """Returns the account followers as list"""
         name_list = [x["follower"] for x in self._get_followers(direction="follower", limit=limit)]
         if raw_name_list:
@@ -1403,7 +1432,9 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_following(self, raw_name_list=True, limit=100):
+    def get_following(
+        self, raw_name_list: bool = True, limit: int = 100
+    ) -> Union[List[str], "Accounts"]:
         """Returns who the account is following as list"""
         name_list = [
             x["following"] for x in self._get_followers(direction="following", limit=limit)
@@ -1413,7 +1444,9 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_muters(self, raw_name_list=True, limit=100):
+    def get_muters(
+        self, raw_name_list: bool = True, limit: int = 100
+    ) -> Union[List[str], "Accounts"]:
         """Returns the account muters as list"""
         name_list = [
             x["follower"]
@@ -1424,7 +1457,9 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_mutings(self, raw_name_list=True, limit=100):
+    def get_mutings(
+        self, raw_name_list: bool = True, limit: int = 100
+    ) -> Union[List[str], "Accounts"]:
         """
         Return the list of accounts this account has muted.
 
@@ -1503,7 +1538,9 @@ class Account(BlockchainObject):
             account_names: List[str] = [x["name"] for x in name_list if "name" in x]
             return Accounts(account_names, blockchain_instance=self.blockchain)
 
-    def _get_followers(self, direction="follower", last_user="", what="blog", limit=100):
+    def _get_followers(
+        self, direction: str = "follower", last_user: str = "", what: str = "blog", limit: int = 100
+    ) -> List[dict]:
         """
         Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
 
@@ -1551,7 +1588,7 @@ class Account(BlockchainObject):
 
         return followers_list
 
-    def list_all_subscriptions(self, account=None):
+    def list_all_subscriptions(self, account=None) -> List[dict]:
         """Returns all subscriptions"""
         if account is None:
             account = self["name"]
@@ -1571,7 +1608,14 @@ class Account(BlockchainObject):
             # Return empty list as fallback
             return []
 
-    def get_account_posts(self, sort="feed", limit=20, account=None, observer=None, raw_data=False):
+    def get_account_posts(
+        self,
+        sort: str = "feed",
+        limit: int = 20,
+        account=None,
+        observer=None,
+        raw_data: bool = False,
+    ) -> Any:
         """Returns account feed"""
         if account is None:
             account = self["name"]
@@ -1585,7 +1629,7 @@ class Account(BlockchainObject):
         return AccountPosts(sort, account, observer=observer, limit=limit, raw_data=raw_data)
 
     @property
-    def available_balances(self):
+    def available_balances(self) -> List[Amount]:
         """
         Return a list of the account's available balances as Amount objects.
 
@@ -1603,7 +1647,7 @@ class Account(BlockchainObject):
         return available_amount
 
     @property
-    def saving_balances(self):
+    def saving_balances(self) -> List[Amount]:
         """
         Return the account's savings balances.
 
@@ -1622,7 +1666,7 @@ class Account(BlockchainObject):
         return savings_amount
 
     @property
-    def reward_balances(self):
+    def reward_balances(self) -> List[Amount]:
         """
         Return the account's reward balances as a list of Amount objects.
 
@@ -1642,7 +1686,7 @@ class Account(BlockchainObject):
         return rewards_amount
 
     @property
-    def total_balances(self):
+    def total_balances(self) -> List[Amount]:
         symbols = []
         for balance in self.available_balances:
             symbols.append(balance["symbol"])
@@ -1655,11 +1699,11 @@ class Account(BlockchainObject):
         return ret
 
     @property
-    def balances(self):
+    def balances(self) -> Dict[str, List[Amount]]:
         """Returns all account balances as dictionary"""
         return self.get_balances()
 
-    def get_balances(self):
+    def get_balances(self) -> Dict[str, List[Amount]]:
         """
         Return the account's balances grouped by category.
 
@@ -1679,7 +1723,7 @@ class Account(BlockchainObject):
             "total": self.total_balances,
         }
 
-    def get_balance(self, balances, symbol):
+    def get_balance(self, balances, symbol: str) -> Optional[Amount]:
         """
         Return a specific balance Amount for this account.
 
@@ -1714,7 +1758,7 @@ class Account(BlockchainObject):
 
         return Amount(0, symbol, blockchain_instance=self.blockchain)
 
-    def interest(self):
+    def interest(self) -> Dict[str, Union[float, datetime, timedelta]]:
         """Calculate interest for an account
 
         :param str account: Account name to get interest for
@@ -1768,20 +1812,22 @@ class Account(BlockchainObject):
         }
 
     @property
-    def is_fully_loaded(self):
+    def is_fully_loaded(self) -> bool:
         """Is this instance fully loaded / e.g. all data available?
 
         :rtype: bool
         """
         return self.full
 
-    def ensure_full(self):
+    def ensure_full(self) -> None:
         """Ensure that all data are loaded"""
         if not self.is_fully_loaded:
             self.full = True
             self.refresh()
 
-    def get_account_bandwidth(self, bandwidth_type=1, account=None):
+    def get_account_bandwidth(
+        self, bandwidth_type: int = 1, account=None
+    ) -> Dict[str, Union[int, str]]:
         """get_account_bandwidth"""
         if account is None:
             account = self["name"]
@@ -1791,7 +1837,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_account_bandwidth(account, bandwidth_type)
 
-    def get_bandwidth(self):
+    def get_bandwidth(self) -> Dict[str, Optional[int]]:
         """Returns used and allocated bandwidth
 
         :rtype: dictionary
@@ -1853,7 +1899,7 @@ class Account(BlockchainObject):
         # print("bandwidth percent used: " + str(100 * used_bandwidth / allocated_bandwidth))
         # print("bandwidth percent remaining: " + str(100 - (100 * used_bandwidth / allocated_bandwidth)))
 
-    def get_owner_history(self, account=None):
+    def get_owner_history(self, account=None) -> List[dict]:
         """
         Return the owner authority history for an account.
 
@@ -1879,7 +1925,7 @@ class Account(BlockchainObject):
             "owner_auths"
         ]
 
-    def get_conversion_requests(self, account=None):
+    def get_conversion_requests(self, account=None) -> List[dict]:
         """
         Return the list of pending HBD conversion requests for an account.
 
@@ -1900,14 +1946,16 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if "hbd_balance" in self:
+        try:
             return self.blockchain.rpc.find_hbd_conversion_requests(
                 {"account": account}, api="database_api"
             )["requests"]
-        else:
-            return self.blockchain.rpc.get_conversion_requests(account)
+        except Exception:
+            return []
 
-    def get_vesting_delegations(self, start_account="", limit=100, account=None):
+    def get_vesting_delegations(
+        self, start_account: str = "", limit: int = 100, account=None
+    ) -> List[dict]:
         """
         Return the list of vesting delegations made by an account.
 
@@ -1936,7 +1984,7 @@ class Account(BlockchainObject):
         )["delegations"]
         return [d for d in delegations if d["delegator"] == account]
 
-    def get_withdraw_routes(self, account=None):
+    def get_withdraw_routes(self, account=None) -> List[dict]:
         """
         Return the account's withdraw vesting routes.
 
@@ -1962,7 +2010,7 @@ class Account(BlockchainObject):
             {"account": account, "order": "by_withdraw_route"}, api="database_api"
         )["routes"]
 
-    def get_savings_withdrawals(self, direction="from", account=None):
+    def get_savings_withdrawals(self, direction: str = "from", account=None) -> List[dict]:
         """
         Return the list of savings withdrawal requests for an account.
 
@@ -1988,7 +2036,7 @@ class Account(BlockchainObject):
             {"account": account}, api="database_api"
         )["withdrawals"]
 
-    def get_recovery_request(self, account=None):
+    def get_recovery_request(self, account=None) -> List[dict]:
         """Returns the recovery request for an account
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2018,7 +2066,7 @@ class Account(BlockchainObject):
             {"accounts": [account]}, api="database_api"
         )["requests"]
 
-    def get_escrow(self, escrow_id=0, account=None):
+    def get_escrow(self, escrow_id: int = 0, account=None) -> List[dict]:
         """
         Return escrow(s) related to this account.
 
@@ -2044,7 +2092,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.find_escrows({"from": account}, api="database_api")["escrows"]
 
-    def verify_account_authority(self, keys, account=None):
+    def verify_account_authority(self, keys, account=None) -> Dict[str, Any]:
         """
         Return whether the provided signers (public keys) are sufficient to authorize the specified account.
 
@@ -2068,7 +2116,7 @@ class Account(BlockchainObject):
         except MissingRequiredActiveAuthority:
             return {"valid": False}
 
-    def get_tags_used_by_author(self, account=None):
+    def get_tags_used_by_author(self, account=None) -> List[dict]:
         """Returns a list of tags used by an author.
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2084,7 +2132,9 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_tags_used_by_author(account, api="condenser_api")["tags"]
 
-    def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
+    def get_expiring_vesting_delegations(
+        self, after=None, limit: int = 1000, account=None
+    ) -> List[dict]:
         """
         Return upcoming vesting-delegation expirations for an account.
 
@@ -2116,8 +2166,13 @@ class Account(BlockchainObject):
         )["delegations"]
 
     def get_account_votes(
-        self, account=None, start_author="", start_permlink="", limit=1000, start_date=None
-    ):
+        self,
+        account=None,
+        start_author: str = "",
+        start_permlink: str = "",
+        limit: int = 1000,
+        start_date: Optional[datetime] = None,
+    ) -> List[dict]:
         """
         Return a list of vote operations made by an account.
 
@@ -2141,12 +2196,6 @@ class Account(BlockchainObject):
         account = extract_account_name(account)
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        # self.blockchain.rpc.set_next_node_on_empty_reply(False)
-
-        #     vote_list = self.blockchain.rpc.get_account_votes(account, api="condenser_api")
-        # else:
-        #    vote_list = self.blockchain.rpc.get_account_votes(account)
-        # if isinstance(vote_list, dict) and "error" in vote_list:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         try:
             ret = self.blockchain.rpc.list_votes(
@@ -2171,7 +2220,7 @@ class Account(BlockchainObject):
         # else:
         #     return vote_list
 
-    def get_vote(self, comment):
+    def get_vote(self, comment) -> Optional[dict]:
         """Returns a vote if the account has already voted for comment.
 
         :param comment: can be a Comment object or a authorpermlink
@@ -2185,7 +2234,7 @@ class Account(BlockchainObject):
                 return v
         return None
 
-    def has_voted(self, comment):
+    def has_voted(self, comment) -> bool:
         """Returns if the account has already voted for comment
 
         :param comment: can be a Comment object or a authorpermlink
@@ -2197,7 +2246,7 @@ class Account(BlockchainObject):
         active_votes = {v["voter"]: v for v in c["active_votes"]}
         return self["name"] in active_votes
 
-    def virtual_op_count(self, until=None):
+    def virtual_op_count(self, until=None) -> int:
         """Returns the number of individual account transactions
 
         :rtype: list
@@ -2220,8 +2269,13 @@ class Account(BlockchainObject):
                 return 0
 
     def _get_account_history(
-        self, account=None, start=-1, limit=1, operation_filter_low=None, operation_filter_high=None
-    ):
+        self,
+        account=None,
+        start: int = -1,
+        limit: int = 1,
+        operation_filter_low: Optional[int] = None,
+        operation_filter_high: Optional[int] = None,
+    ) -> Optional[List]:
         if account is None:
             account = self["name"]
         account = extract_account_name(account)
@@ -2233,45 +2287,27 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if operation_filter_low is None and operation_filter_high is None:
-            try:
-                ret = self.blockchain.rpc.get_account_history(
-                    {"account": account, "start": start, "limit": limit}, api="account_history_api"
-                )
-                if ret is not None:
-                    ret = ret["history"]
-            except ApiNotSupported:
-                ret = self.blockchain.rpc.get_account_history(
-                    account,
-                    start,
-                    limit,
-                    api="condenser_api",
-                )
+            ret = self.blockchain.rpc.get_account_history(
+                {"account": account, "start": start, "limit": limit}, api="account_history_api"
+            )
+            if ret is not None:
+                ret = ret["history"]
         else:
-            try:
-                ret = self.blockchain.rpc.get_account_history(
-                    {
-                        "account": account,
-                        "start": start,
-                        "limit": limit,
-                        "operation_filter_low": operation_filter_low,
-                        "operation_filter_high": operation_filter_high,
-                    },
-                    api="account_history_api",
-                )
-                if ret is not None:
-                    ret = ret["history"]
-            except ApiNotSupported:
-                ret = self.blockchain.rpc.get_account_history(
-                    account,
-                    start,
-                    limit,
-                    operation_filter_low,
-                    operation_filter_high,
-                    api="condenser_api",
-                )
+            ret = self.blockchain.rpc.get_account_history(
+                {
+                    "account": account,
+                    "start": start,
+                    "limit": limit,
+                    "operation_filter_low": operation_filter_low,
+                    "operation_filter_high": operation_filter_high,
+                },
+                api="account_history_api",
+            )
+            if ret is not None:
+                ret = ret["history"]
         return ret
 
-    def _get_blocknum_from_hist(self, index, min_index=1):
+    def _get_blocknum_from_hist(self, index: int, min_index: int = 1) -> Optional[int]:
         if index >= 0 and index < min_index:
             index = min_index
         op = self._get_account_history(start=(index))
@@ -2279,7 +2315,7 @@ class Account(BlockchainObject):
             return None
         return op[0][1]["block"]
 
-    def _get_first_blocknum(self):
+    def _get_first_blocknum(self) -> tuple[Optional[int], int]:
         min_index = 0
         try:
             created = self._get_blocknum_from_hist(0, min_index=min_index)
@@ -2288,7 +2324,9 @@ class Account(BlockchainObject):
             created = self._get_blocknum_from_hist(0, min_index=min_index)
         return created, min_index
 
-    def estimate_virtual_op_num(self, blocktime, stop_diff=0, max_count=100, min_index=None):
+    def estimate_virtual_op_num(
+        self, blocktime, stop_diff: int = 0, max_count: int = 100, min_index: Optional[int] = None
+    ) -> int:
         """Returns an estimation of an virtual operation index for a given time or blockindex
 
         :param blocktime: start time or start block index from which account
@@ -2424,7 +2462,7 @@ class Account(BlockchainObject):
                 block_upper = block_num
             cnt += 1
 
-    def get_curation_reward(self, days=7):
+    def get_curation_reward(self, days: int = 7) -> float:
         """Returns the curation reward of the last `days` days
 
         :param int days: limit number of days to be included int the return value
@@ -2439,7 +2477,7 @@ class Account(BlockchainObject):
             reward_vests += Amount(reward["reward"], blockchain_instance=self.blockchain)
         return self.blockchain.vests_to_token_power(float(reward_vests))
 
-    def curation_stats(self):
+    def curation_stats(self) -> Dict[str, float]:
         """Returns the curation reward of the last 24h and 7d and the average
         of the last 7 days
 
@@ -2463,7 +2501,9 @@ class Account(BlockchainObject):
             "avg": self.get_curation_reward(days=7) / 7,
         }
 
-    def _get_operation_filter(self, only_ops=[], exclude_ops=[]):
+    def _get_operation_filter(
+        self, only_ops: List[str] | tuple = [], exclude_ops: List[str] | tuple = []
+    ) -> tuple[int, int]:
         from nectarbase.operationids import operations
 
         operation_filter_low = 0
@@ -2494,15 +2534,15 @@ class Account(BlockchainObject):
 
     def get_account_history(
         self,
-        index,
-        limit,
-        order=-1,
+        index: int,
+        limit: int,
+        order: int = -1,
         start=None,
         stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        raw_output=False,
+        use_block_num: bool = True,
+        only_ops: List[str] | tuple = [],
+        exclude_ops: List[str] | tuple = [],
+        raw_output: bool = False,
     ):
         """
         Yield account history operations for a single account.
@@ -2732,11 +2772,11 @@ class Account(BlockchainObject):
         self,
         start=None,
         stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        batch_size=1000,
-        raw_output=False,
+        use_block_num: bool = True,
+        only_ops: List[str] | tuple = [],
+        exclude_ops: List[str] | tuple = [],
+        batch_size: int = 1000,
+        raw_output: bool = False,
     ):
         """Returns a generator for individual account transactions. The
         earlist operation will be first. This call can be used in a
@@ -3038,11 +3078,11 @@ class Account(BlockchainObject):
         self,
         start=None,
         stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        batch_size=1000,
-        raw_output=False,
+        use_block_num: bool = True,
+        only_ops: List[str] | tuple = [],
+        exclude_ops: List[str] | tuple = [],
+        batch_size: int = 1000,
+        raw_output: bool = False,
     ):
         """Returns a generator for individual account transactions. The
         latest operation will be first. This call can be used in a
@@ -3293,7 +3333,7 @@ class Account(BlockchainObject):
             if first < 1:
                 break
 
-    def mute(self, mute, account=None):
+    def mute(self, mute, account=None) -> dict:
         """Mute another account
 
         :param str mute: Mute this account
@@ -3303,7 +3343,7 @@ class Account(BlockchainObject):
         """
         return self.follow(mute, what=["ignore"], account=account)
 
-    def unfollow(self, unfollow, account=None):
+    def unfollow(self, unfollow, account=None) -> dict:
         """Unfollow/Unmute another account's blog
 
         :param str unfollow: Unfollow/Unmute this account
@@ -3313,7 +3353,7 @@ class Account(BlockchainObject):
         """
         return self.follow(unfollow, what=[], account=account)
 
-    def follow(self, other, what=["blog"], account=None):
+    def follow(self, other, what=["blog"], account=None) -> dict:
         """Follow/Unfollow/Mute/Unmute another account's blog
 
         .. note:: what can be one of the following on HIVE:
@@ -3342,7 +3382,7 @@ class Account(BlockchainObject):
         json_body = ["follow", {"follower": account, "following": other, "what": what}]
         return self.blockchain.custom_json("follow", json_body, required_posting_auths=[account])
 
-    def update_account_profile(self, profile, account=None, **kwargs):
+    def update_account_profile(self, profile, account=None, **kwargs) -> dict:
         """Update an account's profile in json_metadata
 
         :param dict profile: The new profile to use
@@ -3386,7 +3426,7 @@ class Account(BlockchainObject):
         metadata["profile"] = profile
         return self.update_account_metadata(metadata)
 
-    def update_account_metadata(self, metadata, account=None, **kwargs):
+    def update_account_metadata(self, metadata, account=None, **kwargs) -> dict:
         """Update an account's profile in json_metadata
 
         :param dict metadata: The new metadata to use
@@ -3412,7 +3452,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def update_account_jsonmetadata(self, metadata, account=None, **kwargs):
+    def update_account_jsonmetadata(self, metadata, account=None, **kwargs) -> dict:
         """Update an account's profile in json_metadata using the posting key
 
         :param dict metadata: The new metadata to use
@@ -3440,7 +3480,7 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------
     #  Approval and Disapproval of witnesses
     # -------------------------------------------------------------------------
-    def approvewitness(self, witness, account=None, approve=True, **kwargs):
+    def approvewitness(self, witness, account=None, approve=True, **kwargs) -> dict:
         """Approve a witness
 
         :param list witness: list of Witness name or id
@@ -3469,7 +3509,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def disapprovewitness(self, witness, account=None, **kwargs):
+    def disapprovewitness(self, witness, account=None, **kwargs) -> dict:
         """Disapprove a witness
 
         :param list witness: list of Witness name or id
@@ -3478,7 +3518,7 @@ class Account(BlockchainObject):
         """
         return self.approvewitness(witness=witness, account=account, approve=False)
 
-    def setproxy(self, proxy="", account=None):
+    def setproxy(self, proxy: str = "", account=None) -> dict:
         """Set the witness and proposal system proxy of an account
 
         :param proxy: The account to set the proxy to (Leave empty for removing the proxy)
@@ -3500,7 +3540,7 @@ class Account(BlockchainObject):
         op = operations.Account_witness_proxy(**{"account": account.name, "proxy": proxy_name})
         return self.blockchain.finalizeOp(op, account, "active")
 
-    def update_memo_key(self, key, account=None, **kwargs):
+    def update_memo_key(self, key, account=None, **kwargs) -> dict:
         """Update an account's memo public key
 
         This method does **not** add any private keys to your
@@ -3528,7 +3568,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def update_account_keys(self, new_password, account=None, **kwargs):
+    def update_account_keys(self, new_password, account=None, **kwargs) -> dict:
         """Updates all account keys
 
         This method does **not** add any private keys to your
@@ -3578,7 +3618,7 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "owner", **kwargs)
 
-    def change_recovery_account(self, new_recovery_account, account=None, **kwargs):
+    def change_recovery_account(self, new_recovery_account, account=None, **kwargs) -> dict:
         """Request a change of the recovery account.
 
         .. note:: It takes 30 days until the change applies. Another
@@ -3611,8 +3651,15 @@ class Account(BlockchainObject):
     # Simple Transfer
     # -------------------------------------------------------------------------
     def transfer(
-        self, to, amount, asset, memo="", skip_account_check=False, account=None, **kwargs
-    ):
+        self,
+        to: Union[str, "Account"],
+        amount: Union[int, float, str, Amount],
+        asset: str,
+        memo: str = "",
+        skip_account_check: bool = False,
+        account=None,
+        **kwargs,
+    ) -> dict:
         """
         Transfer an asset from this account to another account.
 
@@ -3663,16 +3710,16 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------------
     def recurring_transfer(
         self,
-        to,
-        amount,
-        asset,
-        recurrence,
-        executions,
-        memo="",
-        skip_account_check=False,
+        to: Union[str, "Account"],
+        amount: Union[int, float, str, Amount],
+        asset: str,
+        recurrence: int,
+        executions: int,
+        memo: str = "",
+        skip_account_check: bool = False,
         account=None,
         **kwargs,
-    ):
+    ) -> dict:
         """
         Schedule a recurring transfer of a token from this account to another.
 
@@ -3722,8 +3769,13 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_to_vesting(
-        self, amount, to=None, account=None, skip_account_check=False, **kwargs
-    ):
+        self,
+        amount: Union[int, float, str, Amount],
+        to=None,
+        account=None,
+        skip_account_check: bool = False,
+        **kwargs,
+    ) -> dict:
         """
         Power up HIVE by converting liquid HIVE into vesting shares (VESTS).
 
@@ -3762,7 +3814,9 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def convert(self, amount, account=None, request_id=None):
+    def convert(
+        self, amount: Union[int, float, str, Amount], account=None, request_id=None
+    ) -> dict:
         """
         Convert HBD to HIVE (takes ~3.5 days to settle).
 
@@ -3795,7 +3849,9 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active")
 
     # Added to differentiate and match the addition of the HF25 convert operation
-    def collateralized_convert(self, amount, account=None, request_id=None, **kwargs):
+    def collateralized_convert(
+        self, amount: Union[int, float, str, Amount], account=None, request_id=None, **kwargs
+    ) -> dict:
         """
         Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
 
@@ -3833,7 +3889,15 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def transfer_to_savings(self, amount, asset, memo, to=None, account=None, **kwargs):
+    def transfer_to_savings(
+        self,
+        amount: Union[int, float, str, Amount],
+        asset: str,
+        memo: str,
+        to=None,
+        account=None,
+        **kwargs,
+    ) -> dict:
         """
         Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
 
@@ -3878,8 +3942,15 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_from_savings(
-        self, amount, asset, memo, request_id=None, to=None, account=None, **kwargs
-    ):
+        self,
+        amount: Union[int, float, str, Amount],
+        asset: str,
+        memo: str,
+        request_id=None,
+        to=None,
+        account=None,
+        **kwargs,
+    ) -> dict:
         """
         Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
 
@@ -3931,7 +4002,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def cancel_transfer_from_savings(self, request_id, account=None, **kwargs):
+    def cancel_transfer_from_savings(self, request_id: int, account=None, **kwargs) -> dict:
         """Cancel a withdrawal from 'savings' account.
 
         :param str request_id: Identifier for tracking or cancelling
@@ -3953,7 +4024,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def _check_amount(self, amount, symbol):
+    def _check_amount(self, amount, symbol) -> Amount:
         if isinstance(amount, (float, int)):
             amount = Amount(amount, symbol, blockchain_instance=self.blockchain)
         elif isinstance(amount, str) and amount.replace(".", "", 1).replace(",", "", 1).isdigit():
@@ -3966,12 +4037,12 @@ class Account(BlockchainObject):
 
     def claim_reward_balance(
         self,
-        reward_hive=0,
-        reward_hbd=0,
-        reward_vests=0,
+        reward_hive: Union[int, float, str, Amount] = 0,
+        reward_hbd: Union[int, float, str, Amount] = 0,
+        reward_vests: Union[int, float, str, Amount] = 0,
         account=None,
         **kwargs,
-    ):
+    ) -> dict:
         """
         Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
 
@@ -4042,7 +4113,7 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "posting", **kwargs)
 
-    def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs):
+    def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs) -> dict:
         """
         Delegate vesting shares (Hive Power) from one account to another.
 
@@ -4076,7 +4147,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def withdraw_vesting(self, amount, account=None, **kwargs):
+    def withdraw_vesting(self, amount, account=None, **kwargs) -> dict:
         """Withdraw VESTS from the vesting account.
 
         :param float amount: number of VESTS to withdraw over a period of
@@ -4102,8 +4173,8 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def set_withdraw_vesting_route(
-        self, to, percentage=100, account=None, auto_vest=False, **kwargs
-    ):
+        self, to, percentage: float = 100, account=None, auto_vest: bool = False, **kwargs
+    ) -> dict:
         """
         Set or update a vesting withdraw route for an account.
 
@@ -4305,7 +4376,13 @@ class Account(BlockchainObject):
         else:
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def feed_history(self, limit=None, start_author=None, start_permlink=None, account=None):
+    def feed_history(
+        self,
+        limit: Optional[int] = None,
+        start_author: Optional[str] = None,
+        start_permlink: Optional[str] = None,
+        account=None,
+    ):
         """
         Yield feed entries for an account in reverse chronological order.
 
@@ -4363,7 +4440,9 @@ class Account(BlockchainObject):
                 if feed_count == limit:
                     return
 
-    def blog_history(self, limit=None, start=-1, reblogs=True, account=None):
+    def blog_history(
+        self, limit: Optional[int] = None, start: int = -1, reblogs: bool = True, account=None
+    ):
         """
         Yield blog entries for an account in reverse chronological order.
 
@@ -4422,7 +4501,9 @@ class Account(BlockchainObject):
                 if post_count == limit:
                     return
 
-    def comment_history(self, limit=None, start_permlink=None, account=None):
+    def comment_history(
+        self, limit: Optional[int] = None, start_permlink: Optional[str] = None, account=None
+    ):
         """
         Yield comments authored by an account in reverse chronological order.
 
@@ -4474,7 +4555,13 @@ class Account(BlockchainObject):
                 if comment_count == limit:
                     return
 
-    def reply_history(self, limit=None, start_author=None, start_permlink=None, account=None):
+    def reply_history(
+        self,
+        limit: Optional[int] = None,
+        start_author: Optional[str] = None,
+        start_permlink: Optional[str] = None,
+        account=None,
+    ):
         """Stream the replies to an account in reverse time order.
 
         .. note:: RPC nodes keep a limited history of entries for the
@@ -4553,14 +4640,16 @@ class Account(BlockchainObject):
 
 
 class AccountsObject(list):
-    def printAsTable(self):
+    def printAsTable(self) -> None:
         t = PrettyTable(["Name"])
         t.align = "l"
         for acc in self:
             t.add_row([acc["name"]])
         print(t)
 
-    def print_summarize_table(self, tag_type="Follower", return_str=False, **kwargs):
+    def print_summarize_table(
+        self, tag_type="Follower", return_str=False, **kwargs
+    ) -> Optional[str]:
         """
         Print or return a one-line summary table aggregating metrics for the accounts in this collection.
 

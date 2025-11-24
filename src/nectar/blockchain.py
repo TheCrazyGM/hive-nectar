@@ -601,57 +601,50 @@ class Blockchain(object):
                     raise OfflineHasNoRPCException("No RPC available in offline mode!")
                 self.blockchain.rpc.set_next_node_on_empty_reply(False)
                 latest_block = start - 1
-                batches = max_batch_size
-                for blocknumblock in range(start, head_block + 1, batches):
-                    # Get full block
-                    if (head_block - blocknumblock) < batches:
-                        batches = head_block - blocknumblock + 1
-                    # add up to 'batches' calls to the queue
-            block_batch = []
-            for blocknum in range(blocknumblock, blocknumblock + batches):
-                # Get full block
-                if blocknum == blocknumblock + batches - 1:
-                    add_to_queue = False  # execute the call with the last request
-                else:
-                    add_to_queue = True  # append request to the queue w/o executing
-                if only_virtual_ops:
-                    block_batch = self.blockchain.rpc.get_ops_in_block(
-                        {"block_num": blocknum, "only_virtual": only_virtual_ops},
-                        api="account_history_api",
-                        add_to_queue=add_to_queue,
-                    )
-                else:
-                    block_batch = self.blockchain.rpc.get_block(
-                        {"block_num": blocknum}, api="block_api", add_to_queue=add_to_queue
-                    )
+                for blocknumblock in range(start, head_block + 1, max_batch_size):
+                    batch_count = min(max_batch_size, head_block - blocknumblock + 1)
+                    if only_virtual_ops:
+                        batch_blocks = []
+                        for blocknum in range(blocknumblock, blocknumblock + batch_count):
+                            ops_resp = self.blockchain.rpc.get_ops_in_block(
+                                {"block_num": blocknum, "only_virtual": True},
+                                api="account_history_api",
+                            )
+                            ops = (
+                                ops_resp.get("ops", []) if isinstance(ops_resp, dict) else ops_resp
+                            )
+                            if not ops:
+                                continue
+                            block_dict = {
+                                "block": blocknum,
+                                "timestamp": ops[0]["timestamp"],
+                                "operations": ops,
+                            }
+                            batch_blocks.append(block_dict)
+                    else:
+                        resp = self.blockchain.rpc.get_block_range(
+                            {"starting_block_num": blocknumblock, "count": batch_count},
+                            api="block_api",
+                        )
+                        batch_blocks = resp.get("blocks", []) if isinstance(resp, dict) else resp
 
-                    if not bool(block_batch):
+                    if not batch_blocks:
                         raise BatchedCallsNotSupported(
                             f"{self.blockchain.rpc.url} Doesn't support batched calls"
                         )
-                    if not isinstance(block_batch, list):
-                        block_batch = [block_batch]
-                    for block in block_batch:
-                        if not bool(block):
-                            continue
-                        if only_virtual_ops:
-                            block = {
-                                "block": block["ops"][0]["block"],
-                                "timestamp": block["ops"][0]["timestamp"],
-                                "id": block["ops"][0]["block"],
-                                "operations": block["ops"],
-                            }
-                        else:
-                            block = block["block"]
-                        block = Block(
-                            block,
+
+                    for raw_block in batch_blocks:
+                        block_obj = Block(
+                            raw_block,
                             only_ops=only_ops,
                             only_virtual_ops=only_virtual_ops,
                             blockchain_instance=self.blockchain,
                         )
-                        block["id"] = block.block_num
-                        block.identifier = block.block_num
-                        yield block
+                        block_obj["id"] = block_obj.block_num
+                        block_obj.identifier = block_obj.block_num
+                        if latest_block < int(block_obj.block_num):
+                            latest_block = int(block_obj.block_num)
+                        yield block_obj
             else:
                 # Blocks from start until head block
                 for blocknum in range(start, head_block + 1):
@@ -824,33 +817,85 @@ class Blockchain(object):
             - Operation events from different node formats (lists, legacy dicts, appbase-style dicts) are normalized by this method before yielding.
         """
         for block in self.blocks(**kwargs):
+            block_num_val = (
+                getattr(block, "block_num", None)
+                or block.get("block")
+                or block.get("block_num")
+                or block.get("id")
+                or block.get("identifier", 0)
+            )
+            timestamp_val = block.get("timestamp")
+
             if "transactions" in block:
-                trx = block["transactions"]
-            else:
-                trx = [block]
-            block_num = 0
-            trx_id = ""
-            _id = ""
-            timestamp = ""
-            for trx_nr in range(len(trx)):
-                if "operations" not in trx[trx_nr]:
-                    continue
-                for event in trx[trx_nr]["operations"]:
-                    if isinstance(event, list):
-                        op_type, op = event
-                        trx_id = block["transaction_ids"][trx_nr]
-                        block_num = block.get("id")
-                        _id = self.hash_op(event)
-                        timestamp = block.get("timestamp")
-                    elif isinstance(event, dict) and "type" in event and "value" in event:
-                        op_type = event["type"]
-                        if len(op_type) > 10 and op_type[len(op_type) - 10 :] == "_operation":
-                            op_type = op_type[:-10]
-                        op = event["value"]
-                        trx_id = block["transaction_ids"][trx_nr]
-                        block_num = block.get("id")
-                        _id = self.hash_op(event)
-                        timestamp = block.get("timestamp")
+                transactions = block["transactions"]
+                tx_ids = block.get("transaction_ids", [])
+                for trx_nr, trx in enumerate(transactions):
+                    if "operations" not in trx:
+                        continue
+                    for event in trx["operations"]:
+                        trx_id = tx_ids[trx_nr] if trx_nr < len(tx_ids) else ""
+                        op_type = ""
+                        op = {}
+                        if isinstance(event, list):
+                            op_type, op = event
+                            op_hash_input = event
+                        elif isinstance(event, dict) and "type" in event and "value" in event:
+                            op_type = event["type"]
+                            if op_type.endswith("_operation"):
+                                op_type = op_type[:-10]
+                            op = event["value"]
+                            op_hash_input = event
+                        elif (
+                            "op" in event
+                            and isinstance(event["op"], dict)
+                            and "type" in event["op"]
+                            and "value" in event["op"]
+                        ):
+                            op_type = event["op"]["type"]
+                            if op_type.endswith("_operation"):
+                                op_type = op_type[:-10]
+                            op = event["op"]["value"]
+                            trx_id = event.get("trx_id", trx_id)
+                            op_hash_input = event["op"]
+                        elif "op" in event and isinstance(event["op"], list):
+                            op_type, op = event["op"]
+                            trx_id = event.get("trx_id", trx_id)
+                            op_hash_input = event["op"]
+                            timestamp_val = event.get("timestamp", timestamp_val)
+                        else:
+                            continue
+
+                        if (not opNames or op_type in opNames) and block_num_val:
+                            if raw_ops:
+                                yield {
+                                    "block_num": block_num_val,
+                                    "trx_num": trx_nr,
+                                    "op": [op_type, op],
+                                    "timestamp": timestamp_val,
+                                }
+                            else:
+                                updated_op = {"type": op_type}
+                                updated_op.update(op.copy())
+                                updated_op.update(
+                                    {
+                                        "_id": self.hash_op(op_hash_input),
+                                        "timestamp": timestamp_val,
+                                        "block_num": block_num_val,
+                                        "trx_num": trx_nr,
+                                        "trx_id": trx_id,
+                                    }
+                                )
+                                yield updated_op
+            elif "operations" in block:
+                for event in block["operations"]:
+                    trx_nr = event.get("trx_in_block", 0)
+                    trx_id = event.get("trx_id", "")
+                    op_type = ""
+                    op = {}
+                    op_hash_input = None
+                    if "op" in event and isinstance(event["op"], list):
+                        op_type, op = event["op"]
+                        op_hash_input = event["op"]
                     elif (
                         "op" in event
                         and isinstance(event["op"], dict)
@@ -858,35 +903,30 @@ class Blockchain(object):
                         and "value" in event["op"]
                     ):
                         op_type = event["op"]["type"]
-                        if len(op_type) > 10 and op_type[len(op_type) - 10 :] == "_operation":
+                        if op_type.endswith("_operation"):
                             op_type = op_type[:-10]
                         op = event["op"]["value"]
-                        trx_id = event.get("trx_id")
-                        block_num = event.get("block")
-                        _id = self.hash_op(event["op"])
-                        timestamp = event.get("timestamp")
+                        op_hash_input = event["op"]
                     else:
-                        op_type, op = event["op"]
-                        trx_id = event.get("trx_id")
-                        block_num = event.get("block")
-                        _id = self.hash_op(event["op"])
-                        timestamp = event.get("timestamp")
-                    if not bool(opNames) or op_type in opNames and block_num > 0:
+                        continue
+                    timestamp_val = event.get("timestamp", timestamp_val)
+                    block_num_event = event.get("block", block_num_val)
+                    if (not opNames or op_type in opNames) and block_num_event:
                         if raw_ops:
                             yield {
-                                "block_num": block_num,
+                                "block_num": block_num_event,
                                 "trx_num": trx_nr,
                                 "op": [op_type, op],
-                                "timestamp": timestamp,
+                                "timestamp": timestamp_val,
                             }
                         else:
                             updated_op = {"type": op_type}
                             updated_op.update(op.copy())
                             updated_op.update(
                                 {
-                                    "_id": _id,
-                                    "timestamp": timestamp,
-                                    "block_num": block_num,
+                                    "_id": self.hash_op(op_hash_input),
+                                    "timestamp": timestamp_val,
+                                    "block_num": block_num_event,
                                     "trx_num": trx_nr,
                                     "trx_id": trx_id,
                                 }
@@ -989,32 +1029,27 @@ class Blockchain(object):
         else:
             lastname = start
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        batch_limit = int(steps)
-        if batch_limit > 1000:
-            batch_limit = 1000
-        skip_first = False
+        batch_limit = min(int(steps), 1000)
+        first_batch = True
         while True:
-            ret = self.blockchain.rpc.get_account_reputations(
-                lastname or "", batch_limit, api="condenser_api"
+            resp = self.blockchain.rpc.list_accounts(
+                {"start": lastname, "limit": batch_limit, "order": "by_name"}, api="database_api"
             )
-            for account in ret:
-                if isinstance(account, dict):
-                    account_name = account["account"]
-                else:
-                    account_name = account
-                if account_name != lastname or skip_first is False:
-                    yield account
+            accounts = resp.get("accounts", []) if isinstance(resp, dict) else resp or []
+            for account in accounts:
+                account_name = account["name"]
+                reputation = int(account.get("reputation", 0))
+                if first_batch or account_name != lastname:
+                    yield {"account": account_name, "reputation": reputation}
                     cnt += 1
                     if account_name == stop or (limit > 0 and cnt > limit):
                         return
-            if lastname == account_name:
+            if not accounts:
                 return
-            lastname = account_name
-            if len(ret) < steps:
+            lastname = accounts[-1]["name"]
+            first_batch = False
+            if len(accounts) < batch_limit or (stop and lastname == stop):
                 return
-            # skip the first result for all follow-up requests because
-            # this was already included in the previous iteration.
-            skip_first = True
 
     def get_similar_account_names(self, name, limit=5):
         """
