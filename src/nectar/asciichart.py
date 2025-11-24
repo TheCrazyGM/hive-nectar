@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from math import ceil, floor
+from typing import List, Optional, Union
 
 # Basic idea from https://github.com/kroitor/asciichart
 # ╱ ╲ ╳ ─ └┲┲┲─
@@ -16,7 +17,14 @@ class AsciiChart(object):
     :param str charset: sets the charset for plotting, uft8 or ascii (default: utf8)
     """
 
-    def __init__(self, height=None, width=None, offset=3, placeholder="{:8.2f} ", charset="utf8"):
+    def __init__(
+        self,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        offset: int = 3,
+        placeholder: str = "{:8.2f} ",
+        charset: str = "utf8",
+    ) -> None:
         self.height = height
         self.width = width
         self.offset = offset
@@ -51,7 +59,7 @@ class AsciiChart(object):
                 "curve_vl_dot": "┊",
             }
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         """Clears all data"""
         self.canvas = []
         self.minimum = None
@@ -59,7 +67,12 @@ class AsciiChart(object):
         self.n = None
         self.skip = 1
 
-    def set_parameter(self, height=None, offset=None, placeholder=None):
+    def set_parameter(
+        self,
+        height: Optional[int] = None,
+        offset: Optional[int] = None,
+        placeholder: Optional[str] = None,
+    ) -> None:
         """Can be used to change parameter"""
         if height is not None:
             self.height = height
@@ -69,7 +82,7 @@ class AsciiChart(object):
             self.placeholder = placeholder
         self._calc_plot_parameter()
 
-    def adapt_on_series(self, series):
+    def adapt_on_series(self, series: List[Union[int, float]]) -> None:
         """Calculates the minimum, maximum and length from the given list
 
         :param list series: time series to plot
@@ -91,7 +104,12 @@ class AsciiChart(object):
         self.n = len(series)
         self._calc_plot_parameter()
 
-    def _calc_plot_parameter(self, minimum=None, maximum=None, n=None):
+    def _calc_plot_parameter(
+        self,
+        minimum: Optional[Union[int, float]] = None,
+        maximum: Optional[Union[int, float]] = None,
+        n: Optional[int] = None,
+    ) -> None:
         """Calculates parameter from minimum, maximum and length"""
         if minimum is not None:
             self.minimum = minimum
@@ -121,7 +139,7 @@ class AsciiChart(object):
         else:
             self.skip = 1
 
-    def plot(self, series, return_str=False):
+    def plot(self, series: List[Union[int, float]], return_str: bool = False) -> Optional[str]:
         """All in one function for plotting
 
         .. testcode::
@@ -141,7 +159,12 @@ class AsciiChart(object):
         else:
             return str(self)
 
-    def new_chart(self, minimum=None, maximum=None, n=None):
+    def new_chart(
+        self,
+        minimum: Optional[Union[int, float]] = None,
+        maximum: Optional[Union[int, float]] = None,
+        n: Optional[int] = None,
+    ) -> None:
         """Clears the canvas
 
         .. testcode::
@@ -167,7 +190,7 @@ class AsciiChart(object):
             [" "] * (int(self.n / (self.skip or 1)) + self.offset) for i in range(self.rows + 1)
         ]
 
-    def add_axis(self):
+    def add_axis(self) -> None:
         """Adds a y-axis to the canvas
 
         .. testcode::
@@ -191,19 +214,20 @@ class AsciiChart(object):
             if label:
                 self._set_y_axis_elem(y, label)
 
-    def _set_y_axis_elem(self, y, label):
+    def _set_y_axis_elem(self, y: Union[int, float], label: str) -> None:
         intmin2 = int(self.min2)
-        self.canvas[y - intmin2][max(self.offset - len(label), 0)] = label
+        y_int = int(y)
+        self.canvas[y_int - intmin2][max(self.offset - len(label), 0)] = label
         if y == 0:
-            self.canvas[y - intmin2][self.offset - 1] = self.char_set["first_axis_elem"]
+            self.canvas[y_int - intmin2][self.offset - 1] = self.char_set["first_axis_elem"]
         else:
-            self.canvas[y - intmin2][self.offset - 1] = self.char_set["axis_elem"]
+            self.canvas[y_int - intmin2][self.offset - 1] = self.char_set["axis_elem"]
 
-    def _map_y(self, y_float):
+    def _map_y(self, y_float: Union[int, float]) -> int:
         intmin2 = int(self.min2)
         return int(round(y_float * self.ratio) - intmin2)
 
-    def add_curve(self, series):
+    def add_curve(self, series: List[Union[int, float]]) -> None:
         """Add a curve to the canvas
 
         :param list series: List width float data points
@@ -237,7 +261,7 @@ class AsciiChart(object):
                 end = max(y0, y1)
                 self._draw_v_line(start, end, x, line=self.char_set["curve_vl"])
 
-    def _draw_diag(self, y0, y1, x):
+    def _draw_diag(self, y0: Union[int, float], y1: Union[int, float], x: int) -> None:
         """Plot diagonal element"""
         if y0 > y1:
             c1 = self.char_set["curve_ar"]
@@ -245,24 +269,24 @@ class AsciiChart(object):
         else:
             c1 = self.char_set["curve_br"]
             c0 = self.char_set["curve_la"]
-        self._set_elem(y1, x, c1)
-        self._set_elem(y0, x, c0)
+        self._set_elem(int(y1), x, c1)
+        self._set_elem(int(y0), x, c0)
 
-    def _draw_h_line(self, y, x_start, x_end, line="-"):
+    def _draw_h_line(self, y: Union[int, float], x_start: int, x_end: int, line: str = "-") -> None:
         """Plot horizontal line"""
         for x in range(x_start, x_end):
-            self._set_elem(y, x, line)
+            self._set_elem(int(y), x, line)
 
-    def _draw_v_line(self, y_start, y_end, x, line="|"):
+    def _draw_v_line(self, y_start: int, y_end: int, x: int, line: str = "|") -> None:
         """Plot vertical line"""
         for y in range(y_start, y_end):
             self._set_elem(y, x, line)
 
-    def _set_elem(self, y, x, c):
+    def _set_elem(self, y: int, x: int, c: str) -> None:
         """Plot signle element into canvas"""
         self.canvas[self.rows - y][x + self.offset] = c
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(["".join(row) for row in self.canvas])
 
     __str__ = __repr__
