@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any, Dict, List, Union
 
 log = logging.getLogger(__name__)
 
 
-def get_query(request_id, api_name, name, args):
+def get_query(
+    request_id: int,
+    api_name: str,
+    name: str,
+    args: Union[Dict[str, Any], List[Any]],
+):
     query = []
     args = json.loads(json.dumps(args))
     # Handle dict args (most common case for appbase)

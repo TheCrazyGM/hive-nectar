@@ -6,7 +6,9 @@ import math
 import os
 import re
 from datetime import datetime, timezone
+from typing import Any, Dict, List
 
+from nectar.amount import Amount
 from nectar.constants import (
     CURVE_CONSTANT,
     CURVE_CONSTANT_X4,
@@ -22,7 +24,6 @@ from nectargraphenebase.account import PrivateKey, PublicKey
 from nectargraphenebase.chains import known_chains
 
 from .account import Account
-from .amount import Amount
 from .exceptions import AccountDoesNotExistsException, AccountExistsException
 from .price import Price
 from .storage import get_default_config_store
@@ -192,7 +193,9 @@ class BlockChainInstance(object):
     # -------------------------------------------------------------------------
     # Basic Calls
     # -------------------------------------------------------------------------
-    def connect(self, node: str | list = "", rpcuser: str = "", rpcpassword: str = "", **kwargs):
+    def connect(
+        self, node: str | list = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
+    ) -> None:
         """
         Connect to a Hive node and initialize the internal RPC client.
 
@@ -280,10 +283,10 @@ class BlockChainInstance(object):
 
     def refresh_data(
         self,
-        chain_property,
+        chain_property: str,
         force_refresh: bool = False,
         data_refresh_time_seconds: int | None = None,
-    ):
+    ) -> None:
         """
         Refresh and cache a specific blockchain data category in self.data.
 
@@ -412,7 +415,7 @@ class BlockChainInstance(object):
         else:
             raise ValueError("%s is not unkown" % str(chain_property))
 
-    def get_dynamic_global_properties(self, use_stored_data: bool = True):
+    def get_dynamic_global_properties(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """This call returns the *dynamic global properties*
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -427,7 +430,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_dynamic_global_properties(api="database_api")
 
-    def get_reserve_ratio(self):
+    def get_reserve_ratio(self) -> Dict[str, Any] | None:
         """This call returns the *reserve ratio*"""
         if self.rpc is None:
             return None
@@ -435,6 +438,13 @@ class BlockChainInstance(object):
 
         props = self.get_dynamic_global_properties()
         # conf = self.get_config()
+        if props is None:
+            return {
+                "id": 0,
+                "average_block_size": None,
+                "current_reserve_ratio": None,
+                "max_virtual_bandwidth": None,
+            }
         try:
             reserve_ratio = {
                 "id": 0,
@@ -451,7 +461,7 @@ class BlockChainInstance(object):
             }
         return reserve_ratio
 
-    def get_feed_history(self, use_stored_data: bool = True):
+    def get_feed_history(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns the feed_history
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -466,7 +476,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history(api="database_api")
 
-    def get_reward_funds(self, use_stored_data: bool = True):
+    def get_reward_funds(self, use_stored_data: bool = True) -> List[Dict[str, Any]] | None:
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -491,7 +501,7 @@ class BlockChainInstance(object):
         ret = funds
         return ret
 
-    def get_current_median_history(self, use_stored_data: bool = True):
+    def get_current_median_history(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns the current median price
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -510,7 +520,7 @@ class BlockChainInstance(object):
         ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
         return ret
 
-    def get_hardfork_properties(self, use_stored_data: bool = True):
+    def get_hardfork_properties(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns Hardfork and live_time of the hardfork
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -526,7 +536,9 @@ class BlockChainInstance(object):
         ret = self.rpc.get_hardfork_properties(api="database_api")
         return ret
 
-    def get_network(self, use_stored_data: bool = True, config=None):
+    def get_network(
+        self, use_stored_data: bool = True, config: Dict[str, Any] | None = None
+    ) -> Dict[str, Any] | None:
         """Identify the network
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -546,7 +558,7 @@ class BlockChainInstance(object):
         except Exception:
             return known_chains["HIVE"]
 
-    def get_median_price(self, use_stored_data: bool = True):
+    def get_median_price(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns the current median history price as Price"""
         median_price = self.get_current_median_history(use_stored_data=use_stored_data)
         if median_price is None:
@@ -559,7 +571,7 @@ class BlockChainInstance(object):
         )
         return a.as_base(self.backed_token_symbol)
 
-    def get_block_interval(self, use_stored_data: bool = True):
+    def get_block_interval(self, use_stored_data: bool = True) -> int:
         """Returns the block interval in seconds"""
         props = self.get_config(use_stored_data=use_stored_data)
         block_interval = 3
@@ -571,7 +583,7 @@ class BlockChainInstance(object):
 
         return block_interval
 
-    def get_blockchain_version(self, use_stored_data: bool = True):
+    def get_blockchain_version(self, use_stored_data: bool = True) -> str | Dict[str, Any]:
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_version = "0.0.0"
@@ -582,7 +594,7 @@ class BlockChainInstance(object):
                 blockchain_version = props[key]
         return blockchain_version
 
-    def get_blockchain_name(self, use_stored_data: bool = True):
+    def get_blockchain_name(self, use_stored_data: bool = True) -> str:
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_name = ""
@@ -593,7 +605,7 @@ class BlockChainInstance(object):
                 blockchain_name = key.split("_")[0].lower()
         return blockchain_name
 
-    def get_dust_threshold(self, use_stored_data: bool = True):
+    def get_dust_threshold(self, use_stored_data: bool = True) -> float:
         """Returns the vote dust threshold"""
         props = self.get_config(use_stored_data=use_stored_data)
         dust_threshold = 0
@@ -604,15 +616,15 @@ class BlockChainInstance(object):
                 dust_threshold = props[key]
         return dust_threshold
 
-    def get_resource_params(self):
+    def get_resource_params(self) -> Dict[str, Any]:
         """Returns the resource parameter"""
         return self.rpc.get_resource_params(api="rc_api")["resource_params"]
 
-    def get_resource_pool(self):
+    def get_resource_pool(self) -> Dict[str, Any]:
         """Returns the resource pool"""
         return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
 
-    def get_rc_cost(self, resource_count) -> int:
+    def get_rc_cost(self, resource_count: Dict[str, int]) -> int:
         """
         Compute the total Resource Credits (RC) cost for a set of resource usages.
 
@@ -627,6 +639,8 @@ class BlockChainInstance(object):
         pools = self.get_resource_pool()
         params = self.get_resource_params()
         dyn_param = self.get_dynamic_global_properties()
+        if dyn_param is None:
+            return 0
         rc_regen = int(Amount(dyn_param["total_vesting_shares"], blockchain_instance=self)) / (
             HIVE_RC_REGEN_TIME / self.get_block_interval()
         )
@@ -642,7 +656,9 @@ class BlockChainInstance(object):
             total_cost += cost
         return total_cost
 
-    def _compute_rc_cost(self, curve_params, current_pool, resource_count, rc_regen):
+    def _compute_rc_cost(
+        self, curve_params: Dict[str, Any], current_pool: int, resource_count: int, rc_regen: int
+    ) -> int:
         """Helper function for computing the RC costs"""
         num = int(rc_regen)
         num *= int(curve_params["coeff_a"])
@@ -655,7 +671,7 @@ class BlockChainInstance(object):
         num_denom = num / denom
         return int(num_denom) + 1
 
-    def _max_vote_denom(self, use_stored_data=True):
+    def _max_vote_denom(self, use_stored_data: bool = True) -> int:
         # get props
         """
         Compute the maximum vote denominator used to scale voting power consumption.
@@ -673,13 +689,15 @@ class BlockChainInstance(object):
             int: The computed maximum vote denominator.
         """
         global_properties = self.get_dynamic_global_properties(use_stored_data=use_stored_data)
+        if global_properties is None:
+            return HIVE_VOTE_REGENERATION_SECONDS  # fallback value
         vote_power_reserve_rate = global_properties["vote_power_reserve_rate"]
         max_vote_denom = vote_power_reserve_rate * HIVE_VOTE_REGENERATION_SECONDS
         return max_vote_denom
 
     def _calc_resulting_vote(
-        self, voting_power=HIVE_100_PERCENT, vote_pct=HIVE_100_PERCENT, use_stored_data=True
-    ):
+        self, current_power: int, weight: int, power: int = HIVE_100_PERCENT
+    ) -> int:
         # determine voting power used
         """
         Calculate the internal "used power" for a vote given current voting power and vote percentage.
@@ -687,19 +705,19 @@ class BlockChainInstance(object):
         This converts a voter's remaining voting_power and a requested vote_pct (both expressed on the same internal scale where HIVE_100_PERCENT represents 100%) into the integer unit the chain uses for vote consumption. The computation uses the absolute value of vote_pct, scales by a 24-hour factor (60*60*24), then normalizes by the chain's maximum vote denominator (retrieved via _max_vote_denom) with upward rounding.
 
         Parameters:
-            voting_power (int): Current voting power expressed in the node's internal units (HIVE_100_PERCENT == full power).
-            vote_pct (int): Requested vote percentage on the same scale as voting_power (can be negative for downvotes).
-            use_stored_data (bool): If True, allow using cached chain parameters when determining the max vote denominator.
+            current_power (int): Current voting power expressed in the node's internal units (HIVE_100_PERCENT == full power).
+            weight (int): Vote weight in the node's internal units.
+            power (int): Power parameter (defaults to HIVE_100_PERCENT).
 
         Returns:
             int: The computed used voting power in the chain's internal units.
         """
-        used_power = int((voting_power * abs(vote_pct)) / HIVE_100_PERCENT * (60 * 60 * 24))
-        max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
+        used_power = int((current_power * abs(weight)) / HIVE_100_PERCENT * (60 * 60 * 24))
+        max_vote_denom = self._max_vote_denom(use_stored_data=True)
         used_power = int((used_power + max_vote_denom - 1) / max_vote_denom)
         return used_power
 
-    def _calc_vote_claim(self, effective_vote_rshares, post_rshares):
+    def _calc_vote_claim(self, effective_vote_rshares: int, post_rshares: int) -> int | float:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_after_vote_normalized = post_rshares + effective_vote_rshares + CURVE_CONSTANT
         post_rshares_curve = (
@@ -712,7 +730,7 @@ class BlockChainInstance(object):
         vote_claim = post_rshares_curve_after_vote - post_rshares_curve
         return vote_claim
 
-    def _calc_revert_vote_claim(self, vote_claim, post_rshares):
+    def _calc_revert_vote_claim(self, vote_claim: int, post_rshares: int) -> int | float:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_curve = (
             post_rshares_normalized * post_rshares_normalized - SQUARED_CURVE_CONSTANT
@@ -735,12 +753,12 @@ class BlockChainInstance(object):
 
     def vests_to_rshares(
         self,
-        vests,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        subtract_dust_threshold=True,
-        use_stored_data=True,
-    ):
+        vests: float | int,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        subtract_dust_threshold: bool = True,
+        use_stored_data: bool = True,
+    ) -> int | float:
         """
         Convert vesting shares to reward r-shares used for voting.
 
@@ -769,7 +787,9 @@ class BlockChainInstance(object):
             )
         return rshares
 
-    def token_power_to_vests(self, token_power, timestamp=None, use_stored_data=True):
+    def token_power_to_vests(
+        self, token_power: float, timestamp: datetime | None = None, use_stored_data: bool = True
+    ) -> None:
         """Converts TokenPower to vests
 
         :param float token_power: Token power to convert
@@ -778,7 +798,9 @@ class BlockChainInstance(object):
         """
         raise Exception("not implemented")
 
-    def vests_to_token_power(self, vests, timestamp=None, use_stored_data=True):
+    def vests_to_token_power(
+        self, vests: float | Amount, timestamp: int | None = None, use_stored_data: bool = True
+    ) -> None:
         """Converts vests to TokenPower
 
         :param amount.Amount vests/float vests: Vests to convert
@@ -788,7 +810,9 @@ class BlockChainInstance(object):
         """
         raise Exception("not implemented")
 
-    def get_token_per_mvest(self, time_stamp=None, use_stored_data=True):
+    def get_token_per_mvest(
+        self, time_stamp: int | datetime | None = None, use_stored_data: bool = True
+    ) -> None:
         """Returns the MVEST to TOKEN ratio
 
         :param int time_stamp: (optional) if set, return an estimated
@@ -798,20 +822,20 @@ class BlockChainInstance(object):
         raise Exception("not implemented")
 
     def rshares_to_token_backed_dollar(
-        self, rshares, not_broadcasted_vote=False, use_stored_data=True
-    ):
+        self, rshares: int, not_broadcasted_vote: bool = False, use_stored_data: bool = True
+    ) -> None:
         """Calculates the current HBD value of a vote"""
         raise Exception("not implemented")
 
     def token_power_to_token_backed_dollar(
         self,
-        token_power,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        not_broadcasted_vote=True,
-        use_stored_data=True,
-    ):
+        token_power: float,
+        post_rshares: int = 0,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        not_broadcasted_vote: bool = True,
+        use_stored_data: bool = True,
+    ) -> None:
         """
         Estimate the token-backed-dollar (HBD-like) value that a vote from the given token power would yield.
 
@@ -835,7 +859,7 @@ class BlockChainInstance(object):
         """
         raise Exception("not implemented")
 
-    def get_chain_properties(self, use_stored_data: bool = True):
+    def get_chain_properties(self, use_stored_data: bool = True) -> Dict[str, Any]:
         """
         Return the witness-elected chain properties (median_props) used by the network.
 
@@ -864,7 +888,7 @@ class BlockChainInstance(object):
         else:
             return self.get_witness_schedule(use_stored_data)["median_props"]
 
-    def get_witness_schedule(self, use_stored_data: bool = True):
+    def get_witness_schedule(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Return witness elected chain properties"""
         if use_stored_data:
             self.refresh_data("witness_schedule")
@@ -875,7 +899,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_witness_schedule(api="database_api")
 
-    def get_config(self, use_stored_data=True):
+    def get_config(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns internal chain configuration.
 
         :param bool use_stored_data: If True, the cached value is returned
@@ -891,30 +915,31 @@ class BlockChainInstance(object):
         return config
 
     @property
-    def chain_params(self):
+    def chain_params(self) -> Dict[str, Any]:
         if self.offline or self.rpc is None:
             return known_chains["HIVE"]
         else:
-            return self.get_network()
+            network = self.get_network()
+            return network if network is not None else known_chains["HIVE"]
 
     @property
-    def hardfork(self):
+    def hardfork(self) -> int:
         if self.offline or self.rpc is None:
             versions = known_chains["HIVE"]["min_version"]
         else:
             hf_prop = self.get_hardfork_properties()
-            if "current_hardfork_version" in hf_prop:
+            if hf_prop and "current_hardfork_version" in hf_prop:
                 versions = hf_prop["current_hardfork_version"]
             else:
                 versions = self.get_blockchain_version()
         return int(versions.split(".")[1])
 
     @property
-    def prefix(self):
+    def prefix(self) -> str:
         return self.chain_params["prefix"]
 
     @property
-    def is_hive(self):
+    def is_hive(self) -> bool:
         """
         Return True if the connected chain appears to be Hive.
 
@@ -927,7 +952,7 @@ class BlockChainInstance(object):
         return "HIVE_CHAIN_ID" in config
 
     @property
-    def is_steem(self):
+    def is_steem(self) -> bool:
         """Deprecated compatibility flag; always False in Hive-only nectar."""
         return False
 
@@ -950,7 +975,7 @@ class BlockChainInstance(object):
         Account(account, blockchain_instance=self)
         self.config["default_account"] = account
 
-    def switch_blockchain(self, blockchain: str, update_nodes: bool = False):
+    def switch_blockchain(self, blockchain: str, update_nodes: bool = False) -> None:
         """
         Switch the instance to the specified blockchain (Hive only).
 
@@ -994,7 +1019,7 @@ class BlockChainInstance(object):
         """
         self.config["password_storage"] = password_storage
 
-    def set_default_nodes(self, nodes) -> None:
+    def set_default_nodes(self, nodes: List[str] | str) -> None:
         """Set the default nodes to be used"""
         if bool(nodes):
             if isinstance(nodes, list):
@@ -1003,7 +1028,7 @@ class BlockChainInstance(object):
         else:
             self.config.delete("node")
 
-    def get_default_nodes(self):
+    def get_default_nodes(self) -> List[str]:
         """Returns the default nodes"""
         if "node" in self.config:
             nodes = self.config["node"]
@@ -1019,7 +1044,7 @@ class BlockChainInstance(object):
             nodes = ast.literal_eval(nodes)
         return nodes
 
-    def move_current_node_to_front(self):
+    def move_current_node_to_front(self) -> None:
         """Returns the default node list, until the first entry
         is equal to the current working node url
         """
@@ -1033,11 +1058,13 @@ class BlockChainInstance(object):
             node = node[1:] + [node[0]]
         self.set_default_nodes(node)
 
-    def set_default_vote_weight(self, vote_weight) -> None:
+    def set_default_vote_weight(self, vote_weight: int) -> None:
         """Set the default vote weight to be used"""
         self.config["default_vote_weight"] = vote_weight
 
-    def finalizeOp(self, ops, account, permission, **kwargs) -> dict:
+    def finalizeOp(
+        self, ops: Any, account: Account | str, permission: str, **kwargs
+    ) -> Dict[str, Any]:
         """This method obtains the required private keys if present in
         the wallet, finalizes the transaction, signs it and
         broadacasts it
@@ -1105,7 +1132,12 @@ class BlockChainInstance(object):
                 ret["trx_id"] = ret_sign.id
             return ret
 
-    def sign(self, tx=None, wifs=[], reconstruct_tx=True):
+    def sign(
+        self,
+        tx: Dict[str, Any] | None = None,
+        wifs: List[str] | str = [],
+        reconstruct_tx: bool = True,
+    ) -> Dict[str, Any]:
         """
         Sign a transaction using provided WIFs or the wallet's missing signatures and return the signed transaction.
 
@@ -1130,7 +1162,7 @@ class BlockChainInstance(object):
         ret["trx_id"] = ret_sign.id
         return ret
 
-    def broadcast(self, tx=None, trx_id=True):
+    def broadcast(self, tx: Dict[str, Any] | None = None, trx_id: bool = True) -> Dict[str, Any]:
         """Broadcast a transaction to the Hive network
 
         :param tx tx: Signed transaction to broadcast
@@ -1143,14 +1175,14 @@ class BlockChainInstance(object):
         else:
             return self.txbuffer.broadcast()
 
-    def info(self, use_stored_data: bool = True):
+    def info(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
         """Returns the global properties"""
         return self.get_dynamic_global_properties(use_stored_data=use_stored_data)
 
     # -------------------------------------------------------------------------
     # Wallet stuff
     # -------------------------------------------------------------------------
-    def newWallet(self, pwd: str):
+    def newWallet(self, pwd: str) -> None:
         """Create a new wallet. This method is basically only calls
         :func:`nectar.wallet.Wallet.create`.
 
@@ -1162,7 +1194,7 @@ class BlockChainInstance(object):
         """
         return self.wallet.create(pwd)
 
-    def unlock(self, *args, **kwargs):
+    def unlock(self, *args, **kwargs) -> None:
         """Unlock the internal wallet"""
         return self.wallet.unlock(*args, **kwargs)
 
@@ -1170,15 +1202,15 @@ class BlockChainInstance(object):
     # Transaction Buffers
     # -------------------------------------------------------------------------
     @property
-    def txbuffer(self):
+    def txbuffer(self) -> TransactionBuilder:
         """Returns the currently active tx buffer"""
         return self.tx()
 
-    def tx(self):
+    def tx(self) -> TransactionBuilder:
         """Returns the default transaction buffer"""
         return self._txbuffers[0]
 
-    def new_tx(self, *args, **kwargs):
+    def new_tx(self, *args, **kwargs) -> TransactionBuilder:
         """Let's obtain a new txbuffer
 
         :returns: id of the new txbuffer
@@ -1199,7 +1231,9 @@ class BlockChainInstance(object):
     # -------------------------------------------------------------------------
     # Account related calls
     # -------------------------------------------------------------------------
-    def claim_account(self, creator, fee=None, **kwargs):
+    def claim_account(
+        self, creator: str | None = None, fee: str | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """
         Claim a subsidized account slot or pay the account-creation fee.
 
@@ -1237,25 +1271,25 @@ class BlockChainInstance(object):
     def create_claimed_account(
         self,
         account_name: str,
-        creator=None,
-        owner_key=None,
-        active_key=None,
-        memo_key=None,
-        posting_key=None,
-        password=None,
-        additional_owner_keys=[],
-        additional_active_keys=[],
-        additional_posting_keys=[],
-        additional_owner_accounts=[],
-        additional_active_accounts=[],
-        additional_posting_accounts=[],
-        storekeys=True,
-        store_owner_key=False,
-        json_meta=None,
-        combine_with_claim_account=False,
-        fee=None,
+        creator: str | None = None,
+        owner_key: str | None = None,
+        active_key: str | None = None,
+        memo_key: str | None = None,
+        posting_key: str | None = None,
+        password: str | None = None,
+        additional_owner_keys: List[str] = [],
+        additional_active_keys: List[str] = [],
+        additional_posting_keys: List[str] = [],
+        additional_owner_accounts: List[str] = [],
+        additional_active_accounts: List[str] = [],
+        additional_posting_accounts: List[str] = [],
+        storekeys: bool = True,
+        store_owner_key: bool = False,
+        json_meta: Dict[str, Any] | None = None,
+        combine_with_claim_account: bool = False,
+        fee: str | None = None,
         **kwargs,
-    ):
+    ) -> Dict[str, Any]:
         """Create new claimed account on Hive
 
         The brainkey/password can be used to recover all generated keys
@@ -1941,7 +1975,14 @@ class BlockChainInstance(object):
         if authority["weight_threshold"] == 0:
             raise ValueError("Cannot have threshold of 0")
 
-    def custom_json(self, id, json_data, required_auths=[], required_posting_auths=[], **kwargs):
+    def custom_json(
+        self,
+        id: str,
+        json_data: Any,
+        required_auths: List[str] = [],
+        required_posting_auths: List[str] = [],
+        **kwargs,
+    ) -> Dict[str, Any]:
         """
         Create and submit a Custom_json operation.
 
@@ -1982,21 +2023,21 @@ class BlockChainInstance(object):
 
     def post(
         self,
-        title,
-        body,
-        author=None,
-        permlink=None,
-        reply_identifier=None,
-        json_metadata=None,
-        comment_options=None,
-        community=None,
-        app=None,
-        tags=None,
-        beneficiaries=None,
-        self_vote=False,
-        parse_body=False,
+        title: str,
+        body: str,
+        author: str | None = None,
+        permlink: str | None = None,
+        reply_identifier: str | None = None,
+        json_metadata: Dict[str, Any] | None = None,
+        comment_options: Dict[str, Any] | None = None,
+        community: str | None = None,
+        app: str | None = None,
+        tags: List[str] | None = None,
+        beneficiaries: List[Dict[str, Any]] | None = None,
+        self_vote: bool = False,
+        parse_body: bool = False,
         **kwargs,
-    ):
+    ) -> Dict[str, Any]:
         """Create a new post.
         If this post is intended as a reply/comment, `reply_identifier` needs
         to be set with the identifier of the parent post/comment (eg.
@@ -2212,7 +2253,9 @@ class BlockChainInstance(object):
 
         return self.finalizeOp(ops, account, "posting", **kwargs)
 
-    def vote(self, weight, identifier, account=None, **kwargs):
+    def vote(
+        self, weight: float, identifier: str, account: str | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """
         Cast a vote on a post.
 
