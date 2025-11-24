@@ -703,7 +703,7 @@ class Testcases(unittest.TestCase):
         data.append(b"Lorem ipsum dolor sit amet amet.")
         m = Mnemonic()
         for d in data:
-            self.assertEqual(m.to_entropy(m.to_mnemonic(d).split()), d)
+            self.assertEqual(m.to_entropy(m.to_mnemonic(bytes(d)).split()), d)
 
     def test_mnemorickey(self):
         word_list = "news clever spot drama infant detail sword cover color throw foot primary when slender rhythm clog autumn ecology enough bronze math you modify excuse"

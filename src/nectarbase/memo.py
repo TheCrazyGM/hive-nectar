@@ -143,15 +143,15 @@ def decode_memo_bts(priv: Any, pub: PublicKey, nonce: int, message: str) -> str:
     cleartext = aes.decrypt(unhexlify(raw))
     " Checksum "
     checksum = cleartext[0:4]
-    message = cleartext[4:]
-    message = _unpad(message, 16)
+    message_bytes = cleartext[4:]
+    message_bytes = _unpad(message_bytes, 16)
     " Verify checksum "
     check = hashlib.sha256(
-        message if isinstance(message, bytes) else message.encode("utf-8")
+        message_bytes if isinstance(message_bytes, bytes) else message_bytes.encode("utf-8")
     ).digest()[0:4]
     if check != checksum:  # pragma: no cover
         raise ValueError("checksum verification failure")
-    return message.decode("utf8") if isinstance(message, bytes) else message
+    return message_bytes.decode("utf8") if isinstance(message_bytes, bytes) else message_bytes
 
 
 def encode_memo(priv: Any, pub: PublicKey, nonce: int, message: str, **kwargs: Any) -> str:
@@ -228,14 +228,16 @@ def decode_memo(priv: Any, message: str) -> str:
     # remove the varint prefix (FIXME, long messages!)
     numBytes = 16 - len(cipher) % 16
     n = 16 - numBytes
-    message = cipher[n:]
-    message = aes.decrypt(message)
-    message = _unpad(message, 16)
-    n = varintdecode(message)
-    if (len(message) - n) > 0 and (len(message) - n) < 8:
-        message_part = message[len(message) - n :]
+    message_bytes = cipher[n:]
+    message_bytes = aes.decrypt(message_bytes)
+    message_bytes = _unpad(message_bytes, 16)
+    n = varintdecode(message_bytes)
+    if (len(message_bytes) - n) > 0 and (len(message_bytes) - n) < 8:
+        message_part = message_bytes[len(message_bytes) - n :]
         if isinstance(message_part, bytes):
             message_part = message_part.decode("utf8")
         return "#" + message_part
     else:
-        return "#" + (message.decode("utf8") if isinstance(message, bytes) else message)
+        return "#" + (
+            message_bytes.decode("utf8") if isinstance(message_bytes, bytes) else message_bytes
+        )
