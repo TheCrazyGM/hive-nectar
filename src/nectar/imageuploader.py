@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import io
 from binascii import hexlify
+from typing import Any, Dict, Optional, Union
 
 import requests
 
@@ -14,10 +15,10 @@ from .instance import shared_blockchain_instance
 class ImageUploader(object):
     def __init__(
         self,
-        base_url="https://images.hive.blog",
-        challenge="ImageSigningChallenge",
-        blockchain_instance=None,
-    ):
+        base_url: str = "https://images.hive.blog",
+        challenge: str = "ImageSigningChallenge",
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Initialize the ImageUploader.
 
@@ -32,7 +33,12 @@ class ImageUploader(object):
         self.base_url = base_url
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-    def upload(self, image, account, image_name=None):
+    def upload(
+        self,
+        image: Union[str, bytes, io.BytesIO],
+        account: Union[str, Account],
+        image_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Upload an image to the configured image service, signing the upload with the account's posting key.
 

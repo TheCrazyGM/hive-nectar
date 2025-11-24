@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Dict
+
 import nectar
 
 
@@ -9,7 +11,7 @@ class SharedInstance(object):
     config = {}
 
 
-def shared_blockchain_instance():
+def shared_blockchain_instance() -> Any:
     """Initialize and return the shared Hive instance.
 
     Hive-only: this always returns a `nectar.Hive` instance, regardless of any
@@ -21,7 +23,7 @@ def shared_blockchain_instance():
     return SharedInstance.instance
 
 
-def set_shared_blockchain_instance(blockchain_instance):
+def set_shared_blockchain_instance(blockchain_instance: Any) -> None:
     """
     Override the shared Hive instance used by the module and clear related caches.
 
@@ -32,12 +34,12 @@ def set_shared_blockchain_instance(blockchain_instance):
     SharedInstance.instance = blockchain_instance
 
 
-def shared_hive_instance():
+def shared_hive_instance() -> Any:
     """Initialize (if needed) and return the shared Hive instance."""
     return shared_blockchain_instance()
 
 
-def set_shared_hive_instance(hive_instance):
+def set_shared_hive_instance(hive_instance: Any) -> None:
     """
     Override the global shared Hive instance used by the module.
 
@@ -49,7 +51,7 @@ def set_shared_hive_instance(hive_instance):
     set_shared_blockchain_instance(hive_instance)
 
 
-def clear_cache():
+def clear_cache() -> None:
     """
     Clear cached blockchain object state.
 
@@ -60,7 +62,7 @@ def clear_cache():
     BlockchainObject.clear_cache()
 
 
-def set_shared_config(config):
+def set_shared_config(config: Dict[str, Any]) -> None:
     """
     Set configuration for the shared Hive instance without creating the instance.
 
