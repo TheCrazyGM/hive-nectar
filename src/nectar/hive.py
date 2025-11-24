@@ -372,9 +372,7 @@ class Hive(BlockChainInstance):
         # Calculate chain-accurate used power and derive rshares per core formula
         if isinstance(vests, Amount):
             vests = float(vests)
-        used_power = self._calc_resulting_vote(
-            voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
-        )
+        used_power = self._calc_resulting_vote(voting_power, vote_pct)
         # calculate vote rshares
         rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
         if subtract_dust_threshold:
