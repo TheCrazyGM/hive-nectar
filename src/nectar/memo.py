@@ -3,6 +3,7 @@ import os
 import random
 import struct
 from binascii import hexlify, unhexlify
+from typing import Any, Dict, Optional, Union
 
 from nectar.instance import shared_blockchain_instance
 from nectar.version import version as __version__
@@ -135,7 +136,13 @@ class Memo(object):
 
     """
 
-    def __init__(self, from_account=None, to_account=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        from_account: Optional[Union[str, Account, PrivateKey]] = None,
+        to_account: Optional[Union[str, Account, PublicKey]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize a Memo helper that resolves sender/recipient identifiers into Account/Key objects.
 
@@ -168,11 +175,17 @@ class Memo(object):
         else:
             self.from_account = None
 
-    def unlock_wallet(self, *args, **kwargs):
+    def unlock_wallet(self, *args: Any, **kwargs: Any) -> None:
         """Unlock the library internal wallet"""
         self.blockchain.wallet.unlock(*args, **kwargs)
 
-    def encrypt(self, memo, bts_encrypt=False, return_enc_memo_only=False, nonce=None):
+    def encrypt(
+        self,
+        memo: str,
+        bts_encrypt: bool = False,
+        return_enc_memo_only: bool = False,
+        nonce: Optional[bytes] = None,
+    ) -> Union[str, Dict[str, Any]]:
         """Encrypt a memo
 
         :param str memo: clear text memo message
@@ -283,7 +296,7 @@ class Memo(object):
         from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(memo)
         return from_key, to_key, nonce
 
-    def decrypt(self, memo):
+    def decrypt(self, memo: Union[str, Dict[str, Any]]) -> Optional[str]:
         """
         Decrypt a memo message produced for a transfer.
 

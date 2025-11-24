@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from typing import Any, Dict, Optional, Union
+
 from nectar.constants import (
     EXEC_FOLLOW_CUSTOM_OP_SCALE,
     resource_execution_time,
@@ -13,7 +15,7 @@ from .instance import shared_blockchain_instance
 
 
 class RC(object):
-    def __init__(self, blockchain_instance=None, **kwargs):
+    def __init__(self, blockchain_instance: Optional[Any] = None, **kwargs: Any) -> None:
         """
         Initialize the RC helper with a blockchain instance.
 
@@ -23,7 +25,7 @@ class RC(object):
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-    def get_tx_size(self, op):
+    def get_tx_size(self, op: Union[Operation, Dict[str, Any]]) -> int:
         """
         Estimate the serialized size (in bytes) of a signed transaction containing the given operation.
 
@@ -53,12 +55,12 @@ class RC(object):
 
     def get_resource_count(
         self,
-        tx_size,
-        execution_time_count,
-        state_bytes_count=0,
-        new_account_op_count=0,
-        market_op_count=0,
-    ):
+        tx_size: int,
+        execution_time_count: int,
+        state_bytes_count: int = 0,
+        new_account_op_count: int = 0,
+        market_op_count: int = 0,
+    ) -> Dict[str, int]:
         """
         Build and return a resource_count mapping for RC cost calculation.
 

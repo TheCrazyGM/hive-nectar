@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 from fractions import Fraction
+from typing import Any, Dict, Optional, Tuple, Union
 
 from nectar.instance import shared_blockchain_instance
 
@@ -70,12 +71,12 @@ class Price(dict):
 
     def __init__(
         self,
-        price=None,
-        base=None,
-        quote=None,
-        base_asset=None,  # to identify sell/buy
-        blockchain_instance=None,
-    ):
+        price: Optional[Union[str, Dict[str, Any], "Price"]] = None,
+        base: Optional[Union[str, Amount, Asset]] = None,
+        quote: Optional[Union[str, Amount, Asset]] = None,
+        base_asset: Optional[str] = None,  # to identify sell/buy
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Initialize a Price object representing a ratio between a base and quote asset.
 
@@ -188,7 +189,7 @@ class Price(dict):
         else:
             raise ValueError("Couldn't parse 'Price'.")
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         dict.__setitem__(self, key, value)
         if (
             "quote" in self and "base" in self and self["base"] and self["quote"]
@@ -197,7 +198,7 @@ class Price(dict):
                 self, "price", self._safedivide(self["base"]["amount"], self["quote"]["amount"])
             )
 
-    def copy(self):
+    def copy(self) -> "Price":
         return Price(
             None,
             base=self["base"].copy(),
@@ -205,16 +206,18 @@ class Price(dict):
             blockchain_instance=self.blockchain,
         )
 
-    def _safedivide(self, a, b):
+    def _safedivide(
+        self, a: Union[int, float, Decimal], b: Union[int, float, Decimal]
+    ) -> Union[int, float, Decimal]:
         if b != 0.0:
             return a / b
         else:
-            return float("Inf")
+            return float("inf")
 
-    def symbols(self):
+    def symbols(self) -> Tuple[str, str]:
         return self["base"]["symbol"], self["quote"]["symbol"]
 
-    def as_base(self, base):
+    def as_base(self, base: Union[str, Asset]) -> "Price":
         """
         Return a copy of this Price expressed with the given asset as the base.
 
