@@ -829,12 +829,14 @@ class Account(BlockchainObject):
                 - int(self["delegated_vesting_shares"])
                 + int(self["received_vesting_shares"])
             )
-        timestamp = (
-            datetime.strptime(self["next_vesting_withdrawal"], "%Y-%m-%dT%H:%M:%S").replace(
+        next_withdraw = self["next_vesting_withdrawal"]
+        if isinstance(next_withdraw, str):
+            next_withdraw_dt = datetime.strptime(next_withdraw, "%Y-%m-%dT%H:%M:%S").replace(
                 tzinfo=timezone.utc
             )
-            - datetime(1970, 1, 1, tzinfo=timezone.utc)
-        ).total_seconds()
+        else:
+            next_withdraw_dt = addTzInfo(next_withdraw)
+        timestamp = (next_withdraw_dt - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds()
         if (
             timestamp > 0
             and "vesting_withdraw_rate" in self
