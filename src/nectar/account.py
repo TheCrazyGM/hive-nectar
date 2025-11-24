@@ -21,7 +21,6 @@ from nectarapi.exceptions import (
     ApiNotSupported,
     FilteredItemNotFound,
     MissingRequiredActiveAuthority,
-    SupportedByHivemind,
 )
 from nectarbase import operations
 from nectargraphenebase.account import PasswordKey, PublicKey
@@ -1394,10 +1393,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        try:
-            return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
-        except Exception:
-            return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
+        return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
 
     def get_followers(self, raw_name_list=True, limit=100):
         """Returns the account followers as list"""
@@ -1534,17 +1530,11 @@ class Account(BlockchainObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             query = (self.name, last_user, what, limit)
             if direction == "follower":
-                try:
-                    followers = self.blockchain.rpc.get_followers(*query, api="condenser_api")
-                except Exception:
-                    followers = self.blockchain.rpc.get_followers(*query, api="condenser_api")
+                followers = self.blockchain.rpc.get_followers(*query, api="condenser_api")
                 if isinstance(followers, dict) and "followers" in followers:
                     followers = followers["followers"]
             elif direction == "following":
-                try:
-                    followers = self.blockchain.rpc.get_following(*query, api="condenser_api")
-                except Exception:
-                    followers = self.blockchain.rpc.get_following(*query, api="condenser_api")
+                followers = self.blockchain.rpc.get_following(*query, api="condenser_api")
                 if isinstance(followers, dict) and "following" in followers:
                     followers = followers["following"]
 
@@ -2158,37 +2148,25 @@ class Account(BlockchainObject):
         #    vote_list = self.blockchain.rpc.get_account_votes(account)
         # if isinstance(vote_list, dict) and "error" in vote_list:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
+        try:
+            ret = self.blockchain.rpc.list_votes(
+                {
+                    "start": [account, start_author, start_permlink],
+                    "limit": limit,
+                    "order": "by_voter_comment",
+                },
+                api="database_api",
+            )["votes"]
+        except Exception:
+            return []
         vote_list = []
-        finished = False
-        while not finished:
-            try:
-                ret = self.blockchain.rpc.list_votes(
-                    {
-                        "start": [account, start_author, start_permlink],
-                        "limit": limit,
-                        "order": "by_voter_comment",
-                    },
-                    api="database_api",
-                )["votes"]
-            except SupportedByHivemind:
-                return vote_list
-            if len(ret) < limit:
-                finished = True
-            if start_author != "":
-                if len(ret) == 0:
-                    finished = True
-                ret = ret[1:]
-            for vote in ret:
-                if vote["voter"] != account:
-                    finished = True
-                    continue
-                last_update = formatTimeString(vote["last_update"])
-                if start_date is not None and last_update < start_date:
-                    finished = True
-                    continue
-                vote_list.append(vote)
-                start_author = vote["author"]
-                start_permlink = vote["permlink"]
+        for vote in ret:
+            if vote.get("voter") != account:
+                continue
+            last_update = formatTimeString(vote["last_update"])
+            if start_date is not None and last_update < start_date:
+                continue
+            vote_list.append(vote)
         return vote_list
         # else:
         #     return vote_list
@@ -3676,7 +3654,6 @@ class Account(BlockchainObject):
                 "memo": memo,
                 "from": account_name,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3740,7 +3717,6 @@ class Account(BlockchainObject):
                 "recurrence": recurrence,
                 "executions": executions,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3782,7 +3758,6 @@ class Account(BlockchainObject):
                 "to": to_name,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3814,7 +3789,6 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
 
@@ -3854,7 +3828,6 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
 
@@ -3900,7 +3873,6 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3955,7 +3927,6 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)

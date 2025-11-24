@@ -2,6 +2,7 @@
 import json
 import warnings
 from datetime import date, datetime, timezone
+from typing import Any, Dict
 
 from prettytable import PrettyTable
 
@@ -12,7 +13,7 @@ from .amount import Amount
 from .blockchainobject import BlockchainObject
 from .exceptions import WitnessDoesNotExistsException
 from .instance import shared_blockchain_instance
-from .utils import formatTimeString
+from .utils import formatTimeString, parse_time
 
 
 class Witness(BlockchainObject):
@@ -27,7 +28,9 @@ class Witness(BlockchainObject):
 
     type_id = 3
 
-    def __init__(self, owner, full=False, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self, owner: Any, full: bool = False, lazy: bool = False, blockchain_instance=None, **kwargs
+    ):
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize a Witness object representing a blockchain witness.
@@ -91,7 +94,7 @@ class Witness(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, witness):
+    def _parse_json_data(self, witness: Dict) -> Dict:
         parse_times = [
             "created",
             "last_sbd_exchange_update",
@@ -100,7 +103,7 @@ class Witness(BlockchainObject):
         ]
         for p in parse_times:
             if p in witness and isinstance(witness.get(p), str):
-                witness[p] = formatTimeString(witness.get(p, "1970-01-01T00:00:00"))
+                witness[p] = parse_time(witness.get(p, "1970-01-01T00:00:00"))
         parse_int = [
             "votes",
             "virtual_last_update",

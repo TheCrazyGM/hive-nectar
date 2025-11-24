@@ -28,6 +28,18 @@ class Testcases(unittest.TestCase):
         set_shared_blockchain_instance(cls.bts)
         cls.bts.set_default_account("test")
 
+    @staticmethod
+    def _extract_op(tx):
+        op = tx["operations"][0]
+        if isinstance(op, dict):
+            name = op.get("type") or op.get("operation")
+            if name and name.endswith("_operation"):
+                name = name[: -len("_operation")]
+            return name, op.get("value", {})
+        elif isinstance(op, (list, tuple)) and len(op) >= 2:
+            return op[0], op[1]
+        return None, op
+
     def test_market(self):
         bts = self.bts
         m1 = Market("HIVE", "HBD", blockchain_instance=bts)
@@ -104,54 +116,87 @@ class Testcases(unittest.TestCase):
         m = Market("HIVE:HBD", blockchain_instance=bts)
         bts.txbuffer.clear()
         tx = m.buy(5, 0.1, account="test")
-        self.assertEqual((tx["operations"][0][0]), "limit_order_create")
-        op = tx["operations"][0][1]
+        op_name, op = self._extract_op(tx)
+        self.assertEqual(op_name, "limit_order_create")
         self.assertIn("test", op["owner"])
-        self.assertEqual(str(Amount("0.100 HIVE", blockchain_instance=bts)), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["amount_to_sell"])
+        self.assertEqual(
+            Amount(op["min_to_receive"], blockchain_instance=bts),
+            Amount("0.100 HIVE", blockchain_instance=bts),
+        )
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
 
         p = Price(5, "HBD:HIVE", blockchain_instance=bts)
         tx = m.buy(p, 0.1, account="test")
-        op = tx["operations"][0][1]
-        self.assertEqual(str(Amount("0.100 HIVE", blockchain_instance=bts)), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["amount_to_sell"])
+        _, op = self._extract_op(tx)
+        self.assertEqual(
+            Amount(op["min_to_receive"], blockchain_instance=bts),
+            Amount("0.100 HIVE", blockchain_instance=bts),
+        )
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
 
         p = Price(5, "HBD:HIVE", blockchain_instance=bts)
         a = Amount(0.1, "HIVE", blockchain_instance=bts)
         tx = m.buy(p, a, account="test")
-        op = tx["operations"][0][1]
-        self.assertEqual(str(a), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["amount_to_sell"])
+        _, op = self._extract_op(tx)
+        self.assertEqual(Amount(op["min_to_receive"], blockchain_instance=bts), Amount(a))
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
 
     def test_sell(self):
         bts = self.bts
         bts.txbuffer.clear()
         m = Market("HIVE:HBD", blockchain_instance=bts)
         tx = m.sell(5, 0.1, account="test")
-        self.assertEqual((tx["operations"][0][0]), "limit_order_create")
-        op = tx["operations"][0][1]
+        op_name, op = self._extract_op(tx)
+        self.assertEqual(op_name, "limit_order_create")
         self.assertIn("test", op["owner"])
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.100 HIVE", blockchain_instance=bts)), op["amount_to_sell"])
+        self.assertEqual(
+            Amount(op["min_to_receive"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.100 HIVE", blockchain_instance=bts),
+        )
 
         p = Price(5, "HBD:HIVE")
         tx = m.sell(p, 0.1, account="test")
-        op = tx["operations"][0][1]
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.100 HIVE", blockchain_instance=bts)), op["amount_to_sell"])
+        _, op = self._extract_op(tx)
+        self.assertEqual(
+            Amount(op["min_to_receive"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.100 HIVE", blockchain_instance=bts),
+        )
 
         p = Price(5, "HBD:HIVE", blockchain_instance=bts)
         a = Amount(0.1, "HIVE", blockchain_instance=bts)
         tx = m.sell(p, a, account="test")
-        op = tx["operations"][0][1]
-        self.assertEqual(str(Amount("0.500 HBD", blockchain_instance=bts)), op["min_to_receive"])
-        self.assertEqual(str(Amount("0.100 HIVE", blockchain_instance=bts)), op["amount_to_sell"])
+        _, op = self._extract_op(tx)
+        self.assertEqual(
+            Amount(op["min_to_receive"], blockchain_instance=bts),
+            Amount("0.500 HBD", blockchain_instance=bts),
+        )
+        self.assertEqual(
+            Amount(op["amount_to_sell"], blockchain_instance=bts),
+            Amount("0.100 HIVE", blockchain_instance=bts),
+        )
 
     def test_cancel(self):
         bts = self.bts
         bts.txbuffer.clear()
         m = Market("HIVE:HBD", blockchain_instance=bts)
         tx = m.cancel(5, account="test")
-        self.assertEqual((tx["operations"][0][0]), "limit_order_cancel")
-        op = tx["operations"][0][1]
+        op_name, op = self._extract_op(tx)
+        self.assertEqual(op_name, "limit_order_cancel")
         self.assertIn("test", op["owner"])

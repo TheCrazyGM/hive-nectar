@@ -19,6 +19,18 @@ wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
 
 
 class Testcases(unittest.TestCase):
+    @staticmethod
+    def _extract_op(tx):
+        op = tx["operations"][0]
+        if isinstance(op, dict):
+            name = op.get("type") or op.get("operation")
+            if name and name.endswith("_operation"):
+                name = name[: -len("_operation")]
+            return name, op.get("value", {})
+        elif isinstance(op, (list, tuple)) and len(op) >= 2:
+            return op[0], op[1]
+        return None, op
+
     @classmethod
     def setUpClass(cls):
         cls.bts = Hive(

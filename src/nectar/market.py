@@ -317,36 +317,8 @@ class Market(dict):
             stop = datetime.now(timezone.utc)
         if not start:
             start = stop - timedelta(hours=1)
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
-        current_start = start
-        filled_order = []
-        fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
-        if len(fo) == 0:
-            return filled_order
-        if intervall is None and len(fo) > 0:
-            current_start = fo[-1]["date"]
-            filled_order += fo
-        elif intervall is not None:
-            current_start += intervall
-            filled_order += [fo]
-        last_date = fo[-1]["date"]
-        if isinstance(last_date, str):
-            last_date = formatTimeString(last_date)
-        while len(fo) > 0 and last_date < stop:
-            fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
-            if len(fo) == 0 or fo[-1]["date"] == last_date:
-                break
-            last_date = fo[-1]["date"]
-            if isinstance(last_date, str):
-                last_date = formatTimeString(last_date)
-            if intervall is None:
-                current_start = last_date
-                filled_order += fo
-            else:
-                current_start += intervall
-                filled_order += [fo]
-        return filled_order
+        # Fetch a single page of trades; callers can page manually if needed.
+        return self.trades(start=start, stop=stop, limit=limit, raw_data=raw_data)
 
     def trades(self, limit=100, start=None, stop=None, raw_data=False):
         """Returns your trade history for a given market.

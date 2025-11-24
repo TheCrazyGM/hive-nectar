@@ -17,6 +17,7 @@ from .utils import (
     construct_authorperm,
     construct_authorpermvoter,
     formatTimeString,
+    parse_time,
     reputation_to_score,
     resolve_authorperm,
     resolve_authorpermvoter,
@@ -170,21 +171,21 @@ class Vote(BlockchainObject):
                 vote[p] = int(vote.get(p, "0"))
 
         if "time" in vote and isinstance(vote.get("time"), str) and vote.get("time") != "":
-            vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
+            vote["time"] = parse_time(vote.get("time", "1970-01-01T00:00:00"))
         elif (
             "timestamp" in vote
             and isinstance(vote.get("timestamp"), str)
             and vote.get("timestamp") != ""
         ):
-            vote["time"] = formatTimeString(vote.get("timestamp", "1970-01-01T00:00:00"))
+            vote["time"] = parse_time(vote.get("timestamp", "1970-01-01T00:00:00"))
         elif (
             "last_update" in vote
             and isinstance(vote.get("last_update"), str)
             and vote.get("last_update") != ""
         ):
-            vote["last_update"] = formatTimeString(vote.get("last_update", "1970-01-01T00:00:00"))
+            vote["last_update"] = parse_time(vote.get("last_update", "1970-01-01T00:00:00"))
         else:
-            vote["time"] = formatTimeString("1970-01-01T00:00:00")
+            vote["time"] = parse_time("1970-01-01T00:00:00")
         return vote
 
     def json(self):
@@ -522,32 +523,20 @@ class ActiveVotes(VotesObject):
             # if 'active_votes' in authorperm and len(authorperm["active_votes"]) > 0:
             #    votes = authorperm["active_votes"]
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            from nectarapi.exceptions import InvalidParameters
-
-            try:
-                votes = self.blockchain.rpc.get_active_votes(
-                    authorperm["author"],
-                    authorperm["permlink"],
-                    api="condenser_api",
-                )
-                if isinstance(votes, dict) and "votes" in votes:
-                    votes = votes["votes"]
-            except InvalidParameters:
-                raise VoteDoesNotExistsException(
-                    construct_authorperm(authorperm["author"], authorperm["permlink"])
-                )
+            votes = self.blockchain.rpc.get_active_votes(
+                authorperm["author"],
+                authorperm["permlink"],
+                api="condenser_api",
+            )
+            if isinstance(votes, dict) and "votes" in votes:
+                votes = votes["votes"]
             authorperm = authorperm["authorperm"]
         elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            from nectarapi.exceptions import InvalidParameters
-
-            try:
-                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser_api")
-                if isinstance(votes, dict) and "votes" in votes:
-                    votes = votes["votes"]
-            except InvalidParameters:
-                raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
+            votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser_api")
+            if isinstance(votes, dict) and "votes" in votes:
+                votes = votes["votes"]
         elif isinstance(authorperm, list):
             votes = authorperm
             authorperm = None
