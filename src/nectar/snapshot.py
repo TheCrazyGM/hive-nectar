@@ -126,7 +126,21 @@ class AccountSnapshot(list):
                 if op["index"] < start:
                     continue
             elif start is not None and isinstance(start, (datetime, date, time)):
-                if start > formatTimeString(op["timestamp"]):
+                start_dt = addTzInfo(start) if isinstance(start, (date, time)) else start
+                # Ensure start_dt is always datetime for comparison
+                if isinstance(start_dt, (date, time)):
+                    start_dt = addTzInfo(start_dt)
+                if start_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(start_dt, time):
+                    start_dt = datetime.combine(datetime.now().date(), start_dt)
+                elif isinstance(start_dt, date):
+                    start_dt = datetime.combine(start_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if start_dt > op_timestamp_dt:
                     continue
             if use_block_num and stop is not None and isinstance(stop, int):
                 if op["block"] > stop:
@@ -135,7 +149,21 @@ class AccountSnapshot(list):
                 if op["index"] > stop:
                     continue
             elif stop is not None and isinstance(stop, (datetime, date, time)):
-                if stop < formatTimeString(op["timestamp"]):
+                stop_dt = addTzInfo(stop) if isinstance(stop, (date, time)) else stop
+                # Ensure stop_dt is always datetime for comparison
+                if isinstance(stop_dt, (date, time)):
+                    stop_dt = addTzInfo(stop_dt)
+                if stop_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(stop_dt, time):
+                    stop_dt = datetime.combine(datetime.now().date(), stop_dt)
+                elif isinstance(stop_dt, date):
+                    stop_dt = datetime.combine(stop_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if stop_dt < op_timestamp_dt:
                     continue
             op_string = json.dumps(list(op.values()))
             if re.search(search_str, op_string):
@@ -163,7 +191,21 @@ class AccountSnapshot(list):
                 if op["index"] < start:
                     continue
             elif start is not None and isinstance(start, (datetime, date, time)):
-                if start > formatTimeString(op["timestamp"]):
+                start_dt = addTzInfo(start) if isinstance(start, (date, time)) else start
+                # Ensure start_dt is always datetime for comparison
+                if isinstance(start_dt, (date, time)):
+                    start_dt = addTzInfo(start_dt)
+                if start_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(start_dt, time):
+                    start_dt = datetime.combine(datetime.now().date(), start_dt)
+                elif isinstance(start_dt, date):
+                    start_dt = datetime.combine(start_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if start_dt > op_timestamp_dt:
                     continue
             if use_block_num and stop is not None and isinstance(stop, int):
                 if op["block"] > stop:
@@ -172,7 +214,21 @@ class AccountSnapshot(list):
                 if op["index"] > stop:
                     continue
             elif stop is not None and isinstance(stop, (datetime, date, time)):
-                if stop < formatTimeString(op["timestamp"]):
+                stop_dt = addTzInfo(stop) if isinstance(stop, (date, time)) else stop
+                # Ensure stop_dt is always datetime for comparison
+                if isinstance(stop_dt, (date, time)):
+                    stop_dt = addTzInfo(stop_dt)
+                if stop_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(stop_dt, time):
+                    stop_dt = datetime.combine(datetime.now().date(), stop_dt)
+                elif isinstance(stop_dt, date):
+                    stop_dt = datetime.combine(stop_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if stop_dt < op_timestamp_dt:
                     continue
             if exclude_ops and op["type"] in exclude_ops:
                 continue

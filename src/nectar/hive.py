@@ -156,7 +156,7 @@ class Hive(BlockChainInstance):
             return 0
         fund_per_share = reward_balance / (recent_claims)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
-        if median_price is None:
+        if median_price is None or isinstance(median_price, dict):
             return 0
         HBD_price = float(median_price * Amount(1, self.hive_symbol, blockchain_instance=self))
         return fund_per_share * HBD_price
@@ -240,7 +240,11 @@ class Hive(BlockChainInstance):
         :param datetime timestamp: (Optional) Can be used to calculate
             the conversion rate from the past
         """
-        return hp * 1e6 / float(self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data))
+        return (
+            float(hp)
+            * 1e6
+            / float(self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data))
+        )
 
     def token_power_to_vests(
         self,
@@ -460,7 +464,12 @@ class Hive(BlockChainInstance):
         # big votes which have a significant impact on the recent_claims.
         reward_fund = self.get_reward_funds(use_stored_data=use_stored_data)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
-        if not reward_fund or not isinstance(reward_fund, dict):
+        if (
+            not reward_fund
+            or not isinstance(reward_fund, dict)
+            or not median_price
+            or isinstance(median_price, dict)
+        ):
             return int(float(hbd) / self.get_hbd_per_rshares(use_stored_data=use_stored_data))
         recent_claims = int(reward_fund["recent_claims"])
         reward_balance = Amount(reward_fund["reward_balance"], blockchain_instance=self)

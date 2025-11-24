@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from nectar.instance import shared_blockchain_instance
 from nectargraphenebase.account import PrivateKey
@@ -80,7 +81,9 @@ class Wallet(object):
 
     """
 
-    def __init__(self, blockchain_instance=None, *args, **kwargs):
+    def __init__(
+        self, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+    ) -> None:
         """
         Initialize the Wallet, binding it to a blockchain instance and setting up the underlying key store.
 
@@ -116,7 +119,7 @@ class Wallet(object):
             )
 
     @property
-    def prefix(self):
+    def prefix(self) -> str:
         if self.blockchain.is_connected():
             prefix = self.blockchain.prefix
         else:
@@ -125,12 +128,12 @@ class Wallet(object):
         return prefix or "STM"  # default prefix is STM
 
     @property
-    def rpc(self):
+    def rpc(self) -> Any:
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         return self.blockchain.rpc
 
-    def setKeys(self, loadkeys):
+    def setKeys(self, loadkeys: Union[Dict[str, Any], List[Any], set, str]) -> None:
         """This method is strictly only for in memory keys that are
         passed to Wallet with the ``keys`` argument
         """
@@ -143,43 +146,43 @@ class Wallet(object):
             pub = self.publickey_from_wif(wif)
             self.store.add(str(wif), pub)
 
-    def is_encrypted(self):
+    def is_encrypted(self) -> bool:
         """Is the key store encrypted?"""
         return self.store.is_encrypted()
 
-    def unlock(self, pwd):
+    def unlock(self, pwd: str) -> Optional[bool]:
         """Unlock the wallet database"""
         unlock_ok = None
         if self.store.is_encrypted():
             unlock_ok = self.store.unlock(pwd)
         return unlock_ok
 
-    def lock(self):
+    def lock(self) -> bool:
         """Lock the wallet database"""
         lock_ok = False
         if self.store.is_encrypted():
             lock_ok = self.store.lock()
         return lock_ok
 
-    def unlocked(self):
+    def unlocked(self) -> bool:
         """Is the wallet database unlocked?"""
         unlocked = True
         if self.store.is_encrypted():
             unlocked = not self.store.locked()
         return unlocked
 
-    def locked(self):
+    def locked(self) -> bool:
         """Is the wallet database locked?"""
         if self.store.is_encrypted():
             return self.store.locked()
         else:
             return False
 
-    def changePassphrase(self, new_pwd):
+    def changePassphrase(self, new_pwd: str) -> None:
         """Change the passphrase for the wallet database"""
         self.store.change_password(new_pwd)
 
-    def created(self):
+    def created(self) -> bool:
         """Do we have a wallet database already?"""
         if len(self.store.getPublicKeys()):
             # Already keys installed
@@ -187,14 +190,14 @@ class Wallet(object):
         else:
             return False
 
-    def create(self, pwd):
+    def create(self, pwd: str) -> None:
         """Alias for :func:`newWallet`
 
         :param str pwd: Passphrase for the created wallet
         """
         self.newWallet(pwd)
 
-    def newWallet(self, pwd):
+    def newWallet(self, pwd: str) -> None:
         """Create a new wallet database
 
         :param str pwd: Passphrase for the created wallet
@@ -203,13 +206,13 @@ class Wallet(object):
             raise WalletExists("You already have created a wallet!")
         self.store.unlock(pwd)
 
-    def privatekey(self, key):
+    def privatekey(self, key: str) -> PrivateKey:
         return PrivateKey(key, prefix=self.prefix)
 
-    def publickey_from_wif(self, wif):
+    def publickey_from_wif(self, wif: str) -> str:
         return str(self.privatekey(str(wif)).pubkey)
 
-    def addPrivateKey(self, wif):
+    def addPrivateKey(self, wif: str) -> None:
         """Add a private key to the wallet database
 
         :param str wif: Private key
@@ -222,7 +225,7 @@ class Wallet(object):
             raise KeyAlreadyInStoreException("Key already in the store")
         self.store.add(str(wif), str(pub))
 
-    def getPrivateKeyForPublicKey(self, pub):
+    def getPrivateKeyForPublicKey(self, pub: str) -> Optional[str]:
         """Obtain the private key for a given public key
 
         :param str pub: Public Key
@@ -231,14 +234,14 @@ class Wallet(object):
             raise MissingKeyError
         return self.store.getPrivateKeyForPublicKey(str(pub))
 
-    def removePrivateKeyFromPublicKey(self, pub):
+    def removePrivateKeyFromPublicKey(self, pub: str) -> None:
         """Remove a key from the wallet database
 
         :param str pub: Public key
         """
         self.store.delete(str(pub))
 
-    def removeAccount(self, account):
+    def removeAccount(self, account: str) -> None:
         """Remove all keys associated with a given account
 
         :param str account: name of account to be removed
@@ -248,7 +251,7 @@ class Wallet(object):
             if a["name"] == account:
                 self.store.delete(a["pubkey"])
 
-    def getKeyForAccount(self, name, key_type):
+    def getKeyForAccount(self, name: str, key_type: str) -> Optional[str]:
         """Obtain `key_type` Private Key for an account from the wallet database
 
         :param str name: Account name
@@ -280,7 +283,7 @@ class Wallet(object):
                 raise MissingKeyError("No private key for {} found".format(name))
         return
 
-    def getKeysForAccount(self, name, key_type):
+    def getKeysForAccount(self, name: str, key_type: str) -> Optional[List[str]]:
         """Obtain a List of `key_type` Private Keys for an account from the wallet database
 
         :param str name: Account name
@@ -314,40 +317,40 @@ class Wallet(object):
             return keys
         return
 
-    def getOwnerKeyForAccount(self, name):
+    def getOwnerKeyForAccount(self, name: str) -> Optional[str]:
         """Obtain owner Private Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "owner")
 
-    def getMemoKeyForAccount(self, name):
+    def getMemoKeyForAccount(self, name: str) -> Optional[str]:
         """Obtain owner Memo Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "memo")
 
-    def getActiveKeyForAccount(self, name):
+    def getActiveKeyForAccount(self, name: str) -> Optional[str]:
         """Obtain owner Active Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "active")
 
-    def getPostingKeyForAccount(self, name):
+    def getPostingKeyForAccount(self, name: str) -> Optional[str]:
         """Obtain owner Posting Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "posting")
 
-    def getOwnerKeysForAccount(self, name):
+    def getOwnerKeysForAccount(self, name: str) -> Optional[List[str]]:
         """Obtain list of all owner Private Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "owner")
 
-    def getActiveKeysForAccount(self, name):
+    def getActiveKeysForAccount(self, name: str) -> Optional[List[str]]:
         """Obtain list of all owner Active Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "active")
 
-    def getPostingKeysForAccount(self, name):
+    def getPostingKeysForAccount(self, name: str) -> Optional[List[str]]:
         """Obtain list of all owner Posting Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "posting")
 
-    def getAccountFromPrivateKey(self, wif):
+    def getAccountFromPrivateKey(self, wif: str) -> Optional[str]:
         """Obtain account name from private key"""
         pub = self.publickey_from_wif(wif)
         return self.getAccountFromPublicKey(pub)
 
-    def getAccountsFromPublicKey(self, pub):
+    def getAccountsFromPublicKey(self, pub: str) -> Generator[str, None, None]:
         """Obtain all account names associated with a public key
 
         :param str pub: Public key
@@ -362,7 +365,7 @@ class Wallet(object):
             for i in name:
                 yield i
 
-    def getAccountFromPublicKey(self, pub):
+    def getAccountFromPublicKey(self, pub: str) -> Optional[str]:
         """Obtain the first account name from public key
 
         :param str pub: Public key
@@ -377,7 +380,7 @@ class Wallet(object):
         else:
             return names[0]
 
-    def getAllAccounts(self, pub):
+    def getAllAccounts(self, pub: str) -> Generator[Dict[str, Any], None, None]:
         """Get the account data for a public key (all accounts found for this
         public key)
 
@@ -395,7 +398,7 @@ class Wallet(object):
                 "pubkey": pub,
             }
 
-    def getAccount(self, pub):
+    def getAccount(self, pub: str) -> Optional[Dict[str, Any]]:
         """Get the account data for a public key (first account found for this
         public key)
 
@@ -416,7 +419,7 @@ class Wallet(object):
                 "pubkey": pub,
             }
 
-    def getKeyType(self, account, pub):
+    def getKeyType(self, account: Union[Account, Dict[str, Any]], pub: str) -> Optional[str]:
         """Get key type
 
         :param nectar.account.Account/dict account: Account data
@@ -432,7 +435,7 @@ class Wallet(object):
             return "memo"
         return None
 
-    def getAccounts(self):
+    def getAccounts(self) -> List[Dict[str, Any]]:
         """Return all accounts installed in the wallet database"""
         pubkeys = self.getPublicKeys()
         accounts = []
@@ -442,7 +445,7 @@ class Wallet(object):
                 accounts.extend(self.getAllAccounts(pubkey))
         return accounts
 
-    def getPublicKeys(self, current=False):
+    def getPublicKeys(self, current: bool = False) -> List[str]:
         """Return all installed public keys
         :param bool current: If true, returns only keys for currently
             connected blockchain
@@ -457,7 +460,7 @@ class Wallet(object):
                 pubs.append(pubkey)
         return pubs
 
-    def wipe(self, sure=False):
+    def wipe(self, sure: bool = False) -> None:
         if not sure:
             log.error(
                 "You need to confirm that you are sure "

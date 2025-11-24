@@ -79,8 +79,8 @@ class Market(dict):
                 {"base": base, "quote": quote}, blockchain_instance=self.blockchain
             )
         elif base and quote:
-            quote = Asset(quote, blockchain_instance=self.blockchain)
-            base = Asset(base, blockchain_instance=self.blockchain)
+            quote = Asset(str(quote), blockchain_instance=self.blockchain)
+            base = Asset(str(base), blockchain_instance=self.blockchain)
             super(Market, self).__init__(
                 {"base": base, "quote": quote}, blockchain_instance=self.blockchain
             )
