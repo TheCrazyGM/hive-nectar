@@ -3,7 +3,7 @@ import os
 import random
 import struct
 from binascii import hexlify, unhexlify
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from nectar.instance import shared_blockchain_instance
 from nectar.version import version as __version__
@@ -162,16 +162,35 @@ class Memo(object):
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-        if to_account and len(to_account) < 51:
-            self.to_account = Account(to_account, blockchain_instance=self.blockchain)
-        elif to_account and len(to_account) >= 51:
-            self.to_account = PublicKey(to_account)
+        # Handle to_account
+        if to_account:
+            if isinstance(to_account, str):
+                if len(to_account) < 51:
+                    self.to_account = Account(to_account, blockchain_instance=self.blockchain)
+                else:
+                    self.to_account = PublicKey(to_account)
+            elif isinstance(to_account, Account):
+                self.to_account = to_account
+            elif isinstance(to_account, PublicKey):
+                self.to_account = to_account
+            else:
+                self.to_account = None
         else:
             self.to_account = None
-        if from_account and len(from_account) < 51:
-            self.from_account = Account(from_account, blockchain_instance=self.blockchain)
-        elif from_account and len(from_account) >= 51:
-            self.from_account = PrivateKey(from_account)
+
+        # Handle from_account
+        if from_account:
+            if isinstance(from_account, str):
+                if len(from_account) < 51:
+                    self.from_account = Account(from_account, blockchain_instance=self.blockchain)
+                else:
+                    self.from_account = PrivateKey(from_account)
+            elif isinstance(from_account, Account):
+                self.from_account = from_account
+            elif isinstance(from_account, PrivateKey):
+                self.from_account = from_account
+            else:
+                self.from_account = None
         else:
             self.from_account = None
 
@@ -184,8 +203,8 @@ class Memo(object):
         memo: str,
         bts_encrypt: bool = False,
         return_enc_memo_only: bool = False,
-        nonce: Optional[bytes] = None,
-    ) -> Union[str, Dict[str, Any]]:
+        nonce: Optional[str] = None,
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Encrypt a memo
 
         :param str memo: clear text memo message
@@ -210,14 +229,19 @@ class Memo(object):
         else:
             pubkey = self.to_account
         if not memo_wif:
-            raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            if isinstance(self.from_account, Account):
+                raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            else:
+                raise MissingKeyError("Memo key missing!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
 
         if bts_encrypt:
+            # Convert nonce to int for encode_memo_bts
+            nonce_int = int(nonce) if nonce else 0
             enc = BtsMemo.encode_memo_bts(
-                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce, memo
+                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce_int, memo
             )
 
             return {
@@ -262,7 +286,10 @@ class Memo(object):
         else:
             pubkey = self.to_account
         if not memo_wif:
-            raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            if isinstance(self.from_account, Account):
+                raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            else:
+                raise MissingKeyError("Memo key missing!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
@@ -291,7 +318,7 @@ class Memo(object):
                     encd = aes.encrypt(data)
                     fout.write(encd)
 
-    def extract_decrypt_memo_data(self, memo):
+    def extract_decrypt_memo_data(self, memo: str) -> Tuple[Any, Any, Any]:
         """Returns information about an encrypted memo"""
         from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(memo)
         return from_key, to_key, nonce
@@ -336,6 +363,13 @@ class Memo(object):
             nonce = ""
 
         if memo_to is None or memo_from is None:
+            if message is None:
+                return None
+            # Ensure message is a string for extract_memo_data
+            if isinstance(message, dict):
+                message = str(message.get("memo") or message.get("message") or "")
+            elif not isinstance(message, str):
+                message = str(message)
             from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(message)
             try:
                 memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(to_key))
@@ -378,6 +412,12 @@ class Memo(object):
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
 
+        # Ensure message is a string for decode functions
+        if isinstance(message, dict):
+            message = str(message.get("memo") or message.get("message") or "")
+        elif not isinstance(message, str):
+            message = str(message)
+
         if message[0] == "#" or memo_to is None or memo_from is None:
             return BtsMemo.decode_memo(PrivateKey(memo_wif), message)
         else:
@@ -385,7 +425,7 @@ class Memo(object):
                 PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce, message
             )
 
-    def decrypt_binary(self, infile, outfile, buffer_size=2048):
+    def decrypt_binary(self, infile: str, outfile: str, buffer_size: int = 2048) -> Dict[str, Any]:
         """Decrypt a binary file
 
         :param str infile: encrypted binary file

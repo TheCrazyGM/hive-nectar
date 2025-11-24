@@ -2484,6 +2484,9 @@ def decrypt(memo, account, output, info, text, binary):
                 output = entry + ".dec"
             ret = m.decrypt_binary(entry, output, buffer_size=2048)
             if info:
+                if ret is None:
+                    print("No information available for decrypt_binary result")
+                    return
                 t = PrettyTable(["Key", "Value"])
                 t.align = "l"
                 t.add_row(["file", entry])
@@ -2548,13 +2551,21 @@ def encrypt(receiver, memo, account, output, text, binary):
                 message = message[1:]
 
         if text:
-            out = m.encrypt(message)["message"]
+            encrypted = m.encrypt(message)
+            if encrypted is None:
+                print("Failed to encrypt message")
+                return
+            out = encrypted["message"]
             if output is None:
                 output = entry
             with open(output, "w", encoding="utf-8") as f:
                 f.write(out)
         elif not binary:
-            out = m.encrypt(message)["message"]
+            encrypted = m.encrypt(message)
+            if encrypted is None:
+                print("Failed to encrypt message")
+                return
+            out = encrypted["message"]
             if output is None:
                 print(out)
             else:
