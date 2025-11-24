@@ -1387,10 +1387,12 @@ class Replies_by_last_update(list):
         if author and permlink:
             try:
                 posts = self.blockchain.rpc.get_replies_by_last_update(
-                    author,
-                    permlink,
-                    limit_value,
-                    api="condenser",
+                    {
+                        "start_author": author,
+                        "start_permlink": permlink,
+                        "limit": limit_value,
+                    },
+                    api="condenser_api",
                 )
             except Exception:
                 posts = []

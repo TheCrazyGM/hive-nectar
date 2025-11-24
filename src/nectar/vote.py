@@ -124,13 +124,18 @@ class Vote(BlockchainObject):
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(True)
             try:
-                votes = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="condenser"
-                )["votes"]
+                response = self.blockchain.rpc.get_active_votes(
+                    {"author": author, "permlink": permlink}, api="condenser_api"
+                )
+                votes = response["votes"] if isinstance(response, dict) else response
             except InvalidParameters:
                 raise VoteDoesNotExistsException(self.identifier)
-            except Exception:  # Fallback to condenser API
-                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
+            except Exception:
+                votes = self.blockchain.rpc.get_active_votes(
+                    {"author": author, "permlink": permlink}, api="condenser_api"
+                )
+                if isinstance(votes, dict) and "votes" in votes:
+                    votes = votes["votes"]
         except UnknownKey:
             raise VoteDoesNotExistsException(self.identifier)
 
@@ -517,17 +522,15 @@ class ActiveVotes(VotesObject):
 
             try:
                 votes = self.blockchain.rpc.get_active_votes(
-                    authorperm["author"], authorperm["permlink"], api="condenser"
+                    {"author": authorperm["author"], "permlink": authorperm["permlink"]},
+                    api="condenser_api",
                 )
+                if isinstance(votes, dict) and "votes" in votes:
+                    votes = votes["votes"]
             except InvalidParameters:
                 raise VoteDoesNotExistsException(
                     construct_authorperm(authorperm["author"], authorperm["permlink"])
                 )
-            except Exception:  # Fallback to bridge API
-                votes = self.blockchain.rpc.get_active_votes(
-                    {"author": authorperm["author"], "permlink": authorperm["permlink"]},
-                    api="bridge",
-                )["votes"]
             authorperm = authorperm["authorperm"]
         elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
@@ -535,13 +538,13 @@ class ActiveVotes(VotesObject):
             from nectarapi.exceptions import InvalidParameters
 
             try:
-                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
+                votes = self.blockchain.rpc.get_active_votes(
+                    {"author": author, "permlink": permlink}, api="condenser_api"
+                )
+                if isinstance(votes, dict) and "votes" in votes:
+                    votes = votes["votes"]
             except InvalidParameters:
                 raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
-            except Exception:  # Fallback to bridge API
-                votes = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="bridge"
-                )["votes"]
         elif isinstance(authorperm, list):
             votes = authorperm
             authorperm = None

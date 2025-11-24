@@ -207,11 +207,11 @@ class Comment(BlockchainObject):
         from nectarapi.exceptions import InvalidParameters
 
         try:
-            if self.api == "tags":
+            if self.api in ("tags", "condenser", "condenser_api"):
                 content = self.blockchain.rpc.get_discussion(
                     {"author": author, "permlink": permlink}, api="condenser_api"
                 )
-            elif self.api == "database":
+            elif self.api in ("database", "database_api"):
                 content = self.blockchain.rpc.list_comments(
                     {"start": [author, permlink], "limit": 1, "order": "by_permlink"},
                     api="database_api",

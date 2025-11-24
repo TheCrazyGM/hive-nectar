@@ -1272,14 +1272,14 @@ class Account(BlockchainObject):
             if raw_data and short_entries:
                 ret = self.blockchain.rpc.get_blog_entries(
                     {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                    api="condenser",
+                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [c for c in ret]
             elif raw_data:
                 ret = self.blockchain.rpc.get_blog(
                     {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                    api="condenser",
+                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [c for c in ret]
@@ -1288,7 +1288,7 @@ class Account(BlockchainObject):
 
                 ret = self.blockchain.rpc.get_blog(
                     {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                    api="condenser",
+                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
@@ -1373,10 +1373,10 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser_api")[
         #     "blog_authors"
         # ]
-        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
+        # return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser_api")[
         #     "blog_authors"
         # ]
 
@@ -1389,9 +1389,9 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
-            return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser")
+            return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser_api")
         except Exception:
-            return self.blockchain.rpc.get_follow_count(account, api="condenser")
+            return self.blockchain.rpc.get_follow_count({"account": account}, api="follow_api")
 
     def get_followers(self, raw_name_list=True, limit=100):
         """Returns the account followers as list"""
@@ -1529,20 +1529,16 @@ class Account(BlockchainObject):
             query = {"account": self.name, "start": last_user, "type": what, "limit": limit}
             if direction == "follower":
                 try:
-                    followers = self.blockchain.rpc.get_followers(query, api="condenser")
+                    followers = self.blockchain.rpc.get_followers(query, api="condenser_api")
                 except Exception:
-                    followers = self.blockchain.rpc.get_followers(
-                        self.name, last_user, what, limit, api="condenser"
-                    )
+                    followers = self.blockchain.rpc.get_followers(query, api="follow_api")
                 if isinstance(followers, dict) and "followers" in followers:
                     followers = followers["followers"]
             elif direction == "following":
                 try:
-                    followers = self.blockchain.rpc.get_following(query, api="condenser")
+                    followers = self.blockchain.rpc.get_following(query, api="condenser_api")
                 except Exception:
-                    followers = self.blockchain.rpc.get_following(
-                        self.name, last_user, what, limit, api="condenser"
-                    )
+                    followers = self.blockchain.rpc.get_following(query, api="follow_api")
                 if isinstance(followers, dict) and "following" in followers:
                     followers = followers["following"]
 
@@ -2153,7 +2149,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         # self.blockchain.rpc.set_next_node_on_empty_reply(False)
 
-        #     vote_list = self.blockchain.rpc.get_account_votes(account, api="condenser")
+        #     vote_list = self.blockchain.rpc.get_account_votes(account, api="condenser_api")
         # else:
         #    vote_list = self.blockchain.rpc.get_account_votes(account)
         # if isinstance(vote_list, dict) and "error" in vote_list:
@@ -2263,7 +2259,8 @@ class Account(BlockchainObject):
                     ret = ret["history"]
             except ApiNotSupported:
                 ret = self.blockchain.rpc.get_account_history(
-                    account, start, limit, api="condenser"
+                    {"account": account, "start": start, "limit": limit},
+                    api="condenser_api",
                 )
         else:
             try:
@@ -2281,12 +2278,14 @@ class Account(BlockchainObject):
                     ret = ret["history"]
             except ApiNotSupported:
                 ret = self.blockchain.rpc.get_account_history(
-                    account,
-                    start,
-                    limit,
-                    operation_filter_low,
-                    operation_filter_high,
-                    api="condenser",
+                    {
+                        "account": account,
+                        "start": start,
+                        "limit": limit,
+                        "operation_filter_low": operation_filter_low,
+                        "operation_filter_high": operation_filter_high,
+                    },
+                    api="condenser_api",
                 )
         return ret
 

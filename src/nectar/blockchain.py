@@ -989,10 +989,13 @@ class Blockchain(object):
         else:
             lastname = start
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        limit = int(steps)
+        if limit > 1000:
+            limit = 1000
         skip_first = False
         while True:
             ret = self.blockchain.rpc.get_account_reputations(
-                {"account_lower_bound": lastname, "limit": steps}, api="condenser"
+                {"account_lower_bound": lastname, "limit": limit}, api="condenser_api"
             )
             for account in ret:
                 if isinstance(account, dict):

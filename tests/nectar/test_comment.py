@@ -43,7 +43,7 @@ class Testcases(unittest.TestCase):
         # set_shared_blockchain_instance(cls.bts)
         # cls.bts.set_default_account("test")
 
-    @parameterized.expand([("bridge"), ("condenser"), ("database")])
+    @parameterized.expand([("bridge"), ("condenser_api"), ("database_api")])
     def test_comment(self, api):
         bts = self.bts
         with self.assertRaises(exceptions.ContentDoesNotExistsException):
@@ -81,7 +81,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(len(votes) > 0)
         self.assertTrue(isinstance(votes[0], Vote))
 
-    @parameterized.expand([("bridge"), ("condenser"), ("database")])
+    @parameterized.expand([("bridge"), ("condenser_api"), ("database_api")])
     def test_comment_dict(self, api):
         bts = self.bts
         title = ""
@@ -123,7 +123,7 @@ class Testcases(unittest.TestCase):
         with self.assertRaises(exceptions.VotingInvalidOnArchivedPost):
             c.downvote(weight=150, voter="test")
 
-    @parameterized.expand([("bridge"), ("condenser"), ("database")])
+    @parameterized.expand([("bridge"), ("condenser_api"), ("database_api")])
     def test_export(self, api):
         bts = self.bts
 
