@@ -6,7 +6,7 @@ import math
 import os
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 from nectar.amount import Amount
 from nectar.constants import (
@@ -126,13 +126,13 @@ class BlockChainInstance(object):
 
     def __init__(
         self,
-        node: str | list = "",
-        rpcuser: str | None = None,
-        rpcpassword: str | None = None,
+        node: Union[str, List[str]] = "",
+        rpcuser: Optional[str] = None,
+        rpcpassword: Optional[str] = None,
         debug: bool = False,
         data_refresh_time_seconds: int = 900,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize the BlockChainInstance, set up connection (unless offline), load configuration, initialize caches and transaction buffers, and create the Wallet and optional HiveSigner/ledger signing support.
 
@@ -194,7 +194,7 @@ class BlockChainInstance(object):
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(
-        self, node: str | list = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
+        self, node: Union[str, List[str]] = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
     ) -> None:
         """
         Connect to a Hive node and initialize the internal RPC client.
@@ -285,7 +285,7 @@ class BlockChainInstance(object):
         self,
         chain_property: str,
         force_refresh: bool = False,
-        data_refresh_time_seconds: int | None = None,
+        data_refresh_time_seconds: Optional[int] = None,
     ) -> None:
         """
         Refresh and cache a specific blockchain data category in self.data.
@@ -415,7 +415,9 @@ class BlockChainInstance(object):
         else:
             raise ValueError("%s is not unkown" % str(chain_property))
 
-    def get_dynamic_global_properties(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_dynamic_global_properties(
+        self, use_stored_data: bool = True
+    ) -> Optional[Dict[str, Any]]:
         """This call returns the *dynamic global properties*
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -430,7 +432,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_dynamic_global_properties(api="database_api")
 
-    def get_reserve_ratio(self) -> Dict[str, Any] | None:
+    def get_reserve_ratio(self) -> Optional[Dict[str, Any]]:
         """This call returns the *reserve ratio*"""
         if self.rpc is None:
             return None
@@ -461,7 +463,7 @@ class BlockChainInstance(object):
             }
         return reserve_ratio
 
-    def get_feed_history(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_feed_history(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Returns the feed_history
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -476,7 +478,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history(api="database_api")
 
-    def get_reward_funds(self, use_stored_data: bool = True) -> List[Dict[str, Any]] | None:
+    def get_reward_funds(self, use_stored_data: bool = True) -> Optional[List[Dict[str, Any]]]:
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -501,7 +503,7 @@ class BlockChainInstance(object):
         ret = funds
         return ret
 
-    def get_current_median_history(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_current_median_history(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Returns the current median price
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -520,7 +522,7 @@ class BlockChainInstance(object):
         ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
         return ret
 
-    def get_hardfork_properties(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_hardfork_properties(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Returns Hardfork and live_time of the hardfork
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -537,8 +539,8 @@ class BlockChainInstance(object):
         return ret
 
     def get_network(
-        self, use_stored_data: bool = True, config: Dict[str, Any] | None = None
-    ) -> Dict[str, Any] | None:
+        self, use_stored_data: bool = True, config: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """Identify the network
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -558,7 +560,7 @@ class BlockChainInstance(object):
         except Exception:
             return known_chains["HIVE"]
 
-    def get_median_price(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_median_price(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Returns the current median history price as Price"""
         median_price = self.get_current_median_history(use_stored_data=use_stored_data)
         if median_price is None:
@@ -583,7 +585,7 @@ class BlockChainInstance(object):
 
         return block_interval
 
-    def get_blockchain_version(self, use_stored_data: bool = True) -> str | Dict[str, Any]:
+    def get_blockchain_version(self, use_stored_data: bool = True) -> Union[str, Dict[str, Any]]:
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_version = "0.0.0"
@@ -717,7 +719,7 @@ class BlockChainInstance(object):
         used_power = int((used_power + max_vote_denom - 1) / max_vote_denom)
         return used_power
 
-    def _calc_vote_claim(self, effective_vote_rshares: int, post_rshares: int) -> int | float:
+    def _calc_vote_claim(self, effective_vote_rshares: int, post_rshares: int) -> Union[int, float]:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_after_vote_normalized = post_rshares + effective_vote_rshares + CURVE_CONSTANT
         post_rshares_curve = (
@@ -730,7 +732,7 @@ class BlockChainInstance(object):
         vote_claim = post_rshares_curve_after_vote - post_rshares_curve
         return vote_claim
 
-    def _calc_revert_vote_claim(self, vote_claim: int, post_rshares: int) -> int | float:
+    def _calc_revert_vote_claim(self, vote_claim: int, post_rshares: int) -> Union[int, float]:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_curve = (
             post_rshares_normalized * post_rshares_normalized - SQUARED_CURVE_CONSTANT
@@ -888,7 +890,7 @@ class BlockChainInstance(object):
         else:
             return self.get_witness_schedule(use_stored_data)["median_props"]
 
-    def get_witness_schedule(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_witness_schedule(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Return witness elected chain properties"""
         if use_stored_data:
             self.refresh_data("witness_schedule")
@@ -899,7 +901,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_witness_schedule(api="database_api")
 
-    def get_config(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def get_config(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Returns internal chain configuration.
 
         :param bool use_stored_data: If True, the cached value is returned
@@ -1019,7 +1021,7 @@ class BlockChainInstance(object):
         """
         self.config["password_storage"] = password_storage
 
-    def set_default_nodes(self, nodes: List[str] | str) -> None:
+    def set_default_nodes(self, nodes: Union[List[str], str]) -> None:
         """Set the default nodes to be used"""
         if bool(nodes):
             if isinstance(nodes, list):
@@ -1162,7 +1164,7 @@ class BlockChainInstance(object):
         ret["trx_id"] = ret_sign.id
         return ret
 
-    def broadcast(self, tx: Dict[str, Any] | None = None, trx_id: bool = True) -> Dict[str, Any]:
+    def broadcast(self, tx: Optional[Dict[str, Any]] = None, trx_id: bool = True) -> Dict[str, Any]:
         """Broadcast a transaction to the Hive network
 
         :param tx tx: Signed transaction to broadcast
@@ -1232,7 +1234,7 @@ class BlockChainInstance(object):
     # Account related calls
     # -------------------------------------------------------------------------
     def claim_account(
-        self, creator: str | None = None, fee: str | None = None, **kwargs
+        self, creator: Optional[str] = None, fee: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """
         Claim a subsidized account slot or pay the account-creation fee.
@@ -1259,6 +1261,7 @@ class BlockChainInstance(object):
                 "Not creator account given. Define it with "
                 + "creator=x, or set the default_account using hive-nectar"
             )
+        assert creator is not None  # Type checker: creator is guaranteed not None here
         creator = Account(creator, blockchain_instance=self)
         op = {
             "fee": Amount(fee, blockchain_instance=self),
@@ -1834,7 +1837,9 @@ class BlockChainInstance(object):
         op = operations.Account_update(**op)
         return self.finalizeOp(op, account, "owner", **kwargs)
 
-    def witness_set_properties(self, wif, owner, props):
+    def witness_set_properties(
+        self, wif: str, owner: Union[str, "Account"], props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Set witness properties
 
         :param str wif: Private signing key
@@ -1878,7 +1883,14 @@ class BlockChainInstance(object):
         tb.sign()
         return tb.broadcast()
 
-    def witness_update(self, signing_key, url, props, account=None, **kwargs):
+    def witness_update(
+        self,
+        signing_key: str,
+        url: str,
+        props: Dict[str, Any],
+        account: Optional[Union[str, "Account"]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """
         Create or update a witness (register or modify a block producer).
 
@@ -1930,7 +1942,13 @@ class BlockChainInstance(object):
         )
         return self.finalizeOp(op, account, "active", **kwargs)
 
-    def update_proposal_votes(self, proposal_ids, approve, account=None, **kwargs):
+    def update_proposal_votes(
+        self,
+        proposal_ids: List[int],
+        approve: bool,
+        account: Optional[Union[str, "Account"]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Update proposal votes
 
         :param list proposal_ids: list of proposal ids
@@ -1958,7 +1976,7 @@ class BlockChainInstance(object):
         )
         return self.finalizeOp(op, account, "active", **kwargs)
 
-    def _test_weights_treshold(self, authority):
+    def _test_weights_treshold(self, authority: Dict[str, Any]) -> bool:
         """This method raises an error if the threshold of an authority cannot
         be reached by the weights.
 
@@ -1974,6 +1992,7 @@ class BlockChainInstance(object):
             raise ValueError("Threshold too restrictive!")
         if authority["weight_threshold"] == 0:
             raise ValueError("Cannot have threshold of 0")
+        return True
 
     def custom_json(
         self,
@@ -2025,15 +2044,15 @@ class BlockChainInstance(object):
         self,
         title: str,
         body: str,
-        author: str | None = None,
-        permlink: str | None = None,
-        reply_identifier: str | None = None,
-        json_metadata: Dict[str, Any] | None = None,
-        comment_options: Dict[str, Any] | None = None,
-        community: str | None = None,
-        app: str | None = None,
-        tags: List[str] | None = None,
-        beneficiaries: List[Dict[str, Any]] | None = None,
+        author: Optional[str] = None,
+        permlink: Optional[str] = None,
+        reply_identifier: Optional[str] = None,
+        json_metadata: Optional[Dict[str, Any]] = None,
+        comment_options: Optional[Dict[str, Any]] = None,
+        community: Optional[str] = None,
+        app: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        beneficiaries: Optional[List[Dict[str, Any]]] = None,
         self_vote: bool = False,
         parse_body: bool = False,
         **kwargs,
@@ -2132,11 +2151,11 @@ class BlockChainInstance(object):
 
         if parse_body:
 
-            def get_urls(mdstring):
+            def get_urls(mdstring: str) -> List[str]:
                 urls = re.findall(r'http[s]*://[^\s"><\)\(]+', mdstring)
                 return list(dict.fromkeys(urls))
 
-            def get_users(mdstring):
+            def get_users(mdstring: str) -> List[str]:
                 """
                 Extract usernames mentioned in a Markdown string.
 
@@ -2157,7 +2176,7 @@ class BlockChainInstance(object):
                     users.append(list(u)[-1])
                 return users
 
-            def get_hashtags(mdstring):
+            def get_hashtags(mdstring: str) -> List[str]:
                 hashtags = []
                 for t in re.findall(r"(^|\s)(#[-a-z\d]+)", mdstring):
                     hashtags.append(list(t)[-1])
@@ -2236,7 +2255,7 @@ class BlockChainInstance(object):
         # if comment_options are used, add a new op to the transaction
         if comment_options or beneficiaries:
             comment_op = self._build_comment_options_op(
-                account["name"], permlink, comment_options, beneficiaries
+                account["name"], permlink, comment_options or {}, beneficiaries or []
             )
             ops.append(comment_op)
 
@@ -2298,7 +2317,14 @@ class BlockChainInstance(object):
 
         return self.finalizeOp(op, account, "posting", **kwargs)
 
-    def comment_options(self, options, identifier, beneficiaries=[], account=None, **kwargs):
+    def comment_options(
+        self,
+        options: Dict[str, Any],
+        identifier: str,
+        beneficiaries: List[Dict[str, Any]] = [],
+        account: Optional[Union[str, "Account"]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """
         Set comment/post options for a post (Comment_options operation) and submit the operation.
 
@@ -2329,7 +2355,13 @@ class BlockChainInstance(object):
         op = self._build_comment_options_op(author, permlink, options, beneficiaries)
         return self.finalizeOp(op, account, "posting", **kwargs)
 
-    def _build_comment_options_op(self, author, permlink, options, beneficiaries):
+    def _build_comment_options_op(
+        self,
+        author: str,
+        permlink: str,
+        options: Dict[str, Any],
+        beneficiaries: List[Dict[str, Any]],
+    ) -> Any:
         """
         Build and return a Comment_options operation for a post, validating and normalizing provided options and beneficiaries.
 
@@ -2400,7 +2432,7 @@ class BlockChainInstance(object):
         )
         return comment_op
 
-    def get_api_methods(self):
+    def get_api_methods(self) -> List[str]:
         """
         Return the list of all JSON-RPC API methods supported by the connected node.
 
@@ -2409,7 +2441,7 @@ class BlockChainInstance(object):
         """
         return self.rpc.get_methods(api="jsonrpc")
 
-    def get_apis(self):
+    def get_apis(self) -> List[str]:
         """Returns all enabled apis"""
         api_methods = self.get_api_methods()
         api_list = []
@@ -2419,7 +2451,7 @@ class BlockChainInstance(object):
                 api_list.append(api)
         return api_list
 
-    def _get_asset_symbol(self, asset_id):
+    def _get_asset_symbol(self, asset_id: int) -> str:
         """
         Return the asset symbol for a given asset id.
 
@@ -2442,7 +2474,7 @@ class BlockChainInstance(object):
         raise KeyError("asset ID not found in chain assets")
 
     @property
-    def backed_token_symbol(self):
+    def backed_token_symbol(self) -> str:
         """
         Return the symbol for the chain's backed asset (HBD-like).
 
@@ -2456,11 +2488,11 @@ class BlockChainInstance(object):
         return symbol
 
     @property
-    def token_symbol(self):
+    def token_symbol(self) -> str:
         """get the current chains symbol for HIVE (e.g. "TESTS" on testnet)"""
         return self._get_asset_symbol(1)
 
     @property
-    def vest_token_symbol(self):
+    def vest_token_symbol(self) -> str:
         """get the current chains symbol for VESTS"""
         return self._get_asset_symbol(2)
