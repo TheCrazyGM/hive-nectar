@@ -341,7 +341,7 @@ class Blockchain(object):
 
     def get_estimated_block_num(
         self,
-        date: Union[datetime, date, datetime_time],
+        date: Union[datetime, date, datetime_time, None],
         estimateForwards: bool = False,
         accurate: bool = True,
     ) -> int:
@@ -364,6 +364,9 @@ class Blockchain(object):
         """
         last_block = self.get_current_block()
         date = addTzInfo(date)
+        # Ensure we have a datetime object for arithmetic operations
+        if date is None or not isinstance(date, datetime):
+            raise ValueError("date must be a datetime object after addTzInfo processing")
         if estimateForwards:
             block_offset = 10
             first_block = BlockHeader(block_offset, blockchain_instance=self.blockchain)
