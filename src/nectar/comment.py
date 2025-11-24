@@ -3,6 +3,7 @@ import json
 import logging
 import math
 from datetime import date, datetime, timedelta, timezone
+from typing import Any, Dict, Optional, Union
 
 from nectar.constants import (
     HIVE_100_PERCENT,
@@ -58,13 +59,13 @@ class Comment(BlockchainObject):
 
     def __init__(
         self,
-        authorperm,
-        api="bridge",
-        observer="",
-        full=True,
-        lazy=False,
-        blockchain_instance=None,
-    ):
+        authorperm: Union[str, Dict[str, Any]],
+        api: str = "bridge",
+        observer: str = "",
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Create a Comment object representing a Hive post or comment.
 
@@ -103,7 +104,7 @@ class Comment(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, comment):
+    def _parse_json_data(self, comment: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalize and convert raw comment JSON fields into Python-native types.
 
@@ -202,12 +203,12 @@ class Comment(BlockchainObject):
             comment["active_votes"] = new_active_votes
         return comment
 
-    def refresh(self):
-        if self.identifier == "":
+    def refresh(self) -> None:
+        if not self.identifier:
             return
         if not self.blockchain.is_connected():
             return
-        [author, permlink] = resolve_authorperm(self.identifier)
+        [author, permlink] = resolve_authorperm(str(self.identifier))
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         from nectarapi.exceptions import InvalidParameters
 
@@ -258,7 +259,7 @@ class Comment(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         """
         Return a JSON-serializable dict representation of the Comment.
 
@@ -333,7 +334,7 @@ class Comment(BlockchainObject):
             output["active_votes"] = new_active_votes
         return json.loads(str(json.dumps(output)))
 
-    def to_zero(self, account, partial: float = 100.0) -> float:
+    def to_zero(self, account: Union[str, Account], partial: float = 100.0) -> float:
         """
         Compute the UI downvote percent needed for `account` to reduce this post's
         pending payout to approximately zero using payout-based math (reward fund
@@ -403,7 +404,9 @@ class Comment(BlockchainObject):
             self.downvote(abs(ui_pct_scaled), voter=account)
         return ui_pct_scaled
 
-    def to_token_value(self, account, hbd, partial: float = 100.0) -> float:
+    def to_token_value(
+        self, account: Union[str, Account], hbd: bool = False, partial: float = 100.0
+    ) -> float:
         """
         Compute the UI upvote percent needed for `account` so the vote contributes
         approximately `hbd` HBD to payout (payout-based math).
@@ -468,23 +471,23 @@ class Comment(BlockchainObject):
         return ui_pct_scaled
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self["id"]
 
     @property
-    def author(self):
+    def author(self) -> str:
         return self["author"]
 
     @property
-    def permlink(self):
+    def permlink(self) -> str:
         return self["permlink"]
 
     @property
-    def authorperm(self):
+    def authorperm(self) -> str:
         return construct_authorperm(self["author"], self["permlink"])
 
     @property
-    def category(self):
+    def category(self) -> str:
         if "category" in self:
             return self["category"]
         else:
@@ -1049,7 +1052,9 @@ class Comment(BlockchainObject):
         authorperm = construct_authorperm(self["author"], self["permlink"])
         return ActiveVotes(authorperm, lazy=False, blockchain_instance=self.blockchain)
 
-    def upvote(self, weight=+100, voter=None):
+    def upvote(
+        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
+    ) -> Dict[str, Any]:
         """Upvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -1065,7 +1070,9 @@ class Comment(BlockchainObject):
                 raise VotingInvalidOnArchivedPost
         return self.vote(weight, account=voter)
 
-    def downvote(self, weight=100, voter=None):
+    def downvote(
+        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
+    ) -> Dict[str, Any]:
         """Downvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -1081,7 +1088,13 @@ class Comment(BlockchainObject):
                 raise VotingInvalidOnArchivedPost
         return self.vote(-weight, account=voter)
 
-    def vote(self, weight, account=None, identifier=None, **kwargs):
+    def vote(
+        self,
+        weight: float,
+        account: Optional[Union[str, Account]] = None,
+        identifier: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Vote for a post
 
         :param float weight: Voting weight. Range: -100.0 - +100.0.

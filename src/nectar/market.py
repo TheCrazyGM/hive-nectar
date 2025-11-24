@@ -2,6 +2,7 @@
 import logging
 import random
 from datetime import datetime, timedelta, timezone
+from typing import Any, Optional, Union
 
 import requests
 
@@ -48,7 +49,13 @@ class Market(dict):
 
     """
 
-    def __init__(self, base=None, quote=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        base: Optional[Union[str, Asset]] = None,
+        quote: Optional[Union[str, Asset]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Create a Market mapping with "base" and "quote" Asset objects.
 
@@ -86,7 +93,7 @@ class Market(dict):
         else:
             raise ValueError("Unknown Market config")
 
-    def get_string(self, separator=":"):
+    def get_string(self, separator: str = ":") -> str:
         """
         Return the market identifier as "QUOTE{separator}BASE" (e.g. "HIVE:HBD").
 
@@ -98,7 +105,7 @@ class Market(dict):
         """
         return "%s%s%s" % (self["quote"]["symbol"], separator, self["base"]["symbol"])
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union[str, "Market"]) -> bool:
         if isinstance(other, str):
             quote_symbol, base_symbol = assets_from_string(other)
             return (

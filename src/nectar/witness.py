@@ -2,7 +2,7 @@
 import json
 import warnings
 from datetime import date, datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
 from prettytable import PrettyTable
 
@@ -29,8 +29,13 @@ class Witness(BlockchainObject):
     type_id = 3
 
     def __init__(
-        self, owner: Any, full: bool = False, lazy: bool = False, blockchain_instance=None, **kwargs
-    ):
+        self,
+        owner: Union[str, Dict[str, Any]],
+        full: bool = False,
+        lazy: bool = False,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize a Witness object representing a blockchain witness.
@@ -61,7 +66,7 @@ class Witness(BlockchainObject):
             owner, lazy=lazy, full=full, id_item="owner", blockchain_instance=self.blockchain
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """
         Refresh the witness data from the blockchain and reinitialize this object.
 
@@ -115,7 +120,7 @@ class Witness(BlockchainObject):
                 witness[p] = int(witness.get(p, "0"))
         return witness
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         output = self.copy()
         parse_times = [
             "created",
@@ -142,11 +147,11 @@ class Witness(BlockchainObject):
         return json.loads(str(json.dumps(output)))
 
     @property
-    def account(self):
+    def account(self) -> Account:
         return Account(self["owner"], blockchain_instance=self.blockchain)
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return (
             len(self["signing_key"]) > 3
             and self["signing_key"][3:] != "1111111111111111111111111111111114T1Anm"

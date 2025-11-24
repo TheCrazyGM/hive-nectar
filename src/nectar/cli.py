@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import click
 from prettytable import PrettyTable
@@ -31,7 +32,7 @@ from nectar.instance import set_shared_blockchain_instance, shared_blockchain_in
 from nectar.market import Market
 from nectar.memo import Memo
 from nectar.message import Message
-from nectar.nodelist import NodeList, node_answer_time
+from nectar.nodelist import NodeList
 from nectar.price import Price
 from nectar.profile import Profile
 from nectar.rc import RC
@@ -78,28 +79,35 @@ availableConfigurationKeys = [
 ]
 
 
-def prompt_callback(ctx, param, value):
+def prompt_callback(ctx: Any, param: Any, value: str) -> bool:
     if value in ["yes", "y", "ye"]:
-        value = True
+        return True
     else:
         print("Please write yes, ye or y to confirm!")
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return False
 
 
-def asset_callback(ctx, param, value):
+def asset_callback(ctx: Any, param: Any, value: str) -> str:
     if value not in ["HIVE", "HBD", "TBD", "TESTS"]:
         print("Please choose HIVE/HBD (or TESTS/TBD for test assets) as asset!")
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return value
     else:
         return value
 
 
-def prompt_flag_callback(ctx, param, value):
+def prompt_flag_callback(ctx: Any, param: Any, value: bool) -> bool:
     if not value:
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return False
+    return True
 
 
-def is_keyring_available():
+def is_keyring_available() -> bool:
     KEYRING_AVAILABLE = False
     try:
         import keyring  # type: ignore
@@ -446,7 +454,9 @@ def pingnode(sort, remove):
         hv.set_default_nodes(sorted_node_list)
     else:
         node = hv.rpc.url
-        rpc_answer_time = node_answer_time(node)
+        nodelist = NodeList()
+        node_times = nodelist.get_node_answer_time([node], verbose=False)
+        rpc_answer_time = node_times[0]["delay_ms"] / 1000 if node_times else 0
         rpc_time_str = "%.2f" % (rpc_answer_time * 1000)
         t.add_row([node, rpc_time_str])
         print(t)

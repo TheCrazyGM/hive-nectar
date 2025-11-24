@@ -126,7 +126,7 @@ class BlockChainInstance(object):
 
     def __init__(
         self,
-        node: Union[str, List[str]] = "",
+        node: Optional[Union[str, List[str]]] = None,
         rpcuser: Optional[str] = None,
         rpcpassword: Optional[str] = None,
         debug: bool = False,
@@ -179,7 +179,12 @@ class BlockChainInstance(object):
             self.path = self.config["default_path"]
 
         if not self.offline:
-            self.connect(node=node, rpcuser=rpcuser, rpcpassword=rpcpassword, **kwargs)
+            if node:
+                # Type assertion: we know node is not None here
+                assert node is not None
+                self.connect(node=node, rpcuser=rpcuser, rpcpassword=rpcpassword, **kwargs)
+            else:
+                self.connect(node="", rpcuser=rpcuser, rpcpassword=rpcpassword, **kwargs)
 
         self.clear_data()
         self.data_refresh_time_seconds = data_refresh_time_seconds

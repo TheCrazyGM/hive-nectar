@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, List, Optional
 
 from .comment import Comment
 from .instance import shared_blockchain_instance
@@ -34,22 +35,22 @@ class Query(dict):
 
     def __init__(
         self,
-        limit=0,
-        tag="",
-        truncate_body=0,
-        filter_tags=None,
-        select_authors=None,
-        select_tags=None,
-        start_author=None,
-        start_permlink=None,
-        start_tag=None,
-        parent_author=None,
-        parent_permlink=None,
-        start_parent_author=None,
-        before_date=None,
-        author=None,
-        observer=None,
-    ):
+        limit: int = 0,
+        tag: str = "",
+        truncate_body: int = 0,
+        filter_tags: Optional[List[str]] = None,
+        select_authors: Optional[List[str]] = None,
+        select_tags: Optional[List[str]] = None,
+        start_author: Optional[str] = None,
+        start_permlink: Optional[str] = None,
+        start_tag: Optional[str] = None,
+        parent_author: Optional[str] = None,
+        parent_permlink: Optional[str] = None,
+        start_parent_author: Optional[str] = None,
+        before_date: Optional[str] = None,
+        author: Optional[str] = None,
+        observer: Optional[str] = None,
+    ) -> None:
         """
         Initialize a Query mapping for discussion fetches.
 
@@ -96,7 +97,9 @@ class Discussions(object):
 
     """
 
-    def __init__(self, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self, lazy: bool = False, blockchain_instance: Optional[Any] = None, **kwargs: Any
+    ) -> None:
         """
         Initialize the Discussions orchestrator.
 
