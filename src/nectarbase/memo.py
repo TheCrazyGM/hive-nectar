@@ -233,10 +233,9 @@ def decode_memo(priv: Any, message: str) -> str:
     message = _unpad(message, 16)
     n = varintdecode(message)
     if (len(message) - n) > 0 and (len(message) - n) < 8:
-        return "#" + (
-            message[len(message) - n :].decode("utf8")
-            if isinstance(message[len(message) - n :], bytes)
-            else message[len(message) - n :]
-        )
+        message_part = message[len(message) - n :]
+        if isinstance(message_part, bytes):
+            message_part = message_part.decode("utf8")
+        return "#" + message_part
     else:
         return "#" + (message.decode("utf8") if isinstance(message, bytes) else message)
