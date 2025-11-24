@@ -54,8 +54,11 @@ def generate_config_store(
 
 
 def get_default_config_store(*args, **kwargs) -> MutableMapping[str, Any]:
-    return generate_config_store(SqliteConfigurationStore, blockchain="hive")(*args, **kwargs)
+    config_store = SqliteConfigurationStore(*args, **kwargs)
+    return generate_config_store(config_store, blockchain="hive")
 
 
-def get_default_key_store(config, *args, **kwargs):
+def get_default_key_store(
+    config: MutableMapping[str, Any], *args, **kwargs
+) -> SqliteEncryptedKeyStore:
     return SqliteEncryptedKeyStore(config=config, **kwargs)
