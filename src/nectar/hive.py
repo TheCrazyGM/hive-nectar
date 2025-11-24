@@ -148,6 +148,8 @@ class Hive(BlockChainInstance):
     ) -> float:
         """Returns the current rshares to HBD ratio"""
         reward_fund = self.get_reward_funds(use_stored_data=use_stored_data)
+        if not reward_fund or not isinstance(reward_fund, dict):
+            return 0
         reward_balance = float(Amount(reward_fund["reward_balance"], blockchain_instance=self))
         recent_claims = float(reward_fund["recent_claims"]) + not_broadcasted_vote_rshares
         if recent_claims == 0:
@@ -189,6 +191,8 @@ class Hive(BlockChainInstance):
             else:
                 return a2 * time_stamp + b2
         global_properties = self.get_dynamic_global_properties(use_stored_data=use_stored_data)
+        if not global_properties or not isinstance(global_properties, dict):
+            return 0.0
         return float(
             Amount(global_properties["total_vesting_fund_hive"], blockchain_instance=self)
         ) / (
@@ -236,7 +240,7 @@ class Hive(BlockChainInstance):
         :param datetime timestamp: (Optional) Can be used to calculate
             the conversion rate from the past
         """
-        return hp * 1e6 / self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data)
+        return hp * 1e6 / float(self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data))
 
     def token_power_to_vests(
         self,
@@ -420,7 +424,7 @@ class Hive(BlockChainInstance):
             rshares -= math.copysign(
                 self.get_dust_threshold(use_stored_data=use_stored_data), vote_pct
             )
-        rshares = self._calc_vote_claim(rshares, post_rshares)
+        rshares = self._calc_vote_claim(int(rshares), post_rshares)
         return rshares
 
     def hbd_to_rshares(
@@ -456,6 +460,8 @@ class Hive(BlockChainInstance):
         # big votes which have a significant impact on the recent_claims.
         reward_fund = self.get_reward_funds(use_stored_data=use_stored_data)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
+        if not reward_fund or not isinstance(reward_fund, dict):
+            return int(float(hbd) / self.get_hbd_per_rshares(use_stored_data=use_stored_data))
         recent_claims = int(reward_fund["recent_claims"])
         reward_balance = Amount(reward_fund["reward_balance"], blockchain_instance=self)
         reward_pool_hbd = median_price * reward_balance
@@ -551,7 +557,8 @@ class Hive(BlockChainInstance):
         if vests == 0 or voting_power == 0:
             return 0
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
-        used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests * 1e6)
+        vests_value = vests if vests is not None else 0
+        used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests_value * 1e6)
         # Invert the linear relation (ignoring ceil):
         vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
         return int(math.copysign(vote_pct_abs, rshares))
@@ -619,7 +626,7 @@ class Hive(BlockChainInstance):
             versions = known_chains["HIVE"]["min_version"]
         else:
             hf_prop = self.get_hardfork_properties()
-            if "current_hardfork_version" in hf_prop:
+            if hf_prop and isinstance(hf_prop, dict) and "current_hardfork_version" in hf_prop:
                 versions = hf_prop["current_hardfork_version"]
             else:
                 versions = known_chains["HIVE"]["min_version"]
