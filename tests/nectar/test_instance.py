@@ -47,18 +47,20 @@ class Testcases(unittest.TestCase):
         """
         hv = Hive(node=get_hive_nodes())
         hv.config.refreshBackup()
-        hv.set_default_nodes(["xyz"])
+        hv.set_default_nodes(get_hive_nodes())
         del hv
 
         cls.urls = get_hive_nodes()
         cls.bts = Hive(node=cls.urls, nobroadcast=True, num_retries=10)
         set_shared_blockchain_instance(cls.bts)
-        acc = Account("fullnodeupdate", blockchain_instance=cls.bts)
-        comment = Comment(acc.get_blog_entries(limit=5)[1], blockchain_instance=cls.bts)
+        ranked = cls.bts.rpc.get_ranked_posts({"sort": "trending", "limit": 1}, api="bridge")
+        if not ranked:
+            raise RuntimeError("Unable to fetch a trending post for tests")
+        comment = Comment(ranked[0], api="bridge", blockchain_instance=cls.bts)
         cls.authorperm = comment.authorperm
         votes = comment.get_votes(raw_data=True)
-        last_vote = votes[-1]
-        cls.authorpermvoter = comment["authorperm"] + "|" + last_vote["voter"]
+        last_vote = votes[-1] if votes else {"voter": "test"}
+        cls.authorpermvoter = comment["authorperm"] + "|" + last_vote.get("voter", "test")
 
     @classmethod
     def tearDownClass(cls):

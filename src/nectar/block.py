@@ -150,10 +150,7 @@ class Block(BlockchainObject):
                     {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
                     api="account_history_api",
                 )
-                if ops_ops is None:
-                    ops = None
-                else:
-                    ops = ops_ops["ops"]
+                ops = ops_ops["ops"] if ops_ops is not None else None
             except ApiNotSupported:
                 ops = self.blockchain.rpc.get_ops_in_block(
                     self.identifier, self.only_virtual_ops, api="account_history_api"
@@ -168,7 +165,7 @@ class Block(BlockchainObject):
                 block = {
                     "block": self.identifier,
                     "timestamp": "1970-01-01T00:00:00",
-                    "operations": [],
+                    "operations": ops or [],
                 }
         else:
             try:

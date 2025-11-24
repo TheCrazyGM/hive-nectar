@@ -2,7 +2,7 @@
 import json
 import logging
 import math
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from nectar.constants import (
     HIVE_100_PERCENT,
@@ -23,6 +23,7 @@ from .utils import (
     formatTimeString,
     formatToTimeStamp,
     make_patch,
+    parse_time,
     resolve_authorperm,
 )
 
@@ -130,7 +131,11 @@ class Comment(BlockchainObject):
         ]
         for p in parse_times:
             if p in comment and isinstance(comment.get(p), str):
-                comment[p] = formatTimeString(comment.get(p, "1970-01-01T00:00:00"))
+                comment[p] = parse_time(comment.get(p, "1970-01-01T00:00:00"))
+        if "parent_author" not in comment:
+            comment["parent_author"] = ""
+        if "parent_permlink" not in comment:
+            comment["parent_permlink"] = ""
         # Parse Amounts
         hbd_amounts = [
             "total_payout_value",
@@ -182,7 +187,7 @@ class Comment(BlockchainObject):
             new_active_votes = []
             for vote in comment["active_votes"]:
                 if "time" in vote and isinstance(vote.get("time"), str):
-                    vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
+                    vote["time"] = parse_time(vote.get("time", "1970-01-01T00:00:00"))
                 parse_int = [
                     "rshares",
                     "reputation",
@@ -208,13 +213,22 @@ class Comment(BlockchainObject):
 
         try:
             if self.api in ("tags", "condenser", "condenser_api"):
-                content = self.blockchain.rpc.get_discussion(
-                    {"author": author, "permlink": permlink}, api="condenser_api"
-                )
+                try:
+                    content = self.blockchain.rpc.get_content(author, permlink, api="condenser_api")
+                except Exception:
+                    content = None
+                if content is None:
+                    try:
+                        content = self.blockchain.rpc.get_post(
+                            {"author": author, "permlink": permlink, "observer": self.observer},
+                            api="bridge",
+                        )
+                    except Exception:
+                        content = None
             elif self.api in ("database", "database_api"):
-                content = self.blockchain.rpc.list_comments(
-                    {"start": [author, permlink], "limit": 1, "order": "by_permlink"},
-                    api="database_api",
+                content = self.blockchain.rpc.get_post(
+                    {"author": author, "permlink": permlink, "observer": self.observer},
+                    api="bridge",
                 )
             elif self.api == "bridge":
                 content = self.blockchain.rpc.get_post(
@@ -582,7 +596,23 @@ class Comment(BlockchainObject):
         The difference is computed as now (UTC) minus the post's `created` timestamp (a timezone-aware datetime).
         A positive timedelta indicates the post is in the past; a negative value can occur if `created` is in the future.
         """
-        return datetime.now(timezone.utc) - self["created"]
+        created = self["created"]
+        if isinstance(created, str):
+            created = parse_time(created)
+        return datetime.now(timezone.utc) - created
+
+    def is_archived(self):
+        """
+        Determine whether the post is archived (cashout window passed).
+        """
+        cashout = self.get("cashout_time")
+        if isinstance(cashout, str):
+            cashout = parse_time(cashout)
+        if not isinstance(cashout, datetime):
+            return False
+        return cashout <= datetime(1970, 1, 1, tzinfo=timezone.utc) or cashout < datetime.now(
+            timezone.utc
+        ) - timedelta(days=7)
 
     def curation_penalty_compensation_hbd(self):
         """
@@ -938,9 +968,14 @@ class Comment(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_reblogged_by(
-            {"author": post_author, "permlink": post_permlink}, api="condenser_api"
-        )["accounts"]
+        try:
+            return self.blockchain.rpc.get_reblogged_by(
+                post_author, post_permlink, api="condenser_api"
+            )["accounts"]
+        except Exception:
+            return self.blockchain.rpc.get_reblogged_by(
+                [post_author, post_permlink], api="condenser_api"
+            )["accounts"]
 
     def get_replies(self, raw_data=False, identifier=None):
         """Returns content replies

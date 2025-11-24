@@ -322,6 +322,8 @@ class Market(dict):
         current_start = start
         filled_order = []
         fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
+        if len(fo) == 0:
+            return filled_order
         if intervall is None and len(fo) > 0:
             current_start = fo[-1]["date"]
             filled_order += fo
@@ -329,11 +331,15 @@ class Market(dict):
             current_start += intervall
             filled_order += [fo]
         last_date = fo[-1]["date"]
+        if isinstance(last_date, str):
+            last_date = formatTimeString(last_date)
         while len(fo) > 0 and last_date < stop:
             fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
             if len(fo) == 0 or fo[-1]["date"] == last_date:
                 break
             last_date = fo[-1]["date"]
+            if isinstance(last_date, str):
+                last_date = formatTimeString(last_date)
             if intervall is None:
                 current_start = last_date
                 filled_order += fo
@@ -401,23 +407,23 @@ class Market(dict):
         else:
             if bucket_seconds not in buckets:
                 raise ValueError("You need select the bucket_seconds from " + str(buckets))
-                self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                history = self.blockchain.rpc.get_market_history(
-                    {
-                        "bucket_seconds": bucket_seconds,
-                        "start": formatTimeFromNow(-start_age - end_age),
-                        "end": formatTimeFromNow(-end_age),
-                    },
-                    api="market_history_api",
-                )["buckets"]
-                if raw_data:
-                    return history
-                new_history = []
-                for h in history:
-                    if "open" in h and isinstance(h.get("open"), str):
-                        h["open"] = formatTimeString(h.get("open", "1970-01-01T00:00:00"))
-                        new_history.append(h)
-                return new_history
+        self.blockchain.rpc.set_next_node_on_empty_reply(False)
+        history = self.blockchain.rpc.get_market_history(
+            {
+                "bucket_seconds": bucket_seconds,
+                "start": formatTimeFromNow(-start_age - end_age),
+                "end": formatTimeFromNow(-end_age),
+            },
+            api="market_history_api",
+        )["buckets"]
+        if raw_data:
+            return history
+        new_history = []
+        for h in history:
+            if "open" in h and isinstance(h.get("open"), str):
+                h["open"] = formatTimeString(h.get("open", "1970-01-01T00:00:00"))
+                new_history.append(h)
+        return new_history
 
     def accountopenorders(self, account=None, raw_data=False):
         """Returns open Orders

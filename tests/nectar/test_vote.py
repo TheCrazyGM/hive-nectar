@@ -4,7 +4,6 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from nectar import Hive, exceptions
-from nectar.account import Account
 from nectar.comment import Comment
 from nectar.instance import set_shared_blockchain_instance
 from nectar.utils import (
@@ -30,15 +29,15 @@ class Testcases(unittest.TestCase):
         set_shared_blockchain_instance(cls.bts)
         cls.bts.set_default_account("test")
 
-        acc = Account("fullnodeupdate", blockchain_instance=cls.bts)
-        n_votes = 0
-        index = 0
-        entries = acc.get_blog(limit=20)[::-1]
-        while n_votes == 0:
-            comment = Comment(entries[index], blockchain_instance=cls.bts)
-            votes = comment.get_votes()
-            n_votes = len(votes)
-            index += 1
+        ranked = cls.bts.rpc.get_ranked_posts({"sort": "trending", "limit": 1}, api="bridge")
+        if not ranked:
+            raise RuntimeError("Unable to fetch a trending post for tests")
+        comment = Comment(ranked[0], api="bridge", blockchain_instance=cls.bts)
+        votes = comment.get_votes()
+        _n_votes = len(votes)
+
+        if not votes:
+            raise RuntimeError("Unable to locate votes on trending post for tests")
 
         last_vote = votes[0]
 

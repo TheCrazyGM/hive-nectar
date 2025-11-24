@@ -125,14 +125,18 @@ class Vote(BlockchainObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(True)
             try:
                 response = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="condenser_api"
+                    author,
+                    permlink,
+                    api="condenser_api",
                 )
                 votes = response["votes"] if isinstance(response, dict) else response
             except InvalidParameters:
                 raise VoteDoesNotExistsException(self.identifier)
             except Exception:
                 votes = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="condenser_api"
+                    author,
+                    permlink,
+                    api="condenser_api",
                 )
                 if isinstance(votes, dict) and "votes" in votes:
                     votes = votes["votes"]
@@ -522,7 +526,8 @@ class ActiveVotes(VotesObject):
 
             try:
                 votes = self.blockchain.rpc.get_active_votes(
-                    {"author": authorperm["author"], "permlink": authorperm["permlink"]},
+                    authorperm["author"],
+                    authorperm["permlink"],
                     api="condenser_api",
                 )
                 if isinstance(votes, dict) and "votes" in votes:
@@ -538,9 +543,7 @@ class ActiveVotes(VotesObject):
             from nectarapi.exceptions import InvalidParameters
 
             try:
-                votes = self.blockchain.rpc.get_active_votes(
-                    {"author": author, "permlink": permlink}, api="condenser_api"
-                )
+                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser_api")
                 if isinstance(votes, dict) and "votes" in votes:
                     votes = votes["votes"]
             except InvalidParameters:
