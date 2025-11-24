@@ -48,9 +48,9 @@ class Block(BlockchainObject):
         only_virtual_ops: bool = False,
         full: bool = True,
         lazy: bool = False,
-        blockchain_instance=None,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a Block object representing a single blockchain block.
 
@@ -200,7 +200,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def operations(self) -> List:
+    def operations(self) -> List[Any]:
         """Returns all block operations as list"""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -243,7 +243,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def json_operations(self) -> List:
+    def json_operations(self) -> List[Any]:
         """Returns all block operations as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -321,9 +321,9 @@ class BlockHeader(BlockchainObject):
         block: int | float | dict,
         full: bool = True,
         lazy: bool = False,
-        blockchain_instance=None,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a BlockHeader.
 
@@ -410,15 +410,15 @@ class Blocks(list):
 
     def __init__(
         self,
-        starting_block_num,
-        count=1000,
-        lazy=False,
-        full=True,
-        only_ops=False,
-        only_virtual_ops=False,
-        blockchain_instance=None,
+        starting_block_num: int,
+        count: int = 1000,
+        lazy: bool = False,
+        full: bool = True,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a Blocks collection by fetching a contiguous range of blocks from the chain and populating the list with Block objects.
 

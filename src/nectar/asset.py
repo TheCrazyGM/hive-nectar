@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Dict, Union, cast
+
 from .blockchainobject import BlockchainObject
 from .exceptions import AssetDoesNotExistsException
 
@@ -19,28 +21,35 @@ class Asset(BlockchainObject):
 
     type_id = 3
 
-    def __init__(self, asset, lazy=False, full=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        asset: Union[str, int],
+        lazy: bool = False,
+        full: bool = False,
+        blockchain_instance: Any = None,
+        **kwargs,
+    ) -> None:
         self.full = full
         super(Asset, self).__init__(
             asset, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
         # self.refresh()
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the data from the API server"""
         self.chain_params = self.blockchain.get_network()
         if self.chain_params is None:
             from nectargraphenebase.chains import known_chains
 
             self.chain_params = known_chains["HIVE"]
-        self["asset"] = ""
+        cast(Dict[str, Any], self)["asset"] = ""
         found_asset = False
         for asset in self.chain_params["chain_assets"]:
             if self.identifier in [asset["symbol"], asset["asset"], asset["id"]]:
-                self["asset"] = asset["asset"]
-                self["precision"] = asset["precision"]
-                self["id"] = asset["id"]
-                self["symbol"] = asset["symbol"]
+                cast(Dict[str, Any], self)["asset"] = asset["asset"]
+                cast(Dict[str, Any], self)["precision"] = asset["precision"]
+                cast(Dict[str, Any], self)["id"] = asset["id"]
+                cast(Dict[str, Any], self)["symbol"] = asset["symbol"]
                 found_asset = True
                 break
         if not found_asset:
@@ -49,33 +58,33 @@ class Asset(BlockchainObject):
             )
 
     @property
-    def symbol(self):
-        return self["symbol"]
+    def symbol(self) -> str:
+        return cast(Dict[str, Any], self)["symbol"]
 
     @property
-    def asset(self):
-        return self["asset"]
+    def asset(self) -> str:
+        return cast(Dict[str, Any], self)["asset"]
 
     @property
-    def precision(self):
-        return self["precision"]
+    def precision(self) -> int:
+        return cast(Dict[str, Any], self)["precision"]
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union["Asset", dict, str, int]) -> bool:
         if isinstance(other, (Asset, dict)):
             return (
-                self["symbol"] == other["symbol"]
-                and self["asset"] == other["asset"]
-                and self["precision"] == other["precision"]
+                cast(Dict[str, Any], self)["symbol"] == other["symbol"]
+                and cast(Dict[str, Any], self)["asset"] == other["asset"]
+                and cast(Dict[str, Any], self)["precision"] == other["precision"]
             )
         else:
-            return self["symbol"] == other
+            return cast(Dict[str, Any], self)["symbol"] == other
 
-    def __ne__(self, other):
+    def __ne__(self, other: Union["Asset", dict, str, int]) -> bool:
         if isinstance(other, (Asset, dict)):
             return (
-                self["symbol"] != other["symbol"]
-                or self["asset"] != other["asset"]
-                or self["precision"] != other["precision"]
+                cast(Dict[str, Any], self)["symbol"] != other["symbol"]
+                or cast(Dict[str, Any], self)["asset"] != other["asset"]
+                or cast(Dict[str, Any], self)["precision"] != other["precision"]
             )
         else:
-            return self["symbol"] != other
+            return cast(Dict[str, Any], self)["symbol"] != other
