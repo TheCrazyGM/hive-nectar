@@ -208,7 +208,6 @@ class Witness(BlockchainObject):
                     "quote": quote,
                 },
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         return self.blockchain.finalizeOp(op, account, "active")

@@ -1384,13 +1384,20 @@ class Account(BlockchainObject):
             last_notification = self.get_notifications(only_unread=False, limit=1, account=account)
             if len(last_notification) == 0:
                 raise ValueError("Notification list is empty")
-            last_read = datetime.now(timezone.utc)
-        if isinstance(last_read, datetime):
-            last_read = formatTimeString(last_read)
+            last_read_dt = datetime.now(timezone.utc)
+        else:
+            last_read_dt = (
+                addTzInfo(last_read) if isinstance(last_read, (datetime, date, time)) else None
+            )
+        if last_read_dt is None:
+            # if provided as string, trust it; otherwise format our datetime
+            last_read_str = str(last_read)
+        else:
+            last_read_str = formatTimeString(last_read_dt)
         json_body = [
             "setLastRead",
             {
-                "date": last_read,
+                "date": last_read_str,
             },
         ]
         return self.blockchain.custom_json("notify", json_body, required_posting_auths=[account])

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, MutableMapping
 
 from nectarstorage import SqliteConfigurationStore, SqliteEncryptedKeyStore
 
@@ -13,7 +14,9 @@ log.addHandler(logging.StreamHandler())
 timeformat = "%Y%m%d-%H%M%S"
 
 
-def generate_config_store(config, blockchain="hive", **kwargs):
+def generate_config_store(
+    config: MutableMapping[str, Any], blockchain: str = "hive", **kwargs: Any
+) -> MutableMapping[str, Any]:
     #: Default configuration
     """
     Populate a configuration mapping with sensible defaults for Hive-related settings and return it.
@@ -43,14 +46,14 @@ def generate_config_store(config, blockchain="hive", **kwargs):
     config.setdefault("client_id", "")
     config.setdefault("default_canonical_url", "https://hive.blog")
     config.setdefault("default_path", "48'/13'/0'/0'/0'")
-    config.setdefault("use_condenser", True)
+    config.setdefault("use_condenser", False)
     if "use_condenser" in kwargs:
         config["use_condenser"] = kwargs["use_condenser"]
     config.setdefault("use_tor", False)
     return config
 
 
-def get_default_config_store(*args, **kwargs):
+def get_default_config_store(*args, **kwargs) -> MutableMapping[str, Any]:
     return generate_config_store(SqliteConfigurationStore, blockchain="hive")(*args, **kwargs)
 
 

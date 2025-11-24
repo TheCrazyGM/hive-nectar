@@ -8,27 +8,10 @@ import re
 import unicodedata
 from binascii import hexlify, unhexlify
 
-# Optional ecdsa import for backward compatibility
-try:
-    import ecdsa
-
-    ECDSA_AVAILABLE = True
-except ImportError:
-    ecdsa = None
-    ECDSA_AVAILABLE = False
+import ecdsa
 
 from .base58 import Base58, doublesha256, ripemd160
-
-# Optional bip32 import for BIP32 key derivation
-try:
-    from .bip32 import BIP32Key, parse_path
-
-    BIP32_AVAILABLE = True
-except ImportError:
-    BIP32Key = None
-    parse_path = None
-    BIP32_AVAILABLE = False
-
+from .bip32 import BIP32Key, parse_path
 from .dictionary import words as BrainKeyDictionary
 from .dictionary import words_bip39 as MnemonicDictionary
 from .prefix import Prefix
@@ -899,23 +882,10 @@ class PublicKey(Prefix):
         privkey = PrivateKey(privkey, prefix=prefix or Prefix.prefix)
         secret = unhexlify(repr(privkey))
 
-        if ECDSA_AVAILABLE:
-            order = ecdsa.SigningKey.from_string(
-                secret, curve=ecdsa.SECP256k1
-            ).curve.generator.order()
-            p = ecdsa.SigningKey.from_string(
-                secret, curve=ecdsa.SECP256k1
-            ).verifying_key.pubkey.point
-            x_str = ecdsa.util.number_to_string(p.x(), order)
-            compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
-            return cls(compressed, prefix=prefix or Prefix.prefix)
-        # Fallback: derive with pure-Python EC math
-        secexp = int.from_bytes(secret, "big")
-        if secexp <= 0 or secexp >= SECP256K1_N:
-            raise ValueError("Invalid private key scalar")
-        G = (SECP256K1_GX, SECP256K1_GY)
-        P = _scalar_mult(secexp, G)
-        compressed = hexlify(_point_to_compressed(P)).decode("ascii")
+        order = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).curve.generator.order()
+        p = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).verifying_key.pubkey.point
+        x_str = ecdsa.util.number_to_string(p.x(), order)
+        compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
         return cls(compressed, prefix=prefix or Prefix.prefix)
 
     def __repr__(self):

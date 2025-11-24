@@ -342,21 +342,28 @@ class TransactionBuilder(dict):
         # calculation expiration time from last block time not system time
         # it fixes transaction expiration error when pushing transactions
         # when blocks are moved forward with debug_produce_block*
+        # Prefer chain head time when connected to align with node clock and avoid expiration drift
+        exp_seconds = int(self.expiration or self.blockchain.expiration or 300)
+        # ensure at least 5 minutes to avoid expiration race with head block time drift
+        exp_seconds = max(exp_seconds, 300)
         if self.blockchain.is_connected():
-            time_str = self.blockchain.get_dynamic_global_properties(use_stored_data=False).get(
-                "time"
-            )
-            from datetime import datetime, timedelta
+            dgp = self.blockchain.get_dynamic_global_properties(use_stored_data=False)
+            head_time_str = dgp.get("time")
+            from datetime import datetime, timedelta, timezone
 
-            now = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
-            expiration = now + timedelta(seconds=int(self.expiration or self.blockchain.expiration))
-            expiration = expiration.replace(microsecond=0).isoformat()
+            head_time = datetime.strptime(head_time_str, "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+            now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            base_time = max(head_time, now_utc)
+            expiration_dt = base_time + timedelta(seconds=exp_seconds)
+            expiration = expiration_dt.strftime("%Y-%m-%dT%H:%M:%S")
         else:
-            expiration = formatTimeFromNow(self.expiration or self.blockchain.expiration)
+            expiration = formatTimeFromNow(exp_seconds)
 
         # We now wrap everything into an actual transaction
         if ref_block_num is None or ref_block_prefix is None:
-            ref_block_num, ref_block_prefix = self.get_block_params()
+            ref_block_num, ref_block_prefix = self.get_block_params(use_head_block=True)
         if self._use_ledger:
             self.ledgertx = Ledger_Transaction(
                 ref_block_prefix=ref_block_prefix,
@@ -558,9 +565,8 @@ class TransactionBuilder(dict):
             return
         ret = self.json()
 
-        # Returns an internal Error at the moment
         if not self._use_condenser_api:
-            args = self.json()
+            args = {"trx": self.json(), "max_block_age": -1}
             broadcast_api = "network_broadcast_api"
         else:
             args = self.json()

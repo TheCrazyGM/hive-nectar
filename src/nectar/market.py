@@ -504,7 +504,6 @@ class Market(dict):
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
 
@@ -588,7 +587,6 @@ class Market(dict):
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
             }
         )
         if returnOrderId:

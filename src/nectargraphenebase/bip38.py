@@ -4,34 +4,13 @@ import logging
 import sys
 from binascii import hexlify, unhexlify
 
+import scrypt
+from Cryptodome.Cipher import AES
+
 from .account import PrivateKey
 from .base58 import Base58, base58decode
 
 log = logging.getLogger(__name__)
-
-try:
-    from Cryptodome.Cipher import AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES
-    except ImportError:
-        raise ImportError("Missing dependency: pyCryptodome")
-
-SCRYPT_MODULE = None
-if not SCRYPT_MODULE:
-    try:
-        import scrypt
-
-        SCRYPT_MODULE = "scrypt"
-    except ImportError:
-        try:
-            import pylibscrypt as scrypt
-
-            SCRYPT_MODULE = "pylibscrypt"
-        except ImportError:
-            raise ImportError("Missing dependency: scrypt or pylibscrypt")
-
-log.debug("Using scrypt module: %s" % SCRYPT_MODULE)
 
 
 class SaltException(Exception):
@@ -67,12 +46,7 @@ def encrypt(privkey, passphrase):
         if isinstance(passphrase, str):
             passphrase = passphrase.encode("utf-8")
 
-    if SCRYPT_MODULE == "scrypt":
-        key = scrypt.hash(passphrase, salt, 16384, 8, 8)
-    elif SCRYPT_MODULE == "pylibscrypt":
-        key = scrypt.scrypt(bytes(passphrase, "utf-8"), salt, 16384, 8, 8)
-    else:
-        raise ValueError("No scrypt module loaded")
+    key = scrypt.hash(passphrase, salt, 16384, 8, 8)
     (derived_half1, derived_half2) = (key[:32], key[32:])
     aes = AES.new(derived_half2, AES.MODE_ECB)
     encrypted_half1 = _encrypt_xor(privkeyhex[:32], derived_half1[:16], aes)
@@ -107,12 +81,7 @@ def decrypt(encrypted_privkey, passphrase):
     if sys.version < "3":
         if isinstance(passphrase, str):
             passphrase = passphrase.encode("utf-8")
-    if SCRYPT_MODULE == "scrypt":
-        key = scrypt.hash(passphrase, salt, 16384, 8, 8)
-    elif SCRYPT_MODULE == "pylibscrypt":
-        key = scrypt.scrypt(bytes(passphrase, "utf-8"), salt, 16384, 8, 8)
-    else:
-        raise ValueError("No scrypt module loaded")
+    key = scrypt.hash(passphrase, salt, 16384, 8, 8)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]

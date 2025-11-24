@@ -125,11 +125,11 @@ class BlockChainInstance(object):
 
     def __init__(
         self,
-        node="",
-        rpcuser=None,
-        rpcpassword=None,
-        debug=False,
-        data_refresh_time_seconds=900,
+        node: str | list = "",
+        rpcuser: str | None = None,
+        rpcpassword: str | None = None,
+        debug: bool = False,
+        data_refresh_time_seconds: int = 900,
         **kwargs,
     ):
         """
@@ -159,7 +159,8 @@ class BlockChainInstance(object):
         self.offline = bool(kwargs.get("offline", False))
         self.nobroadcast = bool(kwargs.get("nobroadcast", False))
         self.unsigned = bool(kwargs.get("unsigned", False))
-        self.expiration = int(kwargs.get("expiration", 30))
+        # Default transaction expiration window (seconds). Increased from 30s to 300s for better tolerance to node clock skew/network latency.
+        self.expiration = int(kwargs.get("expiration", 300))
         self.bundle = bool(kwargs.get("bundle", False))
         self.blocking = kwargs.get("blocking", False)
         self.custom_chains = kwargs.get("custom_chains", {})
@@ -168,9 +169,11 @@ class BlockChainInstance(object):
 
         # Store config for access through other Classes
         self.config = kwargs.get("config_store", get_default_config_store(**kwargs))
-        # Override use_condenser if explicitly provided (bypasses SQLite persistence)
+        # Default to appbase/openapi; allow explicit override
         if "use_condenser" in kwargs:
             self.config["use_condenser"] = kwargs["use_condenser"]
+        else:
+            self.config.setdefault("use_condenser", False)
         if self.path is None:
             self.path = self.config["default_path"]
 
@@ -189,7 +192,7 @@ class BlockChainInstance(object):
     # -------------------------------------------------------------------------
     # Basic Calls
     # -------------------------------------------------------------------------
-    def connect(self, node="", rpcuser="", rpcpassword="", **kwargs):
+    def connect(self, node: str | list = "", rpcuser: str = "", rpcpassword: str = "", **kwargs):
         """
         Connect to a Hive node and initialize the internal RPC client.
 
@@ -226,7 +229,7 @@ class BlockChainInstance(object):
 
         self.rpc = NodeRPC(node, rpcuser, rpcpassword, use_tor=use_tor, **kwargs)
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
         """Returns if rpc is connected"""
         # Consider the instance connected only if an RPC client exists AND
         # it has an active URL set by rpcconnect(). Previously, this returned
@@ -235,7 +238,7 @@ class BlockChainInstance(object):
         # RPC calls to raise RPCConnection("RPC is not connected!").
         return self.rpc is not None and bool(getattr(self.rpc, "url", None))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.offline:
             return "<%s offline=True>" % (self.__class__.__name__)
         elif self.rpc is not None and self.rpc.url and len(self.rpc.url) > 0:
@@ -247,7 +250,7 @@ class BlockChainInstance(object):
         else:
             return "<%s, nobroadcast=%s>" % (self.__class__.__name__, str(self.nobroadcast))
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         """
         Reset the internal cache of blockchain-derived data.
 
@@ -275,7 +278,12 @@ class BlockChainInstance(object):
             "last_refresh_reward_funds": None,
         }
 
-    def refresh_data(self, chain_property, force_refresh=False, data_refresh_time_seconds=None):
+    def refresh_data(
+        self,
+        chain_property,
+        force_refresh: bool = False,
+        data_refresh_time_seconds: int | None = None,
+    ):
         """
         Refresh and cache a specific blockchain data category in self.data.
 
@@ -404,7 +412,7 @@ class BlockChainInstance(object):
         else:
             raise ValueError("%s is not unkown" % str(chain_property))
 
-    def get_dynamic_global_properties(self, use_stored_data=True):
+    def get_dynamic_global_properties(self, use_stored_data: bool = True):
         """This call returns the *dynamic global properties*
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -443,7 +451,7 @@ class BlockChainInstance(object):
             }
         return reserve_ratio
 
-    def get_feed_history(self, use_stored_data=True):
+    def get_feed_history(self, use_stored_data: bool = True):
         """Returns the feed_history
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -458,7 +466,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history(api="database_api")
 
-    def get_reward_funds(self, use_stored_data=True):
+    def get_reward_funds(self, use_stored_data: bool = True):
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -483,7 +491,7 @@ class BlockChainInstance(object):
         ret = funds
         return ret
 
-    def get_current_median_history(self, use_stored_data=True):
+    def get_current_median_history(self, use_stored_data: bool = True):
         """Returns the current median price
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -502,7 +510,7 @@ class BlockChainInstance(object):
         ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
         return ret
 
-    def get_hardfork_properties(self, use_stored_data=True):
+    def get_hardfork_properties(self, use_stored_data: bool = True):
         """Returns Hardfork and live_time of the hardfork
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -518,7 +526,7 @@ class BlockChainInstance(object):
         ret = self.rpc.get_hardfork_properties(api="database_api")
         return ret
 
-    def get_network(self, use_stored_data=True, config=None):
+    def get_network(self, use_stored_data: bool = True, config=None):
         """Identify the network
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -538,7 +546,7 @@ class BlockChainInstance(object):
         except Exception:
             return known_chains["HIVE"]
 
-    def get_median_price(self, use_stored_data=True):
+    def get_median_price(self, use_stored_data: bool = True):
         """Returns the current median history price as Price"""
         median_price = self.get_current_median_history(use_stored_data=use_stored_data)
         if median_price is None:
@@ -551,7 +559,7 @@ class BlockChainInstance(object):
         )
         return a.as_base(self.backed_token_symbol)
 
-    def get_block_interval(self, use_stored_data=True):
+    def get_block_interval(self, use_stored_data: bool = True):
         """Returns the block interval in seconds"""
         props = self.get_config(use_stored_data=use_stored_data)
         block_interval = 3
@@ -563,7 +571,7 @@ class BlockChainInstance(object):
 
         return block_interval
 
-    def get_blockchain_version(self, use_stored_data=True):
+    def get_blockchain_version(self, use_stored_data: bool = True):
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_version = "0.0.0"
@@ -574,7 +582,7 @@ class BlockChainInstance(object):
                 blockchain_version = props[key]
         return blockchain_version
 
-    def get_blockchain_name(self, use_stored_data=True):
+    def get_blockchain_name(self, use_stored_data: bool = True):
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_name = ""
@@ -585,7 +593,7 @@ class BlockChainInstance(object):
                 blockchain_name = key.split("_")[0].lower()
         return blockchain_name
 
-    def get_dust_threshold(self, use_stored_data=True):
+    def get_dust_threshold(self, use_stored_data: bool = True):
         """Returns the vote dust threshold"""
         props = self.get_config(use_stored_data=use_stored_data)
         dust_threshold = 0
@@ -604,7 +612,7 @@ class BlockChainInstance(object):
         """Returns the resource pool"""
         return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
 
-    def get_rc_cost(self, resource_count):
+    def get_rc_cost(self, resource_count) -> int:
         """
         Compute the total Resource Credits (RC) cost for a set of resource usages.
 
@@ -827,7 +835,7 @@ class BlockChainInstance(object):
         """
         raise Exception("not implemented")
 
-    def get_chain_properties(self, use_stored_data=True):
+    def get_chain_properties(self, use_stored_data: bool = True):
         """
         Return the witness-elected chain properties (median_props) used by the network.
 
@@ -856,7 +864,7 @@ class BlockChainInstance(object):
         else:
             return self.get_witness_schedule(use_stored_data)["median_props"]
 
-    def get_witness_schedule(self, use_stored_data=True):
+    def get_witness_schedule(self, use_stored_data: bool = True):
         """Return witness elected chain properties"""
         if use_stored_data:
             self.refresh_data("witness_schedule")
@@ -923,7 +931,7 @@ class BlockChainInstance(object):
         """Deprecated compatibility flag; always False in Hive-only nectar."""
         return False
 
-    def set_default_account(self, account):
+    def set_default_account(self, account: str) -> None:
         """
         Set the instance default account.
 
@@ -942,7 +950,7 @@ class BlockChainInstance(object):
         Account(account, blockchain_instance=self)
         self.config["default_account"] = account
 
-    def switch_blockchain(self, blockchain, update_nodes=False):
+    def switch_blockchain(self, blockchain: str, update_nodes: bool = False):
         """
         Switch the instance to the specified blockchain (Hive only).
 
@@ -969,7 +977,7 @@ class BlockChainInstance(object):
         if not self.offline:
             self.connect(node="")
 
-    def set_password_storage(self, password_storage):
+    def set_password_storage(self, password_storage: str) -> None:
         """Set the password storage mode.
 
         When set to "no", the password has to be provided each time.
@@ -986,7 +994,7 @@ class BlockChainInstance(object):
         """
         self.config["password_storage"] = password_storage
 
-    def set_default_nodes(self, nodes):
+    def set_default_nodes(self, nodes) -> None:
         """Set the default nodes to be used"""
         if bool(nodes):
             if isinstance(nodes, list):
@@ -1025,11 +1033,11 @@ class BlockChainInstance(object):
             node = node[1:] + [node[0]]
         self.set_default_nodes(node)
 
-    def set_default_vote_weight(self, vote_weight):
+    def set_default_vote_weight(self, vote_weight) -> None:
         """Set the default vote weight to be used"""
         self.config["default_vote_weight"] = vote_weight
 
-    def finalizeOp(self, ops, account, permission, **kwargs):
+    def finalizeOp(self, ops, account, permission, **kwargs) -> dict:
         """This method obtains the required private keys if present in
         the wallet, finalizes the transaction, signs it and
         broadacasts it
@@ -1135,14 +1143,14 @@ class BlockChainInstance(object):
         else:
             return self.txbuffer.broadcast()
 
-    def info(self, use_stored_data=True):
+    def info(self, use_stored_data: bool = True):
         """Returns the global properties"""
         return self.get_dynamic_global_properties(use_stored_data=use_stored_data)
 
     # -------------------------------------------------------------------------
     # Wallet stuff
     # -------------------------------------------------------------------------
-    def newWallet(self, pwd):
+    def newWallet(self, pwd: str):
         """Create a new wallet. This method is basically only calls
         :func:`nectar.wallet.Wallet.create`.
 
@@ -1182,7 +1190,7 @@ class BlockChainInstance(object):
         self._txbuffers.append(builder)
         return builder
 
-    def clear(self):
+    def clear(self) -> None:
         self._txbuffers = []
         # Base/Default proposal/tx buffers
         self.new_tx()
@@ -1222,14 +1230,13 @@ class BlockChainInstance(object):
             "fee": Amount(fee, blockchain_instance=self),
             "creator": creator["name"],
             "prefix": self.prefix,
-            "json_str": not bool(self.config["use_condenser"]),
         }
         op = operations.Claim_account(**op)
         return self.finalizeOp(op, creator, "active", **kwargs)
 
     def create_claimed_account(
         self,
-        account_name,
+        account_name: str,
         creator=None,
         owner_key=None,
         active_key=None,
@@ -1395,7 +1402,6 @@ class BlockChainInstance(object):
                 "fee": Amount(fee, blockchain_instance=self),
                 "creator": creator["name"],
                 "prefix": self.prefix,
-                "json_str": not bool(self.config["use_condenser"]),
             }
             op = operations.Claim_account(**op)
             ops = [op]
@@ -1433,7 +1439,7 @@ class BlockChainInstance(object):
 
     def create_account(
         self,
-        account_name,
+        account_name: str,
         creator=None,
         owner_key=None,
         active_key=None,
@@ -1618,27 +1624,26 @@ class BlockChainInstance(object):
             "memo_key": memo,
             "json_metadata": json_meta or {},
             "prefix": self.prefix,
-            "json_str": not bool(self.config["use_condenser"]),
         }
         op = operations.Account_create(**op)
         return self.finalizeOp(op, creator, "active", **kwargs)
 
     def update_account(
         self,
-        account,
+        account: str,
         owner_key=None,
         active_key=None,
         memo_key=None,
         posting_key=None,
         password=None,
-        additional_owner_keys=[],
-        additional_active_keys=[],
-        additional_posting_keys=[],
-        additional_owner_accounts=[],
-        additional_active_accounts=[],
+        additional_owner_keys=None,
+        additional_active_keys=None,
+        additional_posting_keys=None,
+        additional_owner_accounts=None,
+        additional_active_accounts=None,
         additional_posting_accounts=None,
-        storekeys=True,
-        store_owner_key=False,
+        storekeys: bool = True,
+        store_owner_key: bool = False,
         json_meta=None,
         **kwargs,
     ):
@@ -1831,7 +1836,6 @@ class BlockChainInstance(object):
                 "owner": owner["name"],
                 "props": props_list,
                 "prefix": self.prefix,
-                "json_str": not bool(self.config["use_condenser"]),
             }
         )
         tb = TransactionBuilder(blockchain_instance=self)
@@ -1888,7 +1892,6 @@ class BlockChainInstance(object):
                 "props": props,
                 "fee": Amount(0, self.token_symbol, blockchain_instance=self),
                 "prefix": self.prefix,
-                "json_str": not bool(self.config["use_condenser"]),
             }
         )
         return self.finalizeOp(op, account, "active", **kwargs)
