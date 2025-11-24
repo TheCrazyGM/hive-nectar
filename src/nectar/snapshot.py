@@ -5,6 +5,7 @@ import re
 import warnings
 from bisect import bisect_left
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from nectar.account import Account
 from nectar.amount import Amount
@@ -28,7 +29,13 @@ class AccountSnapshot(list):
     :param Hive blockchain_instance: Hive instance
     """
 
-    def __init__(self, account, account_history=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        account: Union[str, Account],
+        account_history: Optional[List[Dict[str, Any]]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         super(AccountSnapshot, self).__init__(account_history or [])
         # Warn about any unused kwargs to maintain backward compatibility
         """
@@ -55,9 +62,9 @@ class AccountSnapshot(list):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
-        super(AccountSnapshot, self).__init__(account_history)
+        super(AccountSnapshot, self).__init__(account_history or [])
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset internal time-series and aggregation arrays while preserving the stored account history.
 
@@ -98,12 +105,18 @@ class AccountSnapshot(list):
         self.rep = []
         self.rep_timestamp = []
 
-    def search(self, search_str, start=None, stop=None, use_block_num=True):
+    def search(
+        self,
+        search_str: str,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+    ) -> List[Dict[str, Any]]:
         """Returns ops in the given range"""
         ops = []
-        if start is not None:
+        if start is not None and not isinstance(start, int):
             start = addTzInfo(start)
-        if stop is not None:
+        if stop is not None and not isinstance(stop, int):
             stop = addTzInfo(stop)
         for op in self:
             if use_block_num and start is not None and isinstance(start, int):
@@ -129,11 +142,18 @@ class AccountSnapshot(list):
                 ops.append(op)
         return ops
 
-    def get_ops(self, start=None, stop=None, use_block_num=True, only_ops=[], exclude_ops=[]):
+    def get_ops(
+        self,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+        only_ops: List[str] = [],
+        exclude_ops: List[str] = [],
+    ) -> Generator[Dict[str, Any], None, None]:
         """Returns ops in the given range"""
-        if start is not None:
+        if start is not None and not isinstance(start, int):
             start = addTzInfo(start)
-        if stop is not None:
+        if stop is not None and not isinstance(stop, int):
             stop = addTzInfo(stop)
         for op in self:
             if use_block_num and start is not None and isinstance(start, int):
@@ -159,7 +179,9 @@ class AccountSnapshot(list):
             if not only_ops or op["type"] in only_ops:
                 yield op
 
-    def get_data(self, timestamp=None, index=0):
+    def get_data(
+        self, timestamp: Optional[Union[datetime, date, time]] = None, index: int = 0
+    ) -> Dict[str, Any]:
         """
         Return a dictionary snapshot of the account state at or immediately before the given timestamp.
 
@@ -209,7 +231,12 @@ class AccountSnapshot(list):
             "index": index,
         }
 
-    def get_account_history(self, start=None, stop=None, use_block_num=True):
+    def get_account_history(
+        self,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+    ) -> None:
         """
         Populate the snapshot with the account's history between start and stop.
 
@@ -219,7 +246,14 @@ class AccountSnapshot(list):
             [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
         )
 
-    def update_rewards(self, timestamp, curation_reward, author_vests, author_hive, author_hbd):
+    def update_rewards(
+        self,
+        timestamp: Union[datetime, int],
+        curation_reward: Union[Amount, float],
+        author_vests: Union[Amount, float],
+        author_hive: Union[Amount, float],
+        author_hbd: Union[Amount, float],
+    ) -> None:
         """
         Record a reward event at a given timestamp.
 
@@ -240,7 +274,7 @@ class AccountSnapshot(list):
         self.curation_rewards.append(curation_reward)
         self.author_rewards.append({"vests": author_vests, "hive": author_hive, "hbd": author_hbd})
 
-    def update_out_vote(self, timestamp, weight):
+    def update_out_vote(self, timestamp: Union[datetime, int], weight: int) -> None:
         """
         Record an outbound vote event.
 
@@ -253,7 +287,9 @@ class AccountSnapshot(list):
         self.out_vote_timestamp.append(timestamp)
         self.out_vote_weight.append(weight)
 
-    def update_in_vote(self, timestamp, weight, op):
+    def update_in_vote(
+        self, timestamp: Union[datetime, int], weight: int, op: Dict[str, Any]
+    ) -> None:
         """
         Record an incoming vote event by parsing a Vote operation and appending its data to the snapshot's in-vote arrays.
 
@@ -285,7 +321,15 @@ class AccountSnapshot(list):
             print("Could not find: %s" % v)
             return
 
-    def update(self, timestamp, own, delegated_in=None, delegated_out=None, hive=0, hbd=0):
+    def update(
+        self,
+        timestamp: datetime,
+        own: Union[Amount, float],
+        delegated_in: Optional[Union[Dict[str, Any], int]] = None,
+        delegated_out: Optional[Union[Dict[str, Any], int]] = None,
+        hive: Union[Amount, float] = 0,
+        hbd: Union[Amount, float] = 0,
+    ) -> None:
         """
         Update internal time-series state with a new account event.
 
@@ -346,12 +390,12 @@ class AccountSnapshot(list):
 
     def build(
         self,
-        only_ops=[],
-        exclude_ops=[],
-        enable_rewards=False,
-        enable_out_votes=False,
-        enable_in_votes=False,
-    ):
+        only_ops: List[str] = [],
+        exclude_ops: List[str] = [],
+        enable_rewards: bool = False,
+        enable_out_votes: bool = False,
+        enable_in_votes: bool = False,
+    ) -> None:
         """Builds the account history based on all account operations
 
         :param array only_ops: Limit generator by these
@@ -382,8 +426,13 @@ class AccountSnapshot(list):
             )
 
     def parse_op(
-        self, op, only_ops=[], enable_rewards=False, enable_out_votes=False, enable_in_votes=False
-    ):
+        self,
+        op: Dict[str, Any],
+        only_ops: List[str] = [],
+        enable_rewards: bool = False,
+        enable_out_votes: bool = False,
+        enable_in_votes: bool = False,
+    ) -> None:
         """
         Parse a single account-history operation and update the snapshot's internal state.
 
@@ -600,7 +649,7 @@ class AccountSnapshot(list):
         ]:
             return
 
-    def build_sp_arrays(self):
+    def build_sp_arrays(self) -> None:
         """
         Build timelines of own and effective Hive Power (HP) for each stored timestamp.
 
@@ -629,7 +678,7 @@ class AccountSnapshot(list):
             self.own_sp.append(sp_own)
             self.eff_sp.append(sp_eff)
 
-    def build_rep_arrays(self):
+    def build_rep_arrays(self) -> None:
         """Build reputation arrays"""
         self.rep_timestamp = [self.timestamps[1]]
         self.rep = [reputation_to_score(0)]
@@ -641,7 +690,7 @@ class AccountSnapshot(list):
             self.rep.append(reputation_to_score(current_reputation))
             self.rep_timestamp.append(ts)
 
-    def build_vp_arrays(self):
+    def build_vp_arrays(self) -> None:
         """
         Build timelines for upvote and downvote voting power.
 
@@ -784,7 +833,9 @@ class AccountSnapshot(list):
         self.downvote_vp_timestamp.append(datetime.now(timezone.utc))
         self.vp_timestamp.append(datetime.now(timezone.utc))
 
-    def build_curation_arrays(self, end_date=None, sum_days=7):
+    def build_curation_arrays(
+        self, end_date: Optional[Union[datetime, date, time]] = None, sum_days: int = 7
+    ) -> None:
         """
         Compute curation-per-1000-HP time series and store them in
         self.curation_per_1000_HP_timestamp and self.curation_per_1000_HP.
@@ -838,11 +889,21 @@ class AccountSnapshot(list):
             else:
                 self.curation_per_1000_HP_timestamp.append(end_date)
                 self.curation_per_1000_HP.append(curation_sum)
-                end_date = end_date + timedelta(days=sum_days)
+                # Ensure end_date is a datetime for arithmetic
+                if isinstance(end_date, datetime):
+                    end_date = end_date + timedelta(days=sum_days)
+                elif isinstance(end_date, date):
+                    end_date = datetime.combine(end_date, time.min, timezone.utc) + timedelta(
+                        days=sum_days
+                    )
+                else:  # time object
+                    end_date = datetime.combine(date.today(), end_date, timezone.utc) + timedelta(
+                        days=sum_days
+                    )
                 curation_sum = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s %s>" % (self.__class__.__name__, str(self.account["name"]))
