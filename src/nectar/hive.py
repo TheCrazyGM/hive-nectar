@@ -158,7 +158,7 @@ class Hive(BlockChainInstance):
         median_price = self.get_median_price(use_stored_data=use_stored_data)
         if median_price is None:
             return 0
-        HBD_price = float(median_price * (Amount(1, self.hive_symbol, blockchain_instance=self)))
+        HBD_price = float(median_price * Amount(1, self.hive_symbol, blockchain_instance=self))
         return fund_per_share * HBD_price
 
     def get_token_per_mvest(
