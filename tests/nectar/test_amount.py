@@ -133,7 +133,7 @@ class Testcases(unittest.TestCase):
 
     def test_tuple(self):
         amount = Amount("1", self.symbol)
-        self.assertEqual(amount.tuple(), (1.0, self.symbol))
+        self.assertEqual(amount.as_tuple(), (1.0, self.symbol))
 
     def test_json_appbase(self):
         asset = Asset("HBD", blockchain_instance=self.bts)

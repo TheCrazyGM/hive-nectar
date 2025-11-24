@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from decimal import ROUND_DOWN, Decimal
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Tuple, Union
 
 from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
@@ -248,8 +248,7 @@ class Amount(dict):
         """Returns the symbol of the asset"""
         return self["symbol"]
 
-    @property
-    def tuple(self) -> tuple[float, str]:
+    def as_tuple(self) -> Tuple[float, str]:
         return float(self), self.symbol
 
     @property
