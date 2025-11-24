@@ -254,7 +254,7 @@ class PasswordKey(Prefix):
         elif self.account == "" and self.role == "":
             seed = self.password
         else:
-            seed = self.normalize(f"{self.account or ''} {self.role or ''} {self.password}")
+            seed = self.normalize(f"{self.account or ''}{self.role or ''}{self.password}")
         return PrivateKey(
             hexlify(hashlib.sha256(seed.encode()).digest()).decode("ascii"), prefix=self.prefix
         )
@@ -638,8 +638,12 @@ class MnemonicKey(Prefix):
         if self.seed is None:
             raise ValueError("seed is None, set or generate a mnemnoric first")
         key = BIP32Key.fromEntropy(self.seed)
-        for n in parse_path(self.get_path(), as_bytes=False):
-            key = key.ChildKey(n)
+        path_result = parse_path(self.get_path(), as_bytes=False)
+        if isinstance(path_result, list):
+            for n in path_result:
+                key = key.ChildKey(n)
+        else:
+            raise ValueError(f"Invalid path result: {path_result}")
         return PrivateKey(key.WalletImportFormat(), prefix=self.prefix)
 
     def get_public(self) -> "PublicKey":
@@ -822,6 +826,22 @@ class PublicKey(Prefix):
     def compressed_key(self) -> "PublicKey":
         return PublicKey(self.compressed())
 
+    def __str__(self) -> str:
+        """Return the string representation of the public key"""
+        return self.prefix + str(self._pk)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the public key"""
+        return str(self)
+
+    def __format__(self, _format: str) -> str:
+        """Format the public key with the given prefix"""
+        return _format + str(self._pk)
+
+    def __bytes__(self) -> bytes:
+        """Return the bytes representation of the public key"""
+        return bytes(self._pk)
+
     def _derive_y_from_x(self, x: int, is_even: bool) -> int:
         """Derive y point from x point"""
         curve = ecdsa.SECP256k1.curve
@@ -943,7 +963,7 @@ class PublicKey(Prefix):
     @property
     def address(self) -> GrapheneAddress:
         """Obtain a GrapheneAddress from a public key"""
-        return GrapheneAddress.from_pubkey(repr(self), prefix=self.prefix)
+        return GrapheneAddress.from_pubkey(str(self), prefix=self.prefix)
 
 
 class PrivateKey(Prefix):

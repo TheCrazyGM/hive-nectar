@@ -118,6 +118,9 @@ def base58decode(base58_str: str) -> str:
 
 
 def base58encode(hexstring: str) -> str:
+    # Handle odd-length hex strings by padding with leading zero
+    if len(hexstring) % 2 == 1:
+        hexstring = "0" + hexstring
     byteseq = bytes(unhexlify(bytes(hexstring, "ascii")))
     n = 0
     leading_zeroes_count = 0
@@ -142,7 +145,12 @@ def ripemd160(s: Union[str, bytes]) -> bytes:
 
 
 def doublesha256(s: Union[str, bytes]) -> bytes:
-    return hashlib.sha256(hashlib.sha256(unhexlify(s)).digest()).digest()
+    if isinstance(s, str):
+        # Handle odd-length hex strings by padding with leading zero
+        if len(s) % 2 == 1:
+            s = "0" + s
+        s = unhexlify(s)
+    return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
 
 def b58encode(v: str) -> str:
