@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from decimal import ROUND_DOWN, Decimal
+from typing import TYPE_CHECKING, Any, Union
 
 from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
 
+if TYPE_CHECKING:
+    from .price import Price
 
-def check_asset(other, self, hv):
+
+def check_asset(other: Any, self: Any, hv: Any) -> None:
     """
     Assert that two asset representations refer to the same asset.
 
@@ -21,7 +25,7 @@ def check_asset(other, self, hv):
             raise AssertionError()
 
 
-def quantize(amount, precision):
+def quantize(amount: Union[str, int, float, Decimal], precision: int) -> Decimal:
     # make sure amount is decimal and has the asset precision
     amount = Decimal(amount)
     places = Decimal(10) ** (-precision)
@@ -82,13 +86,13 @@ class Amount(dict):
 
     def __init__(
         self,
-        amount,
-        asset=None,
-        fixed_point_arithmetic=False,
-        new_appbase_format=True,
-        blockchain_instance=None,
+        amount: Union[str, int, float, Decimal, list, dict, "Amount"],
+        asset: Union[str, Asset, None] = None,
+        fixed_point_arithmetic: bool = False,
+        new_appbase_format: bool = True,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize an Amount object representing a quantity of a specific blockchain asset.
 
@@ -219,7 +223,7 @@ class Amount(dict):
         else:
             self["amount"] = Decimal(self["amount"])
 
-    def copy(self):
+    def copy(self) -> "Amount":
         """Copy the instance and make sure not to use a reference"""
         return Amount(
             amount=self["amount"],
@@ -230,25 +234,26 @@ class Amount(dict):
         )
 
     @property
-    def amount(self):
+    def amount(self) -> float:
         """Returns the amount as float"""
         return float(self["amount"])
 
     @property
-    def amount_decimal(self):
+    def amount_decimal(self) -> Decimal:
         """Returns the amount as decimal"""
         return self["amount"]
 
     @property
-    def symbol(self):
+    def symbol(self) -> str:
         """Returns the symbol of the asset"""
         return self["symbol"]
 
-    def tuple(self):
+    @property
+    def tuple(self) -> tuple[float, str]:
         return float(self), self.symbol
 
     @property
-    def asset(self):
+    def asset(self) -> Asset:
         """
         Return the Asset object for this Amount, constructing it lazily if missing.
 
@@ -260,7 +265,7 @@ class Amount(dict):
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
         return self["asset"]
 
-    def json(self):
+    def json(self) -> Union[str, dict, list]:
         asset_obj = self["asset"]
         if isinstance(asset_obj, Asset):
             asset_precision = asset_obj["precision"]
@@ -295,22 +300,22 @@ class Amount(dict):
 
         return str(self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         amount = quantize(self["amount"], self["asset"]["precision"])
         symbol = self["symbol"]
         return "{:.{prec}f} {}".format(amount, symbol, prec=self["asset"]["precision"])
 
-    def __float__(self):
+    def __float__(self) -> float:
         if self.fixed_point_arithmetic:
             return float(quantize(self["amount"], self["asset"]["precision"]))
         else:
             return float(self["amount"])
 
-    def __int__(self):
+    def __int__(self) -> int:
         amount = quantize(self["amount"], self["asset"]["precision"])
         return int(amount * 10 ** self["asset"]["precision"])
 
-    def __add__(self, other):
+    def __add__(self, other: Union["Amount", int, float, str]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -321,7 +326,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union["Amount", int, float, str]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -332,7 +337,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __mul__(self, other):
+    def __mul__(self, other: Union[int, float, Decimal]) -> "Amount":
         from .price import Price
 
         a = self.copy()
@@ -351,7 +356,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Union[int, float, Decimal, "Amount"]) -> Union["Amount", "Price"]:
         a = self.copy()
         if isinstance(other, Amount):
             from .price import Price
@@ -364,7 +369,9 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __div__(self, other):
+    def __div__(
+        self, other: Union[int, float, Decimal, "Amount", "Price"]
+    ) -> Union["Amount", "Price"]:
         from .price import Price
 
         a = self.copy()
@@ -384,7 +391,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __mod__(self, other):
+    def __mod__(self, other: Union[int, float, Decimal]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -395,7 +402,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __pow__(self, other):
+    def __pow__(self, other: Union[int, float, Decimal]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -406,7 +413,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: Union["Amount", int, float, str]) -> "Amount":
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             self["amount"] += other["amount"]
@@ -416,7 +423,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __isub__(self, other):
+    def __isub__(self, other: Union["Amount", int, float, str]) -> "Amount":
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             self["amount"] -= other["amount"]
@@ -426,7 +433,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __imul__(self, other):
+    def __imul__(self, other: Union[int, float, Decimal, "Amount"]) -> "Amount":
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             self["amount"] *= other["amount"]
@@ -436,7 +443,7 @@ class Amount(dict):
         self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __idiv__(self, other):
+    def __idiv__(self, other: Union[int, float, Decimal]) -> "Amount":
         """
         In-place division: divide this Amount by another Amount or numeric value and return self.
 
@@ -457,7 +464,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __ifloordiv__(self, other):
+    def __ifloordiv__(self, other: Union[int, float, Decimal]) -> "Amount":
         if isinstance(other, Amount):
             self["amount"] //= other["amount"]
         else:
@@ -465,7 +472,7 @@ class Amount(dict):
         self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __imod__(self, other):
+    def __imod__(self, other: Union[int, float, Decimal]) -> "Amount":
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             self["amount"] %= other["amount"]
@@ -475,7 +482,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __ipow__(self, other):
+    def __ipow__(self, other: Union[int, float, Decimal]) -> "Amount":
         if isinstance(other, Amount):
             self["amount"] **= other
         else:
@@ -484,7 +491,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __lt__(self, other):
+    def __lt__(self, other: Union["Amount", int, float, str]) -> bool:
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -492,7 +499,7 @@ class Amount(dict):
         else:
             return quant_amount < quantize((other or 0), self["asset"]["precision"])
 
-    def __le__(self, other):
+    def __le__(self, other: Union["Amount", int, float, str]) -> bool:
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -500,7 +507,7 @@ class Amount(dict):
         else:
             return quant_amount <= quantize((other or 0), self["asset"]["precision"])
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union["Amount", int, float, str]) -> bool:
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -508,7 +515,7 @@ class Amount(dict):
         else:
             return quant_amount == quantize((other or 0), self["asset"]["precision"])
 
-    def __ne__(self, other):
+    def __ne__(self, other: Union["Amount", int, float, str]) -> bool:
         """
         Return True if this Amount is not equal to `other`.
 
@@ -526,7 +533,7 @@ class Amount(dict):
         else:
             return quant_amount != quantize((other or 0), self["asset"]["precision"])
 
-    def __ge__(self, other):
+    def __ge__(self, other: Union["Amount", int, float, str]) -> bool:
         """
         Return True if this Amount is greater than or equal to `other`.
 
@@ -539,7 +546,7 @@ class Amount(dict):
         else:
             return quant_amount >= quantize((other or 0), self["asset"]["precision"])
 
-    def __gt__(self, other):
+    def __gt__(self, other: Union["Amount", int, float, str]) -> bool:
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
