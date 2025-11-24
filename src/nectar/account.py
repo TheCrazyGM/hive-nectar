@@ -2531,7 +2531,7 @@ class Account(BlockchainObject):
 
     def _get_operation_filter(
         self, only_ops: List[str] | tuple = [], exclude_ops: List[str] | tuple = []
-    ) -> tuple[int, int]:
+    ) -> tuple[Optional[int], Optional[int]]:
         from nectarbase.operationids import operations
 
         operation_filter_low = 0
@@ -2565,13 +2565,13 @@ class Account(BlockchainObject):
         index: int,
         limit: int,
         order: int = -1,
-        start=None,
-        stop=None,
+        start: int | datetime | date | time | None = None,
+        stop: int | datetime | date | time | None = None,
         use_block_num: bool = True,
         only_ops: List[str] | tuple = [],
         exclude_ops: List[str] | tuple = [],
         raw_output: bool = False,
-    ):
+    ) -> Any:
         """
         Yield account history operations for a single account.
 
@@ -3104,14 +3104,14 @@ class Account(BlockchainObject):
 
     def history_reverse(
         self,
-        start=None,
-        stop=None,
+        start: int | datetime | date | time | None = None,
+        stop: int | datetime | date | time | None = None,
         use_block_num: bool = True,
         only_ops: List[str] | tuple = [],
         exclude_ops: List[str] | tuple = [],
         batch_size: int = 1000,
         raw_output: bool = False,
-    ):
+    ) -> Any:
         """Returns a generator for individual account transactions. The
         latest operation will be first. This call can be used in a
         ``for`` loop.
@@ -3361,7 +3361,7 @@ class Account(BlockchainObject):
             if first < 1:
                 break
 
-    def mute(self, mute, account=None) -> dict:
+    def mute(self, mute: str, account: str | None = None) -> Dict[str, Any]:
         """Mute another account
 
         :param str mute: Mute this account
@@ -3371,7 +3371,7 @@ class Account(BlockchainObject):
         """
         return self.follow(mute, what=["ignore"], account=account)
 
-    def unfollow(self, unfollow, account=None) -> dict:
+    def unfollow(self, unfollow: str, account: str | None = None) -> Dict[str, Any]:
         """Unfollow/Unmute another account's blog
 
         :param str unfollow: Unfollow/Unmute this account
@@ -3381,7 +3381,9 @@ class Account(BlockchainObject):
         """
         return self.follow(unfollow, what=[], account=account)
 
-    def follow(self, other, what=["blog"], account=None) -> dict:
+    def follow(
+        self, other: str | List[str], what: List[str] = ["blog"], account: str | None = None
+    ) -> Dict[str, Any]:
         """Follow/Unfollow/Mute/Unmute another account's blog
 
         .. note:: what can be one of the following on HIVE:
@@ -3410,7 +3412,9 @@ class Account(BlockchainObject):
         json_body = ["follow", {"follower": account, "following": other, "what": what}]
         return self.blockchain.custom_json("follow", json_body, required_posting_auths=[account])
 
-    def update_account_profile(self, profile, account=None, **kwargs) -> dict:
+    def update_account_profile(
+        self, profile: Dict[str, Any], account: str | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict profile: The new profile to use
@@ -3454,7 +3458,9 @@ class Account(BlockchainObject):
         metadata["profile"] = profile
         return self.update_account_metadata(metadata)
 
-    def update_account_metadata(self, metadata, account=None, **kwargs) -> dict:
+    def update_account_metadata(
+        self, metadata: Dict[str, Any] | str, account: str | "Account" | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict metadata: The new metadata to use
@@ -3508,7 +3514,9 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------
     #  Approval and Disapproval of witnesses
     # -------------------------------------------------------------------------
-    def approvewitness(self, witness, account=None, approve=True, **kwargs) -> dict:
+    def approvewitness(
+        self, witness: str, account: str | None = None, approve: bool = True, **kwargs
+    ) -> Dict[str, Any]:
         """Approve a witness
 
         :param list witness: list of Witness name or id
@@ -3537,7 +3545,9 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def disapprovewitness(self, witness, account=None, **kwargs) -> dict:
+    def disapprovewitness(
+        self, witness: str, account: str | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Disapprove a witness
 
         :param list witness: list of Witness name or id
@@ -3546,7 +3556,7 @@ class Account(BlockchainObject):
         """
         return self.approvewitness(witness=witness, account=account, approve=False)
 
-    def setproxy(self, proxy: str = "", account=None) -> dict:
+    def setproxy(self, proxy: str = "", account: str | "Account" | None = None) -> Dict[str, Any]:
         """Set the witness and proposal system proxy of an account
 
         :param proxy: The account to set the proxy to (Leave empty for removing the proxy)
@@ -3568,7 +3578,9 @@ class Account(BlockchainObject):
         op = operations.Account_witness_proxy(**{"account": account.name, "proxy": proxy_name})
         return self.blockchain.finalizeOp(op, account, "active")
 
-    def update_memo_key(self, key, account=None, **kwargs) -> dict:
+    def update_memo_key(
+        self, key: str, account: str | "Account" | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Update an account's memo public key
 
         This method does **not** add any private keys to your
@@ -3596,7 +3608,9 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def update_account_keys(self, new_password, account=None, **kwargs) -> dict:
+    def update_account_keys(
+        self, new_password: str, account: str | "Account" | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Updates all account keys
 
         This method does **not** add any private keys to your
@@ -3646,7 +3660,9 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "owner", **kwargs)
 
-    def change_recovery_account(self, new_recovery_account, account=None, **kwargs) -> dict:
+    def change_recovery_account(
+        self, new_recovery_account: str, account: str | "Account" | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Request a change of the recovery account.
 
         .. note:: It takes 30 days until the change applies. Another
@@ -3745,9 +3761,9 @@ class Account(BlockchainObject):
         executions: int,
         memo: str = "",
         skip_account_check: bool = False,
-        account=None,
+        account: str | "Account" | None = None,
         **kwargs,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Schedule a recurring transfer of a token from this account to another.
 
@@ -3843,8 +3859,11 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def convert(
-        self, amount: Union[int, float, str, Amount], account=None, request_id=None
-    ) -> dict:
+        self,
+        amount: Union[int, float, str, Amount],
+        account: str | "Account" | None = None,
+        request_id: int | None = None,
+    ) -> Dict[str, Any]:
         """
         Convert HBD to HIVE (takes ~3.5 days to settle).
 
@@ -3878,8 +3897,12 @@ class Account(BlockchainObject):
 
     # Added to differentiate and match the addition of the HF25 convert operation
     def collateralized_convert(
-        self, amount: Union[int, float, str, Amount], account=None, request_id=None, **kwargs
-    ) -> dict:
+        self,
+        amount: Union[int, float, str, Amount],
+        account: str | "Account" | None = None,
+        request_id: int | None = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """
         Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
 
@@ -3922,10 +3945,10 @@ class Account(BlockchainObject):
         amount: Union[int, float, str, Amount],
         asset: str,
         memo: str,
-        to=None,
-        account=None,
+        to: str | "Account" | None = None,
+        account: str | "Account" | None = None,
         **kwargs,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
 
@@ -3974,11 +3997,11 @@ class Account(BlockchainObject):
         amount: Union[int, float, str, Amount],
         asset: str,
         memo: str,
-        request_id=None,
-        to=None,
-        account=None,
+        request_id: int | None = None,
+        to: str | "Account" | None = None,
+        account: str | "Account" | None = None,
         **kwargs,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
 
@@ -4030,7 +4053,9 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def cancel_transfer_from_savings(self, request_id: int, account=None, **kwargs) -> dict:
+    def cancel_transfer_from_savings(
+        self, request_id: int, account: str | "Account" | None = None, **kwargs
+    ) -> Dict[str, Any]:
         """Cancel a withdrawal from 'savings' account.
 
         :param str request_id: Identifier for tracking or cancelling
@@ -4052,7 +4077,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def _check_amount(self, amount, symbol) -> Amount:
+    def _check_amount(self, amount: Union[int, float, str, Amount], symbol: str) -> Amount:
         if isinstance(amount, (float, int)):
             amount = Amount(amount, symbol, blockchain_instance=self.blockchain)
         elif isinstance(amount, str) and amount.replace(".", "", 1).replace(",", "", 1).isdigit():
@@ -4068,9 +4093,9 @@ class Account(BlockchainObject):
         reward_hive: Union[int, float, str, Amount] = 0,
         reward_hbd: Union[int, float, str, Amount] = 0,
         reward_vests: Union[int, float, str, Amount] = 0,
-        account=None,
+        account: str | "Account" | None = None,
         **kwargs,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """
         Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
 
@@ -4141,7 +4166,13 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "posting", **kwargs)
 
-    def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs) -> dict:
+    def delegate_vesting_shares(
+        self,
+        to_account: str | "Account",
+        vesting_shares: Union[str, Amount],
+        account: str | "Account" | None = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """
         Delegate vesting shares (Hive Power) from one account to another.
 
@@ -4175,7 +4206,12 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def withdraw_vesting(self, amount, account=None, **kwargs) -> dict:
+    def withdraw_vesting(
+        self,
+        amount: Union[int, float, str, Amount],
+        account: str | "Account" | None = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """Withdraw VESTS from the vesting account.
 
         :param float amount: number of VESTS to withdraw over a period of
@@ -4201,8 +4237,13 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def set_withdraw_vesting_route(
-        self, to, percentage: float = 100, account=None, auto_vest: bool = False, **kwargs
-    ) -> dict:
+        self,
+        to: str | "Account",
+        percentage: float = 100,
+        account: str | "Account" | None = None,
+        auto_vest: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """
         Set or update a vesting withdraw route for an account.
 
@@ -4236,10 +4277,15 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def allow(
-        self, foreign, weight=None, permission="posting", account=None, threshold=None, **kwargs
-    ):
-        """Give additional access to an account by some other public
-        key or account.
+        self,
+        foreign: str,
+        weight: int | None = None,
+        permission: str = "posting",
+        account: str | "Account" | None = None,
+        threshold: int | None = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Give additional access to an account by some other public key or account.
 
         :param str foreign: The foreign account that will obtain access
         :param int weight: (optional) The weight to use. If not
@@ -4305,8 +4351,14 @@ class Account(BlockchainObject):
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def disallow(
-        self, foreign, permission="posting", account=None, weight=None, threshold=None, **kwargs
-    ):
+        self,
+        foreign: str,
+        permission: str = "posting",
+        account: str | "Account" | None = None,
+        weight: int | None = None,
+        threshold: int | None = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """Remove additional access to an account by some other public
         key or account.
 
@@ -4409,8 +4461,8 @@ class Account(BlockchainObject):
         limit: Optional[int] = None,
         start_author: Optional[str] = None,
         start_permlink: Optional[str] = None,
-        account=None,
-    ):
+        account: str | "Account" | None = None,
+    ) -> Any:
         """
         Yield feed entries for an account in reverse chronological order.
 
@@ -4469,8 +4521,12 @@ class Account(BlockchainObject):
                     return
 
     def blog_history(
-        self, limit: Optional[int] = None, start: int = -1, reblogs: bool = True, account=None
-    ):
+        self,
+        limit: Optional[int] = None,
+        start: int = -1,
+        reblogs: bool = True,
+        account: str | "Account" | None = None,
+    ) -> Any:
         """
         Yield blog entries for an account in reverse chronological order.
 
@@ -4530,8 +4586,11 @@ class Account(BlockchainObject):
                     return
 
     def comment_history(
-        self, limit: Optional[int] = None, start_permlink: Optional[str] = None, account=None
-    ):
+        self,
+        limit: Optional[int] = None,
+        start_permlink: Optional[str] = None,
+        account: str | "Account" | None = None,
+    ) -> Any:
         """
         Yield comments authored by an account in reverse chronological order.
 
@@ -4588,8 +4647,8 @@ class Account(BlockchainObject):
         limit: Optional[int] = None,
         start_author: Optional[str] = None,
         start_permlink: Optional[str] = None,
-        account=None,
-    ):
+        account: str | "Account" | None = None,
+    ) -> Any:
         """Stream the replies to an account in reverse time order.
 
         .. note:: RPC nodes keep a limited history of entries for the
@@ -4676,7 +4735,7 @@ class AccountsObject(list):
         print(t)
 
     def print_summarize_table(
-        self, tag_type="Follower", return_str=False, **kwargs
+        self, tag_type: str = "Follower", return_str: bool = False, **kwargs
     ) -> Optional[str]:
         """
         Print or return a one-line summary table aggregating metrics for the accounts in this collection.
