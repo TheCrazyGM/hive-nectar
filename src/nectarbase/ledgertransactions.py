@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, Mapping
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
@@ -26,7 +27,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
     :param dict custom_chains: custom chain which should be added to the known chains
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.known_chains = known_chains
         custom_chain = kwargs.get("custom_chains", {})
         if len(custom_chain) > 0:
@@ -35,16 +36,16 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
                     self.known_chains[c] = custom_chain[c]
         super(Ledger_Transaction, self).__init__(*args, **kwargs)
 
-    def add_custom_chains(self, custom_chain):
+    def add_custom_chains(self, custom_chain: Mapping[str, Any]) -> None:
         if len(custom_chain) > 0:
             for c in custom_chain:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
 
-    def getOperationKlass(self):
+    def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def getKnownChains(self):
+    def getKnownChains(self) -> Dict[str, Any]:
         """
         Return the mapping of known blockchain chains available to this transaction.
 
@@ -54,7 +55,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         """
         return self.known_chains
 
-    def sign(self, path="48'/13'/0'/0'/0'", chain="HIVE"):
+    def sign(self, path: str = "48'/13'/0'/0'/0'", chain: str = "HIVE") -> "Ledger_Transaction":
         """
         Sign the transaction using a Ledger device and attach the resulting signature to this transaction.
 
@@ -84,7 +85,12 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         self.data["signatures"] = Array(sigs)
         return self
 
-    def get_pubkey(self, path="48'/13'/0'/0'/0'", request_screen_approval=False, prefix="STM"):
+    def get_pubkey(
+        self,
+        path: str = "48'/13'/0'/0'/0'",
+        request_screen_approval: bool = False,
+        prefix: str = "STM",
+    ) -> PublicKey:
         from ledgerblue.comm import getDongle
 
         dongle = getDongle(True)

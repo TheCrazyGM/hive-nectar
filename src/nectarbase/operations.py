@@ -3,6 +3,7 @@ import json
 import re
 from binascii import hexlify
 from collections import OrderedDict
+from typing import Any, Tuple
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.types import (
@@ -11,12 +12,14 @@ from nectargraphenebase.types import (
     HexString,
     Int16,
     Map,
-    Optional,
     PointInTime,
     String,
     Uint16,
     Uint32,
     Uint64,
+)
+from nectargraphenebase.types import (
+    Optional as GrapheneOptional,
 )
 
 from .objects import (
@@ -35,7 +38,7 @@ from .objects import (
 default_prefix = "STM"
 
 
-def check_for_class(self, args):
+def check_for_class(self: Any, args: Tuple[Any, ...]) -> bool:
     if isArgsThisClass(self, args):
         self.data = args[0].data
         return True
@@ -44,7 +47,7 @@ def check_for_class(self, args):
 
 
 class Transfer(GrapheneObject):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Allow for overwrite of prefix
         if check_for_class(self, args):
             return
@@ -56,11 +59,11 @@ class Transfer(GrapheneObject):
             kwargs["memo"] = ""
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
-            memo = Optional(Memo(**kwargs["memo"]))
+            memo = GrapheneOptional(Memo(**kwargs["memo"]))
         elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
-            memo = Optional(Memo(kwargs["memo"]))
+            memo = GrapheneOptional(Memo(kwargs["memo"]))
 
         super(Transfer, self).__init__(
             OrderedDict(
@@ -88,11 +91,11 @@ class Recurring_transfer(GrapheneObject):
             kwargs["memo"] = ""
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
-            memo = Optional(Memo(**kwargs["memo"]))
+            memo = GrapheneOptional(Memo(**kwargs["memo"]))
         elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
-            memo = Optional(Memo(kwargs["memo"]))
+            memo = GrapheneOptional(Memo(kwargs["memo"]))
 
         super(Recurring_transfer, self).__init__(
             OrderedDict(
@@ -323,19 +326,19 @@ class Account_update(GrapheneObject):
         prefix = kwargs.get("prefix", default_prefix)
 
         if "owner" in kwargs:
-            owner = Optional(Permission(kwargs["owner"], prefix=prefix))
+            owner = GrapheneOptional(Permission(kwargs["owner"], prefix=prefix))
         else:
-            owner = Optional(None)
+            owner = GrapheneOptional(None)
 
         if "active" in kwargs:
-            active = Optional(Permission(kwargs["active"], prefix=prefix))
+            active = GrapheneOptional(Permission(kwargs["active"], prefix=prefix))
         else:
-            active = Optional(None)
+            active = GrapheneOptional(None)
 
         if "posting" in kwargs:
-            posting = Optional(Permission(kwargs["posting"], prefix=prefix))
+            posting = GrapheneOptional(Permission(kwargs["posting"], prefix=prefix))
         else:
-            posting = Optional(None)
+            posting = GrapheneOptional(None)
 
         meta = ""
         if "json_metadata" in kwargs and kwargs["json_metadata"]:
@@ -368,24 +371,24 @@ class Account_update2(GrapheneObject):
         extensions = Array([])
 
         if "owner" in kwargs:
-            owner = Optional(Permission(kwargs["owner"], prefix=prefix))
+            owner = GrapheneOptional(Permission(kwargs["owner"], prefix=prefix))
         else:
-            owner = Optional(None)
+            owner = GrapheneOptional(None)
 
         if "active" in kwargs:
-            active = Optional(Permission(kwargs["active"], prefix=prefix))
+            active = GrapheneOptional(Permission(kwargs["active"], prefix=prefix))
         else:
-            active = Optional(None)
+            active = GrapheneOptional(None)
 
         if "posting" in kwargs:
-            posting = Optional(Permission(kwargs["posting"], prefix=prefix))
+            posting = GrapheneOptional(Permission(kwargs["posting"], prefix=prefix))
         else:
-            posting = Optional(None)
+            posting = GrapheneOptional(None)
 
         if "memo_key" in kwargs:
-            memo_key = Optional(PublicKey(kwargs["memo_key"], prefix=prefix))
+            memo_key = GrapheneOptional(PublicKey(kwargs["memo_key"], prefix=prefix))
         else:
-            memo_key = Optional(None)
+            memo_key = GrapheneOptional(None)
 
         meta = ""
         if "json_metadata" in kwargs and kwargs["json_metadata"]:

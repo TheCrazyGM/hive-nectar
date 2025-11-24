@@ -3,6 +3,7 @@ import decimal
 import json
 import struct
 from collections import OrderedDict
+from typing import Any, Dict, Union
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
@@ -27,7 +28,7 @@ from .operationids import operations
 default_prefix = "STM"
 
 
-def value_to_decimal(value, decimal_places):
+def value_to_decimal(value: Union[str, float, int], decimal_places: int) -> decimal.Decimal:
     decimal.getcontext().rounding = decimal.ROUND_DOWN  # define rounding method
     return decimal.Decimal(str(float(value))).quantize(
         decimal.Decimal("1e-{}".format(decimal_places))
@@ -35,7 +36,9 @@ def value_to_decimal(value, decimal_places):
 
 
 class Amount(object):
-    def __init__(self, d, prefix=default_prefix, json_str=False):
+    def __init__(
+        self, d: Union[str, Any], prefix: str = default_prefix, json_str: bool = False
+    ) -> None:
         self.json_str = json_str
         if isinstance(d, str):
             self.amount, self.symbol = d.strip().split(" ")
@@ -56,7 +59,9 @@ class Amount(object):
                         self.asset = asset["asset"]
             if self.precision is None:
                 raise Exception("Asset unknown")
-            self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
+            self.amount = round(
+                value_to_decimal(float(self.amount), self.precision) * 10**self.precision
+            )
             # Workaround to allow transfers in HIVE
 
             self.str_repr = "{:.{}f} {}".format(
@@ -101,7 +106,7 @@ class Amount(object):
             # self.str_repr = json.dumps((d.json()))
             # self.str_repr = '{:.{}f} {}'.format((float(self.amount) / 10 ** self.precision), self.precision, self.asset)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         # padding
         # The nodes still serialize the legacy symbol name for HBD as 'SBD' and HIVE as 'STEEM' in wire format.
         # To match get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' and 'HIVE' -> 'STEEM' on serialization.
@@ -119,14 +124,14 @@ class Amount(object):
             _sym = "SBD"
         elif _sym == "HIVE":
             _sym = "STEEM"
-        symbol = _sym + "\x00" * (7 - len(_sym))
+        symbol = str(_sym) + "\x00" * (7 - len(str(_sym)))
         return (
             struct.pack("<q", int(self.amount))
             + struct.pack("<b", self.precision)
             + bytes(symbol, "ascii")
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.json_str:
             return json.dumps(
                 {"amount": str(self.amount), "precision": self.precision, "nai": self.asset}
@@ -135,34 +140,34 @@ class Amount(object):
 
 
 class Operation(GPHOperation):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.appbase = kwargs.pop("appbase", False)
         self.prefix = kwargs.pop("prefix", default_prefix)
         super(Operation, self).__init__(*args, **kwargs)
 
-    def _getklass(self, name):
+    def _getklass(self, name: str) -> type:
         module = __import__("nectarbase.operations", fromlist=["operations"])
         class_ = getattr(module, name)
         return class_
 
-    def operations(self):
+    def operations(self) -> Dict[str, int]:
         return operations
 
-    def getOperationNameForId(self, i):
+    def getOperationNameForId(self, i: int) -> str:
         """Convert an operation id into the corresponding string"""
         for key in self.operations():
             if int(self.operations()[key]) is int(i):
                 return key
         return "Unknown Operation ID %d" % i
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return json.loads(str(self))
         # return json.loads(str(json.dumps([self.name, self.op.toJson()])))
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         return bytes(Id(self.opId)) + bytes(self.op)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.appbase:
             return json.dumps({"type": self.name.lower() + "_operation", "value": self.op.toJson()})
         else:
@@ -170,7 +175,7 @@ class Operation(GPHOperation):
 
 
 class Memo(GrapheneObject):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         if isArgsThisClass(self, args):
             self.data = args[0].data
         else:

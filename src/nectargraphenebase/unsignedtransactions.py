@@ -4,6 +4,7 @@ import json
 import logging
 from binascii import hexlify, unhexlify
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Union
 
 import ecdsa
 from asn1crypto.core import OctetString
@@ -14,7 +15,6 @@ from .objects import Operation, isArgsThisClass
 from .types import (
     Array,
     JsonObj,
-    Optional,
     PointInTime,
     Set,
     Signature,
@@ -22,6 +22,9 @@ from .types import (
     Uint16,
     Uint32,
     Varint32,
+)
+from .types import (
+    Optional as GrapheneOptional,
 )
 
 log = logging.getLogger(__name__)
@@ -38,10 +41,10 @@ class GrapheneObjectASN1(object):
 
     """
 
-    def __init__(self, data=None):
+    def __init__(self, data: Any = None) -> None:
         self.data = data
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         if self.data is None:
             return bytes()
         b = b""
@@ -62,12 +65,12 @@ class GrapheneObjectASN1(object):
                 output += OctetString(b).dump()
         return output
 
-    def __json__(self):
+    def __json__(self) -> Dict[str, Any]:
         if self.data is None:
             return {}
         d = {}  # JSON output is *not* ordered
         for name, value in list(self.data.items()):
-            if isinstance(value, Optional) and value.isempty():
+            if isinstance(value, GrapheneOptional) and value.isempty():
                 continue
 
             if isinstance(value, String):
@@ -79,13 +82,13 @@ class GrapheneObjectASN1(object):
                     d.update({name: value.__str__()})
         return d
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.__json__())
 
-    def toJson(self):
+    def toJson(self) -> Dict[str, Any]:
         return self.__json__()
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return self.__json__()
 
 
@@ -98,7 +101,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
     :param array operations:  array of operations
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         if isArgsThisClass(self, args):
             self.data = args[0].data
         else:
@@ -139,7 +142,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             )
 
     @property
-    def id(self):
+    def id(self) -> str:
         """The transaction id of this transaction"""
         # Store signatures temporarily since they are not part of
         # transaction id
@@ -155,10 +158,10 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         # Return properly truncated tx hash
         return hexlify(h[:20]).decode("ascii")
 
-    def getOperationKlass(self):
+    def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def derSigToHexSig(self, s):
+    def derSigToHexSig(self, s: bytes) -> str:
         """Format DER to HEX signature"""
         s, junk = ecdsa.der.remove_sequence(unhexlify(s))
         if junk:
@@ -169,10 +172,10 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         y, s = ecdsa.der.remove_integer(s)
         return "%064x%064x" % (x, y)
 
-    def getKnownChains(self):
+    def getKnownChains(self) -> Dict[str, Any]:
         return known_chains
 
-    def getChainParams(self, chain):
+    def getChainParams(self, chain: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         # Which network are we on:
         chains = self.getKnownChains()
         if isinstance(chain, str) and chain in chains:
@@ -185,7 +188,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             raise Exception("sign() needs a 'chain_id' in chain params!")
         return chain_params
 
-    def deriveDigest(self, chain):
+    def deriveDigest(self, chain: Union[str, Dict[str, Any]]) -> None:
         chain_params = self.getChainParams(chain)
         # Chain ID
         self.chainid = chain_params["chain_id"]
@@ -218,7 +221,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         # restore signatures
         self.data["signatures"] = sigs
 
-    def build_path(self, role, account_index, key_index):
+    def build_path(self, role: str, account_index: int, key_index: int) -> str:
         if role == "owner":
             return "48'/13'/0'/%d'/%d'" % (account_index, key_index)
         elif role == "active":
@@ -227,28 +230,34 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             return "48'/13'/4'/%d'/%d'" % (account_index, key_index)
         elif role == "memo":
             return "48'/13'/3'/%d'/%d'" % (account_index, key_index)
+        else:
+            raise ValueError(f"Unknown role: {role}")
 
-    def build_apdu(self, path="48'/13'/0'/0'/0'", chain=None):
+    def build_apdu(
+        self, path: str = "48'/13'/0'/0'/0'", chain: Optional[Union[str, Dict[str, Any]]] = None
+    ) -> List[bytes]:
+        if chain is None:
+            raise ValueError("chain parameter is required for build_apdu")
         self.deriveDigest(chain)
-        path = unhexlify(parse_path(path, as_bytes=True))
+        path_bytes = unhexlify(parse_path(path, as_bytes=True))
 
         message = self.message
-        path_size = int(len(path) / 4)
+        path_size = int(len(path_bytes) / 4)
         message_size = len(message)
 
         offset = 0
         first = True
         result = []
-        while offset != message_size:
-            if message_size - offset > 200:
-                chunk = message[offset : offset + 200]
-            else:
-                chunk = message[offset:]
-
+        while offset < message_size:
+            chunk = message[offset : offset + 255]
+            total_size = len(chunk)
             if first:
-                total_size = int(len(path)) + 1 + len(chunk)
                 apdu = (
-                    unhexlify("d4040000") + bytes([total_size]) + bytes([path_size]) + path + chunk
+                    unhexlify("d4040000")
+                    + bytes([total_size])
+                    + bytes([path_size])
+                    + path_bytes
+                    + chunk
                 )
                 first = False
             else:
@@ -258,19 +267,21 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             offset += len(chunk)
         return result
 
-    def build_apdu_pubkey(self, path="48'/13'/0'/0'/0'", request_screen_approval=False):
-        path = unhexlify(parse_path(path, as_bytes=True))
+    def build_apdu_pubkey(
+        self, path: str = "48'/13'/0'/0'/0'", request_screen_approval: bool = False
+    ) -> bytes:
+        path_bytes = unhexlify(parse_path(path, as_bytes=True))
         if not request_screen_approval:
             return (
                 unhexlify("d4020001")
-                + bytes([int(len(path)) + 1])
-                + bytes([int(len(path) / 4)])
-                + path
+                + bytes([int(len(path_bytes)) + 1])
+                + bytes([int(len(path_bytes) / 4)])
+                + path_bytes
             )
         else:
             return (
                 unhexlify("d4020101")
-                + bytes([int(len(path)) + 1])
-                + bytes([int(len(path) / 4)])
-                + path
+                + bytes([int(len(path_bytes)) + 1])
+                + bytes([int(len(path_bytes) / 4)])
+                + path_bytes
             )

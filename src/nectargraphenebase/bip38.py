@@ -3,6 +3,7 @@ import hashlib
 import logging
 import sys
 from binascii import hexlify, unhexlify
+from typing import Any
 
 import scrypt
 from Cryptodome.Cipher import AES
@@ -17,13 +18,13 @@ class SaltException(Exception):
     pass
 
 
-def _encrypt_xor(a, b, aes):
+def _encrypt_xor(a: Any, b: bytes, aes: Any) -> bytes:
     """Returns encrypt(a ^ b)."""
     a = unhexlify("%0.32x" % (int((a), 16) ^ int(hexlify(b), 16)))
     return aes.encrypt(a)
 
 
-def encrypt(privkey, passphrase):
+def encrypt(privkey: Any, passphrase: str) -> Base58:
     """BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
 
     :param privkey: Private key
@@ -44,9 +45,13 @@ def encrypt(privkey, passphrase):
     salt = hashlib.sha256(hashlib.sha256(a).digest()).digest()[0:4]
     if sys.version < "3":
         if isinstance(passphrase, str):
-            passphrase = passphrase.encode("utf-8")
+            passphrase_bytes = passphrase.encode("utf-8")
+        else:
+            passphrase_bytes = passphrase
+    else:
+        passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
 
-    key = scrypt.hash(passphrase, salt, 16384, 8, 8)
+    key = scrypt.hash(passphrase_bytes, salt, 16384, 8, 8)
     (derived_half1, derived_half2) = (key[:32], key[32:])
     aes = AES.new(derived_half2, AES.MODE_ECB)
     encrypted_half1 = _encrypt_xor(privkeyhex[:32], derived_half1[:16], aes)
@@ -59,7 +64,7 @@ def encrypt(privkey, passphrase):
     return Base58(privatkey)
 
 
-def decrypt(encrypted_privkey, passphrase):
+def decrypt(encrypted_privkey: Any, passphrase: str) -> Base58:
     """BIP0038 non-ec-multiply decryption. Returns WIF privkey.
 
     :param Base58 encrypted_privkey: Private key
@@ -80,8 +85,12 @@ def decrypt(encrypted_privkey, passphrase):
     d = d[4:-4]
     if sys.version < "3":
         if isinstance(passphrase, str):
-            passphrase = passphrase.encode("utf-8")
-    key = scrypt.hash(passphrase, salt, 16384, 8, 8)
+            passphrase_bytes = passphrase.encode("utf-8")
+        else:
+            passphrase_bytes = passphrase
+    else:
+        passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
+    key = scrypt.hash(passphrase_bytes, salt, 16384, 8, 8)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]

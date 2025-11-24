@@ -11,6 +11,7 @@ import os
 import struct
 from binascii import hexlify, unhexlify
 from hashlib import sha256
+from typing import List, Optional, Tuple, Union
 
 import ecdsa
 from ecdsa.curves import SECP256k1
@@ -43,11 +44,11 @@ EX_TEST_PUBLIC = [
 ]  # Version strings for testnet extended public keys
 
 
-def int_to_hex(x):
+def int_to_hex(x: int) -> bytes:
     return bytes(hex(x)[2:], encoding="utf-8")
 
 
-def parse_path(nstr, as_bytes=False):
+def parse_path(nstr: str, as_bytes: bool = False) -> Union[List[int], bytes, None]:
     """"""
     r = list()
     for s in nstr.split("/"):
@@ -59,20 +60,19 @@ def parse_path(nstr, as_bytes=False):
             r.append(int(s))
     if not as_bytes:
         return r
-    path = None
+    path = b""
     for p in r:
-        if path is None:
-            path = int_to_hex(p)
-        else:
-            path += int_to_hex(p)
+        path += int_to_hex(p)
     return path
 
 
 class BIP32Key(object):
     # Static initializers to create from entropy or external formats
     #
-    @staticmethod
-    def fromEntropy(entropy, public=False, testnet=False):
+    @classmethod
+    def fromEntropy(
+        cls, entropy: Optional[bytes] = None, public: bool = False, testnet: bool = False
+    ) -> "BIP32Key":
         """Create a BIP32Key using supplied entropy >= MIN_ENTROPY_LEN"""
         if entropy is None:
             entropy = os.urandom(MIN_ENTROPY_LEN // 8)  # Python doesn't have os.random()
@@ -91,7 +91,7 @@ class BIP32Key(object):
         return key
 
     @staticmethod
-    def fromExtendedKey(xkey, public=False):
+    def fromExtendedKey(xkey: str, public: bool = False) -> "BIP32Key":
         """
         Create a BIP32Key by importing from extended private or public key string
 
@@ -156,7 +156,16 @@ class BIP32Key(object):
         return key
 
     # Normal class initializer
-    def __init__(self, secret, chain, depth, index, fpr, public=False, testnet=False):
+    def __init__(
+        self,
+        secret: Union[bytes, ecdsa.VerifyingKey],
+        chain: bytes,
+        depth: int,
+        index: int,
+        fpr: bytes,
+        public: bool = False,
+        testnet: bool = False,
+    ) -> None:
         """
         Create a public or private BIP32Key using key material and chain code.
 
@@ -192,7 +201,7 @@ class BIP32Key(object):
 
     # Internal methods not intended to be called externally
     #
-    def hmac(self, data):
+    def hmac(self, data: bytes) -> Tuple[bytes, bytes]:
         """
         Calculate the HMAC-SHA512 of input data using the chain code as key.
 
@@ -201,7 +210,7 @@ class BIP32Key(object):
         i64 = hmac.new(self.C, data, hashlib.sha512).digest()
         return i64[:32], i64[32:]
 
-    def CKDpriv(self, i):
+    def CKDpriv(self, i: int) -> "BIP32Key":
         """
         Create a child key of index 'i'.
 
@@ -243,7 +252,7 @@ class BIP32Key(object):
             testnet=self.testnet,
         )
 
-    def CKDpub(self, i):
+    def CKDpub(self, i: int) -> "BIP32Key":
         """
         Create a publicly derived child key of index 'i'.
 
@@ -287,7 +296,7 @@ class BIP32Key(object):
 
     # Public methods
     #
-    def ChildKey(self, i):
+    def ChildKey(self, i: int) -> "BIP32Key":
         """
         Create and return a child key of this one at index 'i'.
 
@@ -299,19 +308,19 @@ class BIP32Key(object):
         else:
             return self.CKDpub(i)
 
-    def SetPublic(self):
+    def SetPublic(self) -> None:
         """Convert a private BIP32Key into a public one"""
         self.k = None
         self.public = True
 
-    def PrivateKey(self):
+    def PrivateKey(self) -> bytes:
         """Return private key as string"""
         if self.public:
             raise Exception("Publicly derived deterministic keys have no private half")
         else:
             return self.k.to_string()
 
-    def PublicKey(self):
+    def PublicKey(self) -> bytes:
         """Return compressed public key encoding"""
         padx = self.K.pubkey.point.x().to_bytes(32, "big")
         if self.K.pubkey.point.y() & 1:
@@ -320,28 +329,28 @@ class BIP32Key(object):
             ck = b"\2" + padx
         return ck
 
-    def ChainCode(self):
+    def ChainCode(self) -> bytes:
         """Return chain code as string"""
         return self.C
 
-    def Identifier(self):
+    def Identifier(self) -> bytes:
         """Return key identifier as string"""
         cK = self.PublicKey()
         return hashlib.new("ripemd160", sha256(cK).digest()).digest()
 
-    def Fingerprint(self):
+    def Fingerprint(self) -> bytes:
         """Return key fingerprint as string"""
         return self.Identifier()[:4]
 
-    def Address(self):
+    def Address(self) -> str:
         """Return compressed public key address"""
         addressversion = b"\x00" if not self.testnet else b"\x6f"
         # vh160 = addressversion + self.Identifier()
         # return check_encode(vh160)
         payload = hexlify(self.Identifier()).decode("ascii")
-        return base58CheckEncode(hexlify(addressversion).decode("ascii"), payload)
+        return base58CheckEncode(int.from_bytes(addressversion, "big"), payload)
 
-    def P2WPKHoP2SHAddress(self):
+    def P2WPKHoP2SHAddress(self) -> str:
         """Return P2WPKH over P2SH segwit address"""
         pk_bytes = self.PublicKey()
         assert len(pk_bytes) == 33 and (
@@ -357,9 +366,9 @@ class BIP32Key(object):
         prefix = b"\xc4" if self.testnet else b"\x05"
         # return check_encode(prefix + address_bytes)
         payload = hexlify(address_bytes).decode("ascii")
-        return base58CheckEncode(hexlify(prefix).decode("ascii"), payload)
+        return base58CheckEncode(int.from_bytes(prefix, "big"), payload)
 
-    def WalletImportFormat(self):
+    def WalletImportFormat(self) -> str:
         """Returns private key encoded for wallet import"""
         if self.public:
             raise Exception("Publicly derived deterministic keys have no private half")
@@ -367,9 +376,9 @@ class BIP32Key(object):
         raw = self.k.to_string() + b"\x01"  # Always compressed
         # return check_encode(addressversion + raw)
         payload = hexlify(raw).decode("ascii")
-        return base58CheckEncode(hexlify(addressversion).decode("ascii"), payload)
+        return base58CheckEncode(int.from_bytes(addressversion, "big"), payload)
 
-    def ExtendedKey(self, private=True, encoded=True):
+    def ExtendedKey(self, private: bool = True, encoded: bool = True) -> Union[str, bytes]:
         """Return extended private or public key as string, optionally base58 encoded"""
         if self.public is True and private is True:
             raise Exception(
@@ -393,9 +402,8 @@ class BIP32Key(object):
         else:
             # return check_encode(raw)
             payload = hexlify(chain + data).decode("ascii")
-            return base58CheckEncode(
-                hexlify(version + depth + fpr + child).decode("ascii"), payload
-            )
+            version_int = int.from_bytes(version + depth + fpr + child, "big")
+            return base58CheckEncode(version_int, payload)
 
     # Debugging methods
     #

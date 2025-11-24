@@ -1,27 +1,21 @@
 # -*- coding: utf-8 -*-
 import hashlib
-from binascii import hexlify, unhexlify
-
-from nectargraphenebase.base58 import base58decode, base58encode
-from nectargraphenebase.types import varintdecode
-
-try:
-    from Cryptodome.Cipher import AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES
-    except ImportError:
-        raise ImportError("Missing dependency: pyCryptodome")
 import struct
+from binascii import hexlify, unhexlify
+from typing import Any, Tuple
+
+from Cryptodome.Cipher import AES
 
 from nectargraphenebase.account import PublicKey
+from nectargraphenebase.base58 import base58decode, base58encode
+from nectargraphenebase.types import varintdecode
 
 from .objects import Memo
 
 default_prefix = "STM"
 
 
-def get_shared_secret(priv, pub):
+def get_shared_secret(priv: Any, pub: PublicKey) -> str:
     """Derive the share secret between ``priv`` and ``pub``
     :param `Base58` priv: Private Key
     :param `Base58` pub: Public Key
@@ -39,7 +33,7 @@ def get_shared_secret(priv, pub):
     return res_hex
 
 
-def init_aes(shared_secret, nonce):
+def init_aes(shared_secret: str, nonce: int) -> Any:
     """Initialize AES instance
     :param hex shared_secret: Shared Secret to use as encryption key
     :param int nonce: Random nonce
@@ -57,7 +51,7 @@ def init_aes(shared_secret, nonce):
     return AES.new(key, AES.MODE_CBC, iv)
 
 
-def init_aes_bts(shared_secret, nonce):
+def init_aes_bts(shared_secret: str, nonce: int) -> Any:
     """Initialize AES instance
     :param hex shared_secret: Shared Secret to use as encryption key
     :param int nonce: Random nonce
@@ -75,7 +69,7 @@ def init_aes_bts(shared_secret, nonce):
     return AES.new(key, AES.MODE_CBC, iv)
 
 
-def init_aes2(shared_secret, nonce):
+def init_aes2(shared_secret: str, nonce: int) -> Tuple[Any, int]:
     """Initialize AES instance
     :param hex shared_secret: Shared Secret to use as encryption key
     :param int nonce: Random nonce
@@ -94,19 +88,19 @@ def init_aes2(shared_secret, nonce):
     return AES.new(key, AES.MODE_CBC, iv), check
 
 
-def _pad(s, BS):
+def _pad(s: bytes, BS: int) -> bytes:
     numBytes = BS - len(s) % BS
     return s + numBytes * struct.pack("B", numBytes)
 
 
-def _unpad(s, BS):
+def _unpad(s: bytes, BS: int) -> bytes:
     count = s[-1]
     if s[-count::] == count * struct.pack("B", count):
         return s[:-count]
     return s
 
 
-def encode_memo_bts(priv, pub, nonce, message):
+def encode_memo_bts(priv: Any, pub: PublicKey, nonce: int, message: str) -> str:
     """Encode a message with a shared secret between Alice and Bob
 
     :param PrivateKey priv: Private Key (of Alice)
@@ -129,7 +123,7 @@ def encode_memo_bts(priv, pub, nonce, message):
     return hexlify(aes.encrypt(raw)).decode("ascii")
 
 
-def decode_memo_bts(priv, pub, nonce, message):
+def decode_memo_bts(priv: Any, pub: PublicKey, nonce: int, message: str) -> str:
     """Decode a message with a shared secret between Alice and Bob
 
     :param PrivateKey priv: Private Key (of Bob)
@@ -152,13 +146,15 @@ def decode_memo_bts(priv, pub, nonce, message):
     message = cleartext[4:]
     message = _unpad(message, 16)
     " Verify checksum "
-    check = hashlib.sha256(message).digest()[0:4]
+    check = hashlib.sha256(
+        message if isinstance(message, bytes) else message.encode("utf-8")
+    ).digest()[0:4]
     if check != checksum:  # pragma: no cover
         raise ValueError("checksum verification failure")
-    return message.decode("utf8")
+    return message.decode("utf8") if isinstance(message, bytes) else message
 
 
-def encode_memo(priv, pub, nonce, message, **kwargs):
+def encode_memo(priv: Any, pub: PublicKey, nonce: int, message: str, **kwargs: Any) -> str:
     """Encode a message with a shared secret between Alice and Bob
 
     :param PrivateKey priv: Private Key (of Alice)
@@ -188,7 +184,7 @@ def encode_memo(priv, pub, nonce, message, **kwargs):
     return "#" + base58encode(hexlify(bytes(tx)).decode("ascii"))
 
 
-def extract_memo_data(message):
+def extract_memo_data(message: str) -> Tuple[PublicKey, PublicKey, str, int, bytes]:
     """Returns the stored pubkey keys, nonce, checksum and encrypted message of a memo"""
     raw = base58decode(message[1:])
     from_key = PublicKey(raw[:66])
@@ -203,7 +199,7 @@ def extract_memo_data(message):
     return from_key, to_key, nonce, check, cipher
 
 
-def decode_memo(priv, message):
+def decode_memo(priv: Any, message: str) -> str:
     """Decode a message with a shared secret between Alice and Bob
 
     :param PrivateKey priv: Private Key (of Bob)
@@ -224,7 +220,7 @@ def decode_memo(priv, message):
         raise ValueError("Incorrect PrivateKey")
 
     # Init encryption
-    aes, checksum = init_aes2(shared_secret, nonce)
+    aes, checksum = init_aes2(shared_secret, int(nonce))
     # Check
     if not check == checksum:
         raise AssertionError("Checksum failure")
@@ -233,10 +229,14 @@ def decode_memo(priv, message):
     numBytes = 16 - len(cipher) % 16
     n = 16 - numBytes
     message = cipher[n:]
-    message = aes.decrypt(unhexlify(bytes(message, "ascii")))
+    message = aes.decrypt(message)
     message = _unpad(message, 16)
     n = varintdecode(message)
     if (len(message) - n) > 0 and (len(message) - n) < 8:
-        return "#" + message[len(message) - n :].decode("utf8")
+        return "#" + (
+            message[len(message) - n :].decode("utf8")
+            if isinstance(message[len(message) - n :], bytes)
+            else message[len(message) - n :]
+        )
     else:
-        return "#" + message.decode("utf8")
+        return "#" + (message.decode("utf8") if isinstance(message, bytes) else message)

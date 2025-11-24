@@ -6,12 +6,13 @@ from binascii import hexlify, unhexlify
 
 # Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
+from typing import Any, List, Tuple, Union
 
 # Import calendar only when needed to avoid circular imports
 timeformat = "%Y-%m-%dT%H:%M:%S%Z"
 
 
-def varint(n):
+def varint(n: int) -> bytes:
     """Varint encoding."""
     data = b""
     while n >= 0x80:
@@ -21,7 +22,7 @@ def varint(n):
     return data
 
 
-def varintdecode(data):
+def varintdecode(data: Union[bytes, str]) -> int:
     """Varint decoding."""
     shift = 0
     result = 0
@@ -33,12 +34,12 @@ def varintdecode(data):
     return result
 
 
-def variable_buffer(s):
+def variable_buffer(s: bytes) -> bytes:
     """Encodes variable length buffer."""
     return varint(len(s)) + s
 
 
-def JsonObj(data):
+def JsonObj(data: Any) -> Any:
     """Returns json object from data."""
     return json.loads(str(data))
 
@@ -46,15 +47,15 @@ def JsonObj(data):
 class Uint8(object):
     """Uint8."""
 
-    def __init__(self, d):
+    def __init__(self, d: Any) -> None:
         """init."""
         self.data = int(d)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes."""
         return struct.pack("<B", self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns str"""
         return "%d" % self.data
 
@@ -62,110 +63,205 @@ class Uint8(object):
 class Int16(object):
     """Int16."""
 
-    def __init__(self, d):
+    def __init__(self, d: Any) -> None:
         """init."""
         self.data = int(d)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes."""
-        return struct.pack("<h", int(self.data))
+        return struct.pack("<h", self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Returns str"""
         return "%d" % self.data
 
 
 class Uint16(object):
-    def __init__(self, d):
+    """Uint16."""
+
+    def __init__(self, d: Any) -> None:
         self.data = int(d)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes."""
         return struct.pack("<H", self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d" % self.data
 
 
 class Uint32(object):
-    def __init__(self, d):
+    """Uint32."""
+
+    def __init__(self, d: Any) -> None:
+        """
+        Initialize Uint32 object.
+
+        Args:
+            d (Any): The data to be stored in the Uint32 object.
+        """
         self.data = int(d)
 
-    def __bytes__(self):
-        """Returns bytes."""
+    def __bytes__(self) -> bytes:
+        """
+        Returns the bytes representation of the Uint32 object.
+
+        Returns:
+            bytes: The bytes representation of the Uint32 object.
+        """
         return struct.pack("<I", self.data)
 
-    def __str__(self):
-        """Returns data as string."""
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the Uint32 object.
+
+        Returns:
+            str: The string representation of the Uint32 object.
+        """
         return "%d" % self.data
 
 
 class Uint64(object):
-    def __init__(self, d):
+    """Uint64."""
+
+    def __init__(self, d: Any) -> None:
+        """
+        Initialize Uint64 object.
+
+        Args:
+            d (Any): The data to be stored in the Uint64 object.
+        """
         self.data = int(d)
 
-    def __bytes__(self):
-        """Returns bytes."""
+    def __bytes__(self) -> bytes:
+        """
+        Returns the bytes representation of the Uint64 object.
+
+        Returns:
+            bytes: The bytes representation of the Uint64 object.
+        """
         return struct.pack("<Q", self.data)
 
-    def __str__(self):
-        """Returns data as string."""
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the Uint64 object.
+
+        Returns:
+            str: The string representation of the Uint64 object.
+        """
         return "%d" % self.data
 
 
 class Varint32(object):
-    def __init__(self, d):
+    """Varint32."""
+
+    def __init__(self, d: Any) -> None:
+        """
+        Initialize Varint32 object.
+
+        Args:
+            d (Any): The data to be stored in the Varint32 object.
+        """
         self.data = int(d)
 
-    def __bytes__(self):
-        """Returns bytes."""
+    def __bytes__(self) -> bytes:
+        """
+        Returns the bytes representation of the Varint32 object.
+
+        Returns:
+            bytes: The bytes representation of the Varint32 object.
+        """
         return varint(self.data)
 
-    def __str__(self):
-        """Returns data as string."""
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the Varint32 object.
+
+        Returns:
+            str: The string representation of the Varint32 object.
+        """
         return "%d" % self.data
 
 
 class Int64(object):
-    def __init__(self, d):
+    """Int64."""
+
+    def __init__(self, d: Any) -> None:
+        """
+        Initialize Int64 object.
+
+        Args:
+            d (Any): The data to be stored in the Int64 object.
+        """
         self.data = int(d)
 
-    def __bytes__(self):
-        """Returns bytes."""
+    def __bytes__(self) -> bytes:
+        """
+        Returns the bytes representation of the Int64 object.
+
+        Returns:
+            bytes: The bytes representation of the Int64 object.
+        """
         return struct.pack("<q", self.data)
 
-    def __str__(self):
-        """Returns data as string."""
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the Int64 object.
+
+        Returns:
+            str: The string representation of the Int64 object.
+        """
         return "%d" % self.data
 
 
 class HexString(object):
-    def __init__(self, d):
+    """HexString."""
+
+    def __init__(self, d: Any) -> None:
+        """
+        Initialize HexString object.
+
+        Args:
+            d (Any): The data to be stored in the HexString object.
+        """
         self.data = d
 
-    def __bytes__(self):
-        """Returns bytes representation."""
-        d = bytes(unhexlify(bytes(self.data, "ascii")))
-        return varint(len(d)) + d
+    def __bytes__(self) -> bytes:
+        """
+        Returns the bytes representation of the HexString object.
 
-    def __str__(self):
-        """Returns data as string."""
-        return "%s" % str(self.data)
+        Returns:
+            bytes: The bytes representation of the HexString object.
+        """
+        d = bytes(unhexlify(bytes(self.data, "ascii")))
+        return variable_buffer(d)
+
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the HexString object.
+
+        Returns:
+            str: The string representation of the HexString object.
+        """
+        return str(self.data)
 
 
 class String(object):
-    def __init__(self, d):
+    """String."""
+
+    def __init__(self, d: Any) -> None:
         self.data = d
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         d = self.unicodify()
         return varint(len(d)) + d
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return "%s" % str(self.data)
 
-    def unicodify(self):
+    def unicodify(self) -> bytes:
         r = []
         for s in self.data:
             o = ord(s)
@@ -187,68 +283,82 @@ class String(object):
 
 
 class Bytes(object):
-    def __init__(self, d):
+    """Bytes."""
+
+    def __init__(self, d: Any) -> None:
         self.data = d
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns data as bytes."""
         d = unhexlify(bytes(self.data, "utf-8"))
         return varint(len(d)) + d
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return str(self.data)
 
 
 class Hash(Bytes):
-    def json(self):
+    """Hash."""
+
+    def json(self) -> str:
         return str(self.data)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         return unhexlify(bytes(self.data, "utf-8"))
 
 
 class Ripemd160(Hash):
-    def __init__(self, a):
+    """Ripemd160."""
+
+    def __init__(self, a: str) -> None:
         assert len(a) == 40, "Require 40 char long hex"
         super().__init__(a)
 
 
 class Sha1(Hash):
-    def __init__(self, a):
+    """Sha1."""
+
+    def __init__(self, a: str) -> None:
         assert len(a) == 40, "Require 40 char long hex"
         super().__init__(a)
 
 
 class Sha256(Hash):
-    def __init__(self, a):
+    """Sha256."""
+
+    def __init__(self, a: str) -> None:
         assert len(a) == 64, "Require 64 char long hex"
         super().__init__(a)
 
 
 class Void(object):
-    def __init__(self):
+    """Void."""
+
+    def __init__(self) -> None:
         pass
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         return b""
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return ""
 
 
 class Array(object):
-    def __init__(self, d):
+    """Array."""
+
+    def __init__(self, d: List[Any]) -> None:
         self.data = d
         self.length = Varint32(len(self.data))
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         return bytes(self.length) + b"".join([bytes(a) for a in self.data])
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         r = []
         for a in self.data:
@@ -263,10 +373,12 @@ class Array(object):
 
 
 class PointInTime(object):
-    def __init__(self, d):
+    """PointInTime."""
+
+    def __init__(self, d: Union[str, datetime]) -> None:
         self.data = d
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """
         Return a 4-byte little-endian Unix timestamp for the stored point-in-time.
 
@@ -288,84 +400,96 @@ class PointInTime(object):
             return struct.pack("<i", unixtime)
         return struct.pack("<I", unixtime)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
-        return self.data
+        return str(self.data)
 
 
 class Signature(object):
-    def __init__(self, d):
+    """Signature."""
+
+    def __init__(self, d: bytes) -> None:
         self.data = d
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         return self.data
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return json.dumps(hexlify(self.data).decode("ascii"))
 
 
 class Bool(Uint8):  # Bool = Uint8
-    def __init__(self, d):
+    """Bool."""
+
+    def __init__(self, d: Any) -> None:
         super(Bool, self).__init__(d)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return json.dumps(True) if self.data else json.dumps(False)
 
 
 class Set(Array):  # Set = Array
-    def __init__(self, d):
+    """Set."""
+
+    def __init__(self, d: List[Any]) -> None:
         super(Set, self).__init__(d)
 
 
 class Fixed_array(object):
-    def __init__(self, d):
+    """Fixed_array."""
+
+    def __init__(self, d: Any) -> None:
         raise NotImplementedError
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         raise NotImplementedError
 
 
 class Optional(object):
-    def __init__(self, d):
+    """Optional."""
+
+    def __init__(self, d: Any) -> None:
         self.data = d
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns data as bytes."""
         if not self.data:
             return bytes(Bool(0))
         else:
             return bytes(Bool(1)) + bytes(self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return str(self.data)
 
-    def isempty(self):
+    def isempty(self) -> bool:
         """Returns True if data is empty, False otherwise."""
         return not self.data
 
 
 class Static_variant(object):
-    def __init__(self, d, type_id, legacy_style=True):
+    """Static_variant."""
+
+    def __init__(self, d: Any, type_id: int, legacy_style: bool = True) -> None:
         self.data = d
         self.type_id = type_id
 
         # `legacy_style = True` it means, that static variant is treated like an array, otherwise like an object
         self.legacy_style = legacy_style
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         return varint(self.type_id) + bytes(self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         if self.legacy_style:
             return json.dumps([self.type_id, self.data.json()])
@@ -374,10 +498,12 @@ class Static_variant(object):
 
 
 class Map(object):
-    def __init__(self, data):
+    """Map."""
+
+    def __init__(self, data: List[Tuple[Any, Any]]) -> None:
         self.data = data
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         b = b""
         b += varint(len(self.data))
@@ -385,7 +511,7 @@ class Map(object):
             b += bytes(e[0]) + bytes(e[1])
         return b
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         r = []
         for e in self.data:
@@ -394,23 +520,27 @@ class Map(object):
 
 
 class Id(object):
-    def __init__(self, d):
+    """Id."""
+
+    def __init__(self, d: int) -> None:
         self.data = Varint32(d)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns bytes representation."""
         return bytes(self.data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return str(self.data)
 
 
 class Enum8(Uint8):
+    """Enum8."""
+
     # List needs to be provided by super class
     options = []
 
-    def __init__(self, selection):
+    def __init__(self, selection: Union[str, int]) -> None:
         if selection not in self.options or (
             isinstance(selection, int) and len(self.options) < selection
         ):
@@ -418,6 +548,6 @@ class Enum8(Uint8):
 
         super(Enum8, self).__init__(self.options.index(selection))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns data as string."""
         return str(self.options[self.data])

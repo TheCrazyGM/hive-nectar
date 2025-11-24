@@ -3,6 +3,7 @@ import hashlib
 import logging
 import struct
 from binascii import hexlify
+from typing import Any, Callable, Optional, Union
 
 import ecdsa
 from cryptography.hazmat.backends import default_backend
@@ -19,7 +20,7 @@ from .account import PrivateKey, PublicKey
 log = logging.getLogger(__name__)
 
 
-def _is_canonical(sig):
+def _is_canonical(sig: Union[bytes, bytearray]) -> bool:
     """
     Return True if a 64-byte ECDSA signature (R || S) is in canonical form.
 
@@ -42,7 +43,7 @@ def _is_canonical(sig):
     )
 
 
-def compressedPubkey(pk):
+def compressedPubkey(pk: Union[ecdsa.keys.VerifyingKey, Any]) -> bytes:
     """
     Return the 33-byte compressed secp256k1 public key for the given public-key object.
 
@@ -69,7 +70,9 @@ def compressedPubkey(pk):
     return bytes(chr(2 + (y & 1)), "ascii") + x_str
 
 
-def recover_public_key(digest, signature, i, message=None):
+def recover_public_key(
+    digest: bytes, signature: bytes, i: int, message: Optional[bytes] = None
+) -> Union[ecdsa.keys.VerifyingKey, ec.EllipticCurvePublicKey, None]:
     """
     Recover the secp256k1 public key from an ECDSA signature and message hash.
 
@@ -150,7 +153,12 @@ def recover_public_key(digest, signature, i, message=None):
         return ecdsa.VerifyingKey.from_public_point(Q, curve=ecdsa.SECP256k1)
 
 
-def recoverPubkeyParameter(message, digest, signature, pubkey):
+def recoverPubkeyParameter(
+    message: Optional[Union[str, bytes]],
+    digest: bytes,
+    signature: bytes,
+    pubkey: Union[PublicKey, ec.EllipticCurvePublicKey],
+) -> Optional[int]:
     """
     Determine the ECDSA recovery parameter (0–3) that, when used with the given digest and 64-byte signature (R||S), reproduces the provided public key.
 
@@ -166,7 +174,10 @@ def recoverPubkeyParameter(message, digest, signature, pubkey):
         int: matching recovery parameter in 0..3, or None if no match is found.
     """
     if not isinstance(message, bytes):
-        message = bytes(message, "utf-8")
+        if message is None:
+            message = b""
+        else:
+            message = bytes(message, "utf-8")
     for i in range(0, 4):
         if not isinstance(pubkey, PublicKey):
             p = recover_public_key(digest, signature, i, message)
@@ -187,7 +198,7 @@ def recoverPubkeyParameter(message, digest, signature, pubkey):
     return None
 
 
-def sign_message(message, wif, hashfn=hashlib.sha256):
+def sign_message(message: Union[str, bytes], wif: str, hashfn: Callable = hashlib.sha256) -> bytes:
     """
     Sign a message using a private key in Wallet Import Format (WIF) and return a compact, canonical ECDSA signature.
 
@@ -254,7 +265,12 @@ def sign_message(message, wif, hashfn=hashlib.sha256):
     return sigstr
 
 
-def verify_message(message, signature, hashfn=hashlib.sha256, recover_parameter=None):
+def verify_message(
+    message: Union[str, bytes],
+    signature: Union[str, bytes],
+    hashfn: Callable = hashlib.sha256,
+    recover_parameter: Optional[int] = None,
+) -> Optional[bytes]:
     """
     Verify an ECDSA secp256k1 signature against a message and return the signer's compressed public key.
 
