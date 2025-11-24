@@ -195,7 +195,7 @@ def extract_memo_data(message: str) -> Tuple[PublicKey, PublicKey, str, int, byt
     raw = raw[16:]
     check = struct.unpack_from("<I", unhexlify(raw[:8]))[0]
     raw = raw[8:]
-    cipher = raw
+    cipher = unhexlify(raw)
     return from_key, to_key, nonce, check, cipher
 
 
