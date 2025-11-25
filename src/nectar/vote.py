@@ -121,7 +121,7 @@ class Vote(BlockchainObject):
             return
         if not self.blockchain.is_connected():
             return
-        [author, permlink, voter] = resolve_authorpermvoter(self.identifier)
+        [author, permlink, voter] = resolve_authorpermvoter(str(self.identifier))
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(True)
             try:
