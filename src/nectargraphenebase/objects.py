@@ -61,6 +61,8 @@ class Operation(object):
         return class_
 
     def __bytes__(self) -> bytes:
+        if self.opId is None:
+            raise ValueError("Operation ID is None, cannot serialize operation")
         return bytes(Id(self.opId)) + bytes(self.op)
 
     def __str__(self) -> str:
