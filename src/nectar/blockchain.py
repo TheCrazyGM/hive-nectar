@@ -367,6 +367,7 @@ class Blockchain(object):
         # Ensure we have a datetime object for arithmetic operations
         if date is None or not isinstance(date, datetime):
             raise ValueError("date must be a datetime object after addTzInfo processing")
+        block_number: int = 1
         if estimateForwards:
             block_offset = 10
             first_block = BlockHeader(block_offset, blockchain_instance=self.blockchain)
@@ -384,8 +385,8 @@ class Blockchain(object):
             block_number = 1
 
         if accurate:
-            if last_block.identifier is not None and block_number > last_block.identifier:
-                block_number = last_block.identifier
+            if last_block.identifier is not None and block_number > int(last_block.identifier):
+                block_number = int(last_block.identifier)
             block_time_diff = timedelta(seconds=10)
 
             last_block_time_diff_seconds = 10
@@ -395,7 +396,7 @@ class Blockchain(object):
                 block_time_diff.total_seconds() > self.block_interval
                 or block_time_diff.total_seconds() < -self.block_interval
             ):
-                block = BlockHeader(block_number, blockchain_instance=self.blockchain)
+                block = BlockHeader(int(block_number), blockchain_instance=self.blockchain)
                 second_last_block_time_diff_seconds = last_block_time_diff_seconds
                 last_block_time_diff_seconds = block_time_diff.total_seconds()
                 block_time_diff = date - block.time()
@@ -404,7 +405,7 @@ class Blockchain(object):
                     and second_last_block_time_diff_seconds < 10
                 ):
                     return int(block_number)
-                delta = block_time_diff.total_seconds() // self.block_interval
+                delta: int = int(block_time_diff.total_seconds() // self.block_interval)
                 if delta == 0 and block_time_diff.total_seconds() < 0:
                     delta = -1
                 elif delta == 0 and block_time_diff.total_seconds() > 0:
@@ -412,7 +413,7 @@ class Blockchain(object):
                 block_number += delta
                 if block_number < 1:
                     break
-                if last_block.identifier is not None and block_number > last_block.identifier:
+                if last_block.identifier is not None and block_number > int(last_block.identifier):
                     break
 
         return int(block_number)
@@ -493,6 +494,7 @@ class Blockchain(object):
         if not start and current_block_num is not None:
             start = current_block_num
         head_block_reached = False
+        pool: Union[ThreadPoolExecutor, Pool, None] = None
         if threading and FUTURES_MODULE is not None:
             pool = ThreadPoolExecutor(max_workers=thread_num)
         elif threading:
