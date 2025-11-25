@@ -1183,7 +1183,7 @@ class BlockChainInstance(object):
             dict: The signed transaction JSON with an added "trx_id" field containing the transaction id.
         """
         if tx:
-            txbuffer = TransactionBuilder(tx, blockchain_instance=self)
+            txbuffer = TransactionBuilder(tx=tx, blockchain_instance=self)
         else:
             txbuffer = self.txbuffer
         txbuffer.appendWif(wifs)
@@ -1202,7 +1202,7 @@ class BlockChainInstance(object):
         """
         if tx:
             # If tx is provided, we broadcast the tx
-            return TransactionBuilder(tx, blockchain_instance=self).broadcast(trx_id=trx_id)
+            return TransactionBuilder(tx=tx, blockchain_instance=self).broadcast(trx_id=trx_id)
         else:
             return self.txbuffer.broadcast()
 
@@ -1250,10 +1250,11 @@ class BlockChainInstance(object):
         # Remove blockchain_instance from kwargs if it exists to avoid duplicate
         kwargs.pop("blockchain_instance", None)
 
-        # Create a clean kwargs dict without blockchain_instance
-        clean_kwargs = {k: v for k, v in kwargs.items() if k != "blockchain_instance"}
+        # Extract tx parameter if present (first positional argument)
+        tx = args[0] if args else None
 
-        builder = TransactionBuilder(*args, **clean_kwargs)
+        # Pass self as blockchain_instance to avoid recursion
+        builder = TransactionBuilder(tx, blockchain_instance=self, **kwargs)
         self._txbuffers.append(builder)
         return builder
 

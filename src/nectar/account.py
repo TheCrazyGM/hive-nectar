@@ -305,15 +305,15 @@ class Account(BlockchainObject):
                         output[p] = obj.json()
         return json.loads(str(json.dumps(output)))
 
-    def getSimilarAccountNames(self, limit: int = 5) -> List[str]:
+    def getSimilarAccountNames(self, limit: int = 5) -> List[str] | None:
         """Deprecated, please use get_similar_account_names"""
         return self.get_similar_account_names(limit=limit)
 
-    def get_rc(self) -> Dict:
+    def get_rc(self) -> Dict[str, Any] | List[Dict[str, Any]] | None:
         """Return RC of account."""
         return Blockchain(blockchain_instance=self.blockchain).find_rc_accounts(self["name"])
 
-    def get_rc_manabar(self) -> Dict[str, Union[int, float]]:
+    def get_rc_manabar(self) -> Dict[str, Union[int, float, Amount]]:
         """
         Return the account's current and maximum Resource Credit (RC) mana.
 
@@ -331,6 +331,17 @@ class Account(BlockchainObject):
             }
         """
         rc_param = self.get_rc()
+        if rc_param is None or (isinstance(rc_param, list) and len(rc_param) == 0):
+            return {
+                "last_mana": 0,
+                "last_update_time": 0,
+                "current_mana": 0,
+                "max_mana": 0,
+                "current_pct": 0,
+                "max_rc_creation_adjustment": Amount(0, blockchain_instance=self.blockchain),
+            }
+        if isinstance(rc_param, list):
+            rc_param = rc_param[0]
         max_mana = int(rc_param["max_rc"])
         last_mana = int(rc_param["rc_manabar"]["current_mana"])
         last_update_time = rc_param["rc_manabar"]["last_update_time"]
@@ -357,7 +368,7 @@ class Account(BlockchainObject):
             "max_rc_creation_adjustment": max_rc_creation_adjustment,
         }
 
-    def get_similar_account_names(self, limit: int = 5) -> List[str]:
+    def get_similar_account_names(self, limit: int = 5) -> List[str] | None:
         """Returns ``limit`` account names similar to the current account
         name as a list
 
@@ -454,6 +465,7 @@ class Account(BlockchainObject):
             bandwidth is not None
             and bandwidth["allocated"] is not None
             and bandwidth["allocated"] > 0
+            and bandwidth["used"] is not None
         ):
             remaining = 100 - bandwidth["used"] / bandwidth["allocated"] * 100
             used_kb = bandwidth["used"] / 1024
@@ -504,46 +516,103 @@ class Account(BlockchainObject):
                     ["used/allocated Bandwidth", "(%.0f kb of %.0f mb)" % (used_kb, allocated_mb)]
                 )
             if rc_mana is not None:
-                estimated_rc = int(rc["max_rc"]) * rc_mana["current_pct"] / 100
+                if isinstance(rc, dict):
+                    max_rc = rc.get("max_rc", 0)
+                elif rc and isinstance(rc, list) and len(rc) > 0:
+                    max_rc = rc[0].get("max_rc", 0)
+                else:
+                    max_rc = 0
+                if isinstance(max_rc, dict):
+                    max_rc = max_rc.get("amount", 0)
+                estimated_rc = int(max_rc) * float(rc_mana["current_pct"]) / 100
                 t.add_row(["Remaining RC", "%.2f %%" % (rc_mana["current_pct"])])
                 t.add_row(
                     [
                         "Remaining RC",
-                        "(%.0f G RC of %.0f G RC)"
-                        % (estimated_rc / 10**9, int(rc["max_rc"]) / 10**9),
+                        "(%.0f G RC of %.0f G RC)" % (estimated_rc / 10**9, int(max_rc) / 10**9),
                     ]
                 )
                 t.add_row(["Full in ", "%s" % (self.get_manabar_recharge_time_str(rc_mana))])
                 if rc_calc is not None:
-                    t.add_row(["Est. RC for a comment", "%.2f G RC" % (rc_calc.comment() / 10**9)])
-                    t.add_row(["Est. RC for a vote", "%.2f G RC" % (rc_calc.vote() / 10**9)])
-                    t.add_row(
-                        ["Est. RC for a transfer", "%.2f G RC" % (rc_calc.transfer() / 10**9)]
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values for division
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
                     )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
+                    t.add_row(["Est. RC for a comment", "%.2f G RC" % (comment_val / 10**9)])
+                    t.add_row(["Est. RC for a vote", "%.2f G RC" % (vote_val / 10**9)])
+                    t.add_row(["Est. RC for a transfer", "%.2f G RC" % (transfer_val / 10**9)])
                     t.add_row(
-                        ["Est. RC for a custom_json", "%.2f G RC" % (rc_calc.custom_json() / 10**9)]
+                        ["Est. RC for a custom_json", "%.2f G RC" % (custom_json_val / 10**9)]
                     )
 
                 if estimated_rc is not None and rc_calc is not None:
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values from cost dictionaries if needed
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
+                    )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
                     t.add_row(
                         [
                             "Comments with current RC",
-                            "%d comments" % (int(estimated_rc / rc_calc.comment())),
+                            "%d comments"
+                            % (int(estimated_rc / comment_val) if comment_val > 0 else 0),
                         ]
                     )
                     t.add_row(
-                        ["Votes with current RC", "%d votes" % (int(estimated_rc / rc_calc.vote()))]
+                        [
+                            "Votes with current RC",
+                            "%d votes" % (int(estimated_rc / vote_val) if vote_val > 0 else 0),
+                        ]
                     )
                     t.add_row(
                         [
                             "Transfers with current RC",
-                            "%d transfers" % (int(estimated_rc / rc_calc.transfer())),
+                            "%d transfers"
+                            % (int(estimated_rc / transfer_val) if transfer_val > 0 else 0),
                         ]
                     )
                     t.add_row(
                         [
                             "Custom json with current RC",
-                            "%d json ops" % (int(estimated_rc / rc_calc.custom_json())),
+                            "%d json ops"
+                            % (int(estimated_rc / custom_json_val) if custom_json_val > 0 else 0),
                         ]
                     )
 
@@ -570,31 +639,62 @@ class Account(BlockchainObject):
                 ret += "Remaining: %.2f %%" % (remaining)
                 ret += " (%.0f kb of %.0f mb)\n" % (used_kb, allocated_mb)
             if rc_mana is not None:
-                estimated_rc = int(rc["max_rc"]) * rc_mana["current_pct"] / 100
+                if isinstance(rc, dict):
+                    max_rc = rc.get("max_rc", 0)
+                elif rc and isinstance(rc, list) and len(rc) > 0:
+                    max_rc = rc[0].get("max_rc", 0)
+                else:
+                    max_rc = 0
+                if isinstance(max_rc, dict):
+                    max_rc = max_rc.get("amount", 0)
+                estimated_rc = int(max_rc) * float(rc_mana["current_pct"]) / 100
                 ret += "--- RC manabar ---\n"
                 ret += "Remaining: %.2f %%" % (rc_mana["current_pct"])
                 ret += " (%.0f G RC of %.0f G RC)\n" % (
                     estimated_rc / 10**9,
-                    int(rc["max_rc"]) / 10**9,
+                    int(max_rc) / 10**9,
                 )
                 ret += "full in %s\n" % (self.get_manabar_recharge_time_str(rc_mana))
                 ret += "--- Approx Costs ---\n"
                 if rc_calc is not None:
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values for division
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
+                    )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
                     ret += "comment - %.2f G RC - enough RC for %d comments\n" % (
-                        rc_calc.comment() / 10**9,
-                        int(estimated_rc / rc_calc.comment()),
+                        comment_val / 10**9,
+                        int(estimated_rc / comment_val) if comment_val > 0 else 0,
                     )
                     ret += "vote - %.2f G RC - enough RC for %d votes\n" % (
-                        rc_calc.vote() / 10**9,
-                        int(estimated_rc / rc_calc.vote()),
+                        vote_val / 10**9,
+                        int(estimated_rc / vote_val) if vote_val > 0 else 0,
                     )
                     ret += "transfer - %.2f G RC - enough RC for %d transfers\n" % (
-                        rc_calc.transfer() / 10**9,
-                        int(estimated_rc / rc_calc.transfer()),
+                        transfer_val / 10**9,
+                        int(estimated_rc / transfer_val) if transfer_val > 0 else 0,
                     )
                     ret += "custom_json - %.2f G RC - enough RC for %d custom_json\n" % (
-                        rc_calc.custom_json() / 10**9,
-                        int(estimated_rc / rc_calc.custom_json()),
+                        custom_json_val / 10**9,
+                        int(estimated_rc / custom_json_val) if custom_json_val > 0 else 0,
                     )
             if return_str:
                 return ret
@@ -640,7 +740,7 @@ class Account(BlockchainObject):
             log.warning(f"No reputation data available for {self['name']}")
             return reputation_to_score(0)
 
-    def get_manabar(self) -> Dict[str, Union[int, float]]:
+    def get_manabar(self) -> Dict[str, Union[int, float, Amount]]:
         """
         Return the account's voting manabar state.
 
@@ -678,7 +778,7 @@ class Account(BlockchainObject):
         if current_mana > max_mana:
             current_mana = max_mana
         if max_mana > 0:
-            current_mana_pct = current_mana / max_mana * 100
+            current_mana_pct = float(current_mana) / float(max_mana) * 100
         else:
             current_mana_pct = 0
         return {
@@ -689,7 +789,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_downvote_manabar(self) -> Dict[str, Union[int, float]]:
+    def get_downvote_manabar(self) -> Dict[str, Union[int, float, Amount]] | None:
         """
         Return the account's downvote manabar state and regeneration progress.
 
@@ -722,7 +822,7 @@ class Account(BlockchainObject):
         if current_mana > max_mana:
             current_mana = max_mana
         if max_mana > 0:
-            current_mana_pct = current_mana / max_mana * 100
+            current_mana_pct = float(current_mana) / float(max_mana) * 100
         else:
             current_mana_pct = 0
         return {
@@ -751,7 +851,7 @@ class Account(BlockchainObject):
                 total_vp = manabar["current_mana_pct"]
             else:
                 if manabar["max_mana"] > 0:
-                    total_vp = manabar["last_mana"] / manabar["max_mana"] * 100
+                    total_vp = float(manabar["last_mana"]) / float(manabar["max_mana"]) * 100
                 else:
                     total_vp = 0
         elif "voting_power" in self:
@@ -765,10 +865,10 @@ class Account(BlockchainObject):
                 regenerated_vp = 0
             total_vp = self["voting_power"] / 100 + regenerated_vp
         if total_vp > 100:
-            return 100
+            return 100.0
         if total_vp < 0:
-            return 0
-        return total_vp
+            return 0.0
+        return float(total_vp)
 
     def get_downvoting_power(self, with_regeneration: bool = True) -> float:
         """Returns the account downvoting power in the range of 0-100%
@@ -780,18 +880,20 @@ class Account(BlockchainObject):
             return 0
 
         manabar = self.get_downvote_manabar()
+        if manabar is None:
+            return 0.0
         if with_regeneration:
             total_down_vp = manabar["current_mana_pct"]
         else:
             if manabar["max_mana"] > 0:
-                total_down_vp = manabar["last_mana"] / manabar["max_mana"] * 100
+                total_down_vp = float(manabar["last_mana"]) / float(manabar["max_mana"]) * 100
             else:
                 total_down_vp = 0
         if total_down_vp > 100:
-            return 100
+            return 100.0
         if total_down_vp < 0:
-            return 0
-        return total_down_vp
+            return 0.0
+        return float(total_down_vp)
 
     def get_vests(self, only_own_vests: bool = False) -> Amount:
         """Returns the account vests
@@ -809,7 +911,7 @@ class Account(BlockchainObject):
 
         return vests
 
-    def get_effective_vesting_shares(self) -> Amount:
+    def get_effective_vesting_shares(self) -> int:
         """
         Return the account's effective vesting shares as an integer.
 
@@ -830,12 +932,23 @@ class Account(BlockchainObject):
                 + int(self["received_vesting_shares"])
             )
         next_withdraw = self["next_vesting_withdrawal"]
+        if next_withdraw is None:
+            return vesting_shares
         if isinstance(next_withdraw, str):
             next_withdraw_dt = datetime.strptime(next_withdraw, "%Y-%m-%dT%H:%M:%S").replace(
                 tzinfo=timezone.utc
             )
-        else:
+        elif isinstance(next_withdraw, (datetime, date, time)):
             next_withdraw_dt = addTzInfo(next_withdraw)
+            if next_withdraw_dt is None:
+                return vesting_shares
+            # Ensure we have a datetime object for the subtraction
+            if not isinstance(next_withdraw_dt, datetime):
+                next_withdraw_dt = datetime.combine(next_withdraw_dt, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
+        else:
+            return vesting_shares
         timestamp = (next_withdraw_dt - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds()
         if (
             timestamp > 0
@@ -988,7 +1101,8 @@ class Account(BlockchainObject):
         if voting_power is None:
             voting_power = self.get_voting_power()
         if token_power is None:
-            token_power = self.get_token_power()
+            token_power_amount = self.get_token_power()
+            token_power = float(token_power_amount) if token_power_amount else 0.0
 
         if isinstance(token_units, Amount):
             desired_value = Amount(token_units, blockchain_instance=self.blockchain)
@@ -1081,7 +1195,7 @@ class Account(BlockchainObject):
         else:
             raise ValueError("starting_voting_power must be a number.")
         if missing_vp < 0:
-            return 0
+            return timedelta(0)
         recharge_seconds = (
             missing_vp * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
@@ -1135,7 +1249,7 @@ class Account(BlockchainObject):
         else:
             missing_rc_pct = recharge_pct_goal - manabar["current_pct"]
         if missing_rc_pct < 0:
-            return 0
+            return timedelta(0)
         recharge_seconds = (
             missing_rc_pct * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
@@ -1710,8 +1824,16 @@ class Account(BlockchainObject):
         ret = []
         for i in range(len(symbols)):
             balance_sum = self.get_balance(self.available_balances, symbols[i])
-            balance_sum = balance_sum + self.get_balance(self.saving_balances, symbols[i])
-            balance_sum = balance_sum + self.get_balance(self.reward_balances, symbols[i])
+            saving_balance = self.get_balance(self.saving_balances, symbols[i])
+            reward_balance = self.get_balance(self.reward_balances, symbols[i])
+            if balance_sum is not None and saving_balance is not None:
+                balance_sum = balance_sum + saving_balance
+            elif saving_balance is not None:
+                balance_sum = saving_balance
+            if balance_sum is not None and reward_balance is not None:
+                balance_sum = balance_sum + reward_balance
+            elif reward_balance is not None:
+                balance_sum = reward_balance
             ret.append(balance_sum)
         return ret
 
@@ -1902,7 +2024,7 @@ class Account(BlockchainObject):
             account_bandwidth = None
         if account_bandwidth is None:
             return {"used": 0, "allocated": allocated_bandwidth}
-        last_bandwidth_update = formatTimeString(account_bandwidth["last_bandwidth_update"])
+        last_bandwidth_update = formatTimeString(str(account_bandwidth["last_bandwidth_update"]))
         average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
@@ -2236,8 +2358,12 @@ class Account(BlockchainObject):
         for vote in ret:
             if vote.get("voter") != account:
                 continue
-            last_update = formatTimeString(vote["last_update"])
-            if start_date is not None and last_update < start_date:
+            last_update = formatTimeString(str(vote["last_update"]))
+            if (
+                start_date is not None
+                and isinstance(last_update, datetime)
+                and last_update < start_date
+            ):
                 continue
             vote_list.append(vote)
         return vote_list
@@ -2335,7 +2461,7 @@ class Account(BlockchainObject):
         if index >= 0 and index < min_index:
             index = min_index
         op = self._get_account_history(start=(index))
-        if len(op) == 0:
+        if op is None or len(op) == 0:
             return None
         return op[0][1]["block"]
 
@@ -2422,18 +2548,17 @@ class Account(BlockchainObject):
             target_blocknum = blocktime
 
         # the requested blocknum/timestamp is before the account creation date
-        if target_blocknum <= created:
+        if created is not None and target_blocknum <= created:
             return 0
 
         # get the block number from the account's latest operation
         latest_blocknum = self._get_blocknum_from_hist(-1, min_index=min_index)
-
         # requested blocknum/timestamp is after the latest account operation
-        if target_blocknum >= latest_blocknum:
+        if latest_blocknum is not None and target_blocknum >= latest_blocknum:
             return max_index
 
         # all account ops in a single block
-        if latest_blocknum - created == 0:
+        if latest_blocknum is not None and created is not None and latest_blocknum - created == 0:
             return 0
 
         # set initial search range
@@ -2454,12 +2579,19 @@ class Account(BlockchainObject):
             # linear approximation between the known upper and
             # lower bounds for the first iteration
             if cnt < 1:
-                op_num = int(
-                    (target_blocknum - block_lower)
-                    / (block_upper - block_lower)
-                    * (op_upper - op_lower)
-                    + op_lower
-                )
+                if (
+                    block_lower is not None
+                    and block_upper is not None
+                    and block_upper != block_lower
+                ):
+                    op_num = int(
+                        (target_blocknum - block_lower)
+                        / (block_upper - block_lower)
+                        * (op_upper - op_lower)
+                        + op_lower
+                    )
+                else:
+                    op_num = op_lower
             else:
                 # divide and conquer for the following iterations
                 op_num = int((op_upper + op_lower) / 2)
@@ -2479,7 +2611,7 @@ class Account(BlockchainObject):
                 return op_num
 
             # set new upper/lower boundaries for next iteration
-            if block_num < target_blocknum:
+            if block_num is not None and block_num < target_blocknum:
                 # current op number was too low -> search upwards
                 op_lower = op_num
                 block_lower = block_num
@@ -2617,8 +2749,11 @@ class Account(BlockchainObject):
             txs = []
         if txs is None:
             return
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Only call addTzInfo on date/time objects, not integers
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
 
         if order == -1:
             txs_list = reversed(txs)
@@ -2883,8 +3018,11 @@ class Account(BlockchainObject):
         max_index = self.virtual_op_count()
         if not max_index:
             return
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Only call addTzInfo on date/time objects, not integers
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
         if (
             start is not None
             and not use_block_num
@@ -3189,8 +3327,12 @@ class Account(BlockchainObject):
         """
         _limit = batch_size
         first = self.virtual_op_count()
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        if start is not None and not isinstance(start, (datetime, date, time)):
+            # Don't call addTzInfo on integers
+            pass
+        if stop is not None and not isinstance(stop, (datetime, date, time)):
+            # Don't call addTzInfo on integers
+            pass
         if not first or not batch_size:
             return
         if start is not None and isinstance(start, int) and start < 0 and not use_block_num:
@@ -3444,9 +3586,10 @@ class Account(BlockchainObject):
 
         """
         if account is None:
-            account = self
+            account_name = self["name"]
         else:
-            account = Account(account, blockchain_instance=self.blockchain)
+            account_obj = Account(account, blockchain_instance=self.blockchain)
+            account_name = account_obj["name"]  # noqa: F841
 
         if not isinstance(profile, dict):
             raise ValueError("Profile must be a dict type!")
@@ -3525,9 +3668,10 @@ class Account(BlockchainObject):
 
         """
         if account is None:
-            account = self
+            account_name = self["name"]
         else:
-            account = Account(account, blockchain_instance=self.blockchain)
+            account_obj = Account(account, blockchain_instance=self.blockchain)
+            account_name = account_obj["name"]
 
         # if not isinstance(witnesses, (list, set, tuple)):
         #     witnesses = {witnesses}
@@ -3537,13 +3681,13 @@ class Account(BlockchainObject):
 
         op = operations.Account_witness_vote(
             **{
-                "account": account["name"],
+                "account": account_name,
                 "witness": witness,
                 "approve": approve,
                 "prefix": self.blockchain.prefix,
             }
         )
-        return self.blockchain.finalizeOp(op, account, "active", **kwargs)
+        return self.blockchain.finalizeOp(op, account_name, "active", **kwargs)
 
     def disapprovewitness(
         self, witness: str, account: str | None = None, **kwargs
@@ -3736,7 +3880,8 @@ class Account(BlockchainObject):
             from .memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
-            memo = memoObj.encrypt(memo[1:])["message"]
+            encrypted_memo = memoObj.encrypt(memo[1:])
+            memo = encrypted_memo["message"] if encrypted_memo else ""
 
         op = operations.Transfer(
             **{
@@ -3797,7 +3942,8 @@ class Account(BlockchainObject):
             from .memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
-            memo = memoObj.encrypt(memo[1:])["message"]
+            encrypted_memo = memoObj.encrypt(memo[1:])
+            memo = encrypted_memo["message"] if encrypted_memo else ""
 
         op = operations.Recurring_transfer(
             **{

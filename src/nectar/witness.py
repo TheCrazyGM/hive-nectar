@@ -323,9 +323,15 @@ class WitnessesObject(list):
                     ]
                 )
             else:
-                td = datetime.now(timezone.utc) - datetime.strptime(
-                    witness[last_bd_exchange_update], "%Y-%m-%dT%H:%M:%S"
-                ).replace(tzinfo=timezone.utc)
+                # Handle both string and datetime formats for exchange update timestamps
+                exchange_update = witness[last_bd_exchange_update]
+                if isinstance(exchange_update, str):
+                    exchange_update_dt = datetime.strptime(
+                        exchange_update, "%Y-%m-%dT%H:%M:%S"
+                    ).replace(tzinfo=timezone.utc)
+                else:
+                    exchange_update_dt = exchange_update
+                td = datetime.now(timezone.utc) - exchange_update_dt
                 t.add_row(
                     [
                         witness["owner"],

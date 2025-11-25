@@ -79,10 +79,19 @@ class Market(dict):
                 {"base": base, "quote": quote}, blockchain_instance=self.blockchain
             )
         elif base and quote:
-            quote = Asset(str(quote), blockchain_instance=self.blockchain)
-            base = Asset(str(base), blockchain_instance=self.blockchain)
+            # Handle Asset objects properly without converting to string
+            if isinstance(quote, Asset):
+                quote_asset = quote
+            else:
+                quote_asset = Asset(str(quote), blockchain_instance=self.blockchain)
+
+            if isinstance(base, Asset):
+                base_asset = base
+            else:
+                base_asset = Asset(str(base), blockchain_instance=self.blockchain)
+
             super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
+                {"base": base_asset, "quote": quote_asset}, blockchain_instance=self.blockchain
             )
         elif base is None and quote is None:
             quote = Asset(self.blockchain.backed_token_symbol, blockchain_instance=self.blockchain)

@@ -44,8 +44,21 @@ class Asset(BlockchainObject):
             self.chain_params = known_chains["HIVE"]
         cast(Dict[str, Any], self)["asset"] = ""
         found_asset = False
+
+        # Store original identifier before it gets overwritten
+        original_identifier = self.identifier
+        if hasattr(original_identifier, "symbol"):
+            # If identifier is an Asset object, get its symbol
+            original_identifier = original_identifier.symbol
+        elif hasattr(original_identifier, "identifier"):
+            # If identifier has an identifier attribute, get its string representation
+            original_identifier = str(original_identifier)
+        elif not isinstance(original_identifier, (str, int)):
+            # Convert to string if it's not already a string or int
+            original_identifier = str(original_identifier)
+
         for asset in self.chain_params["chain_assets"]:
-            if self.identifier in [asset["symbol"], asset["asset"], asset["id"]]:
+            if original_identifier in [asset["symbol"], str(asset["asset"]), str(asset["id"])]:
                 cast(Dict[str, Any], self)["asset"] = asset["asset"]
                 cast(Dict[str, Any], self)["precision"] = asset["precision"]
                 cast(Dict[str, Any], self)["id"] = asset["id"]
@@ -54,7 +67,7 @@ class Asset(BlockchainObject):
                 break
         if not found_asset:
             raise AssetDoesNotExistsException(
-                f"{self.identifier} chain_assets:{self.chain_params['chain_assets']}"
+                f"{original_identifier} chain_assets:{self.chain_params['chain_assets']}"
             )
 
     @property
