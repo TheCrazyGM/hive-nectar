@@ -13,19 +13,39 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List, Optional, Tuple, Union
 
-import ecdsa
-from ecdsa.curves import SECP256k1
-from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
+try:
+    import ecdsa
+    from ecdsa.curves import SECP256k1
+    from ecdsa.ellipticcurve import INFINITY as INFINITY_CONST
+    from ecdsa.ellipticcurve import Point as PointClass
+    from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
+
+    _HAS_ELLIPTIC_CURVE = True
+except ImportError:
+    # Fallback for older versions
+    import ecdsa
+    from ecdsa.curves import SECP256k1
+    from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
+
+    PointClass = None  # type: ignore
+    INFINITY_CONST = None  # type: ignore
+    _HAS_ELLIPTIC_CURVE = False
 
 from nectargraphenebase.base58 import base58CheckDecode, base58CheckEncode
 
 VerifyKey = ecdsa.VerifyingKey.from_public_point
 SigningKey = ecdsa.SigningKey.from_string
-PointObject = ecdsa.ellipticcurve.Point  # Point class
-CURVE_GEN = ecdsa.ecdsa.generator_secp256k1  # Point class
+if _HAS_ELLIPTIC_CURVE and PointClass is not None:
+    PointObject = PointClass
+else:
+    PointObject = ecdsa.ellipticcurve.Point  # type: ignore
+CURVE_GEN = ecdsa.SECP256k1.generator  # PointJacobi class
 CURVE_ORDER = CURVE_GEN.order()  # int
 FIELD_ORDER = SECP256k1.curve.p()  # int
-INFINITY = ecdsa.ellipticcurve.INFINITY  # Point
+if _HAS_ELLIPTIC_CURVE and INFINITY_CONST is not None:
+    INFINITY = INFINITY_CONST
+else:
+    INFINITY = ecdsa.ellipticcurve.INFINITY  # type: ignore
 
 MIN_ENTROPY_LEN = 128  # bits
 BIP32_HARDEN = 0x80000000  # choose from hardened set of child keys
@@ -210,7 +230,7 @@ class BIP32Key(object):
         i64 = hmac.new(self.C, data, hashlib.sha512).digest()
         return i64[:32], i64[32:]
 
-    def CKDpriv(self, i: int) -> "BIP32Key":
+    def CKDpriv(self, i: int) -> Optional["BIP32Key"]:
         """
         Create a child key of index 'i'.
 
@@ -225,6 +245,8 @@ class BIP32Key(object):
 
         # Data to HMAC
         if i & BIP32_HARDEN:
+            if self.k is None:
+                raise Exception("No private key available for hardened derivation")
             data = b"\0" + self.k.to_string() + i_str
         else:
             data = self.PublicKey() + i_str
@@ -234,6 +256,8 @@ class BIP32Key(object):
         # Construct new key material from Il and current private key
         Il_int = int.from_bytes(Il, "big")
         if Il_int > CURVE_ORDER:
+            return None
+        if self.k is None:
             return None
         pvt_int = int.from_bytes(self.k.to_string(), "big")
         k_int = (Il_int + pvt_int) % CURVE_ORDER
@@ -252,7 +276,7 @@ class BIP32Key(object):
             testnet=self.testnet,
         )
 
-    def CKDpub(self, i: int) -> "BIP32Key":
+    def CKDpub(self, i: int) -> Optional["BIP32Key"]:
         """
         Create a publicly derived child key of index 'i'.
 
@@ -276,12 +300,21 @@ class BIP32Key(object):
         Il_int = int.from_bytes(Il, "big")
         if Il_int >= CURVE_ORDER:
             return None
-        point = Il_int * CURVE_GEN + self.K.pubkey.point
-        if point == INFINITY:
+        if self.K is None:
+            return None
+        # Get the curve point from VerifyingKey
+        try:
+            # Try newer ecdsa version approach
+            point = self.K.point  # type: ignore[attr-defined]
+        except AttributeError:
+            # Fallback for older versions
+            point = self.K.pubkey.point  # type: ignore[attr-defined]
+        curve_point = Il_int * CURVE_GEN + point
+        if curve_point == INFINITY:
             return None
 
         # Retrieve public key based on curve point
-        K_i = VerifyKey(point, curve=SECP256k1)
+        K_i = VerifyKey(curve_point, curve=SECP256k1)
 
         # Construct and return a new BIP32Key
         return BIP32Key(
@@ -296,7 +329,7 @@ class BIP32Key(object):
 
     # Public methods
     #
-    def ChildKey(self, i: int) -> "BIP32Key":
+    def ChildKey(self, i: int) -> Optional["BIP32Key"]:
         """
         Create and return a child key of this one at index 'i'.
 
@@ -317,13 +350,23 @@ class BIP32Key(object):
         """Return private key as string"""
         if self.public:
             raise Exception("Publicly derived deterministic keys have no private half")
-        else:
-            return self.k.to_string()
+        if self.k is None:
+            raise Exception("No private key available")
+        return self.k.to_string()
 
     def PublicKey(self) -> bytes:
         """Return compressed public key encoding"""
-        padx = self.K.pubkey.point.x().to_bytes(32, "big")
-        if self.K.pubkey.point.y() & 1:
+        if self.K is None:
+            raise Exception("No public key available")
+        # Get the curve point from VerifyingKey
+        try:
+            # Try newer ecdsa version approach
+            point = self.K.point  # type: ignore[attr-defined]
+        except AttributeError:
+            # Fallback for older versions
+            point = self.K.pubkey.point  # type: ignore[attr-defined]
+        padx = point.x().to_bytes(32, "big")
+        if point.y() & 1:
             ck = b"\3" + padx
         else:
             ck = b"\2" + padx
@@ -372,6 +415,8 @@ class BIP32Key(object):
         """Returns private key encoded for wallet import"""
         if self.public:
             raise Exception("Publicly derived deterministic keys have no private half")
+        if self.k is None:
+            raise Exception("No private key available")
         addressversion = b"\x80" if not self.testnet else b"\xef"
         raw = self.k.to_string() + b"\x01"  # Always compressed
         # return check_encode(addressversion + raw)
@@ -422,10 +467,14 @@ class BIP32Key(object):
         print("   * Chain code")
         print("     * (hex):      ", self.C.hex())
         print("   * Serialized")
-        print("     * (pub hex):  ", self.ExtendedKey(private=False, encoded=False).hex())
+        pub_hex = self.ExtendedKey(private=False, encoded=False)
+        prv_hex = self.ExtendedKey(private=True, encoded=False) if not self.public else None
+        print("     * (pub hex):  ", pub_hex.hex() if isinstance(pub_hex, bytes) else str(pub_hex))
         print("     * (pub b58):  ", self.ExtendedKey(private=False, encoded=True))
         if self.public is False:
-            print("     * (prv hex):  ", self.ExtendedKey(private=True, encoded=False).hex())
+            print(
+                "     * (prv hex):  ", prv_hex.hex() if isinstance(prv_hex, bytes) else str(prv_hex)
+            )
             print("     * (prv b58):  ", self.ExtendedKey(private=True, encoded=True))
 
 
@@ -441,24 +490,39 @@ def test():
     m.dump()
 
     print("* [Chain m/0h]")
-    m = m.ChildKey(0 + BIP32_HARDEN)
-    m.dump()
+    m_child = m.ChildKey(0 + BIP32_HARDEN)
+    if m_child:
+        m_child.dump()
+    else:
+        print("Failed to create child key")
 
     print("* [Chain m/0h/1]")
-    m = m.ChildKey(1)
-    m.dump()
+    m_child2 = m_child.ChildKey(1) if m_child else None
+    if m_child2:
+        m_child2.dump()
+    else:
+        print("Failed to create grandchild key")
 
     print("* [Chain m/0h/1/2h]")
-    m = m.ChildKey(2 + BIP32_HARDEN)
-    m.dump()
+    m_child3 = m_child2.ChildKey(2 + BIP32_HARDEN) if m_child2 else None
+    if m_child3:
+        m_child3.dump()
+    else:
+        print("Failed to create great-grandchild key")
 
     print("* [Chain m/0h/1/2h/2]")
-    m = m.ChildKey(2)
-    m.dump()
+    m_child4 = m_child3.ChildKey(2) if m_child3 else None
+    if m_child4:
+        m_child4.dump()
+    else:
+        print("Failed to create 4th level key")
 
     print("* [Chain m/0h/1/2h/2/1000000000]")
-    m = m.ChildKey(1000000000)
-    m.dump()
+    m_child5 = m_child4.ChildKey(1000000000) if m_child4 else None
+    if m_child5:
+        m_child5.dump()
+    else:
+        print("Failed to create 5th level key")
 
     # BIP0032 Test vector 2
     entropy = a2b_hex(
@@ -472,24 +536,39 @@ def test():
     m.dump()
 
     print("* [Chain m/0]")
-    m = m.ChildKey(0)
-    m.dump()
+    m2_child = m.ChildKey(0)
+    if m2_child:
+        m2_child.dump()
+    else:
+        print("Failed to create child key")
 
     print("* [Chain m/0/2147483647h]")
-    m = m.ChildKey(2147483647 + BIP32_HARDEN)
-    m.dump()
+    m2_child2 = m2_child.ChildKey(2147483647 + BIP32_HARDEN) if m2_child else None
+    if m2_child2:
+        m2_child2.dump()
+    else:
+        print("Failed to create grandchild key")
 
     print("* [Chain m/0/2147483647h/1]")
-    m = m.ChildKey(1)
-    m.dump()
+    m2_child3 = m2_child2.ChildKey(1) if m2_child2 else None
+    if m2_child3:
+        m2_child3.dump()
+    else:
+        print("Failed to create great-grandchild key")
 
     print("* [Chain m/0/2147483647h/1/2147483646h]")
-    m = m.ChildKey(2147483646 + BIP32_HARDEN)
-    m.dump()
+    m2_child4 = m2_child3.ChildKey(2147483646 + BIP32_HARDEN) if m2_child3 else None
+    if m2_child4:
+        m2_child4.dump()
+    else:
+        print("Failed to create 4th level key")
 
     print("* [Chain m/0/2147483647h/1/2147483646h/2]")
-    m = m.ChildKey(2)
-    m.dump()
+    m2_child5 = m2_child4.ChildKey(2) if m2_child4 else None
+    if m2_child5:
+        m2_child5.dump()
+    else:
+        print("Failed to create 5th level key")
 
 
 if __name__ == "__main__":
