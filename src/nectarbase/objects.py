@@ -165,13 +165,17 @@ class Operation(GPHOperation):
         # return json.loads(str(json.dumps([self.name, self.op.toJson()])))
 
     def __bytes__(self) -> bytes:
-        return bytes(Id(self.opId)) + bytes(self.op)
+        if self.opId is not None:
+            return bytes(Id(self.opId)) + bytes(self.op)
+        return bytes(self.op)
 
     def __str__(self) -> str:
         if self.appbase:
-            return json.dumps({"type": self.name.lower() + "_operation", "value": self.op.toJson()})
+            op_data = self.op.toJson() if isinstance(self.op, GrapheneObject) else str(self.op)
+            return json.dumps({"type": self.name.lower() + "_operation", "value": op_data})
         else:
-            return json.dumps([self.name.lower(), self.op.toJson()])
+            op_data = self.op.toJson() if isinstance(self.op, GrapheneObject) else str(self.op)
+            return json.dumps([self.name.lower(), op_data])
 
 
 class Memo(GrapheneObject):
@@ -287,9 +291,9 @@ class Permission(GrapheneObject):
                 key=lambda x: x[0],
                 reverse=False,
             )
-            accountAuths = Map([[String(e[0]), Uint16(e[1])] for e in kwargs["account_auths"]])
+            accountAuths = Map([(String(e[0]), Uint16(e[1])) for e in kwargs["account_auths"]])
             keyAuths = Map(
-                [[PublicKey(e[0], prefix=prefix), Uint16(e[1])] for e in kwargs["key_auths"]]
+                [(PublicKey(e[0], prefix=prefix), Uint16(e[1])) for e in kwargs["key_auths"]]
             )
             super(Permission, self).__init__(
                 OrderedDict(
@@ -307,7 +311,7 @@ class Extension(Array):
         """We overload the __str__ function because the json
         representation is different for extensions
         """
-        return json.dumps(self.json)
+        return json.dumps(self.data if hasattr(self, "data") else [])
 
 
 class ExchangeRate(GrapheneObject):
