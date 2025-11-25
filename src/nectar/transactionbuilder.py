@@ -354,7 +354,7 @@ class TransactionBuilder(dict):
             head_time = datetime.strptime(head_time_str, "%Y-%m-%dT%H:%M:%S").replace(
                 tzinfo=timezone.utc
             )
-            now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            now_utc = datetime.now(timezone.utc)
             base_time = max(head_time, now_utc)
             expiration_dt = base_time + timedelta(seconds=exp_seconds)
             expiration = expiration_dt.strftime("%Y-%m-%dT%H:%M:%S")

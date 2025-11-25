@@ -1637,7 +1637,11 @@ class BlockChainInstance(object):
             posting_accounts_authority.append([addaccount["name"], 1])
 
         props = self.get_chain_properties()
-        if self.hardfork >= 20:
+        try:
+            hardfork_version = int(self.hardfork)
+        except (ValueError, TypeError):
+            hardfork_version = 0
+        if hardfork_version >= 20:
             required_fee = Amount(props["account_creation_fee"], blockchain_instance=self)
         else:
             required_fee = Amount(props["account_creation_fee"], blockchain_instance=self) * 30

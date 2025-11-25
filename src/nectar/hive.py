@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Union
 
 from nectar.blockchaininstance import BlockChainInstance
 from nectar.constants import HIVE_100_PERCENT
+from nectar.price import Price
 from nectargraphenebase.chains import known_chains
 
 from .amount import Amount
@@ -156,7 +157,12 @@ class Hive(BlockChainInstance):
             return 0
         fund_per_share = reward_balance / (recent_claims)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
-        if median_price is None or isinstance(median_price, dict):
+        # Check if median_price is a valid Price object (not None or raw dict)
+        from nectar.price import Price
+
+        if median_price is None or (
+            isinstance(median_price, dict) and not isinstance(median_price, Price)
+        ):
             return 0
         HBD_price = float(median_price * Amount(1, self.hive_symbol, blockchain_instance=self))
         return fund_per_share * HBD_price
@@ -468,7 +474,7 @@ class Hive(BlockChainInstance):
             not reward_fund
             or not isinstance(reward_fund, dict)
             or not median_price
-            or isinstance(median_price, dict)
+            or (isinstance(median_price, dict) and not isinstance(median_price, Price))
         ):
             return int(float(hbd) / self.get_hbd_per_rshares(use_stored_data=use_stored_data))
         recent_claims = int(reward_fund["recent_claims"])
@@ -535,7 +541,7 @@ class Hive(BlockChainInstance):
             raise ValueError("Either hive_power or vests has to be set. Not both!")
         if hive_power is not None:
             vests_value = self.hp_to_vests(hive_power, use_stored_data=use_stored_data)
-            vests = int(vests_value * 1e6) if vests_value is not None else 0
+            vests = int(vests_value) if vests_value is not None else 0
 
         # Convert version string to comparable format (e.g., "1.24.0" -> "1.24")
         hardfork_version = self.hardfork.rsplit(".", 1)[0]  # Remove last segment
@@ -570,7 +576,7 @@ class Hive(BlockChainInstance):
         used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests_value * 1e6)
         # Invert the linear relation (ignoring ceil):
         vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
-        return int(math.copysign(vote_pct_abs, rshares))
+        return int(round(math.copysign(vote_pct_abs, rshares)))
 
     def hbd_to_vote_pct(
         self,
@@ -648,12 +654,16 @@ class Hive(BlockChainInstance):
     @property
     def hbd_symbol(self) -> str:
         params = self.chain_params
-        return params["backed_token_symbol"] if params else "HBD"
+        if params and isinstance(params, dict):
+            return params.get("backed_token_symbol", "HBD")
+        return "HBD"
 
     @property
     def hive_symbol(self) -> str:
         params = self.chain_params
-        return params["token_symbol"] if params else "HIVE"
+        if params and isinstance(params, dict):
+            return params.get("token_symbol", "HIVE")
+        return "HIVE"
 
     @property
     def vests_symbol(self) -> str:

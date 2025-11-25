@@ -23,7 +23,7 @@ class Testcases(unittest.TestCase):
         expected = os.path.join(directory, "testing.sqlite")
 
         store = MyStore(profile="testing", data_dir=directory)
-        self.assertEqual(store.sqlite_file, expected)
+        self.assertEqual(str(store.sqlite_file), expected)
 
     def test_initialdata(self):
         store = MyStore()

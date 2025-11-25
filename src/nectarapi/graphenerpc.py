@@ -208,6 +208,7 @@ class GrapheneRPC(object):
             UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
         """
         assert self.session is not None, "Session must be initialized"
+        assert self.url is not None, "URL must be initialized"
         if self.user is not None and self.password is not None:
             response = self.session.post(
                 self.url,
@@ -392,7 +393,7 @@ class GrapheneRPC(object):
         elif re.search("Gateway Timeout", reply_str) or re.search("504", reply_str):
             raise RPCErrorDoRetry("Gateway Timeout")
         elif re.search("HTTP Version not supported", reply_str) or re.search("505", reply_str):
-            raise RPCErrorDoRetry("HTTP Version not supported")
+            raise RPCError("HTTP Version not supported")
         elif re.search("Proxy Authentication Required", reply_str) or re.search("407", reply_str):
             raise RPCErrorDoRetry("Proxy Authentication Required")
         elif re.search("Request Timeout", reply_str) or re.search("408", reply_str):
