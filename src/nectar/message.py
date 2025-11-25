@@ -214,7 +214,7 @@ class MessageV2(object):
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> str:
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Dict[str, Any]:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)

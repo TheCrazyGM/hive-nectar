@@ -241,7 +241,10 @@ class Memo(object):
             # Convert nonce to int for encode_memo_bts
             nonce_int = int(nonce) if nonce else 0
             enc = BtsMemo.encode_memo_bts(
-                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce_int, memo
+                PrivateKey(memo_wif),
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                nonce_int,
+                memo,
             )
 
             return {
@@ -253,8 +256,8 @@ class Memo(object):
         else:
             enc = BtsMemo.encode_memo(
                 PrivateKey(memo_wif),
-                PublicKey(pubkey, prefix=self.chain_prefix),
-                nonce,
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                int(nonce),
                 memo,
                 prefix=self.chain_prefix,
             )
@@ -296,13 +299,13 @@ class Memo(object):
 
         file_size = os.path.getsize(infile)
         priv = PrivateKey(memo_wif)
-        pub = PublicKey(pubkey, prefix=self.chain_prefix)
+        pub = PublicKey(str(pubkey), prefix=self.chain_prefix)
         enc = BtsMemo.encode_memo(
-            priv, pub, nonce, "nectar/%s" % __version__, prefix=self.chain_prefix
+            priv, pub, int(nonce), "nectar/%s" % __version__, prefix=self.chain_prefix
         )
         enc = unhexlify(base58decode(enc[1:]))
         shared_secret = BtsMemo.get_shared_secret(priv, pub)
-        aes, check = BtsMemo.init_aes2(shared_secret, nonce)
+        aes, check = BtsMemo.init_aes2(shared_secret, int(nonce))
         with open(outfile, "wb") as fout:
             fout.write(struct.pack("<Q", len(enc)))
             fout.write(enc)
@@ -381,9 +384,7 @@ class Memo(object):
                     pubkey = to_key
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
             pubkey = memo_to
@@ -392,22 +393,30 @@ class Memo(object):
             pubkey = memo_from
         else:
             try:
-                memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
-                pubkey = memo_from["memo_key"]
+                if isinstance(memo_to, Account):
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
+                else:
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_to))
+                if isinstance(memo_from, Account):
+                    pubkey = memo_from["memo_key"]
+                else:
+                    pubkey = memo_from
             except MissingKeyError:
                 try:
                     # if that failed, we assume that we have sent the memo
-                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
-                        memo_from["memo_key"]
-                    )
-                    pubkey = memo_to["memo_key"]
+                    if isinstance(memo_from, Account):
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
+                            memo_from["memo_key"]
+                        )
+                    else:
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_from))
+                    if isinstance(memo_to, Account):
+                        pubkey = memo_to["memo_key"]
+                    else:
+                        pubkey = memo_to
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"[
-                            memo_to["name"], memo_from["name"]
-                        ]
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
@@ -422,7 +431,10 @@ class Memo(object):
             return BtsMemo.decode_memo(PrivateKey(memo_wif), message)
         else:
             return BtsMemo.decode_memo_bts(
-                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce, message
+                PrivateKey(memo_wif),
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                int(nonce),
+                message,
             )
 
     def decrypt_binary(self, infile: str, outfile: str, buffer_size: int = 2048) -> Dict[str, Any]:
@@ -457,9 +469,7 @@ class Memo(object):
                     pubkey = to_key
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
             if isinstance(memo_to, Account):
@@ -474,31 +484,39 @@ class Memo(object):
                 pubkey = memo_from
         else:
             try:
-                memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
-                pubkey = memo_from["memo_key"]
+                if isinstance(memo_to, Account):
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
+                else:
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_to))
+                if isinstance(memo_from, Account):
+                    pubkey = memo_from["memo_key"]
+                else:
+                    pubkey = memo_from
             except MissingKeyError:
                 try:
                     # if that failed, we assume that we have sent the memo
-                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
-                        memo_from["memo_key"]
-                    )
-                    pubkey = memo_to["memo_key"]
+                    if isinstance(memo_from, Account):
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
+                            memo_from["memo_key"]
+                        )
+                    else:
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_from))
+                    if isinstance(memo_to, Account):
+                        pubkey = memo_to["memo_key"]
+                    else:
+                        pubkey = memo_to
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        f"Non of the required memo keys are installed!Need any of {[str(to_key), str(from_key)]}"[
-                            memo_to["name"], memo_from["name"]
-                        ]
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
         priv = PrivateKey(memo_wif)
-        pubkey = PublicKey(pubkey, prefix=self.chain_prefix)
+        pubkey = PublicKey(str(pubkey), prefix=self.chain_prefix)
         nectar_version = BtsMemo.decode_memo(priv, memo)
         shared_secret = BtsMemo.get_shared_secret(priv, pubkey)
         # Init encryption
-        aes, checksum = BtsMemo.init_aes2(shared_secret, nonce)
+        aes, checksum = BtsMemo.init_aes2(shared_secret, int(nonce))
         with open(infile, "rb") as fin:
             memo_size = struct.unpack("<Q", fin.read(struct.calcsize("<Q")))[0]
             memo = fin.read(memo_size)
