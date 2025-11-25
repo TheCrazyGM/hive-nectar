@@ -32,34 +32,47 @@ def formatTime(t: Union[float, datetime, date, time]) -> Optional[str]:
 
 def addTzInfo(
     t: Optional[Union[datetime, date, time]], timezone_str: str = "UTC"
-) -> Optional[Union[datetime, date, time]]:
+) -> Optional[datetime]:
     """Returns a datetime object with tzinfo added
     Uses Python's built-in timezone when possible
     """
-    if t and isinstance(t, (datetime, date, time)) and (getattr(t, "tzinfo", None) is None):
-        # Use built-in timezone
+    if not t:
+        return None
+
+    if isinstance(t, datetime):
+        if getattr(t, "tzinfo", None) is None:
+            # Use built-in timezone
+            if timezone_str.upper() == "UTC":
+                t = t.replace(tzinfo=timezone.utc)
+            else:
+                # For non-UTC timezones, we can't use pytz anymore
+                # This is a simplified approach - in the future, consider using zoneinfo for Python 3.9+
+                # For now, default to UTC with a warning
+                t = t.replace(tzinfo=timezone.utc)
+                print(
+                    f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
+                )
+        return t
+    elif isinstance(t, date) and not isinstance(t, datetime):
+        # Convert date to datetime
         if timezone_str.upper() == "UTC":
-            if isinstance(t, datetime):
-                t = t.replace(tzinfo=timezone.utc)
-            # For date objects that don't have tzinfo directly
-            elif isinstance(t, date) and not isinstance(t, datetime):
-                t = datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
-            elif isinstance(t, time):
-                t = datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
+            return datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
         else:
-            # For non-UTC timezones, we can't use pytz anymore
-            # This is a simplified approach - in the future, consider using zoneinfo for Python 3.9+
-            # For now, default to UTC with a warning
-            if isinstance(t, datetime):
-                t = t.replace(tzinfo=timezone.utc)
-            elif isinstance(t, date) and not isinstance(t, datetime):
-                t = datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
-            elif isinstance(t, time):
-                t = datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
             print(
                 f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
             )
-    return t
+            return datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
+    elif isinstance(t, time):
+        # Convert time to datetime
+        if timezone_str.upper() == "UTC":
+            return datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
+        else:
+            print(
+                f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
+            )
+            return datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
+
+    return None
 
 
 def formatTimeString(t: Union[str, datetime, date, time]) -> str:
@@ -71,7 +84,10 @@ def formatTimeString(t: Union[str, datetime, date, time]) -> str:
         elif isinstance(t, time):
             t = datetime.combine(date.today(), t)
         return t.strftime(timeFormat)
-    return addTzInfo(datetime.strptime(t, timeFormat)).strftime(timeFormat)
+    result = addTzInfo(datetime.strptime(t, timeFormat))
+    if result is None:
+        raise ValueError("Failed to add timezone info")
+    return result.strftime(timeFormat)
 
 
 def formatToTimeStamp(t: Union[datetime, date, time, str]) -> int:
@@ -81,7 +97,10 @@ def formatToTimeStamp(t: Union[datetime, date, time, str]) -> int:
     :return: Timestamp as integer
     """
     if isinstance(t, (datetime, date, time)):
-        t = addTzInfo(t)
+        t_with_tz = addTzInfo(t)
+        if t_with_tz is None:
+            raise ValueError("Failed to add timezone info")
+        t = t_with_tz
     else:
         t = formatTimeString(t)
     # Ensure we have a datetime object for subtraction
@@ -98,6 +117,8 @@ def formatToTimeStamp(t: Union[datetime, date, time, str]) -> int:
         raise TypeError(f"Expected datetime object, got {type(t)}")
 
     epoch = addTzInfo(datetime(1970, 1, 1))
+    if epoch is None:
+        raise ValueError("Failed to add timezone info to epoch")
     return int((t - epoch).total_seconds())
 
 
