@@ -257,6 +257,13 @@ class AccountSnapshot(list):
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         timestamp = addTzInfo(timestamp)
+        # Ensure timestamp is datetime for bisect_left
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        elif isinstance(timestamp, (date, time)):
+            timestamp = addTzInfo(timestamp)
+            if timestamp is None:
+                timestamp = datetime.now(timezone.utc)
         # Find rightmost value less than x
         i = bisect_left(self.timestamps, timestamp)
         if i:
@@ -466,8 +473,16 @@ class AccountSnapshot(list):
             start_timestamp = None
         for op in sorted(self, key=lambda k: k["timestamp"]):
             ts = parse_time(op["timestamp"])
-            if start_timestamp is not None and start_timestamp > ts:
-                continue
+            if start_timestamp is not None:
+                # Convert start_timestamp to datetime if it's time or date
+                if isinstance(start_timestamp, time):
+                    start_timestamp_dt = datetime.combine(datetime.now().date(), start_timestamp)
+                elif isinstance(start_timestamp, date):
+                    start_timestamp_dt = datetime.combine(start_timestamp, time.min)
+                else:
+                    start_timestamp_dt = start_timestamp
+                if start_timestamp_dt > ts:
+                    continue
             if op["type"] in exclude_ops:
                 continue
             if len(only_ops) > 0 and op["type"] not in only_ops:
@@ -766,7 +781,13 @@ class AccountSnapshot(list):
         self.vp_timestamp = [self.timestamps[1]]
         self.vp = [HIVE_100_PERCENT]
         HF_21 = datetime(2019, 8, 27, 15, tzinfo=timezone.utc)
-        if self.timestamps[1] > HF_21:
+        # Ensure timestamps[1] is datetime for comparison
+        ts1 = self.timestamps[1]
+        if isinstance(ts1, time):
+            ts1 = datetime.combine(datetime.now().date(), ts1)
+        elif isinstance(ts1, date):
+            ts1 = datetime.combine(ts1, time.min)
+        if ts1 is not None and ts1 > HF_21:
             self.downvote_vp_timestamp = [self.timestamps[1]]
         else:
             self.downvote_vp_timestamp = [HF_21]
@@ -790,10 +811,14 @@ class AccountSnapshot(list):
                         {"current_mana_pct": self.downvote_vp[-2] / 100}
                     )
                     # Add full downvote VP once fully charged
-                    self.downvote_vp_timestamp.append(
-                        self.downvote_vp_timestamp[-1] + recharge_time
-                    )
-                    self.downvote_vp.append(HIVE_100_PERCENT)
+                    last_ts = self.downvote_vp_timestamp[-1]
+                    if isinstance(last_ts, time):
+                        last_ts = datetime.combine(datetime.now().date(), last_ts)
+                    elif isinstance(last_ts, date):
+                        last_ts = datetime.combine(last_ts, time.min)
+                    if last_ts is not None:
+                        self.downvote_vp_timestamp.append(last_ts + recharge_time)
+                        self.downvote_vp.append(HIVE_100_PERCENT)
 
                 # Add charged downvote VP just before new Vote
                 self.downvote_vp_timestamp.append(ts - timedelta(seconds=1))
@@ -823,8 +848,14 @@ class AccountSnapshot(list):
                             {"current_mana_pct": self.vp[-2] / 100}
                         )
                         # Add full VP once fully charged
-                        self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                        self.vp.append(HIVE_100_PERCENT)
+                        last_vp_ts = self.vp_timestamp[-1]
+                        if isinstance(last_vp_ts, time):
+                            last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+                        elif isinstance(last_vp_ts, date):
+                            last_vp_ts = datetime.combine(last_vp_ts, time.min)
+                        if last_vp_ts is not None:
+                            self.vp_timestamp.append(last_vp_ts + recharge_time)
+                            self.vp.append(HIVE_100_PERCENT)
                     if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                         seconds=1
                     ):
@@ -856,8 +887,14 @@ class AccountSnapshot(list):
                         {"current_mana_pct": self.vp[-2] / 100}
                     )
                     # Add full VP once fully charged
-                    self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                    self.vp.append(HIVE_100_PERCENT)
+                    last_vp_ts = self.vp_timestamp[-1]
+                    if isinstance(last_vp_ts, time):
+                        last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+                    elif isinstance(last_vp_ts, date):
+                        last_vp_ts = datetime.combine(last_vp_ts, time.min)
+                    if last_vp_ts is not None:
+                        self.vp_timestamp.append(last_vp_ts + recharge_time)
+                        self.vp.append(HIVE_100_PERCENT)
                 if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                     seconds=1
                 ):
@@ -875,14 +912,26 @@ class AccountSnapshot(list):
             recharge_time = self.account.get_manabar_recharge_timedelta(
                 {"current_mana_pct": self.vp[-2] / 100}
             )
-            self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
+            last_vp_ts = self.vp_timestamp[-1]
+            if isinstance(last_vp_ts, time):
+                last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+            elif isinstance(last_vp_ts, date):
+                last_vp_ts = datetime.combine(last_vp_ts, time.min)
+            if last_vp_ts is not None:
+                self.vp_timestamp.append(last_vp_ts + recharge_time)
 
         if self.account.get_downvoting_power() == 100:
             self.downvote_vp.append(10000)
             recharge_time = self.account.get_manabar_recharge_timedelta(
                 {"current_mana_pct": self.downvote_vp[-2] / 100}
             )
-            self.downvote_vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
+            last_downvote_ts = self.downvote_vp_timestamp[-1]
+            if isinstance(last_downvote_ts, time):
+                last_downvote_ts = datetime.combine(datetime.now().date(), last_downvote_ts)
+            elif isinstance(last_downvote_ts, date):
+                last_downvote_ts = datetime.combine(last_downvote_ts, time.min)
+            if last_downvote_ts is not None:
+                self.downvote_vp_timestamp.append(last_downvote_ts + recharge_time)
 
         self.vp.append(self.account.get_voting_power() * 100)
         self.downvote_vp.append(self.account.get_downvoting_power() * 100)
