@@ -194,7 +194,7 @@ class Community(BlockchainObject):
                     output[field] = date_val
         return json.loads(str(json.dumps(output)))
 
-    def get_community_roles(self, limit: int = 100, last: str = None) -> list:
+    def get_community_roles(self, limit: int = 100, last: str | None = None) -> list:
         """Lists community roles
 
         Args:
@@ -218,7 +218,7 @@ class Community(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.list_community_roles(params, api="bridge")
 
-    def get_subscribers(self, limit: int = 100, last: str = None) -> list:
+    def get_subscribers(self, limit: int = 100, last: str | None = None) -> list:
         """Returns subscribers
 
         Args:
@@ -242,7 +242,7 @@ class Community(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.list_subscribers(params, api="bridge")
 
-    def get_activities(self, limit: int = 100, last_id: str = None) -> list:
+    def get_activities(self, limit: int = 100, last_id: str | None = None) -> list:
         """Returns community activity
 
         Args:
@@ -268,10 +268,10 @@ class Community(BlockchainObject):
 
     def get_ranked_posts(
         self,
-        observer: str = None,
+        observer: str | None = None,
         limit: int = 100,
-        start_author: str = None,
-        start_permlink: str = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
         sort: str = "created",
     ) -> list:
         """Returns community posts
@@ -776,8 +776,8 @@ class Communities(CommunityObject):
     def __init__(
         self,
         sort: str = "rank",
-        observer: str = None,
-        last: str = None,
+        observer: str | None = None,
+        last: str | None = None,
         limit: int = 100,
         lazy: bool = False,
         full: bool = True,
