@@ -938,7 +938,12 @@ class Comment(BlockchainObject):
                 max_rewards = median_price.as_base(self.blockchain.token_symbol) * (
                     pending_payout_value * curator_reward_factor
                 )
-            unclaimed_rewards = max_rewards.copy()
+            # max_rewards is an Amount, ensure we have a copy
+            if isinstance(max_rewards, Amount):
+                unclaimed_rewards = max_rewards.copy()
+            else:
+                # Convert to Amount if it's not already
+                unclaimed_rewards = Amount(max_rewards, blockchain_instance=self.blockchain)
             pending_rewards = True
 
         active_votes = {}
@@ -949,7 +954,12 @@ class Comment(BlockchainObject):
             else:
                 claim = 0
             if claim > 0 and pending_rewards:
-                unclaimed_rewards -= claim
+                # Ensure claim is an Amount for subtraction
+                if not isinstance(claim, Amount):
+                    claim_amount = Amount(claim, blockchain_instance=self.blockchain)
+                else:
+                    claim_amount = claim
+                unclaimed_rewards = unclaimed_rewards - claim_amount
             if claim > 0:
                 active_votes[vote["voter"]] = claim
             else:
@@ -1223,7 +1233,9 @@ class Comment(BlockchainObject):
         account = Account(account, blockchain_instance=self.blockchain)
         if identifier is None:
             identifier = self.identifier
-        author, permlink = resolve_authorperm(identifier)
+        if identifier is None:
+            raise ValueError("No identifier available")
+        author, permlink = resolve_authorperm(str(identifier))
         json_body = ["reblog", {"account": account["name"], "author": author, "permlink": permlink}]
         return self.blockchain.custom_json(
             id="follow", json_data=json_body, required_posting_auths=[account["name"]]
