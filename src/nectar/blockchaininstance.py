@@ -182,9 +182,13 @@ class BlockChainInstance(object):
             if node:
                 # Type assertion: we know node is not None here
                 assert node is not None
-                self.connect(node=node, rpcuser=rpcuser, rpcpassword=rpcpassword, **kwargs)
+                self.connect(
+                    node=node, rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                )
             else:
-                self.connect(node="", rpcuser=rpcuser, rpcpassword=rpcpassword, **kwargs)
+                self.connect(
+                    node="", rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                )
 
         self.clear_data()
         self.data_refresh_time_seconds = data_refresh_time_seconds
@@ -320,6 +324,7 @@ class BlockChainInstance(object):
                 if (
                     self.data["last_refresh_dynamic_global_properties"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -329,13 +334,15 @@ class BlockChainInstance(object):
                         return
                 self.data["last_refresh_dynamic_global_properties"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             self.data["dynamic_global_properties"] = self.get_dynamic_global_properties(False)
         elif chain_property == "feed_history":
             if not self.offline:
                 if (
                     self.data["last_refresh_feed_history"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -345,7 +352,8 @@ class BlockChainInstance(object):
 
                 self.data["last_refresh_feed_history"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             try:
                 self.data["feed_history"] = self.get_feed_history(False)
             except Exception:
@@ -356,6 +364,7 @@ class BlockChainInstance(object):
                 if (
                     self.data["last_refresh_hardfork_properties"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -365,7 +374,8 @@ class BlockChainInstance(object):
 
                 self.data["last_refresh_hardfork_properties"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             try:
                 self.data["hardfork_properties"] = self.get_hardfork_properties(False)
             except Exception:
@@ -375,6 +385,7 @@ class BlockChainInstance(object):
                 if (
                     self.data["last_refresh_witness_schedule"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -383,13 +394,15 @@ class BlockChainInstance(object):
                         return
                 self.data["last_refresh_witness_schedule"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             self.data["witness_schedule"] = self.get_witness_schedule(False)
         elif chain_property == "config":
             if not self.offline:
                 if (
                     self.data["last_refresh_config"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -398,7 +411,8 @@ class BlockChainInstance(object):
                         return
                 self.data["last_refresh_config"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             self.data["config"] = self.get_config(False)
             self.data["network"] = self.get_network(False, config=self.data["config"])
         elif chain_property == "reward_funds":
@@ -406,6 +420,7 @@ class BlockChainInstance(object):
                 if (
                     self.data["last_refresh_reward_funds"] is not None
                     and not force_refresh
+                    and self.rpc is not None
                     and self.data["last_node"] == self.rpc.url
                 ):
                     if (
@@ -415,7 +430,8 @@ class BlockChainInstance(object):
 
                 self.data["last_refresh_reward_funds"] = datetime.now(timezone.utc)
                 self.data["last_refresh"] = datetime.now(timezone.utc)
-                self.data["last_node"] = self.rpc.url
+                if self.rpc is not None:
+                    self.data["last_node"] = self.rpc.url
             self.data["reward_funds"] = self.get_reward_funds(False)
         else:
             raise ValueError("%s is not unkown" % str(chain_property))
@@ -625,10 +641,14 @@ class BlockChainInstance(object):
 
     def get_resource_params(self) -> Dict[str, Any]:
         """Returns the resource parameter"""
+        if self.rpc is None:
+            raise RuntimeError("RPC connection not established")
         return self.rpc.get_resource_params(api="rc_api")["resource_params"]
 
     def get_resource_pool(self) -> Dict[str, Any]:
         """Returns the resource pool"""
+        if self.rpc is None:
+            raise RuntimeError("RPC connection not established")
         return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
 
     def get_rc_cost(self, resource_count: Dict[str, int]) -> int:
@@ -659,7 +679,7 @@ class BlockChainInstance(object):
             current_pool = int(pools[resource_type]["pool"])
             count = resource_count[resource_type]
             count *= params[resource_type]["resource_dynamics_params"]["resource_unit"]
-            cost = self._compute_rc_cost(curve_params, current_pool, count, rc_regen)
+            cost = self._compute_rc_cost(curve_params, current_pool, int(count), int(rc_regen))
             total_cost += cost
         return total_cost
 
@@ -782,7 +802,7 @@ class BlockChainInstance(object):
             int: Signed r-shares corresponding to the provided vesting shares and vote parameters. Returns 0 if the computed r-shares are at-or-below the dust threshold when subtraction is enabled.
         """
         used_power = self._calc_resulting_vote(
-            voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
+            current_power=voting_power, weight=vote_pct, power=HIVE_100_PERCENT
         )
         # calculate vote rshares
         rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
@@ -893,7 +913,8 @@ class BlockChainInstance(object):
                 return witness_schedule["median_props"]
             return {}
         else:
-            return self.get_witness_schedule(use_stored_data)["median_props"]
+            witness_schedule = self.get_witness_schedule(use_stored_data)
+            return witness_schedule["median_props"] if witness_schedule else {}
 
     def get_witness_schedule(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
         """Return witness elected chain properties"""
@@ -939,7 +960,10 @@ class BlockChainInstance(object):
                 versions = hf_prop["current_hardfork_version"]
             else:
                 versions = self.get_blockchain_version()
-        return int(versions.split(".")[1])
+        # Ensure versions is a string before splitting
+        if isinstance(versions, dict):
+            versions = versions.get("HIVE_BLOCKCHAIN_VERSION", "0.0.0")
+        return int(str(versions).split(".")[1])
 
     @property
     def prefix(self) -> str:
@@ -1061,7 +1085,7 @@ class BlockChainInstance(object):
         if not isinstance(node, list):
             return
         offline = self.offline
-        while not offline and node[0] != self.rpc.url and len(node) > 1:
+        while not offline and self.rpc is not None and node[0] != self.rpc.url and len(node) > 1:
             node = node[1:] + [node[0]]
         self.set_default_nodes(node)
 
@@ -1201,7 +1225,7 @@ class BlockChainInstance(object):
         """
         return self.wallet.create(pwd)
 
-    def unlock(self, *args, **kwargs) -> None:
+    def unlock(self, *args, **kwargs) -> Optional[bool]:
         """Unlock the internal wallet"""
         return self.wallet.unlock(*args, **kwargs)
 
@@ -1225,7 +1249,11 @@ class BlockChainInstance(object):
         """
         # Remove blockchain_instance from kwargs if it exists to avoid duplicate
         kwargs.pop("blockchain_instance", None)
-        builder = TransactionBuilder(*args, blockchain_instance=self, **kwargs)
+
+        # Create a clean kwargs dict without blockchain_instance
+        clean_kwargs = {k: v for k, v in kwargs.items() if k != "blockchain_instance"}
+
+        builder = TransactionBuilder(*args, **clean_kwargs)
         self._txbuffers.append(builder)
         return builder
 
@@ -1239,7 +1267,7 @@ class BlockChainInstance(object):
     # Account related calls
     # -------------------------------------------------------------------------
     def claim_account(
-        self, creator: Optional[str] = None, fee: Optional[str] = None, **kwargs
+        self, creator: Optional[Union[str, "Account"]] = None, fee: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
         """
         Claim a subsidized account slot or pay the account-creation fee.
@@ -1267,7 +1295,7 @@ class BlockChainInstance(object):
                 + "creator=x, or set the default_account using hive-nectar"
             )
         assert creator is not None  # Type checker: creator is guaranteed not None here
-        creator = Account(creator, blockchain_instance=self)
+        creator = Account(creator, blockchain_instance=self)  # type: ignore[assignment]
         op = {
             "fee": Amount(fee, blockchain_instance=self),
             "creator": creator["name"],
@@ -1279,7 +1307,7 @@ class BlockChainInstance(object):
     def create_claimed_account(
         self,
         account_name: str,
-        creator: str | None = None,
+        creator: Optional[Union[str, "Account"]] = None,
         owner_key: str | None = None,
         active_key: str | None = None,
         memo_key: str | None = None,
@@ -1374,24 +1402,26 @@ class BlockChainInstance(object):
         except AccountDoesNotExistsException:
             pass
 
-        creator = Account(creator, blockchain_instance=self)
+        creator = Account(creator, blockchain_instance=self)  # type: ignore[assignment]
 
         " Generate new keys from password"
         from nectargraphenebase.account import PasswordKey
 
         if password:
-            active_key = PasswordKey(account_name, password, role="active", prefix=self.prefix)
-            owner_key = PasswordKey(account_name, password, role="owner", prefix=self.prefix)
-            posting_key = PasswordKey(account_name, password, role="posting", prefix=self.prefix)
-            memo_key = PasswordKey(account_name, password, role="memo", prefix=self.prefix)
-            active_pubkey = active_key.get_public_key()
-            owner_pubkey = owner_key.get_public_key()
-            posting_pubkey = posting_key.get_public_key()
-            memo_pubkey = memo_key.get_public_key()
-            active_privkey = active_key.get_private_key()
-            posting_privkey = posting_key.get_private_key()
-            owner_privkey = owner_key.get_private_key()
-            memo_privkey = memo_key.get_private_key()
+            active_key_obj = PasswordKey(account_name, password, role="active", prefix=self.prefix)
+            owner_key_obj = PasswordKey(account_name, password, role="owner", prefix=self.prefix)
+            posting_key_obj = PasswordKey(
+                account_name, password, role="posting", prefix=self.prefix
+            )
+            memo_key_obj = PasswordKey(account_name, password, role="memo", prefix=self.prefix)
+            active_pubkey = active_key_obj.get_public_key()
+            owner_pubkey = owner_key_obj.get_public_key()
+            posting_pubkey = posting_key_obj.get_public_key()
+            memo_pubkey = memo_key_obj.get_public_key()
+            active_privkey = active_key_obj.get_private_key()
+            posting_privkey = posting_key_obj.get_private_key()
+            owner_privkey = owner_key_obj.get_private_key()
+            memo_privkey = memo_key_obj.get_private_key()
             # store private keys
             try:
                 if storekeys and not self.nobroadcast:
@@ -1482,7 +1512,7 @@ class BlockChainInstance(object):
     def create_account(
         self,
         account_name: str,
-        creator=None,
+        creator: Optional[Union[str, "Account"]] = None,
         owner_key=None,
         active_key=None,
         memo_key=None,
@@ -1570,24 +1600,26 @@ class BlockChainInstance(object):
         except AccountDoesNotExistsException:
             pass
 
-        creator = Account(creator, blockchain_instance=self)
+        creator = Account(creator, blockchain_instance=self)  # type: ignore[assignment]
 
         " Generate new keys from password"
         from nectargraphenebase.account import PasswordKey
 
         if password:
-            active_key = PasswordKey(account_name, password, role="active", prefix=self.prefix)
-            owner_key = PasswordKey(account_name, password, role="owner", prefix=self.prefix)
-            posting_key = PasswordKey(account_name, password, role="posting", prefix=self.prefix)
-            memo_key = PasswordKey(account_name, password, role="memo", prefix=self.prefix)
-            active_pubkey = active_key.get_public_key()
-            owner_pubkey = owner_key.get_public_key()
-            posting_pubkey = posting_key.get_public_key()
-            memo_pubkey = memo_key.get_public_key()
-            active_privkey = active_key.get_private_key()
-            posting_privkey = posting_key.get_private_key()
-            owner_privkey = owner_key.get_private_key()
-            memo_privkey = memo_key.get_private_key()
+            active_key_obj = PasswordKey(account_name, password, role="active", prefix=self.prefix)
+            owner_key_obj = PasswordKey(account_name, password, role="owner", prefix=self.prefix)
+            posting_key_obj = PasswordKey(
+                account_name, password, role="posting", prefix=self.prefix
+            )
+            memo_key_obj = PasswordKey(account_name, password, role="memo", prefix=self.prefix)
+            active_pubkey = active_key_obj.get_public_key()
+            owner_pubkey = owner_key_obj.get_public_key()
+            posting_pubkey = posting_key_obj.get_public_key()
+            memo_pubkey = memo_key_obj.get_public_key()
+            active_privkey = active_key_obj.get_private_key()
+            posting_privkey = posting_key_obj.get_private_key()
+            owner_privkey = owner_key_obj.get_private_key()
+            memo_privkey = memo_key_obj.get_private_key()
             # store private keys
             try:
                 if storekeys and not self.nobroadcast:
@@ -1676,18 +1708,18 @@ class BlockChainInstance(object):
 
     def update_account(
         self,
-        account: str,
+        account: Optional[Union[str, "Account"]] = None,
         owner_key=None,
         active_key=None,
         memo_key=None,
         posting_key=None,
         password=None,
-        additional_owner_keys=None,
-        additional_active_keys=None,
-        additional_posting_keys=None,
-        additional_owner_accounts=None,
-        additional_active_accounts=None,
-        additional_posting_accounts=None,
+        additional_owner_keys: Optional[List[str]] = None,
+        additional_active_keys: Optional[List[str]] = None,
+        additional_posting_keys: Optional[List[str]] = None,
+        additional_owner_accounts: Optional[List[str]] = None,
+        additional_active_accounts: Optional[List[str]] = None,
+        additional_posting_accounts: Optional[List[str]] = None,
         storekeys: bool = True,
         store_owner_key: bool = False,
         json_meta=None,
@@ -1742,7 +1774,7 @@ class BlockChainInstance(object):
         if password and (owner_key or active_key or memo_key):
             raise ValueError("You cannot use 'password' AND provide keys!")
 
-        account = Account(account, blockchain_instance=self)
+        account = Account(account, blockchain_instance=self)  # type: ignore[assignment]
 
         " Generate new keys from password"
         from nectargraphenebase.account import PasswordKey
@@ -1800,12 +1832,15 @@ class BlockChainInstance(object):
             posting_accounts_authority = []
 
         # additional authorities
-        for k in additional_owner_keys:
-            owner_key_authority.append([k, 1])
-        for k in additional_active_keys:
-            active_key_authority.append([k, 1])
-        for k in additional_posting_keys:
-            posting_key_authority.append([k, 1])
+        if additional_owner_keys is not None:
+            for k in additional_owner_keys:
+                owner_key_authority.append([k, 1])
+        if additional_active_keys is not None:
+            for k in additional_active_keys:
+                active_key_authority.append([k, 1])
+        if additional_posting_keys is not None:
+            for k in additional_posting_keys:
+                posting_key_authority.append([k, 1])
 
         if additional_owner_accounts is not None:
             for k in additional_owner_accounts:
@@ -1929,7 +1964,7 @@ class BlockChainInstance(object):
         if not account:
             raise ValueError("You need to provide an account")
 
-        account = Account(account, blockchain_instance=self)
+        account = Account(account, blockchain_instance=self)  # type: ignore[assignment]
 
         try:
             PublicKey(signing_key, prefix=self.prefix)
@@ -1971,7 +2006,7 @@ class BlockChainInstance(object):
         if not account:
             raise ValueError("You need to provide an account")
 
-        account = Account(account, blockchain_instance=self)
+        account = Account(account, blockchain_instance=self)  # type: ignore[assignment]
         if not isinstance(proposal_ids, list):
             proposal_ids = [proposal_ids]
 
@@ -2252,9 +2287,9 @@ class BlockChainInstance(object):
             **{
                 "parent_author": parent_author.strip(),
                 "parent_permlink": parent_permlink.strip(),
-                "author": account["name"],
-                "permlink": permlink.strip(),
-                "title": title.strip(),
+                "author": account["name"] or "",
+                "permlink": permlink.strip() if permlink else "",
+                "title": title.strip() if title else "",
                 "body": body,
                 "json_metadata": json_metadata,
             }
@@ -2264,16 +2299,16 @@ class BlockChainInstance(object):
         # if comment_options are used, add a new op to the transaction
         if comment_options or beneficiaries:
             comment_op = self._build_comment_options_op(
-                account["name"], permlink, comment_options or {}, beneficiaries or []
+                account["name"] or "", permlink or "", comment_options or {}, beneficiaries or []
             )
             ops.append(comment_op)
 
         if self_vote:
             vote_op = operations.Vote(
                 **{
-                    "voter": account["name"],
-                    "author": account["name"],
-                    "permlink": permlink,
+                    "voter": account["name"] or "",
+                    "author": account["name"] or "",
+                    "permlink": permlink or "",
                     "weight": HIVE_100_PERCENT,
                 }
             )
@@ -2282,7 +2317,11 @@ class BlockChainInstance(object):
         return self.finalizeOp(ops, account, "posting", **kwargs)
 
     def vote(
-        self, weight: float, identifier: str, account: str | None = None, **kwargs
+        self,
+        weight: float,
+        identifier: str,
+        account: Optional[Union[str, "Account"]] = None,
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Cast a vote on a post.
@@ -2305,7 +2344,7 @@ class BlockChainInstance(object):
                 account = self.config["default_account"]
         if not account:
             raise ValueError("You need to provide an account")
-        account = Account(account, blockchain_instance=self)
+        account = Account(account, blockchain_instance=self)  # type: ignore[assignment]
 
         [post_author, post_permlink] = resolve_authorperm(identifier)
 
@@ -2317,7 +2356,7 @@ class BlockChainInstance(object):
 
         op = operations.Vote(
             **{
-                "voter": account["name"],
+                "voter": account["name"] or "",
                 "author": post_author,
                 "permlink": post_permlink,
                 "weight": vote_weight,
@@ -2359,7 +2398,7 @@ class BlockChainInstance(object):
             account = self.config["default_account"]
         if not account:
             raise ValueError("You need to provide an account")
-        account = Account(account, blockchain_instance=self)
+        account = Account(account, blockchain_instance=self)  # type: ignore[assignment]
         author, permlink = resolve_authorperm(identifier)
         op = self._build_comment_options_op(author, permlink, options, beneficiaries)
         return self.finalizeOp(op, account, "posting", **kwargs)
@@ -2448,6 +2487,8 @@ class BlockChainInstance(object):
         Returns:
             list: Method names (strings) provided by the node's JSON-RPC API.
         """
+        if self.rpc is None:
+            raise RuntimeError("RPC connection not established")
         return self.rpc.get_methods(api="jsonrpc")
 
     def get_apis(self) -> List[str]:
