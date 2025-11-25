@@ -74,7 +74,7 @@ class Block(BlockchainObject):
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
         if self.identifier is None:
-            self.identifier = self.block_num
+            self.identifier = self.get(self.id_item)
 
     def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
@@ -372,7 +372,12 @@ class BlockHeader(BlockchainObject):
     @property
     def block_num(self) -> int:
         """Returns the block number"""
-        return self.identifier
+        if self.identifier is None:
+            raise ValueError("Block identifier is not set")
+        if isinstance(self.identifier, int):
+            return self.identifier
+        # Try to convert string or other types to int
+        return int(self.identifier)
 
     def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
