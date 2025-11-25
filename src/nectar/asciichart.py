@@ -186,6 +186,8 @@ class AsciiChart(object):
         if n is not None:
             self.n = n
         self._calc_plot_parameter()
+        if self.n is None or self.rows is None:
+            return
         self.canvas = [
             [" "] * (int(self.n / (self.skip or 1)) + self.offset) for i in range(self.rows + 1)
         ]
