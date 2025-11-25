@@ -267,7 +267,7 @@ class Testcases(unittest.TestCase):
         try:
             tx = w.convert("1 HBD")
             with self.assertRaises(exceptions.MissingKeyError):
-                tx.sign()
+                tx.sign()  # type: ignore
         except UnhandledRPCError as e:
             if "Internal Server Error" in str(e):
                 self.skipTest(
@@ -501,7 +501,9 @@ class Testcases(unittest.TestCase):
             op_num1 = account.estimate_virtual_op_num(block.time(), stop_diff=1, max_count=100)
             op_num2 = account.estimate_virtual_op_num(block_num, stop_diff=1, max_count=100)
             op_num3 = account.estimate_virtual_op_num(block_num, stop_diff=100, max_count=100)
-            op_num4 = account.estimate_virtual_op_num(block_num, stop_diff=0.00001, max_count=100)
+            op_num4 = account.estimate_virtual_op_num(
+                block_num, stop_diff=0, max_count=100
+            )  # Use int instead of float
 
             # Basic sanity checks - these should be reasonably close
             self.assertTrue(abs(op_num1 - op_num2) < 10)  # Allow more tolerance
@@ -547,8 +549,8 @@ class Testcases(unittest.TestCase):
 
                     # Estimate the virtual operation number
                     op_num = account.estimate_virtual_op_num(
-                        block_num, stop_diff=0.1, max_count=100
-                    )
+                        int(block_num), stop_diff=0, max_count=100
+                    )  # Use int instead of float
 
                     # Basic sanity check - should be a reasonable number
                     self.assertTrue(op_num >= 0)
@@ -711,8 +713,8 @@ class Testcases(unittest.TestCase):
             # Basic sanity checks
             self.assertIsInstance(created, int)
             self.assertIsInstance(min_index, int)
-            self.assertTrue(created > 0)
-            self.assertTrue(min_index >= 0)
+            self.assertTrue(created > 0)  # type: ignore
+            self.assertTrue(min_index >= 0)  # type: ignore
 
             # Test getting block number from history
             if min_index == 0:
@@ -720,13 +722,13 @@ class Testcases(unittest.TestCase):
                 self.assertEqual(block, created)
 
                 # Test virtual op estimation
-                hist_num = account.estimate_virtual_op_num(block, min_index=min_index)
+                hist_num = account.estimate_virtual_op_num(int(block), min_index=min_index)
                 self.assertTrue(hist_num >= 0)
 
             # Test with different min_index
             min_index = 1
             block = account._get_blocknum_from_hist(0, min_index=min_index)
-            self.assertTrue(block > 0)
+            self.assertTrue(block > 0)  # type: ignore
 
         except Exception as e:
             self.skipTest(f"Block number from history test failed: {e}")
