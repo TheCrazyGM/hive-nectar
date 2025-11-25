@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
 import logging
 import math
@@ -4294,9 +4296,9 @@ class Account(BlockchainObject):
             op = operations.Claim_reward_balance(
                 **{
                     "account": account["name"],
-                    reward_token: reward_token_amount,
-                    reward_backed_token: reward_backed_token_amount,
-                    "reward_vests": reward_vests_amount,
+                    reward_token: reward_token_amount.json(),
+                    reward_backed_token: reward_backed_token_amount.json(),
+                    "reward_vests": reward_vests_amount.json(),
                     "prefix": self.blockchain.prefix,
                 }
             )
@@ -4304,8 +4306,8 @@ class Account(BlockchainObject):
             op = operations.Claim_reward_balance(
                 **{
                     "account": account["name"],
-                    reward_token: reward_token_amount,
-                    "reward_vests": reward_vests_amount,
+                    reward_token: reward_token_amount.json(),
+                    "reward_vests": reward_vests_amount.json(),
                     "prefix": self.blockchain.prefix,
                 }
             )
