@@ -460,7 +460,7 @@ class TransactionBuilder(dict):
             if not any(self.wifs):
                 raise MissingKeyError
 
-            self.tx.sign(self.wifs, chain=self.blockchain.chain_params)
+            self.tx.sign(list(self.wifs), chain=self.blockchain.chain_params)
             # Defensive: ensure self["signatures"] is a list before extend
             if isinstance(self["signatures"], str):
                 log.warning(
