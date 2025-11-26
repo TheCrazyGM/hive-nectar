@@ -1,7 +1,7 @@
 import binascii
 import unittest
 from binascii import unhexlify
-from typing import Optional, Sequence, cast
+from typing import Optional, cast
 
 from nectargraphenebase.account import Mnemonic
 from nectargraphenebase.bip32 import BIP32_HARDEN, BIP32Key, parse_path

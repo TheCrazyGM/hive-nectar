@@ -2,10 +2,10 @@ import json
 import struct
 import time
 from binascii import hexlify, unhexlify
+from collections.abc import Sequence
 
 # Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
-from collections.abc import Sequence
 from typing import Any, List, Optional, Tuple, Union
 
 # Import calendar only when needed to avoid circular imports
