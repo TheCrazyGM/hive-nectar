@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import io
 from binascii import hexlify
 from typing import Any, Dict, Optional, Union
@@ -12,7 +11,7 @@ from nectargraphenebase.ecdsasig import sign_message
 from .instance import shared_blockchain_instance
 
 
-class ImageUploader(object):
+class ImageUploader:
     def __init__(
         self,
         base_url: str = "https://images.hive.blog",
@@ -82,6 +81,6 @@ class ImageUploader(object):
         signature_in_hex = hexlify(signature).decode("ascii")
 
         files = {image_name or "image": image_data}
-        url = "%s/%s/%s" % (self.base_url, account["name"], signature_in_hex)
+        url = "{}/{}/{}".format(self.base_url, account["name"], signature_in_hex)
         r = requests.post(url, files=files)
         return r.json()

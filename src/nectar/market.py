@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import random
 from datetime import date, datetime, time, timedelta, timezone
@@ -75,9 +74,7 @@ class Market(dict):
             quote_symbol, base_symbol = assets_from_string(base)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
-            super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
-            )
+            super().__init__({"base": base, "quote": quote}, blockchain_instance=self.blockchain)
         elif base and quote:
             # Handle Asset objects properly without converting to string
             if isinstance(quote, Asset):
@@ -90,15 +87,13 @@ class Market(dict):
             else:
                 base_asset = Asset(str(base), blockchain_instance=self.blockchain)
 
-            super(Market, self).__init__(
+            super().__init__(
                 {"base": base_asset, "quote": quote_asset}, blockchain_instance=self.blockchain
             )
         elif base is None and quote is None:
             quote = Asset(self.blockchain.backed_token_symbol, blockchain_instance=self.blockchain)
             base = Asset(self.blockchain.token_symbol, blockchain_instance=self.blockchain)
-            super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
-            )
+            super().__init__({"base": base, "quote": quote}, blockchain_instance=self.blockchain)
         else:
             raise ValueError("Unknown Market config")
 
@@ -112,7 +107,7 @@ class Market(dict):
         Returns:
             str: Formatted market string in the form "<quote><separator><base>".
         """
-        return "%s%s%s" % (self["quote"]["symbol"], separator, self["base"]["symbol"])
+        return "{}{}{}".format(self["quote"]["symbol"], separator, self["base"]["symbol"])
 
     def __eq__(self, other: Union[str, "Market"]) -> bool:
         if isinstance(other, str):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import threading
 from datetime import datetime, timedelta, timezone
@@ -14,7 +13,7 @@ class ObjectCache(dict):
         default_expiration: int = 10,
         auto_clean: bool = True,
     ) -> None:
-        super(ObjectCache, self).__init__(initial_data or {})
+        super().__init__(initial_data or {})
         self.set_expiration(default_expiration)
         self.auto_clean = auto_clean
         self.lock = threading.RLock()
@@ -154,10 +153,10 @@ class BlockchainObject(dict):
             self.id_item = "id"
         if klass and isinstance(data, klass) and hasattr(data, "get"):
             self.identifier = data.get(self.id_item)  # type: ignore
-            super(BlockchainObject, self).__init__(data)
+            super().__init__(data)
         elif isinstance(data, dict):
             self.identifier = data.get(self.id_item)
-            super(BlockchainObject, self).__init__(data)
+            super().__init__(data)
         elif isinstance(data, int):
             # This is only for block number basically
             self.identifier = data
@@ -179,7 +178,7 @@ class BlockchainObject(dict):
                 # Here we assume we deal with an id
                 self.testid(self.identifier)
             if self.iscached(data):
-                super(BlockchainObject, self).__init__(self.getcache(data))
+                super().__init__(self.getcache(data))
             elif not lazy and not self.cached:
                 self.refresh()
 
@@ -243,20 +242,20 @@ class BlockchainObject(dict):
     def __getitem__(self, key: Any) -> Any:
         if not self.cached:
             self.refresh()
-        return super(BlockchainObject, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def items(self) -> List[Any]:
         if not self.cached:
             self.refresh()
-        return list(super(BlockchainObject, self).items())
+        return list(super().items())
 
     def __contains__(self, key: Any) -> bool:
         if not self.cached:
             self.refresh()
-        return super(BlockchainObject, self).__contains__(key)
+        return super().__contains__(key)
 
     def __repr__(self) -> str:
-        return "<%s %s>" % (self.__class__.__name__, str(self.identifier))
+        return "<{} {}>".format(self.__class__.__name__, str(self.identifier))
 
     def json(self) -> Dict[str, Any]:
         return json.loads(str(json.dumps(self)))

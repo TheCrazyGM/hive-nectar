@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #: Object types for object ids
 object_type = {}
 object_type["dynamic_global_property"] = 0

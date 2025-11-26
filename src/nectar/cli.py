@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import ast
 import calendar
 import hashlib
@@ -540,7 +539,7 @@ def updatenodes(show, test, only_https, only_wss):
             sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
             for node in sorted_nodes:
                 if node["url"] in nodes:
-                    score = float("{0:.1f}".format(node["score"]))
+                    score = float("{:.1f}".format(node["score"]))
                     t.add_row([node["url"], node["version"], score])
             print(t)
         if not test:
@@ -677,7 +676,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: %s - %s" % (account["name"], key_type))
+                print("Account: {} - {}".format(account["name"], key_type))
             except Exception as e:
                 print(str(e))
     else:
@@ -691,7 +690,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: %s - %s" % (account["name"], key_type))
+                print("Account: {} - {}".format(account["name"], key_type))
             except Exception as e:
                 print(str(e))
                 continue
@@ -1614,7 +1613,7 @@ def interest(account):
                 i["last_payment"],
                 "in %s" % (i["next_payment_duration"]),
                 "%.1f%%" % i["interest_rate"],
-                "%.3f %s" % (i["interest"], hv.backed_token_symbol),
+                "{:.3f} {}".format(i["interest"], hv.backed_token_symbol),
             ]
         )
     print(t)
@@ -1949,7 +1948,7 @@ def claimaccount(creator, fee, number, export):
     if not unlock_wallet(hv):
         return
     creator = Account(creator, blockchain_instance=hv)
-    fee = Amount("%.3f %s" % (float(fee), hv.token_symbol), blockchain_instance=hv)
+    fee = Amount("{:.3f} {}".format(float(fee), hv.token_symbol), blockchain_instance=hv)
     tx = None
     if float(fee) > 0:
         tx = hv.claim_account(creator, fee=fee)
@@ -2590,7 +2589,7 @@ def uploadimage(image, account, image_name):
     if image_name is None:
         print("![](%s)" % tx["url"])
     else:
-        print("![%s](%s)" % (image_name, tx["url"]))
+        print("![{}]({})".format(image_name, tx["url"]))
 
 
 @cli.command()
@@ -2682,7 +2681,7 @@ def download(permlink, account, save, export):
         if "beneficiaries" in comment:
             beneficiaries = []
             for b in comment["beneficiaries"]:
-                beneficiaries.append("%s:%.2f%%" % (b["account"], b["weight"] / 10000 * 100))
+                beneficiaries.append("{}:{:.2f}%".format(b["account"], b["weight"] / 10000 * 100))
             if len(beneficiaries) > 0:
                 yaml_prefix += "beneficiaries: %s\n" % ",".join(beneficiaries)
         if reply_identifier is not None:
@@ -2760,7 +2759,9 @@ def createpost(
                     continue
                 community = comm_cand[int(index) - 1]
             ret = input(
-                "Selected community: %s - %s [yes/no]? " % (community["name"], community["title"])
+                "Selected community: {} - {} [yes/no]? ".format(
+                    community["name"], community["title"]
+                )
             )
             if ret in ["y", "yes"]:
                 community_found = True
@@ -3258,16 +3259,16 @@ def stream(lines, head, table, follow):
             if ops_type == "custom_json":
                 content = ops["id"]
             elif ops_type == "vote":
-                content = "%.2f%% @%s/%s - %s" % (
+                content = "{:.2f}% @{}/{} - {}".format(
                     ops["weight"] / 100,
                     ops["author"],
                     ops["permlink"][:30],
                     ops["voter"],
                 )
             elif ops_type == "transfer":
-                content = "%s: @%s -> @%s" % (str(ops["amount"]), ops["from"], ops["to"])
+                content = "{}: @{} -> @{}".format(str(ops["amount"]), ops["from"], ops["to"])
             elif ops_type == "transfer_to_vesting":
-                content = "%s: @%s -> @%s" % (str(ops["amount"]), ops["from"], ops["to"])
+                content = "{}: @{} -> @{}".format(str(ops["amount"]), ops["from"], ops["to"])
             t.add_row([str(block_num), str(trx_num), ops_type, content])
             if op_count >= lines and not follow:
                 print(t)
@@ -3555,7 +3556,7 @@ def buy(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):
@@ -3616,7 +3617,7 @@ def sell(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):
@@ -3789,7 +3790,8 @@ def witnessupdate(
     if account_creation_fee is not None:
         props["account_creation_fee"] = str(
             Amount(
-                "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+                "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol),
+                blockchain_instance=hv,
             )
         )
     if maximum_block_size is not None:
@@ -3872,7 +3874,7 @@ def witnesscreate(
         return
     props = {
         "account_creation_fee": Amount(
-            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
         ),
         "maximum_block_size": int(maximum_block_size),
         "hbd_interest_rate": int(hbd_interest_rate * 100),
@@ -3914,7 +3916,7 @@ def witnessproperties(
     props = {}
     if account_creation_fee is not None:
         props["account_creation_fee"] = Amount(
-            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
         )
     if account_subsidy_budget is not None:
         props["account_subsidy_budget"] = int(account_subsidy_budget)
@@ -3975,7 +3977,9 @@ def witnessfeed(witness, wif, base, quote, support_peg):
 
     hive_usd = None
     print(
-        "Old price %.3f (base: %s, quote %s)" % (float(last_published_price), old_base, old_quote)
+        "Old price {:.3f} (base: {}, quote {})".format(
+            float(last_published_price), old_base, old_quote
+        )
     )
     if quote is None and not support_peg:
         quote = Amount("1.000 %s" % hv.token_symbol, blockchain_instance=hv)
@@ -4000,7 +4004,7 @@ def witnessfeed(witness, wif, base, quote, support_peg):
         else:
             base = Amount(base, hv.backed_token_symbol, blockchain_instance=hv)
     new_price = Price(base=base, quote=quote, blockchain_instance=hv)
-    print("New price %.3f (base: %s, quote %s)" % (float(new_price), base, quote))
+    print("New price {:.3f} (base: {}, quote {})".format(float(new_price), base, quote))
     if wif is not None:
         props = {"hbd_exchange_rate": new_price}
         tx = hv.witness_set_properties(wif, witness["owner"], props)
@@ -4410,9 +4414,9 @@ def curation(
                         + voter
                         + [
                             "%.1f min" % row[1],
-                            "%.3f %s" % (float(row[2]), hv.backed_token_symbol),
-                            "%.3f %s" % (float(row[3]), hv.backed_token_symbol),
-                            "%.3f %s" % (row[4], HP_symbol),
+                            "{:.3f} {}".format(float(row[2]), hv.backed_token_symbol),
+                            "{:.3f} {}".format(float(row[3]), hv.backed_token_symbol),
+                            "{:.3f} {}".format(row[4], HP_symbol),
                             "%.1f %%" % (row[5]),
                         ]
                     )
@@ -4431,9 +4435,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % highest_vote[1],
-                        "%.3f %s" % (float(highest_vote[2]), hv.backed_token_symbol),
-                        "%.3f %s" % (float(highest_vote[3]), hv.backed_token_symbol),
-                        "%.3f %s" % (highest_vote[4], HP_symbol),
+                        "{:.3f} {}".format(float(highest_vote[2]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(float(highest_vote[3]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(highest_vote[4], HP_symbol),
                         "%.1f %%" % (highest_vote[5]),
                     ]
                 )
@@ -4442,9 +4446,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % max_curation[1],
-                        "%.3f %s" % (float(max_curation[2]), hv.backed_token_symbol),
-                        "%.3f %s" % (float(max_curation[3]), hv.backed_token_symbol),
-                        "%.3f %s" % (max_curation[4], HP_symbol),
+                        "{:.3f} {}".format(float(max_curation[2]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(float(max_curation[3]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(max_curation[4], HP_symbol),
                         "%.1f %%" % (max_curation[5]),
                     ]
                 )
@@ -4453,9 +4457,9 @@ def curation(
                     sum_line
                     + [
                         "-",
-                        "%.3f %s" % (sum_curation[0], hv.backed_token_symbol),
-                        "%.3f %s" % (sum_curation[1], hv.backed_token_symbol),
-                        "%.3f %s" % (sum_curation[2], HP_symbol),
+                        "{:.3f} {}".format(sum_curation[0], hv.backed_token_symbol),
+                        "{:.3f} {}".format(sum_curation[1], hv.backed_token_symbol),
+                        "{:.3f} {}".format(sum_curation[2], HP_symbol),
                         "%.2f %%" % curation_sum_percentage,
                     ]
                 )
@@ -4601,7 +4605,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4613,7 +4617,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4624,7 +4628,7 @@ def rewards(
                     "Author",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4635,7 +4639,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4646,7 +4650,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4656,7 +4660,7 @@ def rewards(
                 [
                     "Received",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4827,8 +4831,8 @@ def rewards(
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -4838,8 +4842,8 @@ def rewards(
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -4850,8 +4854,8 @@ def rewards(
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -5155,8 +5159,8 @@ def pending(
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5166,8 +5170,8 @@ def pending(
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5178,8 +5182,8 @@ def pending(
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5871,7 +5875,7 @@ def draw(
         block["id"],
         trx_id,
     )
-    body += "| trx id | [%s](https://hiveblocks.com/tx/%s) |\n" % (trx_id, trx_id)
+    body += "| trx id | [{}](https://hiveblocks.com/tx/{}) |\n".format(trx_id, trx_id)
     body += "| block id | %s |\n" % block["block_id"]
     body += "| previous id | %s |\n" % block["previous"]
     body += "| hash type | %s |\n" % hashtype

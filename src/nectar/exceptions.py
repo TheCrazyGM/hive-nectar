@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 class NectarException(Exception):
     """Base exception for all Nectar-related errors"""
 

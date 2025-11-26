@@ -1,9 +1,5 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import json
 import unittest
-from builtins import str
 
 from nectarbase.objects import Operation
 from nectarbase.operations import Transfer

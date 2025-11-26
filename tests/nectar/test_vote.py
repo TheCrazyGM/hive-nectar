@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/python
 import unittest
 from datetime import datetime, timedelta, timezone

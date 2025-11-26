@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 import time
@@ -9,7 +8,7 @@ from .exceptions import CallRetriesReached, NumRetriesReached
 log = logging.getLogger(__name__)
 
 
-class Node(object):
+class Node:
     def __init__(self, url: str) -> None:
         self.url = url
         self.error_cnt = 0
@@ -45,7 +44,7 @@ class Nodes(list):
             url_list = [urls]
         else:
             url_list = []
-        super(Nodes, self).__init__([Node(x) for x in url_list])
+        super().__init__([Node(x) for x in url_list])
         self.current_node_index = -1
         self.freeze_current_node = False
 

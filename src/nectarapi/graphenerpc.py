@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import re
@@ -24,7 +23,7 @@ from .rpcutils import get_query
 log = logging.getLogger(__name__)
 
 
-class SessionInstance(object):
+class SessionInstance:
     """Singleton for the Session Instance"""
 
     instance = None
@@ -50,7 +49,7 @@ def shared_session_instance() -> requests.Session:
     return SessionInstance.instance
 
 
-class GrapheneRPC(object):
+class GrapheneRPC:
     """
     This class allows calling API methods synchronously, without callbacks.
 

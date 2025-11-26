@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import binascii
 import bisect
 import hashlib
@@ -364,7 +363,7 @@ class BrainKey(Prefix):
 #
 # Copyright (c) 2013 Pavol Rusnak
 # Copyright (c) 2017 mruddy
-class Mnemonic(object):
+class Mnemonic:
     """BIP39 mnemoric implementation"""
 
     def __init__(self) -> None:
@@ -424,7 +423,7 @@ class Mnemonic(object):
         hashBytes = hashlib.sha256(entropy).digest()
         hashBits = list(
             itertools.chain.from_iterable(
-                ([c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)
+                [c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes
             )
         )
         # Check all the checksum bits.

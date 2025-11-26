@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import re
@@ -36,7 +35,7 @@ class AccountSnapshot(list):
         blockchain_instance: Optional[Any] = None,
         **kwargs: Any,
     ) -> None:
-        super(AccountSnapshot, self).__init__(account_history or [])
+        super().__init__(account_history or [])
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize an AccountSnapshot for the given account.
@@ -62,7 +61,7 @@ class AccountSnapshot(list):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
-        super(AccountSnapshot, self).__init__(account_history or [])
+        super().__init__(account_history or [])
 
     def reset(self) -> None:
         """
@@ -305,7 +304,7 @@ class AccountSnapshot(list):
 
         Fetches operations from the underlying Account.history iterator and replaces the snapshot's contents with those operations. If start/stop are provided they may be block numbers or datetimes; set use_block_num=False to interpret them as virtual operation indices/timestamps instead of block numbers.
         """
-        super(AccountSnapshot, self).__init__(
+        super().__init__(
             [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
         )
 
@@ -1011,4 +1010,4 @@ class AccountSnapshot(list):
         return self.__repr__()
 
     def __repr__(self) -> str:
-        return "<%s %s>" % (self.__class__.__name__, str(self.account["name"]))
+        return "<{} {}>".format(self.__class__.__name__, str(self.account["name"]))

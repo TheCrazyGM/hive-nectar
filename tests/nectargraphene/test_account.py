@@ -1,11 +1,7 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import random
 import sys
 import unittest
 from binascii import hexlify, unhexlify
-from builtins import str
 
 from nectargraphenebase.account import (
     Address,
@@ -699,7 +695,7 @@ class Testcases(unittest.TestCase):
             self.assertEqual(v[i][3], xprv)
 
     def test_to_entropy(self):
-        data = [bytearray((random.getrandbits(8) for _ in range(32))) for _ in range(1024)]
+        data = [bytearray(random.getrandbits(8) for _ in range(32)) for _ in range(1024)]
         data.append(b"Lorem ipsum dolor sit amet amet.")
         m = Mnemonic()
         for d in data:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #: Operation ids
 from typing import Dict, List
 

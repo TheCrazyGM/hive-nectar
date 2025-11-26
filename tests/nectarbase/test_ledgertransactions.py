@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import pytest
 
 pytest.skip(
@@ -8,7 +6,6 @@ pytest.skip(
 
 import unittest
 from binascii import hexlify
-from builtins import range, super
 
 from nectar.amount import Amount
 from nectar.hive import Hive

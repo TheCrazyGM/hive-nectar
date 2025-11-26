@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 from typing import Any
 
@@ -16,7 +15,7 @@ class Demooepration(GrapheneObject):
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
-            super(Demooepration, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("string", String(kwargs["string"])),

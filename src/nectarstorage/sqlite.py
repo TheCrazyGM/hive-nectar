@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/sqlite.py
 import logging
 import shutil
@@ -124,7 +123,7 @@ class SQLiteFile:
         self.clean_data(backupdir)
 
 
-class SQLiteCommon(object):
+class SQLiteCommon:
     """This class abstracts away common sqlite3 operations.
 
     This class should not be used directly.

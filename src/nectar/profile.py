@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import json
 from typing import Any, Dict, Union
 
 try:
     from collections.abc import Mapping  # noqa
 except ImportError:
-    from collections import Mapping  # noqa
+    from collections.abc import Mapping  # noqa
 
 
 class DotDict(dict):
@@ -49,7 +48,7 @@ class Profile(DotDict):
 
         This constructor accepts the same arguments as DotDict (e.g., dot-separated key/value pairs, a dict, or a JSON string) and performs no additional processing.
         """
-        super(Profile, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __str__(self) -> str:
         return json.dumps(self)
@@ -66,4 +65,4 @@ class Profile(DotDict):
         if len(parts) > 1:
             self[parts[0]].pop(".".join(parts[1:]))
         else:
-            super(Profile, self).pop(parts[0], None)
+            super().pop(parts[0], None)

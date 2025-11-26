@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
 class StoreInterface(dict):
     """The store interface is the most general store that we can have.

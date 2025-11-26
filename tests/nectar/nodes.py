@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from nectar import Hive
 from nectar.nodelist import NodeList
 

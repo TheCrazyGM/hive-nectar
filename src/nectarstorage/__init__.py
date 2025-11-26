@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Load modules from other classes
 # # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/__init__.py
 from .base import (

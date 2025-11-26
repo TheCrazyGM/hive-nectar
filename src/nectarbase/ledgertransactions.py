@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from typing import Any, Dict, Mapping
 
@@ -34,7 +33,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
             for c in custom_chain:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
-        super(Ledger_Transaction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def add_custom_chains(self, custom_chain: Mapping[str, Any]) -> None:
         if len(custom_chain) > 0:

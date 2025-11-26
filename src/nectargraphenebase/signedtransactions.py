@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import logging
 from binascii import hexlify, unhexlify
@@ -62,7 +61,7 @@ class Signed_Transaction(GrapheneObject):
                 else:
                     kwargs["operations"] = Array(kwargs["operations"])
 
-            super(Signed_Transaction, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("ref_block_num", Uint16(kwargs["ref_block_num"])),
@@ -104,7 +103,7 @@ class Signed_Transaction(GrapheneObject):
             raise AssertionError()
         x, s = ecdsa.der.remove_integer(s)
         y, s = ecdsa.der.remove_integer(s)
-        return "%064x%064x" % (x, y)
+        return "{:064x}{:064x}".format(x, y)
 
     def getKnownChains(self) -> Dict[str, Any]:
         return known_chains

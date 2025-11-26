@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import struct
 from binascii import unhexlify
@@ -73,7 +72,7 @@ class TransactionBuilder(dict):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):
-            super(TransactionBuilder, self).__init__(tx)
+            super().__init__(tx)
             # Load operations
             self.ops = tx["operations"]
             self._require_reconstruction = False
@@ -253,7 +252,7 @@ class TransactionBuilder(dict):
                             key_found = True
             if not key_found:
                 raise AssertionError(
-                    "Could not find pubkey from %s in path: %s!" % (account["name"], self.path)
+                    "Could not find pubkey from {} in path: {}!".format(account["name"], self.path)
                 )
             return
 
@@ -383,7 +382,7 @@ class TransactionBuilder(dict):
             prefix=self.blockchain.prefix,
         )
 
-        super(TransactionBuilder, self).update(self.tx.json())
+        super().update(self.tx.json())
         self._unset_require_reconstruction()
 
     def get_block_params(self, use_head_block=False):
@@ -603,7 +602,7 @@ class TransactionBuilder(dict):
         self.ref_block_prefix = None
         # This makes sure that _is_constructed will return False afterwards
         self["expiration"] = None
-        super(TransactionBuilder, self).__init__({})
+        super().__init__({})
 
     def addSigningInformation(self, account, permission, reconstruct_tx=False):
         """This is a private method that adds side information to a

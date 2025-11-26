@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import gzip
 import logging
 from binascii import hexlify, unhexlify
@@ -29,7 +27,7 @@ def s_dump_binary(elt_to_pickle, file_obj):
     pickled_elt_str = dumps(elt_to_pickle)
     file_obj.write(hexlify(pickled_elt_str))
     # record separator is a blank line
-    file_obj.write(bytes("\n".encode("latin1")))
+    file_obj.write(bytes(b"\n"))
 
 
 def s_load_text(file_obj):

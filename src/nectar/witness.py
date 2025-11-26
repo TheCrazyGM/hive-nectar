@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import json
 import warnings
 from datetime import date, datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from prettytable import PrettyTable
 
@@ -32,10 +31,10 @@ class Witness(BlockchainObject):
 
     def __init__(
         self,
-        owner: Union[str, Dict[str, Any]],
+        owner: str | dict[str, Any],
         full: bool = False,
         lazy: bool = False,
-        blockchain_instance: Optional[Any] = None,
+        blockchain_instance: Any | None = None,
         **kwargs: Any,
     ) -> None:
         # Warn about any unused kwargs to maintain backward compatibility
@@ -64,7 +63,7 @@ class Witness(BlockchainObject):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(owner, dict):
             owner = self._parse_json_data(owner)
-        super(Witness, self).__init__(
+        super().__init__(
             owner, lazy=lazy, full=full, id_item="owner", blockchain_instance=self.blockchain
         )
 
@@ -93,7 +92,7 @@ class Witness(BlockchainObject):
         if not witness:
             raise WitnessDoesNotExistsException(self.identifier)
         witness = self._parse_json_data(witness)
-        super(Witness, self).__init__(
+        super().__init__(
             witness,
             id_item="owner",
             lazy=self.lazy,
@@ -101,7 +100,7 @@ class Witness(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, witness: Dict) -> Dict:
+    def _parse_json_data(self, witness: dict) -> dict:
         parse_times = [
             "created",
             "last_sbd_exchange_update",
@@ -122,7 +121,7 @@ class Witness(BlockchainObject):
                 witness[p] = int(witness.get(p, "0"))
         return witness
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         output = self.copy()
         parse_times = [
             "created",
@@ -397,7 +396,7 @@ class WitnessesObject(list):
         return self.printAsTable(return_str=True)
 
     def __repr__(self):
-        return "<%s %s>" % (
+        return "<{} {}>".format(
             self.__class__.__name__,
             str(getattr(self, "identifier", f"list_{len(self)}")),
         )
@@ -452,7 +451,7 @@ class GetWitnesses(WitnessesObject):
             )["witnesses"]
             name_cnt += batch_limit
         self.identifier = ""
-        super(GetWitnesses, self).__init__(
+        super().__init__(
             [
                 Witness(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in witnesses
@@ -501,7 +500,7 @@ class Witnesses(WitnessesObject):
             "current_witness"
         ]
         self.identifier = ""
-        super(Witnesses, self).__init__(
+        super().__init__(
             [
                 Witness(x, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain)
                 for x in self.active_witnessess
@@ -554,7 +553,7 @@ class WitnessesVotedByAccount(WitnessesObject):
         for w in witnessess_dict:
             witnessess.append(w["witness"])
 
-        super(WitnessesVotedByAccount, self).__init__(
+        super().__init__(
             [
                 Witness(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in witnessess
@@ -645,7 +644,7 @@ class WitnessesRankedByVote(WitnessesObject):
                 )
         if len(witnessList) == 0:
             return
-        super(WitnessesRankedByVote, self).__init__(witnessList)
+        super().__init__(witnessList)
 
 
 class ListWitnesses(WitnessesObject):
@@ -694,7 +693,7 @@ class ListWitnesses(WitnessesObject):
         )["witnesses"]
         if len(witnessess) == 0:
             return
-        super(ListWitnesses, self).__init__(
+        super().__init__(
             [
                 Witness(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in witnessess

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import unittest
-
-import mock
+from unittest import mock
 
 from nectar import Hive
 from nectar.account import Account

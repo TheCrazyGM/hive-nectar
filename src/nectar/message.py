@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import re
@@ -21,7 +20,7 @@ from .exceptions import (
 log = logging.getLogger(__name__)
 
 
-class MessageV1(object):
+class MessageV1:
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     MESSAGE_SPLIT = (
@@ -188,7 +187,7 @@ timestamp={meta[timestamp]}
         return True
 
 
-class MessageV2(object):
+class MessageV2:
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     def __init__(

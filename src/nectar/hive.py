@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import math
 from datetime import date, datetime, timezone

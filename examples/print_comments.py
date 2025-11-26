@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import logging
 
 from nectar.blockchain import Blockchain
@@ -9,7 +7,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-class DemoBot(object):
+class DemoBot:
     def comment(self, comment_event):
         print(
             "Comment by {} on post {} by {}:".format(

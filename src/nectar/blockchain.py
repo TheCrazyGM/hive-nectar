@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import json
 import logging
@@ -191,7 +190,7 @@ class Pool:
         return results
 
 
-class Blockchain(object):
+class Blockchain:
     """This class allows to access the blockchain and read data
     from it
 

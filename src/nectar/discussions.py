@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from typing import Any, List, Optional
 
@@ -90,7 +89,7 @@ class Query(dict):
         self["observer"] = observer
 
 
-class Discussions(object):
+class Discussions:
     """Get Discussions
 
     :param Hive blockchain_instance: Hive instance
@@ -391,9 +390,9 @@ class Discussions_by_trending(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_trending, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_trending, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -458,9 +457,9 @@ class Discussions_by_author_before_date(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_author_before_date, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_author_before_date, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -526,9 +525,9 @@ class Comment_discussions_by_payout(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Comment_discussions_by_payout, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Comment_discussions_by_payout, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -594,9 +593,9 @@ class Post_discussions_by_payout(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Post_discussions_by_payout, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Post_discussions_by_payout, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -661,9 +660,9 @@ class Discussions_by_created(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_created, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_created, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -728,9 +727,9 @@ class Discussions_by_active(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_active, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_active, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -797,9 +796,9 @@ class Discussions_by_cashout(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_cashout, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_cashout, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -865,9 +864,9 @@ class Discussions_by_votes(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_votes, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_votes, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -935,9 +934,9 @@ class Discussions_by_children(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_children, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_children, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1002,9 +1001,9 @@ class Discussions_by_hot(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_hot, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_hot, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1069,9 +1068,9 @@ class Discussions_by_feed(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_feed, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_feed, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1136,9 +1135,9 @@ class Discussions_by_blog(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_blog, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_blog, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1216,9 +1215,9 @@ class Discussions_by_comments(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_comments, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_comments, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1283,9 +1282,9 @@ class Discussions_by_promoted(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_promoted, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_promoted, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1345,9 +1344,9 @@ class Discussions_by_replies(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Discussions_by_replies, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Discussions_by_replies, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1401,9 +1400,9 @@ class Replies_by_last_update(list):
         if posts is None:
             posts = []
         if raw_data:
-            super(Replies_by_last_update, self).__init__([x for x in posts])
+            super().__init__([x for x in posts])
         else:
-            super(Replies_by_last_update, self).__init__(
+            super().__init__(
                 [Comment(x, lazy=lazy, blockchain_instance=self.blockchain) for x in posts]
             )
 
@@ -1436,4 +1435,4 @@ class Trending_tags(list):
         except Exception:
             # If API fails, return empty list
             pass
-        super(Trending_tags, self).__init__(tags)
+        super().__init__(tags)

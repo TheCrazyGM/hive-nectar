@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import ast
@@ -8,7 +7,7 @@ import math
 import os
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from nectar.amount import Amount
 from nectar.constants import (
@@ -42,7 +41,7 @@ from .wallet import Wallet
 log = logging.getLogger(__name__)
 
 
-class BlockChainInstance(object):
+class BlockChainInstance:
     """Connect to a Graphene network.
 
     :param str node: Node to connect to *(optional)*
@@ -128,9 +127,9 @@ class BlockChainInstance(object):
 
     def __init__(
         self,
-        node: Optional[Union[str, List[str]]] = None,
-        rpcuser: Optional[str] = None,
-        rpcpassword: Optional[str] = None,
+        node: str | list[str] | None = None,
+        rpcuser: str | None = None,
+        rpcpassword: str | None = None,
         debug: bool = False,
         data_refresh_time_seconds: int = 900,
         **kwargs,
@@ -205,7 +204,7 @@ class BlockChainInstance(object):
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(
-        self, node: Union[str, List[str]] = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
+        self, node: str | list[str] = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
     ) -> None:
         """
         Connect to a Hive node and initialize the internal RPC client.
@@ -256,13 +255,13 @@ class BlockChainInstance(object):
         if self.offline:
             return "<%s offline=True>" % (self.__class__.__name__)
         elif self.rpc is not None and self.rpc.url and len(self.rpc.url) > 0:
-            return "<%s node=%s, nobroadcast=%s>" % (
+            return "<{} node={}, nobroadcast={}>".format(
                 self.__class__.__name__,
                 str(self.rpc.url),
                 str(self.nobroadcast),
             )
         else:
-            return "<%s, nobroadcast=%s>" % (self.__class__.__name__, str(self.nobroadcast))
+            return "<{}, nobroadcast={}>".format(self.__class__.__name__, str(self.nobroadcast))
 
     def clear_data(self) -> None:
         """
@@ -296,7 +295,7 @@ class BlockChainInstance(object):
         self,
         chain_property: str,
         force_refresh: bool = False,
-        data_refresh_time_seconds: Optional[int] = None,
+        data_refresh_time_seconds: int | None = None,
     ) -> None:
         """
         Refresh and cache a specific blockchain data category in self.data.
@@ -438,9 +437,7 @@ class BlockChainInstance(object):
         else:
             raise ValueError("%s is not unkown" % str(chain_property))
 
-    def get_dynamic_global_properties(
-        self, use_stored_data: bool = True
-    ) -> Optional[Dict[str, Any]]:
+    def get_dynamic_global_properties(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """This call returns the *dynamic global properties*
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -455,7 +452,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_dynamic_global_properties(api="database_api")
 
-    def get_reserve_ratio(self) -> Optional[Dict[str, Any]]:
+    def get_reserve_ratio(self) -> dict[str, Any] | None:
         """This call returns the *reserve ratio*"""
         if self.rpc is None:
             return None
@@ -486,7 +483,7 @@ class BlockChainInstance(object):
             }
         return reserve_ratio
 
-    def get_feed_history(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_feed_history(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns the feed_history
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -501,7 +498,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history(api="database_api")
 
-    def get_reward_funds(self, use_stored_data: bool = True) -> Optional[List[Dict[str, Any]]]:
+    def get_reward_funds(self, use_stored_data: bool = True) -> list[dict[str, Any]] | None:
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -526,7 +523,7 @@ class BlockChainInstance(object):
         ret = funds
         return ret
 
-    def get_current_median_history(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_current_median_history(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns the current median price
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -545,7 +542,7 @@ class BlockChainInstance(object):
         ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
         return ret
 
-    def get_hardfork_properties(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_hardfork_properties(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns Hardfork and live_time of the hardfork
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -562,8 +559,8 @@ class BlockChainInstance(object):
         return ret
 
     def get_network(
-        self, use_stored_data: bool = True, config: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, use_stored_data: bool = True, config: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Identify the network
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -583,7 +580,7 @@ class BlockChainInstance(object):
         except Exception:
             return known_chains["HIVE"]
 
-    def get_median_price(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_median_price(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns the current median history price as Price"""
         median_price = self.get_current_median_history(use_stored_data=use_stored_data)
         if median_price is None:
@@ -608,7 +605,7 @@ class BlockChainInstance(object):
 
         return block_interval
 
-    def get_blockchain_version(self, use_stored_data: bool = True) -> Union[str, Dict[str, Any]]:
+    def get_blockchain_version(self, use_stored_data: bool = True) -> str | dict[str, Any]:
         """Returns the blockchain version"""
         props = self.get_config(use_stored_data=use_stored_data)
         blockchain_version = "0.0.0"
@@ -641,19 +638,19 @@ class BlockChainInstance(object):
                 dust_threshold = props[key]
         return dust_threshold
 
-    def get_resource_params(self) -> Dict[str, Any]:
+    def get_resource_params(self) -> dict[str, Any]:
         """Returns the resource parameter"""
         if self.rpc is None:
             raise RuntimeError("RPC connection not established")
         return self.rpc.get_resource_params(api="rc_api")["resource_params"]
 
-    def get_resource_pool(self) -> Dict[str, Any]:
+    def get_resource_pool(self) -> dict[str, Any]:
         """Returns the resource pool"""
         if self.rpc is None:
             raise RuntimeError("RPC connection not established")
         return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
 
-    def get_rc_cost(self, resource_count: Dict[str, int]) -> int:
+    def get_rc_cost(self, resource_count: dict[str, int]) -> int:
         """
         Compute the total Resource Credits (RC) cost for a set of resource usages.
 
@@ -686,7 +683,7 @@ class BlockChainInstance(object):
         return total_cost
 
     def _compute_rc_cost(
-        self, curve_params: Dict[str, Any], current_pool: int, resource_count: int, rc_regen: int
+        self, curve_params: dict[str, Any], current_pool: int, resource_count: int, rc_regen: int
     ) -> int:
         """Helper function for computing the RC costs"""
         num = int(rc_regen)
@@ -746,7 +743,7 @@ class BlockChainInstance(object):
         used_power = int((used_power + max_vote_denom - 1) / max_vote_denom)
         return used_power
 
-    def _calc_vote_claim(self, effective_vote_rshares: int, post_rshares: int) -> Union[int, float]:
+    def _calc_vote_claim(self, effective_vote_rshares: int, post_rshares: int) -> int | float:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_after_vote_normalized = post_rshares + effective_vote_rshares + CURVE_CONSTANT
         post_rshares_curve = (
@@ -759,7 +756,7 @@ class BlockChainInstance(object):
         vote_claim = post_rshares_curve_after_vote - post_rshares_curve
         return vote_claim
 
-    def _calc_revert_vote_claim(self, vote_claim: int, post_rshares: int) -> Union[int, float]:
+    def _calc_revert_vote_claim(self, vote_claim: int, post_rshares: int) -> int | float:
         post_rshares_normalized = post_rshares + CURVE_CONSTANT
         post_rshares_curve = (
             post_rshares_normalized * post_rshares_normalized - SQUARED_CURVE_CONSTANT
@@ -888,7 +885,7 @@ class BlockChainInstance(object):
         """
         raise Exception("not implemented")
 
-    def get_chain_properties(self, use_stored_data: bool = True) -> Dict[str, Any]:
+    def get_chain_properties(self, use_stored_data: bool = True) -> dict[str, Any]:
         """
         Return the witness-elected chain properties (median_props) used by the network.
 
@@ -918,7 +915,7 @@ class BlockChainInstance(object):
             witness_schedule = self.get_witness_schedule(use_stored_data)
             return witness_schedule["median_props"] if witness_schedule else {}
 
-    def get_witness_schedule(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_witness_schedule(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Return witness elected chain properties"""
         if use_stored_data:
             self.refresh_data("witness_schedule")
@@ -929,7 +926,7 @@ class BlockChainInstance(object):
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_witness_schedule(api="database_api")
 
-    def get_config(self, use_stored_data: bool = True) -> Optional[Dict[str, Any]]:
+    def get_config(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns internal chain configuration.
 
         :param bool use_stored_data: If True, the cached value is returned
@@ -945,7 +942,7 @@ class BlockChainInstance(object):
         return config
 
     @property
-    def chain_params(self) -> Dict[str, Any]:
+    def chain_params(self) -> dict[str, Any]:
         if self.offline or self.rpc is None:
             return known_chains["HIVE"]
         else:
@@ -1052,7 +1049,7 @@ class BlockChainInstance(object):
         """
         self.config["password_storage"] = password_storage
 
-    def set_default_nodes(self, nodes: Union[List[str], str]) -> None:
+    def set_default_nodes(self, nodes: list[str] | str) -> None:
         """Set the default nodes to be used"""
         if bool(nodes):
             if isinstance(nodes, list):
@@ -1061,7 +1058,7 @@ class BlockChainInstance(object):
         else:
             self.config.delete("node")
 
-    def get_default_nodes(self) -> List[str]:
+    def get_default_nodes(self) -> list[str]:
         """Returns the default nodes"""
         if "node" in self.config:
             nodes = self.config["node"]
@@ -1097,7 +1094,7 @@ class BlockChainInstance(object):
 
     def finalizeOp(
         self, ops: Any, account: Account | str, permission: str, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """This method obtains the required private keys if present in
         the wallet, finalizes the transaction, signs it and
         broadacasts it
@@ -1167,10 +1164,10 @@ class BlockChainInstance(object):
 
     def sign(
         self,
-        tx: Dict[str, Any] | None = None,
-        wifs: List[str] | str = [],
+        tx: dict[str, Any] | None = None,
+        wifs: list[str] | str = [],
         reconstruct_tx: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Sign a transaction using provided WIFs or the wallet's missing signatures and return the signed transaction.
 
@@ -1195,7 +1192,7 @@ class BlockChainInstance(object):
         ret["trx_id"] = ret_sign.id
         return ret
 
-    def broadcast(self, tx: Optional[Dict[str, Any]] = None, trx_id: bool = True) -> Dict[str, Any]:
+    def broadcast(self, tx: dict[str, Any] | None = None, trx_id: bool = True) -> dict[str, Any]:
         """Broadcast a transaction to the Hive network
 
         :param tx tx: Signed transaction to broadcast
@@ -1208,7 +1205,7 @@ class BlockChainInstance(object):
         else:
             return self.txbuffer.broadcast()
 
-    def info(self, use_stored_data: bool = True) -> Dict[str, Any] | None:
+    def info(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns the global properties"""
         return self.get_dynamic_global_properties(use_stored_data=use_stored_data)
 
@@ -1227,7 +1224,7 @@ class BlockChainInstance(object):
         """
         return self.wallet.create(pwd)
 
-    def unlock(self, *args, **kwargs) -> Optional[bool]:
+    def unlock(self, *args, **kwargs) -> bool | None:
         """Unlock the internal wallet"""
         return self.wallet.unlock(*args, **kwargs)
 
@@ -1270,8 +1267,8 @@ class BlockChainInstance(object):
     # Account related calls
     # -------------------------------------------------------------------------
     def claim_account(
-        self, creator: Optional[Union[str, "Account"]] = None, fee: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, creator: str | Account | None = None, fee: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """
         Claim a subsidized account slot or pay the account-creation fee.
 
@@ -1310,25 +1307,25 @@ class BlockChainInstance(object):
     def create_claimed_account(
         self,
         account_name: str,
-        creator: Optional[Union[str, "Account"]] = None,
+        creator: str | Account | None = None,
         owner_key: str | None = None,
         active_key: str | None = None,
         memo_key: str | None = None,
         posting_key: str | None = None,
         password: str | None = None,
-        additional_owner_keys: List[str] = [],
-        additional_active_keys: List[str] = [],
-        additional_posting_keys: List[str] = [],
-        additional_owner_accounts: List[str] = [],
-        additional_active_accounts: List[str] = [],
-        additional_posting_accounts: List[str] = [],
+        additional_owner_keys: list[str] = [],
+        additional_active_keys: list[str] = [],
+        additional_posting_keys: list[str] = [],
+        additional_owner_accounts: list[str] = [],
+        additional_active_accounts: list[str] = [],
+        additional_posting_accounts: list[str] = [],
         storekeys: bool = True,
         store_owner_key: bool = False,
-        json_meta: Dict[str, Any] | None = None,
+        json_meta: dict[str, Any] | None = None,
         combine_with_claim_account: bool = False,
         fee: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create new claimed account on Hive
 
         The brainkey/password can be used to recover all generated keys
@@ -1515,7 +1512,7 @@ class BlockChainInstance(object):
     def create_account(
         self,
         account_name: str,
-        creator: Optional[Union[str, "Account"]] = None,
+        creator: str | Account | None = None,
         owner_key=None,
         active_key=None,
         memo_key=None,
@@ -1711,18 +1708,18 @@ class BlockChainInstance(object):
 
     def update_account(
         self,
-        account: Optional[Union[str, "Account"]] = None,
+        account: str | Account | None = None,
         owner_key=None,
         active_key=None,
         memo_key=None,
         posting_key=None,
         password=None,
-        additional_owner_keys: Optional[List[str]] = None,
-        additional_active_keys: Optional[List[str]] = None,
-        additional_posting_keys: Optional[List[str]] = None,
-        additional_owner_accounts: Optional[List[str]] = None,
-        additional_active_accounts: Optional[List[str]] = None,
-        additional_posting_accounts: Optional[List[str]] = None,
+        additional_owner_keys: list[str] | None = None,
+        additional_active_keys: list[str] | None = None,
+        additional_posting_keys: list[str] | None = None,
+        additional_owner_accounts: list[str] | None = None,
+        additional_active_accounts: list[str] | None = None,
+        additional_posting_accounts: list[str] | None = None,
         storekeys: bool = True,
         store_owner_key: bool = False,
         json_meta=None,
@@ -1885,8 +1882,8 @@ class BlockChainInstance(object):
         return self.finalizeOp(op, account, "owner", **kwargs)
 
     def witness_set_properties(
-        self, wif: str, owner: Union[str, "Account"], props: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, wif: str, owner: str | Account, props: dict[str, Any]
+    ) -> dict[str, Any]:
         """Set witness properties
 
         :param str wif: Private signing key
@@ -1934,10 +1931,10 @@ class BlockChainInstance(object):
         self,
         signing_key: str,
         url: str,
-        props: Dict[str, Any],
-        account: Optional[Union[str, "Account"]] = None,
+        props: dict[str, Any],
+        account: str | Account | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create or update a witness (register or modify a block producer).
 
@@ -1991,11 +1988,11 @@ class BlockChainInstance(object):
 
     def update_proposal_votes(
         self,
-        proposal_ids: List[int],
+        proposal_ids: list[int],
         approve: bool,
-        account: Optional[Union[str, "Account"]] = None,
+        account: str | Account | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Update proposal votes
 
         :param list proposal_ids: list of proposal ids
@@ -2023,7 +2020,7 @@ class BlockChainInstance(object):
         )
         return self.finalizeOp(op, account, "active", **kwargs)
 
-    def _test_weights_treshold(self, authority: Dict[str, Any]) -> bool:
+    def _test_weights_treshold(self, authority: dict[str, Any]) -> bool:
         """This method raises an error if the threshold of an authority cannot
         be reached by the weights.
 
@@ -2045,10 +2042,10 @@ class BlockChainInstance(object):
         self,
         id: str,
         json_data: Any,
-        required_auths: List[str] = [],
-        required_posting_auths: List[str] = [],
+        required_auths: list[str] = [],
+        required_posting_auths: list[str] = [],
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create and submit a Custom_json operation.
 
@@ -2091,19 +2088,19 @@ class BlockChainInstance(object):
         self,
         title: str,
         body: str,
-        author: Optional[str] = None,
-        permlink: Optional[str] = None,
-        reply_identifier: Optional[str] = None,
-        json_metadata: Optional[Dict[str, Any]] = None,
-        comment_options: Optional[Dict[str, Any]] = None,
-        community: Optional[str] = None,
-        app: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        beneficiaries: Optional[List[Dict[str, Any]]] = None,
+        author: str | None = None,
+        permlink: str | None = None,
+        reply_identifier: str | None = None,
+        json_metadata: dict[str, Any] | None = None,
+        comment_options: dict[str, Any] | None = None,
+        community: str | None = None,
+        app: str | None = None,
+        tags: list[str] | None = None,
+        beneficiaries: list[dict[str, Any]] | None = None,
         self_vote: bool = False,
         parse_body: bool = False,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new post.
         If this post is intended as a reply/comment, `reply_identifier` needs
         to be set with the identifier of the parent post/comment (eg.
@@ -2192,17 +2189,17 @@ class BlockChainInstance(object):
         account = Account(author, blockchain_instance=self)
         # deal with the category and tags
         if isinstance(tags, str):
-            tags = list(set([_f for _f in (re.split(r"[\W_]", tags)) if _f]))
+            tags = list({_f for _f in (re.split(r"[\W_]", tags)) if _f})
 
         tags = tags or json_metadata.get("tags", [])
 
         if parse_body:
 
-            def get_urls(mdstring: str) -> List[str]:
+            def get_urls(mdstring: str) -> list[str]:
                 urls = re.findall(r'http[s]*://[^\s"><\)\(]+', mdstring)
                 return list(dict.fromkeys(urls))
 
-            def get_users(mdstring: str) -> List[str]:
+            def get_users(mdstring: str) -> list[str]:
                 """
                 Extract usernames mentioned in a Markdown string.
 
@@ -2223,7 +2220,7 @@ class BlockChainInstance(object):
                     users.append(list(u)[-1])
                 return users
 
-            def get_hashtags(mdstring: str) -> List[str]:
+            def get_hashtags(mdstring: str) -> list[str]:
                 hashtags = []
                 for t in re.findall(r"(^|\s)(#[-a-z\d]+)", mdstring):
                     hashtags.append(list(t)[-1])
@@ -2242,7 +2239,7 @@ class BlockChainInstance(object):
                     links.append(url)
             users = get_users(body)
             hashtags = get_hashtags(body)
-            users = list(set(users).difference(set([author])))
+            users = list(set(users).difference({author}))
             if len(users) > 0:
                 json_metadata.update({"users": users})
             if len(image) > 0:
@@ -2323,9 +2320,9 @@ class BlockChainInstance(object):
         self,
         weight: float,
         identifier: str,
-        account: Optional[Union[str, "Account"]] = None,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Cast a vote on a post.
 
@@ -2370,12 +2367,12 @@ class BlockChainInstance(object):
 
     def comment_options(
         self,
-        options: Dict[str, Any],
+        options: dict[str, Any],
         identifier: str,
-        beneficiaries: List[Dict[str, Any]] = [],
-        account: Optional[Union[str, "Account"]] = None,
+        beneficiaries: list[dict[str, Any]] = [],
+        account: str | Account | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Set comment/post options for a post (Comment_options operation) and submit the operation.
 
@@ -2410,8 +2407,8 @@ class BlockChainInstance(object):
         self,
         author: str,
         permlink: str,
-        options: Dict[str, Any],
-        beneficiaries: List[Dict[str, Any]],
+        options: dict[str, Any],
+        beneficiaries: list[dict[str, Any]],
     ) -> Any:
         """
         Build and return a Comment_options operation for a post, validating and normalizing provided options and beneficiaries.
@@ -2483,7 +2480,7 @@ class BlockChainInstance(object):
         )
         return comment_op
 
-    def get_api_methods(self) -> List[str]:
+    def get_api_methods(self) -> list[str]:
         """
         Return the list of all JSON-RPC API methods supported by the connected node.
 
@@ -2494,7 +2491,7 @@ class BlockChainInstance(object):
             raise RuntimeError("RPC connection not established")
         return self.rpc.get_methods(api="jsonrpc")
 
-    def get_apis(self) -> List[str]:
+    def get_apis(self) -> list[str]:
         """Returns all enabled apis"""
         api_methods = self.get_api_methods()
         api_list = []

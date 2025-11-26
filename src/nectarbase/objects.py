@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import decimal
 import json
 import struct
@@ -35,7 +34,7 @@ def value_to_decimal(value: Union[str, float, int], decimal_places: int) -> deci
     )
 
 
-class Amount(object):
+class Amount:
     def __init__(
         self, d: Union[str, Any], prefix: str = default_prefix, json_str: bool = False
     ) -> None:
@@ -143,7 +142,7 @@ class Operation(GPHOperation):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.appbase = kwargs.pop("appbase", False)
         self.prefix = kwargs.pop("prefix", default_prefix)
-        super(Operation, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _getklass(self, name: str) -> type:
         module = __import__("nectarbase.operations", fromlist=["operations"])
@@ -185,12 +184,12 @@ class Memo(GrapheneObject):
         else:
             prefix = kwargs.pop("prefix", default_prefix)
             if "encrypted" not in kwargs or not kwargs["encrypted"]:
-                super(Memo, self).__init__(None)
+                super().__init__(None)
             else:
                 if len(args) == 1 and len(kwargs) == 0:
                     kwargs = args[0]
                 if "encrypted" in kwargs and kwargs["encrypted"]:
-                    super(Memo, self).__init__(
+                    super().__init__(
                         OrderedDict(
                             [
                                 ("from", PublicKey(kwargs["from"], prefix=prefix)),
@@ -212,7 +211,7 @@ class WitnessProps(GrapheneObject):
                 kwargs = args[0]
             prefix = kwargs.get("prefix", default_prefix)
             if "sbd_interest_rate" in kwargs:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
@@ -225,7 +224,7 @@ class WitnessProps(GrapheneObject):
                     )
                 )
             elif "hbd_interest_rate" in kwargs:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
@@ -238,7 +237,7 @@ class WitnessProps(GrapheneObject):
                     )
                 )
             else:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
@@ -259,7 +258,7 @@ class Price(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
             prefix = kwargs.get("prefix", default_prefix)
-            super(Price, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("base", Amount(kwargs["base"], prefix=prefix)),
@@ -295,7 +294,7 @@ class Permission(GrapheneObject):
             keyAuths = Map(
                 [(PublicKey(e[0], prefix=prefix), Uint16(e[1])) for e in kwargs["key_auths"]]
             )
-            super(Permission, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("weight_threshold", Uint32(int(kwargs["weight_threshold"]))),
@@ -323,7 +322,7 @@ class ExchangeRate(GrapheneObject):
                 kwargs = args[0]
 
             prefix = kwargs.get("prefix", default_prefix)
-            super(ExchangeRate, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("base", Amount(kwargs["base"], prefix=prefix)),
@@ -340,7 +339,7 @@ class Beneficiary(GrapheneObject):
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
-        super(Beneficiary, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -358,7 +357,7 @@ class Beneficiaries(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
 
-        super(Beneficiaries, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("beneficiaries", Array([Beneficiary(o) for o in kwargs["beneficiaries"]])),
@@ -395,7 +394,7 @@ class CommentOptionExtensions(Static_variant):
             data = Beneficiaries(data)
         else:
             raise Exception("Unknown CommentOptionExtension")
-        super(CommentOptionExtensions, self).__init__(data, type_id)
+        super().__init__(data, type_id)
 
 
 class UpdateProposalEndDate(GrapheneObject):
@@ -406,7 +405,7 @@ class UpdateProposalEndDate(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
 
-            super(UpdateProposalEndDate, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("end_date", PointInTime(kwargs["end_date"])),
@@ -445,4 +444,4 @@ class UpdateProposalExtensions(Static_variant):
             data = UpdateProposalEndDate(o["value"])
         else:
             raise Exception("Unknown UpdateProposalExtension")
-        super(UpdateProposalExtensions, self).__init__(data, type_id, False)
+        super().__init__(data, type_id, False)

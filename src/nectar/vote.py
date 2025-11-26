@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import json
@@ -102,7 +101,7 @@ class Vote(BlockchainObject):
             self["author"] = author
             self["permlink"] = permlink
 
-        super(Vote, self).__init__(
+        super().__init__(
             authorpermvoter,
             id_item="authorpermvoter",
             lazy=lazy,
@@ -155,7 +154,7 @@ class Vote(BlockchainObject):
             raise VoteDoesNotExistsException(self.identifier)
         vote = self._parse_json_data(vote)
         vote["authorpermvoter"] = construct_authorpermvoter(author, permlink, voter)
-        super(Vote, self).__init__(
+        super().__init__(
             vote,
             id_item="authorpermvoter",
             lazy=self.lazy,
@@ -488,7 +487,9 @@ class VotesObject(list):
         return self.printAsTable(return_str=True)
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(getattr(self, "identifier", "unknown")))
+        return "<{} {}>".format(
+            self.__class__.__name__, str(getattr(self, "identifier", "unknown"))
+        )
 
 
 class ActiveVotes(VotesObject):
@@ -548,7 +549,7 @@ class ActiveVotes(VotesObject):
         if votes is None:
             return
         self.identifier = authorperm
-        super(ActiveVotes, self).__init__(
+        super().__init__(
             [
                 Vote(
                     x,
@@ -721,4 +722,4 @@ class AccountVotes(VotesObject):
                 else:
                     vote_list.append(x)
 
-        super(AccountVotes, self).__init__(vote_list)
+        super().__init__(vote_list)

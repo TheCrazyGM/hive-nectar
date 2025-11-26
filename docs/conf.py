@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # nectar documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  5 14:06:38 2015.

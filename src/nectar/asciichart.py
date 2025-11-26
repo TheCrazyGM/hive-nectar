@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 from math import ceil, floor
 from typing import List, Optional, Union
@@ -7,7 +6,7 @@ from typing import List, Optional, Union
 # ╱ ╲ ╳ ─ └┲┲┲─
 
 
-class AsciiChart(object):
+class AsciiChart:
     """Can be used to plot price and trade history
 
     :param int height: Height of the plot

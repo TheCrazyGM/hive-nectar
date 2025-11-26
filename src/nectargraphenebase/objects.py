@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 from typing import Any, Dict, List, Union
 
@@ -7,7 +6,7 @@ from nectargraphenebase.types import Id, JsonObj, Optional, String
 from .operationids import operations
 
 
-class Operation(object):
+class Operation:
     def __init__(self, op: Union[List[Any], Dict[str, Any], Any]) -> None:
         if isinstance(op, list) and len(op) == 2:
             if isinstance(op[0], int):
@@ -75,7 +74,7 @@ class Operation(object):
         return json.dumps([self.opId, op_data])
 
 
-class GrapheneObject(object):
+class GrapheneObject:
     """Core abstraction class
 
     This class is used for any JSON reflected object in Graphene.
@@ -91,7 +90,7 @@ class GrapheneObject(object):
 
     def __bytes__(self) -> bytes:
         if self.data is None:
-            return bytes()
+            return b""
         b = b""
         for name, value in list(self.data.items()):
             if isinstance(value, str):

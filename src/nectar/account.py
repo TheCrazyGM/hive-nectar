@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import json
@@ -6,7 +5,7 @@ import logging
 import math
 import random
 from datetime import date, datetime, time, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from prettytable import PrettyTable
 
@@ -45,7 +44,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def extract_account_name(account: str | "Account" | dict) -> str:
+def extract_account_name(account: str | Account | dict) -> str:
     if isinstance(account, str):
         return account
     elif isinstance(account, Account):
@@ -116,7 +115,7 @@ class Account(BlockchainObject):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(account, dict):
             account = self._parse_json_data(account)
-        super(Account, self).__init__(
+        super().__init__(
             account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
@@ -136,7 +135,7 @@ class Account(BlockchainObject):
         account = self._parse_json_data(account)
         self.identifier = account["name"]
 
-        super(Account, self).__init__(
+        super().__init__(
             account,
             id_item="name",
             lazy=self.lazy,
@@ -307,15 +306,15 @@ class Account(BlockchainObject):
                         output[p] = obj.json()
         return json.loads(str(json.dumps(output)))
 
-    def getSimilarAccountNames(self, limit: int = 5) -> List[str] | None:
+    def getSimilarAccountNames(self, limit: int = 5) -> list[str] | None:
         """Deprecated, please use get_similar_account_names"""
         return self.get_similar_account_names(limit=limit)
 
-    def get_rc(self) -> Dict[str, Any] | List[Dict[str, Any]] | None:
+    def get_rc(self) -> dict[str, Any] | list[dict[str, Any]] | None:
         """Return RC of account."""
         return Blockchain(blockchain_instance=self.blockchain).find_rc_accounts(self["name"])
 
-    def get_rc_manabar(self) -> Dict[str, Union[int, float, Amount]]:
+    def get_rc_manabar(self) -> dict[str, int | float | Amount]:
         """
         Return the account's current and maximum Resource Credit (RC) mana.
 
@@ -370,7 +369,7 @@ class Account(BlockchainObject):
             "max_rc_creation_adjustment": max_rc_creation_adjustment,
         }
 
-    def get_similar_account_names(self, limit: int = 5) -> List[str] | None:
+    def get_similar_account_names(self, limit: int = 5) -> list[str] | None:
         """Returns ``limit`` account names similar to the current account
         name as a list
 
@@ -442,7 +441,7 @@ class Account(BlockchainObject):
         return_str: bool = False,
         use_table: bool = False,
         **kwargs,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Print account summary information, either printed or returned as a string.
 
@@ -498,7 +497,10 @@ class Account(BlockchainObject):
             t.add_row(["Last vote", "%s ago" % last_vote_time_str])
             t.add_row(["Full in ", "%s" % (self.get_recharge_time_str())])
             t.add_row(
-                ["Token Power", "%.2f %s" % (self.get_token_power(), self.blockchain.token_symbol)]
+                [
+                    "Token Power",
+                    "{:.2f} {}".format(self.get_token_power(), self.blockchain.token_symbol),
+                ]
             )
             t.add_row(
                 [
@@ -515,7 +517,10 @@ class Account(BlockchainObject):
             ):
                 t.add_row(["Remaining Bandwidth", "%.2f %%" % (remaining)])
                 t.add_row(
-                    ["used/allocated Bandwidth", "(%.0f kb of %.0f mb)" % (used_kb, allocated_mb)]
+                    [
+                        "used/allocated Bandwidth",
+                        "({:.0f} kb of {:.0f} mb)".format(used_kb, allocated_mb),
+                    ]
                 )
             if rc_mana is not None:
                 if isinstance(rc, dict):
@@ -531,7 +536,9 @@ class Account(BlockchainObject):
                 t.add_row(
                     [
                         "Remaining RC",
-                        "(%.0f G RC of %.0f G RC)" % (estimated_rc / 10**9, int(max_rc) / 10**9),
+                        "({:.0f} G RC of {:.0f} G RC)".format(
+                            estimated_rc / 10**9, int(max_rc) / 10**9
+                        ),
                     ]
                 )
                 t.add_row(["Full in ", "%s" % (self.get_manabar_recharge_time_str(rc_mana))])
@@ -632,14 +639,14 @@ class Account(BlockchainObject):
             ret += "%.2f %% \n" % (self.get_downvoting_power())
             ret += "--- Balance ---\n"
             ret += "%.2f HP, " % (self.get_token_power())
-            ret += "%s, %s\n" % (
+            ret += "{}, {}\n".format(
                 str(self.balances["available"][0]),
                 str(self.balances["available"][1]),
             )
             if False and bandwidth["allocated"] > 0:
                 ret += "--- Bandwidth ---\n"
                 ret += "Remaining: %.2f %%" % (remaining)
-                ret += " (%.0f kb of %.0f mb)\n" % (used_kb, allocated_mb)
+                ret += " ({:.0f} kb of {:.0f} mb)\n".format(used_kb, allocated_mb)
             if rc_mana is not None:
                 if isinstance(rc, dict):
                     max_rc = rc.get("max_rc", 0)
@@ -652,7 +659,7 @@ class Account(BlockchainObject):
                 estimated_rc = int(max_rc) * float(rc_mana["current_pct"]) / 100
                 ret += "--- RC manabar ---\n"
                 ret += "Remaining: %.2f %%" % (rc_mana["current_pct"])
-                ret += " (%.0f G RC of %.0f G RC)\n" % (
+                ret += " ({:.0f} G RC of {:.0f} G RC)\n".format(
                     estimated_rc / 10**9,
                     int(max_rc) / 10**9,
                 )
@@ -742,7 +749,7 @@ class Account(BlockchainObject):
             log.warning(f"No reputation data available for {self['name']}")
             return reputation_to_score(0)
 
-    def get_manabar(self) -> Dict[str, Union[int, float, Amount]]:
+    def get_manabar(self) -> dict[str, int | float | Amount]:
         """
         Return the account's voting manabar state.
 
@@ -791,7 +798,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_downvote_manabar(self) -> Dict[str, Union[int, float, Amount]] | None:
+    def get_downvote_manabar(self) -> dict[str, int | float | Amount] | None:
         """
         Return the account's downvote manabar state and regeneration progress.
 
@@ -982,9 +989,9 @@ class Account(BlockchainObject):
     def get_voting_value(
         self,
         post_rshares: int = 0,
-        voting_weight: Union[int, float] = 100,
-        voting_power: Optional[Union[int, float]] = None,
-        token_power: Optional[Union[int, float]] = None,
+        voting_weight: int | float = 100,
+        voting_power: int | float | None = None,
+        token_power: int | float | None = None,
         not_broadcasted_vote: bool = True,
     ) -> Amount:
         """
@@ -1076,10 +1083,10 @@ class Account(BlockchainObject):
 
     def get_vote_pct_for_vote_value(
         self,
-        token_units: Union[int, float, Amount],
+        token_units: int | float | Amount,
         post_rshares: int = 0,
-        voting_power: Optional[Union[int, float]] = None,
-        token_power: Optional[Union[int, float]] = None,
+        voting_power: int | float | None = None,
+        token_power: int | float | None = None,
         not_broadcasted_vote: bool = True,
     ) -> float:
         """
@@ -1144,7 +1151,7 @@ class Account(BlockchainObject):
         vote_pct = int(round(ratio * HIVE_100_PERCENT))
         return vote_pct
 
-    def get_creator(self) -> Optional[str]:
+    def get_creator(self) -> str | None:
         """Returns the account creator or `None` if the account was mined"""
         if self["mined"]:
             return None
@@ -1154,7 +1161,7 @@ class Account(BlockchainObject):
         return ops[-1]["creator"]
 
     def get_recharge_time_str(
-        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
     ) -> str:
         """Returns the account recharge time as string
 
@@ -1169,7 +1176,7 @@ class Account(BlockchainObject):
         return formatTimedelta(remainingTime)
 
     def get_recharge_timedelta(
-        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
     ) -> timedelta:
         """
         Return the timedelta required to recharge the account's voting power to a target percentage.
@@ -1204,7 +1211,7 @@ class Account(BlockchainObject):
         return timedelta(seconds=recharge_seconds)
 
     def get_recharge_time(
-        self, voting_power_goal: float = 100, starting_voting_power: Optional[float] = None
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
     ) -> datetime:
         """Returns the account voting power recharge time in minutes
 
@@ -1218,7 +1225,7 @@ class Account(BlockchainObject):
         )
 
     def get_manabar_recharge_time_str(
-        self, manabar: Dict[str, Any], recharge_pct_goal: float = 100
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
     ) -> str:
         """Returns the account manabar recharge time as string
 
@@ -1232,7 +1239,7 @@ class Account(BlockchainObject):
         return formatTimedelta(remainingTime)
 
     def get_manabar_recharge_timedelta(
-        self, manabar: Dict[str, Any], recharge_pct_goal: float = 100
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
     ) -> timedelta:
         """
         Return the time remaining for a manabar to recharge to a target percentage.
@@ -1258,7 +1265,7 @@ class Account(BlockchainObject):
         return timedelta(seconds=recharge_seconds)
 
     def get_manabar_recharge_time(
-        self, manabar: Dict[str, Any], recharge_pct_goal: float = 100
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
     ) -> datetime:
         """
         Return the UTC datetime when the given manabar will reach the specified recovery percentage.
@@ -1448,7 +1455,7 @@ class Account(BlockchainObject):
     def get_notifications(
         self,
         only_unread: bool = True,
-        limit: Optional[int] = 100,
+        limit: int | None = 100,
         raw_data: bool = False,
         account=None,
     ):
@@ -1491,7 +1498,7 @@ class Account(BlockchainObject):
 
     def mark_notifications_as_read(
         self, last_read: str | None = None, account: str | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Broadcast a mark all notification as read custom_json
 
         :param str last_read: When set, this datestring is used to set the mark as read date
@@ -1526,7 +1533,7 @@ class Account(BlockchainObject):
         ]
         return self.blockchain.custom_json("notify", json_body, required_posting_auths=[account])
 
-    def get_blog_authors(self, account: str | None = None) -> List[str]:
+    def get_blog_authors(self, account: str | None = None) -> list[str]:
         """
         Return a list of author account names whose posts have been reblogged on the specified blog account.
 
@@ -1545,7 +1552,7 @@ class Account(BlockchainObject):
             return result["blog_authors"]
         return []
 
-    def get_follow_count(self, account: str | None = None) -> Dict[str, Any]:
+    def get_follow_count(self, account: str | None = None) -> dict[str, Any]:
         """get_follow_count"""
         if account is None:
             account = self["name"]
@@ -1555,9 +1562,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
 
-    def get_followers(
-        self, raw_name_list: bool = True, limit: int = 100
-    ) -> Union[List[str], "Accounts"]:
+    def get_followers(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns the account followers as list"""
         name_list = [x["follower"] for x in self._get_followers(direction="follower", limit=limit)]
         if raw_name_list:
@@ -1565,9 +1570,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_following(
-        self, raw_name_list: bool = True, limit: int = 100
-    ) -> Union[List[str], "Accounts"]:
+    def get_following(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns who the account is following as list"""
         name_list = [
             x["following"] for x in self._get_followers(direction="following", limit=limit)
@@ -1577,9 +1580,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_muters(
-        self, raw_name_list: bool = True, limit: int = 100
-    ) -> Union[List[str], "Accounts"]:
+    def get_muters(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns the account muters as list"""
         name_list = [
             x["follower"]
@@ -1590,9 +1591,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_mutings(
-        self, raw_name_list: bool = True, limit: int = 100
-    ) -> Union[List[str], "Accounts"]:
+    def get_mutings(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """
         Return the list of accounts this account has muted.
 
@@ -1615,9 +1614,9 @@ class Account(BlockchainObject):
     def get_follow_list(
         self,
         follow_type: str,
-        starting_account: Optional[str] = None,
+        starting_account: str | None = None,
         raw_name_list: bool = True,
-    ) -> Union[List[Dict[str, Any]], "Accounts"]:
+    ) -> list[dict[str, Any]] | Accounts:
         """
         Return the account follow list for a given follow_type (requires Hive HF >= 24).
 
@@ -1663,17 +1662,17 @@ class Account(BlockchainObject):
 
         followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
 
-        name_list: List[Dict[str, Any]] = followers or []
+        name_list: list[dict[str, Any]] = followers or []
         if raw_name_list:
             return name_list
         else:
             # Convert list of dicts to list of account names for Accounts initializer
-            account_names: List[str] = [x["name"] for x in name_list if "name" in x]
+            account_names: list[str] = [x["name"] for x in name_list if "name" in x]
             return Accounts(account_names, blockchain_instance=self.blockchain)
 
     def _get_followers(
         self, direction: str = "follower", last_user: str = "", what: str = "blog", limit: int = 100
-    ) -> List[dict]:
+    ) -> list[dict]:
         """
         Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
 
@@ -1721,7 +1720,7 @@ class Account(BlockchainObject):
 
         return followers_list
 
-    def list_all_subscriptions(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def list_all_subscriptions(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns all subscriptions"""
         if account is None:
             account = self["name"]
@@ -1762,7 +1761,7 @@ class Account(BlockchainObject):
         return AccountPosts(sort, account, observer=observer, limit=limit, raw_data=raw_data)
 
     @property
-    def available_balances(self) -> List[Amount]:
+    def available_balances(self) -> list[Amount]:
         """
         Return a list of the account's available balances as Amount objects.
 
@@ -1780,7 +1779,7 @@ class Account(BlockchainObject):
         return available_amount
 
     @property
-    def saving_balances(self) -> List[Amount]:
+    def saving_balances(self) -> list[Amount]:
         """
         Return the account's savings balances.
 
@@ -1799,7 +1798,7 @@ class Account(BlockchainObject):
         return savings_amount
 
     @property
-    def reward_balances(self) -> List[Amount]:
+    def reward_balances(self) -> list[Amount]:
         """
         Return the account's reward balances as a list of Amount objects.
 
@@ -1819,7 +1818,7 @@ class Account(BlockchainObject):
         return rewards_amount
 
     @property
-    def total_balances(self) -> List[Amount]:
+    def total_balances(self) -> list[Amount]:
         symbols = []
         for balance in self.available_balances:
             symbols.append(balance["symbol"])
@@ -1840,11 +1839,11 @@ class Account(BlockchainObject):
         return ret
 
     @property
-    def balances(self) -> Dict[str, List[Amount]]:
+    def balances(self) -> dict[str, list[Amount]]:
         """Returns all account balances as dictionary"""
         return self.get_balances()
 
-    def get_balances(self) -> Dict[str, List[Amount]]:
+    def get_balances(self) -> dict[str, list[Amount]]:
         """
         Return the account's balances grouped by category.
 
@@ -1865,8 +1864,8 @@ class Account(BlockchainObject):
         }
 
     def get_balance(
-        self, balances: str | List[Dict[str, Any]] | List[Amount], symbol: str
-    ) -> Optional[Amount]:
+        self, balances: str | list[dict[str, Any]] | list[Amount], symbol: str
+    ) -> Amount | None:
         """
         Return a specific balance Amount for this account.
 
@@ -1902,7 +1901,7 @@ class Account(BlockchainObject):
 
         return Amount(0, symbol, blockchain_instance=self.blockchain)
 
-    def interest(self) -> Dict[str, Union[float, datetime, timedelta]]:
+    def interest(self) -> dict[str, float | datetime | timedelta]:
         """Calculate interest for an account
 
         :param str account: Account name to get interest for
@@ -1971,7 +1970,7 @@ class Account(BlockchainObject):
 
     def get_account_bandwidth(
         self, bandwidth_type: int = 1, account: str | None = None
-    ) -> Dict[str, Union[int, str]]:
+    ) -> dict[str, int | str]:
         """get_account_bandwidth"""
         if account is None:
             account = self["name"]
@@ -1981,7 +1980,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_account_bandwidth(account, bandwidth_type)
 
-    def get_bandwidth(self) -> Dict[str, Optional[int]]:
+    def get_bandwidth(self) -> dict[str, int | None]:
         """Returns used and allocated bandwidth
 
         :rtype: dictionary
@@ -2043,7 +2042,7 @@ class Account(BlockchainObject):
         # print("bandwidth percent used: " + str(100 * used_bandwidth / allocated_bandwidth))
         # print("bandwidth percent remaining: " + str(100 - (100 * used_bandwidth / allocated_bandwidth)))
 
-    def get_owner_history(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_owner_history(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the owner authority history for an account.
 
@@ -2069,7 +2068,7 @@ class Account(BlockchainObject):
             "owner_auths"
         ]
 
-    def get_conversion_requests(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_conversion_requests(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the list of pending HBD conversion requests for an account.
 
@@ -2099,7 +2098,7 @@ class Account(BlockchainObject):
 
     def get_vesting_delegations(
         self, start_account: str = "", limit: int = 100, account: str | None = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Return the list of vesting delegations made by an account.
 
@@ -2128,7 +2127,7 @@ class Account(BlockchainObject):
         )["delegations"]
         return [d for d in delegations if d["delegator"] == account]
 
-    def get_withdraw_routes(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_withdraw_routes(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the account's withdraw vesting routes.
 
@@ -2156,7 +2155,7 @@ class Account(BlockchainObject):
 
     def get_savings_withdrawals(
         self, direction: str = "from", account: str | None = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Return the list of savings withdrawal requests for an account.
 
@@ -2182,7 +2181,7 @@ class Account(BlockchainObject):
             {"account": account}, api="database_api"
         )["withdrawals"]
 
-    def get_recovery_request(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_recovery_request(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns the recovery request for an account
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2212,7 +2211,7 @@ class Account(BlockchainObject):
             {"accounts": [account]}, api="database_api"
         )["requests"]
 
-    def get_escrow(self, escrow_id: int = 0, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_escrow(self, escrow_id: int = 0, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return escrow(s) related to this account.
 
@@ -2239,8 +2238,8 @@ class Account(BlockchainObject):
         return self.blockchain.rpc.find_escrows({"from": account}, api="database_api")["escrows"]
 
     def verify_account_authority(
-        self, keys: List[str] | str, account: str | None = None
-    ) -> Dict[str, Any]:
+        self, keys: list[str] | str, account: str | None = None
+    ) -> dict[str, Any]:
         """
         Return whether the provided signers (public keys) are sufficient to authorize the specified account.
 
@@ -2264,7 +2263,7 @@ class Account(BlockchainObject):
         except MissingRequiredActiveAuthority:
             return {"valid": False}
 
-    def get_tags_used_by_author(self, account: str | None = None) -> List[Dict[str, Any]]:
+    def get_tags_used_by_author(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns a list of tags used by an author.
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2282,7 +2281,7 @@ class Account(BlockchainObject):
 
     def get_expiring_vesting_delegations(
         self, after: str | None = None, limit: int = 1000, account: str | None = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Return upcoming vesting-delegation expirations for an account.
 
@@ -2319,8 +2318,8 @@ class Account(BlockchainObject):
         start_author: str = "",
         start_permlink: str = "",
         limit: int = 1000,
-        start_date: Optional[datetime] = None,
-    ) -> List[Dict[str, Any]]:
+        start_date: datetime | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Return a list of vote operations made by an account.
 
@@ -2372,7 +2371,7 @@ class Account(BlockchainObject):
         # else:
         #     return vote_list
 
-    def get_vote(self, comment: str | Any) -> Optional[Dict[str, Any]]:
+    def get_vote(self, comment: str | Any) -> dict[str, Any] | None:
         """Returns a vote if the account has already voted for comment.
 
         :param comment: can be a Comment object or a authorpermlink
@@ -2425,9 +2424,9 @@ class Account(BlockchainObject):
         account=None,
         start: int = -1,
         limit: int = 1,
-        operation_filter_low: Optional[int] = None,
-        operation_filter_high: Optional[int] = None,
-    ) -> Optional[List]:
+        operation_filter_low: int | None = None,
+        operation_filter_high: int | None = None,
+    ) -> list | None:
         if account is None:
             account = self["name"]
         account = extract_account_name(account)
@@ -2459,7 +2458,7 @@ class Account(BlockchainObject):
                 ret = ret["history"]
         return ret
 
-    def _get_blocknum_from_hist(self, index: int, min_index: int = 1) -> Optional[int]:
+    def _get_blocknum_from_hist(self, index: int, min_index: int = 1) -> int | None:
         if index >= 0 and index < min_index:
             index = min_index
         op = self._get_account_history(start=(index))
@@ -2467,7 +2466,7 @@ class Account(BlockchainObject):
             return None
         return op[0][1]["block"]
 
-    def _get_first_blocknum(self) -> tuple[Optional[int], int]:
+    def _get_first_blocknum(self) -> tuple[int | None, int]:
         min_index = 0
         try:
             created = self._get_blocknum_from_hist(0, min_index=min_index)
@@ -2481,7 +2480,7 @@ class Account(BlockchainObject):
         blocktime: int | datetime | date | time,
         stop_diff: int = 0,
         max_count: int = 100,
-        min_index: Optional[int] = None,
+        min_index: int | None = None,
     ) -> int:
         """Returns an estimation of an virtual operation index for a given time or blockindex
 
@@ -2639,7 +2638,7 @@ class Account(BlockchainObject):
             reward_vests += Amount(reward["reward"], blockchain_instance=self.blockchain)
         return self.blockchain.vests_to_token_power(float(reward_vests))
 
-    def curation_stats(self) -> Dict[str, float]:
+    def curation_stats(self) -> dict[str, float]:
         """Returns the curation reward of the last 24h and 7d and the average
         of the last 7 days
 
@@ -2664,8 +2663,8 @@ class Account(BlockchainObject):
         }
 
     def _get_operation_filter(
-        self, only_ops: List[str] | tuple = [], exclude_ops: List[str] | tuple = []
-    ) -> tuple[Optional[int], Optional[int]]:
+        self, only_ops: list[str] | tuple = [], exclude_ops: list[str] | tuple = []
+    ) -> tuple[int | None, int | None]:
         from nectarbase.operationids import operations
 
         operation_filter_low = 0
@@ -2702,8 +2701,8 @@ class Account(BlockchainObject):
         start: int | datetime | date | time | None = None,
         stop: int | datetime | date | time | None = None,
         use_block_num: bool = True,
-        only_ops: List[str] | tuple = [],
-        exclude_ops: List[str] | tuple = [],
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
         raw_output: bool = False,
     ) -> Any:
         """
@@ -2887,7 +2886,7 @@ class Account(BlockchainObject):
                 op = event["op"]["value"]
             block_props = remove_from_dict(event, keys=["op"], keep_keys=False)
 
-            def construct_op(account_name: str) -> Dict[str, Any]:
+            def construct_op(account_name: str) -> dict[str, Any]:
                 # verbatim output from RPC node
                 """
                 Construct a normalized, immutable operation dictionary for an account.
@@ -2938,8 +2937,8 @@ class Account(BlockchainObject):
         start=None,
         stop=None,
         use_block_num: bool = True,
-        only_ops: List[str] | tuple = [],
-        exclude_ops: List[str] | tuple = [],
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
         batch_size: int = 1000,
         raw_output: bool = False,
     ):
@@ -3247,8 +3246,8 @@ class Account(BlockchainObject):
         start: int | datetime | date | time | None = None,
         stop: int | datetime | date | time | None = None,
         use_block_num: bool = True,
-        only_ops: List[str] | tuple = [],
-        exclude_ops: List[str] | tuple = [],
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
         batch_size: int = 1000,
         raw_output: bool = False,
     ) -> Any:
@@ -3505,7 +3504,7 @@ class Account(BlockchainObject):
             if first < 1:
                 break
 
-    def mute(self, mute: str, account: str | None = None) -> Dict[str, Any]:
+    def mute(self, mute: str, account: str | None = None) -> dict[str, Any]:
         """Mute another account
 
         :param str mute: Mute this account
@@ -3515,7 +3514,7 @@ class Account(BlockchainObject):
         """
         return self.follow(mute, what=["ignore"], account=account)
 
-    def unfollow(self, unfollow: str, account: str | None = None) -> Dict[str, Any]:
+    def unfollow(self, unfollow: str, account: str | None = None) -> dict[str, Any]:
         """Unfollow/Unmute another account's blog
 
         :param str unfollow: Unfollow/Unmute this account
@@ -3526,8 +3525,8 @@ class Account(BlockchainObject):
         return self.follow(unfollow, what=[], account=account)
 
     def follow(
-        self, other: str | List[str], what: List[str] = ["blog"], account: str | None = None
-    ) -> Dict[str, Any]:
+        self, other: str | list[str], what: list[str] = ["blog"], account: str | None = None
+    ) -> dict[str, Any]:
         """Follow/Unfollow/Mute/Unmute another account's blog
 
         .. note:: what can be one of the following on HIVE:
@@ -3557,8 +3556,8 @@ class Account(BlockchainObject):
         return self.blockchain.custom_json("follow", json_body, required_posting_auths=[account])
 
     def update_account_profile(
-        self, profile: Dict[str, Any], account: str | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, profile: dict[str, Any], account: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict profile: The new profile to use
@@ -3604,8 +3603,8 @@ class Account(BlockchainObject):
         return self.update_account_metadata(metadata)
 
     def update_account_metadata(
-        self, metadata: Dict[str, Any] | str, account: str | "Account" | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, metadata: dict[str, Any] | str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict metadata: The new metadata to use
@@ -3661,7 +3660,7 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------
     def approvewitness(
         self, witness: str, account: str | None = None, approve: bool = True, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Approve a witness
 
         :param list witness: list of Witness name or id
@@ -3693,7 +3692,7 @@ class Account(BlockchainObject):
 
     def disapprovewitness(
         self, witness: str, account: str | None = None, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Disapprove a witness
 
         :param list witness: list of Witness name or id
@@ -3702,7 +3701,7 @@ class Account(BlockchainObject):
         """
         return self.approvewitness(witness=witness, account=account, approve=False)
 
-    def setproxy(self, proxy: str = "", account: str | "Account" | None = None) -> Dict[str, Any]:
+    def setproxy(self, proxy: str = "", account: str | Account | None = None) -> dict[str, Any]:
         """Set the witness and proposal system proxy of an account
 
         :param proxy: The account to set the proxy to (Leave empty for removing the proxy)
@@ -3725,8 +3724,8 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active")
 
     def update_memo_key(
-        self, key: str, account: str | "Account" | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, key: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Update an account's memo public key
 
         This method does **not** add any private keys to your
@@ -3755,8 +3754,8 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def update_account_keys(
-        self, new_password: str, account: str | "Account" | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, new_password: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Updates all account keys
 
         This method does **not** add any private keys to your
@@ -3807,8 +3806,8 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "owner", **kwargs)
 
     def change_recovery_account(
-        self, new_recovery_account: str, account: str | "Account" | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, new_recovery_account: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Request a change of the recovery account.
 
         .. note:: It takes 30 days until the change applies. Another
@@ -3842,8 +3841,8 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------
     def transfer(
         self,
-        to: Union[str, "Account"],
-        amount: Union[int, float, str, Amount],
+        to: str | Account,
+        amount: int | float | str | Amount,
         asset: str,
         memo: str = "",
         skip_account_check: bool = False,
@@ -3901,16 +3900,16 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------------
     def recurring_transfer(
         self,
-        to: Union[str, "Account"],
-        amount: Union[int, float, str, Amount],
+        to: str | Account,
+        amount: int | float | str | Amount,
         asset: str,
         recurrence: int,
         executions: int,
         memo: str = "",
         skip_account_check: bool = False,
-        account: str | "Account" | None = None,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Schedule a recurring transfer of a token from this account to another.
 
@@ -3962,7 +3961,7 @@ class Account(BlockchainObject):
 
     def transfer_to_vesting(
         self,
-        amount: Union[int, float, str, Amount],
+        amount: int | float | str | Amount,
         to=None,
         account=None,
         skip_account_check: bool = False,
@@ -4008,10 +4007,10 @@ class Account(BlockchainObject):
 
     def convert(
         self,
-        amount: Union[int, float, str, Amount],
-        account: str | "Account" | None = None,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
         request_id: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Convert HBD to HIVE (takes ~3.5 days to settle).
 
@@ -4046,11 +4045,11 @@ class Account(BlockchainObject):
     # Added to differentiate and match the addition of the HF25 convert operation
     def collateralized_convert(
         self,
-        amount: Union[int, float, str, Amount],
-        account: str | "Account" | None = None,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
         request_id: int | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
 
@@ -4090,13 +4089,13 @@ class Account(BlockchainObject):
 
     def transfer_to_savings(
         self,
-        amount: Union[int, float, str, Amount],
+        amount: int | float | str | Amount,
         asset: str,
         memo: str,
-        to: str | "Account" | None = None,
-        account: str | "Account" | None = None,
+        to: str | Account | None = None,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
 
@@ -4142,14 +4141,14 @@ class Account(BlockchainObject):
 
     def transfer_from_savings(
         self,
-        amount: Union[int, float, str, Amount],
+        amount: int | float | str | Amount,
         asset: str,
         memo: str,
         request_id: int | None = None,
-        to: str | "Account" | None = None,
-        account: str | "Account" | None = None,
+        to: str | Account | None = None,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
 
@@ -4202,8 +4201,8 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def cancel_transfer_from_savings(
-        self, request_id: int, account: str | "Account" | None = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, request_id: int, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Cancel a withdrawal from 'savings' account.
 
         :param str request_id: Identifier for tracking or cancelling
@@ -4225,7 +4224,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def _check_amount(self, amount: Union[int, float, str, Amount], symbol: str) -> Amount:
+    def _check_amount(self, amount: int | float | str | Amount, symbol: str) -> Amount:
         if isinstance(amount, (float, int)):
             amount = Amount(amount, symbol, blockchain_instance=self.blockchain)
         elif isinstance(amount, str) and amount.replace(".", "", 1).replace(",", "", 1).isdigit():
@@ -4238,12 +4237,12 @@ class Account(BlockchainObject):
 
     def claim_reward_balance(
         self,
-        reward_hive: Union[int, float, str, Amount] = 0,
-        reward_hbd: Union[int, float, str, Amount] = 0,
-        reward_vests: Union[int, float, str, Amount] = 0,
-        account: str | "Account" | None = None,
+        reward_hive: int | float | str | Amount = 0,
+        reward_hbd: int | float | str | Amount = 0,
+        reward_vests: int | float | str | Amount = 0,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
 
@@ -4316,11 +4315,11 @@ class Account(BlockchainObject):
 
     def delegate_vesting_shares(
         self,
-        to_account: str | "Account",
-        vesting_shares: Union[str, Amount],
-        account: str | "Account" | None = None,
+        to_account: str | Account,
+        vesting_shares: str | Amount,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Delegate vesting shares (Hive Power) from one account to another.
 
@@ -4356,10 +4355,10 @@ class Account(BlockchainObject):
 
     def withdraw_vesting(
         self,
-        amount: Union[int, float, str, Amount],
-        account: str | "Account" | None = None,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Withdraw VESTS from the vesting account.
 
         :param float amount: number of VESTS to withdraw over a period of
@@ -4386,12 +4385,12 @@ class Account(BlockchainObject):
 
     def set_withdraw_vesting_route(
         self,
-        to: str | "Account",
+        to: str | Account,
         percentage: float = 100,
-        account: str | "Account" | None = None,
+        account: str | Account | None = None,
         auto_vest: bool = False,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Set or update a vesting withdraw route for an account.
 
@@ -4429,10 +4428,10 @@ class Account(BlockchainObject):
         foreign: str,
         weight: int | None = None,
         permission: str = "posting",
-        account: str | "Account" | None = None,
+        account: str | Account | None = None,
         threshold: int | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Give additional access to an account by some other public key or account.
 
         :param str foreign: The foreign account that will obtain access
@@ -4502,11 +4501,11 @@ class Account(BlockchainObject):
         self,
         foreign: str,
         permission: str = "posting",
-        account: str | "Account" | None = None,
+        account: str | Account | None = None,
         weight: int | None = None,
         threshold: int | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Remove additional access to an account by some other public
         key or account.
 
@@ -4606,10 +4605,10 @@ class Account(BlockchainObject):
 
     def feed_history(
         self,
-        limit: Optional[int] = None,
-        start_author: Optional[str] = None,
-        start_permlink: Optional[str] = None,
-        account: str | "Account" | None = None,
+        limit: int | None = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
     ) -> Any:
         """
         Yield feed entries for an account in reverse chronological order.
@@ -4670,10 +4669,10 @@ class Account(BlockchainObject):
 
     def blog_history(
         self,
-        limit: Optional[int] = None,
+        limit: int | None = None,
         start: int = -1,
         reblogs: bool = True,
-        account: str | "Account" | None = None,
+        account: str | Account | None = None,
     ) -> Any:
         """
         Yield blog entries for an account in reverse chronological order.
@@ -4735,9 +4734,9 @@ class Account(BlockchainObject):
 
     def comment_history(
         self,
-        limit: Optional[int] = None,
-        start_permlink: Optional[str] = None,
-        account: str | "Account" | None = None,
+        limit: int | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
     ) -> Any:
         """
         Yield comments authored by an account in reverse chronological order.
@@ -4792,10 +4791,10 @@ class Account(BlockchainObject):
 
     def reply_history(
         self,
-        limit: Optional[int] = None,
-        start_author: Optional[str] = None,
-        start_permlink: Optional[str] = None,
-        account: str | "Account" | None = None,
+        limit: int | None = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
     ) -> Any:
         """Stream the replies to an account in reverse time order.
 
@@ -4884,7 +4883,7 @@ class AccountsObject(list):
 
     def print_summarize_table(
         self, tag_type: str = "Follower", return_str: bool = False, **kwargs
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Print or return a one-line summary table aggregating metrics for the accounts in this collection.
 
@@ -5001,7 +5000,7 @@ class Accounts(AccountsObject):
             )["accounts"]
             name_cnt += batch_limit
 
-        super(Accounts, self).__init__(
+        super().__init__(
             [
                 Account(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in accounts

@@ -86,7 +86,7 @@ def parse_path(nstr: str, as_bytes: bool = False) -> Union[List[int], bytes, Non
     return path
 
 
-class BIP32Key(object):
+class BIP32Key:
     # Static initializers to create from entropy or external formats
     #
     @classmethod

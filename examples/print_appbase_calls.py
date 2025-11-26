@@ -1,7 +1,4 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
-from builtins import str
 
 from prettytable import PrettyTable
 

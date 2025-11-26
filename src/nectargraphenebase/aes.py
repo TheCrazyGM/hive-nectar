@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import base64
 import hashlib
 from typing import Any
@@ -7,7 +6,7 @@ from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
 
-class AESCipher(object):
+class AESCipher:
     """
     A classical AES Cipher. Can use any size of data and any size of password thanks to padding.
     Also ensure the coherence and the type of the data with a unicode to byte converter.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 from typing import Any, Dict, List, Union
@@ -37,7 +36,7 @@ class NodeRPC(GrapheneRPC):
         :param bool use_tor: When set to true, 'socks5h://localhost:9050' is set as proxy
 
         """
-        super(NodeRPC, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.next_node_on_empty_reply = False
 
     def set_next_node_on_empty_reply(self, next_node_on_empty_reply: bool = True) -> None:
@@ -67,7 +66,7 @@ class NodeRPC(GrapheneRPC):
             doRetry = False
             try:
                 # Forward call to GrapheneWebsocketRPC and catch+evaluate errors
-                reply = super(NodeRPC, self).rpcexec(payload)
+                reply = super().rpcexec(payload)
                 if (
                     self.next_node_on_empty_reply
                     and not bool(reply)

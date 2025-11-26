@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import json
 import logging
 from datetime import date, datetime, time
-from typing import Union
 
 from prettytable import PrettyTable
 
@@ -56,7 +54,7 @@ class Community(BlockchainObject):
 
     def __init__(
         self,
-        community: Union[str, dict],
+        community: str | dict,
         observer: str = "",
         full: bool = True,
         lazy: bool = False,
@@ -82,7 +80,7 @@ class Community(BlockchainObject):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(community, dict):
             community = self._parse_json_data(community)
-        super(Community, self).__init__(
+        super().__init__(
             community, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
@@ -110,7 +108,7 @@ class Community(BlockchainObject):
         self.identifier = community["name"]
         # self.blockchain.refresh_data()
 
-        super(Community, self).__init__(
+        super().__init__(
             community,
             id_item="name",
             lazy=self.lazy,
@@ -828,14 +826,14 @@ class Communities(CommunityObject):
             if community_cnt + batch_limit > limit:
                 batch_limit = limit - community_cnt
 
-        super(Communities, self).__init__(
+        super().__init__(
             [
                 Community(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in communities[:limit]  # Ensure we don't exceed the limit
             ]
         )
 
-    def search_title(self, title: str) -> "CommunityObject":
+    def search_title(self, title: str) -> CommunityObject:
         """Search for communities with titles containing the given string.
 
         The search is case-insensitive.

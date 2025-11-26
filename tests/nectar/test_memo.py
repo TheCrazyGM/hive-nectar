@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import random
 import shutil
@@ -62,7 +61,7 @@ class Testcases(unittest.TestCase):
         memo = Memo(from_account=wif, to_account="thecrazygm")
         memo.encrypt_binary(outfile, outfile_enc)
         memo.decrypt_binary(outfile_enc, outfile)
-        with open(outfile, "r") as f:
+        with open(outfile) as f:
             content = f.read()
         self.assertEqual(test_string, content)
         shutil.rmtree(test_dir)

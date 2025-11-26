@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for pure Python secp256k1 tweak-add implementation"""
 
 import hashlib

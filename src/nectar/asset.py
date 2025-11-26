@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Any, Dict, Union, cast
 
 from .blockchainobject import BlockchainObject
@@ -30,7 +29,7 @@ class Asset(BlockchainObject):
         **kwargs,
     ) -> None:
         self.full = full
-        super(Asset, self).__init__(
+        super().__init__(
             asset, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
         # self.refresh()

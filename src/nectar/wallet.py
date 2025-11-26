@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from typing import Any, Dict, Generator, List, Optional, Union
 
@@ -18,7 +17,7 @@ from .exceptions import (
 log = logging.getLogger(__name__)
 
 
-class Wallet(object):
+class Wallet:
     """The wallet is meant to maintain access to private keys for
     your accounts. It either uses manually provided private keys
     or uses a SQLite database managed by storage.py.
@@ -362,8 +361,7 @@ class Wallet(object):
             "accounts"
         ]
         for name in names:
-            for i in name:
-                yield i
+            yield from name
 
     def getAccountFromPublicKey(self, pub: str) -> Optional[str]:
         """Obtain the first account name from public key

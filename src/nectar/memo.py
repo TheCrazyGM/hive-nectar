@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import random
 import struct
@@ -15,7 +14,7 @@ from .account import Account
 from .exceptions import MissingKeyError
 
 
-class Memo(object):
+class Memo:
     """Deals with Memos that are attached to a transfer
 
     :param Account from_account: Account that has sent the memo

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 from typing import Any, Dict, Optional
@@ -11,7 +10,7 @@ from nectar.instance import shared_blockchain_instance
 log = logging.getLogger(__name__)
 
 
-class HAF(object):
+class HAF:
     """Hive Account Feed (HAF) API client for accessing Hive blockchain endpoints.
 
     This class provides access to various Hive API endpoints that are not part of the

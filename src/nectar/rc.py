@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import Any, Dict, Optional, Union
 
 from nectar.constants import (
@@ -14,7 +12,7 @@ from nectarbase.signedtransactions import Signed_Transaction
 from .instance import shared_blockchain_instance
 
 
-class RC(object):
+class RC:
     def __init__(self, blockchain_instance: Optional[Any] = None, **kwargs: Any) -> None:
         """
         Initialize the RC helper with a blockchain instance.

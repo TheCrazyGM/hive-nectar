@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import struct
 import time
@@ -44,7 +43,7 @@ def JsonObj(data: Any) -> Any:
     return json.loads(str(data))
 
 
-class Uint8(object):
+class Uint8:
     """Uint8."""
 
     def __init__(self, d: Any) -> None:
@@ -60,7 +59,7 @@ class Uint8(object):
         return "%d" % self.data
 
 
-class Int16(object):
+class Int16:
     """Int16."""
 
     def __init__(self, d: Any) -> None:
@@ -76,7 +75,7 @@ class Int16(object):
         return "%d" % self.data
 
 
-class Uint16(object):
+class Uint16:
     """Uint16."""
 
     def __init__(self, d: Any) -> None:
@@ -90,7 +89,7 @@ class Uint16(object):
         return "%d" % self.data
 
 
-class Uint32(object):
+class Uint32:
     """Uint32."""
 
     def __init__(self, d: Any) -> None:
@@ -121,7 +120,7 @@ class Uint32(object):
         return "%d" % self.data
 
 
-class Uint64(object):
+class Uint64:
     """Uint64."""
 
     def __init__(self, d: Any) -> None:
@@ -152,7 +151,7 @@ class Uint64(object):
         return "%d" % self.data
 
 
-class Varint32(object):
+class Varint32:
     """Varint32."""
 
     def __init__(self, d: Any) -> None:
@@ -183,7 +182,7 @@ class Varint32(object):
         return "%d" % self.data
 
 
-class Int64(object):
+class Int64:
     """Int64."""
 
     def __init__(self, d: Any) -> None:
@@ -214,7 +213,7 @@ class Int64(object):
         return "%d" % self.data
 
 
-class HexString(object):
+class HexString:
     """HexString."""
 
     def __init__(self, d: Any) -> None:
@@ -246,7 +245,7 @@ class HexString(object):
         return str(self.data)
 
 
-class String(object):
+class String:
     """String."""
 
     def __init__(self, d: Any) -> None:
@@ -282,7 +281,7 @@ class String(object):
         return bytes("".join(r), "utf-8")
 
 
-class Bytes(object):
+class Bytes:
     """Bytes."""
 
     def __init__(self, d: Any) -> None:
@@ -332,7 +331,7 @@ class Sha256(Hash):
         super().__init__(a)
 
 
-class Void(object):
+class Void:
     """Void."""
 
     def __init__(self) -> None:
@@ -347,7 +346,7 @@ class Void(object):
         return ""
 
 
-class Array(object):
+class Array:
     """Array."""
 
     def __init__(self, d: List[Any]) -> None:
@@ -372,7 +371,7 @@ class Array(object):
         return json.dumps(r)
 
 
-class PointInTime(object):
+class PointInTime:
     """PointInTime."""
 
     def __init__(self, d: Union[str, datetime]) -> None:
@@ -405,7 +404,7 @@ class PointInTime(object):
         return str(self.data)
 
 
-class Signature(object):
+class Signature:
     """Signature."""
 
     def __init__(self, d: bytes) -> None:
@@ -424,7 +423,7 @@ class Bool(Uint8):  # Bool = Uint8
     """Bool."""
 
     def __init__(self, d: Any) -> None:
-        super(Bool, self).__init__(d)
+        super().__init__(d)
 
     def __str__(self) -> str:
         """Returns data as string."""
@@ -435,10 +434,10 @@ class Set(Array):  # Set = Array
     """Set."""
 
     def __init__(self, d: List[Any]) -> None:
-        super(Set, self).__init__(d)
+        super().__init__(d)
 
 
-class Fixed_array(object):
+class Fixed_array:
     """Fixed_array."""
 
     def __init__(self, d: Any) -> None:
@@ -453,7 +452,7 @@ class Fixed_array(object):
         raise NotImplementedError
 
 
-class Optional(object):
+class Optional:
     """Optional."""
 
     def __init__(self, d: Any) -> None:
@@ -475,7 +474,7 @@ class Optional(object):
         return not self.data
 
 
-class Static_variant(object):
+class Static_variant:
     """Static_variant."""
 
     def __init__(self, d: Any, type_id: int, legacy_style: bool = True) -> None:
@@ -497,7 +496,7 @@ class Static_variant(object):
             return json.dumps({"type": self.type_id, "value": self.data.json()})
 
 
-class Map(object):
+class Map:
     """Map."""
 
     def __init__(self, data: List[Tuple[Any, Any]]) -> None:
@@ -519,7 +518,7 @@ class Map(object):
         return json.dumps(r)
 
 
-class Id(object):
+class Id:
     """Id."""
 
     def __init__(self, d: int) -> None:
@@ -546,7 +545,7 @@ class Enum8(Uint8):
         ):
             raise ValueError("Options are {}. Given '{}'".format(str(self.options), selection))
 
-        super(Enum8, self).__init__(self.options.index(selection))
+        super().__init__(self.options.index(selection))
 
     def __str__(self) -> str:
         """Returns data as string."""

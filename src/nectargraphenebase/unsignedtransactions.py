@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import json
 import logging
@@ -30,7 +29,7 @@ from .types import (
 log = logging.getLogger(__name__)
 
 
-class GrapheneObjectASN1(object):
+class GrapheneObjectASN1:
     """Core abstraction class
 
     This class is used for any JSON reflected object in Graphene.
@@ -46,7 +45,7 @@ class GrapheneObjectASN1(object):
 
     def __bytes__(self) -> bytes:
         if self.data is None:
-            return bytes()
+            return b""
         b = b""
         output = b""
         for name, value in list(self.data.items()):
@@ -127,7 +126,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
                 # else:
                 #    kwargs['operations'] = (kwargs["operations"])
 
-            super(Unsigned_Transaction, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("ref_block_num", Uint16(kwargs["ref_block_num"])),
@@ -170,7 +169,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             raise AssertionError()
         x, s = ecdsa.der.remove_integer(s)
         y, s = ecdsa.der.remove_integer(s)
-        return "%064x%064x" % (x, y)
+        return "{:064x}{:064x}".format(x, y)
 
     def getKnownChains(self) -> Dict[str, Any]:
         return known_chains

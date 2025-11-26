@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from typing import Any, Dict, List, Mapping, Optional, Union
 
@@ -28,7 +27,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
             for c in custom_chain:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
-        super(Signed_Transaction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def add_custom_chains(self, custom_chain: Mapping[str, Any]) -> None:
         """
@@ -53,7 +52,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         Returns:
             The value returned by the superclass `sign` implementation.
         """
-        return super(Signed_Transaction, self).sign(wifkeys, chain)
+        return super().sign(wifkeys, chain)
 
     def verify(
         self,
@@ -75,7 +74,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         """
         if pubkeys is None:
             pubkeys = []
-        return super(Signed_Transaction, self).verify(pubkeys, chain, recover_parameter)
+        return super().verify(pubkeys, chain, recover_parameter)
 
     def getOperationKlass(self) -> type[Operation]:
         """

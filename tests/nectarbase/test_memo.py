@@ -1,8 +1,4 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import unittest
-from builtins import bytes, chr, range
 from itertools import cycle
 
 from nectarbase.memo import (

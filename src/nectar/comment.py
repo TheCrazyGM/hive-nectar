@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import math
@@ -96,7 +95,7 @@ class Comment(BlockchainObject):
                 authorperm["author"], authorperm["permlink"]
             )
             authorperm = self._parse_json_data(authorperm)
-        super(Comment, self).__init__(
+        super().__init__(
             authorperm,
             id_item="authorperm",
             lazy=lazy,
@@ -251,7 +250,7 @@ class Comment(BlockchainObject):
             raise ContentDoesNotExistsException(self.identifier)
         content = self._parse_json_data(content)
         content["authorperm"] = construct_authorperm(content["author"], content["permlink"])
-        super(Comment, self).__init__(
+        super().__init__(
             content,
             id_item="authorperm",
             lazy=self.lazy,
@@ -1293,7 +1292,7 @@ class RecentReplies(list):
             comments.append(
                 Comment(post, lazy=lazy, full=full, blockchain_instance=self.blockchain)
             )
-        super(RecentReplies, self).__init__(comments)
+        super().__init__(comments)
 
 
 class RecentByPath(list):
@@ -1339,7 +1338,7 @@ class RecentByPath(list):
             blockchain_instance=self.blockchain,
         )
 
-        super(RecentByPath, self).__init__(ranked_posts)
+        super().__init__(ranked_posts)
 
 
 class RankedPosts(list):
@@ -1443,7 +1442,7 @@ class RankedPosts(list):
                     break
                 # Otherwise, re-raise the exception
                 raise
-        super(RankedPosts, self).__init__(comments)
+        super().__init__(comments)
 
 
 class AccountPosts(list):
@@ -1547,4 +1546,4 @@ class AccountPosts(list):
                     break
                 # Otherwise, re-raise the exception
                 raise
-        super(AccountPosts, self).__init__(comments)
+        super().__init__(comments)

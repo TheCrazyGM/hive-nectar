@@ -1,5 +1,4 @@
 import unittest
-from builtins import str
 
 from nectargraphenebase.account import PrivateKey
 from nectargraphenebase.bip38 import SaltException

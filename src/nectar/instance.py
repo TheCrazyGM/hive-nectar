@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 from typing import Any, Dict
 
 import nectar
 
 
-class SharedInstance(object):
+class SharedInstance:
     """Singleton for the shared Blockchain Instance (Hive-only)."""
 
     instance = None

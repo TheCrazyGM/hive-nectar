@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from nectar.instance import shared_blockchain_instance
 from nectar.utils import formatTimeString, parse_time
@@ -72,7 +71,7 @@ class Block(BlockchainObject):
             block = int(block)
         elif isinstance(block, dict):
             block = self._parse_json_data(block)
-        super(Block, self).__init__(
+        super().__init__(
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
         if self.identifier is None:
@@ -166,12 +165,10 @@ class Block(BlockchainObject):
             message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
             raise BlockDoesNotExistsException(message)
         block = self._parse_json_data(block)
-        super(Block, self).__init__(
-            block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
-        )
+        super().__init__(block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain)
 
     @property
-    def block_num(self) -> Optional[int]:
+    def block_num(self) -> int | None:
         """Returns the block number"""
         if "block_id" in self:
             return int(self["block_id"][:8], base=16)
@@ -185,7 +182,7 @@ class Block(BlockchainObject):
         return self["timestamp"]
 
     @property
-    def transactions(self) -> List[Dict[str, Any]]:
+    def transactions(self) -> list[dict[str, Any]]:
         """Returns all transactions as list"""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -202,7 +199,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def operations(self) -> List[Any]:
+    def operations(self) -> list[Any]:
         """Returns all block operations as list"""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -223,7 +220,7 @@ class Block(BlockchainObject):
         return ops
 
     @property
-    def json_transactions(self) -> List[Dict[str, Any]]:
+    def json_transactions(self) -> list[dict[str, Any]]:
         """Returns all transactions as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -245,7 +242,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def json_operations(self) -> List[Any]:
+    def json_operations(self) -> list[Any]:
         """Returns all block operations as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -274,7 +271,7 @@ class Block(BlockchainObject):
                 ops.append(op_new)
         return ops
 
-    def ops_statistics(self, add_to_ops_stat: Optional[Dict[str, int]] = None) -> Dict[str, int]:
+    def ops_statistics(self, add_to_ops_stat: dict[str, int] | None = None) -> dict[str, int]:
         """Returns a statistic with the occurrence of the different operation types"""
         if add_to_ops_stat is None:
             import nectarbase.operationids
@@ -344,7 +341,7 @@ class BlockHeader(BlockchainObject):
         self.lazy = lazy
         if isinstance(block, float):
             block = int(block)
-        super(BlockHeader, self).__init__(
+        super().__init__(
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
 
@@ -363,9 +360,7 @@ class BlockHeader(BlockchainObject):
         if not block:
             raise BlockDoesNotExistsException(str(self.identifier))
         block = self._parse_json_data(block)
-        super(BlockHeader, self).__init__(
-            block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
-        )
+        super().__init__(block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain)
 
     def time(self) -> datetime:
         """Return a datetime instance for the timestamp of this block"""
@@ -451,7 +446,7 @@ class Blocks(list):
             {"starting_block_num": starting_block_num, "count": count}, api="block_api"
         )["blocks"]
 
-        super(Blocks, self).__init__(
+        super().__init__(
             [
                 Block(
                     x,

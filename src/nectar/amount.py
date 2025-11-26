@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from decimal import ROUND_DOWN, Decimal
 from typing import TYPE_CHECKING, Any, Tuple, Union
 

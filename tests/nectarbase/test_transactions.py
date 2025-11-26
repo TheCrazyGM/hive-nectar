@@ -1,12 +1,9 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import pytest
 
 pytest.skip("Skipping legacy Hive serialization tests (migrated to Hive)", allow_module_level=True)
 
 import unittest
 from binascii import hexlify
-from builtins import chr, range, super
 from collections import OrderedDict
 
 from nectar.amount import Amount
