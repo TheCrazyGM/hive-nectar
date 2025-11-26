@@ -71,7 +71,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
             - This method opens a connection to the Ledger device and closes it before returning.
             - Any exceptions raised by the Ledger communication layer are not handled here and will propagate to the caller.
         """
-        from ledgerblue.comm import getDongle
+        from ledgerblue.comm import getDongle  # type: ignore[import-not-found]
 
         dongle = getDongle(True)
         apdu_list = self.build_apdu(path, chain)
@@ -90,7 +90,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         request_screen_approval: bool = False,
         prefix: str = "STM",
     ) -> PublicKey:
-        from ledgerblue.comm import getDongle
+        from ledgerblue.comm import getDongle  # type: ignore[import-not-found]
 
         dongle = getDongle(True)
         apdu = self.build_apdu_pubkey(path, request_screen_approval)

@@ -1,7 +1,7 @@
 import json
 import threading
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from nectar.instance import shared_blockchain_instance
 
@@ -152,11 +152,13 @@ class BlockchainObject(dict):
         else:
             self.id_item = "id"
         if klass and isinstance(data, klass) and hasattr(data, "get"):
-            self.identifier = data.get(self.id_item)  # type: ignore
-            super().__init__(data)
+            mapping_data = cast(Dict[str, Any], data)
+            self.identifier = mapping_data.get(self.id_item)
+            super().__init__(mapping_data)
         elif isinstance(data, dict):
-            self.identifier = data.get(self.id_item)
-            super().__init__(data)
+            mapping_data = cast(Dict[str, Any], data)
+            self.identifier = mapping_data.get(self.id_item)
+            super().__init__(mapping_data)
         elif isinstance(data, int):
             # This is only for block number basically
             self.identifier = data

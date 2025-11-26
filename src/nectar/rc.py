@@ -233,7 +233,7 @@ class RC:
         resource_count = self.get_resource_count(tx_size, execution_time_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def claim_account(self, tx_size: int = 300) -> Dict[str, int]:
+    def claim_account(self, tx_size: int = 300) -> int:
         """Claim account"""
         execution_time_count = resource_execution_time["claim_account_operation_exec_time"]
         resource_count = self.get_resource_count(

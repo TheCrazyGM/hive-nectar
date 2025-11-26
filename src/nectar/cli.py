@@ -1634,7 +1634,7 @@ def followlist(follow_type, account, limit):
         hv.rpc.rpcconnect()
     if not account:
         if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
+            account = hv.config["default_account"]
     account = Account(account, blockchain_instance=hv)
     if follow_type == "blog":
         name_list = account.get_following(limit=limit)
@@ -1658,13 +1658,15 @@ def follower(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nFollowers statistics for @%s (please wait...)" % a.name)
         followers = a.get_followers(False)
+        if isinstance(followers, list):
+            raise ValueError("Expected Accounts object when raw_name_list is False")
         followers.print_summarize_table(tag_type="Followers")
 
 
@@ -1675,13 +1677,15 @@ def following(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nFollowing statistics for @%s (please wait...)" % a.name)
         following = a.get_following(False)
+        if isinstance(following, list):
+            raise ValueError("Expected Accounts object when raw_name_list is False")
         following.print_summarize_table(tag_type="Following")
 
 
@@ -1692,13 +1696,15 @@ def muter(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nMuters statistics for @%s (please wait...)" % a.name)
         muters = a.get_muters(False)
+        if isinstance(muters, list):
+            raise ValueError("Expected Accounts object when raw_name_list is False")
         muters.print_summarize_table(tag_type="Muters")
 
 
@@ -1709,13 +1715,15 @@ def muting(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nMuting statistics for @%s (please wait...)" % a.name)
         muting = a.get_mutings(False)
+        if isinstance(muting, list):
+            raise ValueError("Expected Accounts object when raw_name_list is False")
         muting.print_summarize_table(tag_type="Muting")
 
 
@@ -1913,7 +1921,9 @@ def disallow(foreign_account, permission, account, weight, threshold, export):
         from nectargraphenebase.account import PasswordKey
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
-        foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
+        foreign_account = format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)
+    elif isinstance(foreign_account, (list, tuple)):
+        foreign_account = foreign_account[0]
     tx = acc.disallow(foreign_account, permission=permission, weight=weight, threshold=threshold)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
@@ -2418,11 +2428,12 @@ def message(message_file, account, verify):
     else:
         if not unlock_wallet(hv):
             return
-        out = m.sign(account)
-    if message_file is not None:
+        signed = m.sign(account)
+        out = signed if isinstance(signed, str) else json.dumps(signed, indent=4)
+    if message_file is not None and not verify:
         with open(message_file, "w", encoding="utf-8") as f:
             f.write(out)
-    else:
+    elif not verify:
         print(out)
 
 
@@ -2496,12 +2507,16 @@ def decrypt(memo, account, output, info, text, binary):
             message = entry
         if text:
             out = m.decrypt(message)
+            if out is None:
+                raise ValueError("Failed to decrypt message")
             if output is None:
                 output = entry
             with open(output, "w", encoding="utf-8") as f:
                 f.write(out)
         elif not binary:
             out = m.decrypt(message)
+            if out is None:
+                raise ValueError("Failed to decrypt message")
             if info:
                 print("message: %s" % out)
             if output:
@@ -2554,7 +2569,10 @@ def encrypt(receiver, memo, account, output, text, binary):
             if encrypted is None:
                 print("Failed to encrypt message")
                 return
-            out = encrypted["message"]
+            out = encrypted.get("message") if isinstance(encrypted, dict) else encrypted
+            if out is None:
+                print("Failed to encrypt message")
+                return
             if output is None:
                 output = entry
             with open(output, "w", encoding="utf-8") as f:
@@ -2564,7 +2582,10 @@ def encrypt(receiver, memo, account, output, text, binary):
             if encrypted is None:
                 print("Failed to encrypt message")
                 return
-            out = encrypted["message"]
+            out = encrypted.get("message") if isinstance(encrypted, dict) else encrypted
+            if out is None:
+                print("Failed to encrypt message")
+                return
             if output is None:
                 print(out)
             else:

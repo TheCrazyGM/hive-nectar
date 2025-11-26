@@ -57,7 +57,7 @@ class MasterPassword:
             KEYRING_AVAILABLE = False
             if password_storage == "keyring":
                 try:
-                    import keyring
+                    import keyring  # type: ignore[import-not-found]
 
                     if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):
                         KEYRING_AVAILABLE = True

@@ -8,7 +8,7 @@ from datetime import time as datetime_time
 from queue import Queue
 from threading import Event, Thread
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import UnknownTransaction
@@ -493,7 +493,7 @@ class Blockchain:
         if not start and current_block_num is not None:
             start = current_block_num
         head_block_reached = False
-        pool: Union[ThreadPoolExecutor, Pool, None] = None
+        pool: Any = None
         if threading and FUTURES_MODULE is not None:
             pool = ThreadPoolExecutor(max_workers=thread_num)
         elif threading:
@@ -519,6 +519,9 @@ class Blockchain:
                 current_block_num = self.get_current_block_num()
                 head_block = current_block_num
             if threading and not head_block_reached and start is not None:
+                if pool is None:
+                    raise RuntimeError("Threading is enabled but no pool was initialized")
+                pool_any = cast(Any, pool)
                 latest_block = start - 1
                 result_block_nums = []
                 for blocknum in range(start, head_block + 1, thread_num):
@@ -537,7 +540,7 @@ class Blockchain:
                         results = []
                         if FUTURES_MODULE is not None:
                             futures.append(
-                                pool.submit(
+                                pool_any.submit(
                                     Block,
                                     blocknum + i,
                                     only_ops=only_ops,
@@ -546,7 +549,7 @@ class Blockchain:
                                 )
                             )
                         else:
-                            pool.enqueue(
+                            pool_any.enqueue(
                                 Block,
                                 blocknum + i,
                                 only_ops=only_ops,
@@ -560,11 +563,11 @@ class Blockchain:
                         except Exception as e:
                             log.error(str(e))
                     else:
-                        pool.run(True)
-                        pool.join()
-                        for result in pool.results():
+                        pool_any.run(True)
+                        pool_any.join()
+                        for result in pool_any.results():
                             results.append(result)
-                        pool.abort()
+                        pool_any.abort()
                     self.blockchain.rpc.nodes.num_retries = num_retries
                     # self.blockchain.rpc.nodes.freeze_current_node = freeze
                     new_error_cnt = self.blockchain.rpc.nodes.node.error_cnt

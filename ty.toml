@@ -1,0 +1,2 @@
+[src]
+exclude = ["examples/**", "tests/**", "src/nectar/cli.py"]

@@ -5,7 +5,8 @@ from binascii import hexlify, unhexlify
 
 # Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
-from typing import Any, List, Tuple, Union
+from collections.abc import Sequence
+from typing import Any, List, Optional, Tuple, Union
 
 # Import calendar only when needed to avoid circular imports
 timeformat = "%Y-%m-%dT%H:%M:%S%Z"
@@ -21,8 +22,10 @@ def varint(n: int) -> bytes:
     return data
 
 
-def varintdecode(data: Union[bytes, str]) -> int:
+def varintdecode(data: Optional[Union[bytes, str]]) -> int:
     """Varint decoding."""
+    if data is None:
+        raise ValueError("Cannot decode varint from None")
     shift = 0
     result = 0
     for b in bytes(data):
@@ -499,8 +502,8 @@ class Static_variant:
 class Map:
     """Map."""
 
-    def __init__(self, data: List[Tuple[Any, Any]]) -> None:
-        self.data = data
+    def __init__(self, data: Sequence[Sequence[Any]]) -> None:
+        self.data: List[Tuple[Any, Any]] = [tuple(entry) for entry in data]  # type: ignore[arg-type]
 
     def __bytes__(self) -> bytes:
         """Returns bytes representation."""

@@ -68,8 +68,8 @@ def int_to_hex(x: int) -> bytes:
     return bytes(hex(x)[2:], encoding="utf-8")
 
 
-def parse_path(nstr: str, as_bytes: bool = False) -> Union[List[int], bytes, None]:
-    """"""
+def parse_path(nstr: str, as_bytes: bool = False) -> Union[List[int], bytes]:
+    """Parse a derivation path like \"m/0'/1/2\" into a list of indexes or bytes."""
     r = list()
     for s in nstr.split("/"):
         if s == "m":

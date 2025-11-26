@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, Generator, List, Optional, Union
 
@@ -101,6 +103,7 @@ class Wallet:
         if "wif" in kwargs and "keys" not in kwargs:
             kwargs["keys"] = kwargs["wif"]
 
+        self.store: Any
         if "keys" in kwargs and len(kwargs["keys"]) > 0:
             from nectarstorage import InRamPlainKeyStore
 
