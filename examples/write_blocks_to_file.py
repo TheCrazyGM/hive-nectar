@@ -27,7 +27,7 @@ def s_dump_binary(elt_to_pickle, file_obj):
     pickled_elt_str = dumps(elt_to_pickle)
     file_obj.write(hexlify(pickled_elt_str))
     # record separator is a blank line
-    file_obj.write(bytes(b"\n"))
+    file_obj.write(b"\n")
 
 
 def s_load_text(file_obj):
