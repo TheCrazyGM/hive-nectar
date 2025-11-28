@@ -162,11 +162,12 @@ class Signed_Transaction(GrapheneObject):
                 for i in range(4):
                     try:
                         p = verify_message(self.message, bytes(signature), recover_parameter=i)
-                        phex = hexlify(p).decode("ascii")
-                        pubKeysFound.append(phex)
+                        if p is not None:
+                            phex = hexlify(p).decode("ascii")
+                            pubKeysFound.append(phex)
                     except Exception:
                         p = None
-            else:
+            elif p is not None:
                 phex = hexlify(p).decode("ascii")
                 pubKeysFound.append(phex)
 

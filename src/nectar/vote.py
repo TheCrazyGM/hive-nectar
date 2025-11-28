@@ -464,7 +464,7 @@ class VotesObject(list):
         t = PrettyTable(table_header)
         t.align = "l"
 
-    def __contains__(self, item):
+    def __contains__(self, item: object, /) -> bool:  # type: ignore[override]
         if isinstance(item, Account):
             name = item["name"]
             authorperm = ""

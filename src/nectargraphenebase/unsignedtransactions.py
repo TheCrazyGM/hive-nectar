@@ -238,7 +238,8 @@ class Unsigned_Transaction(GrapheneObjectASN1):
         if chain is None:
             raise ValueError("chain parameter is required for build_apdu")
         self.deriveDigest(chain)
-        path_bytes = unhexlify(parse_path(path, as_bytes=True))
+        parsed_path = parse_path(path, as_bytes=True)
+        path_bytes = unhexlify(bytes(parsed_path))
 
         message = self.message
         path_size = int(len(path_bytes) / 4)
@@ -269,7 +270,8 @@ class Unsigned_Transaction(GrapheneObjectASN1):
     def build_apdu_pubkey(
         self, path: str = "48'/13'/0'/0'/0'", request_screen_approval: bool = False
     ) -> bytes:
-        path_bytes = unhexlify(parse_path(path, as_bytes=True))
+        parsed_path = parse_path(path, as_bytes=True)
+        path_bytes = unhexlify(bytes(parsed_path))
         if not request_screen_approval:
             return (
                 unhexlify("d4020001")

@@ -10,18 +10,19 @@ Practical refactors to strip legacy branches, rely on the static `nectarapi/open
 - Normalize hivemind/bridge usage: ensure follow/reblog/vote lookups consistently hit the mapped bridge or condenser endpoint (no manual fallback branches) and document the canonical call per operation.
 
 ## Reward math and chain data
-- Deduplicate vote/vesting math: there are two `vests_to_rshares` implementations (base vs Hive) with different curves/dust handling—consolidate into one well-tested helper and guard against `None` dynamic properties.
+- Deduplicate vote/vesting math: remove legacy steem branches and keep the Hive curve/dust logic in a single helper shared between base and Hive. Guard against `None` dynamic properties.
 - Harden block/operation iterators so `block_num` is never `None` before casting and shared pagination code is reused across `blockchain.py`, `block.py`, and history helpers.
 
 ## Models and typing
-- Replace `dict` inheritance for `Amount`, `Asset`, and `BlockchainObject` with thin data classes/wrappers; align `__eq__`/`__ne__`/`items` signatures to satisfy the type checker and remove LSP violations.
+- Replace `dict` inheritance for `Amount`, `Asset`, `Price`, `BlockchainObject`, and list-like helpers (VotesObject/WitnessesObject) with thin data classes/wrappers; align equality/contains/update semantics to satisfy the type checker and remove LSP violations.
 - Tame `asciichart` number handling by rejecting `None` min/max upfront or defaulting them before float math.
 
 ## Wallet and storage
-- Unify key/token store interfaces (`nectarstorage/interfaces.py` and backends): make `add/delete/getPrivateKeyForPublicKey` signatures match the interfaces, drop classmethod `setdefault` overrides, and share encryption/decryption helpers instead of per-store reimplementations.
+- Unify key/token store interfaces (`nectarstorage/interfaces.py` and backends): make `add/delete/getPrivateKeyForPublicKey` signatures match the interfaces, drop classmethod `setdefault` overrides, and share encryption/decryption helpers instead of per-store reimplementations. Finish replacing dict inheritance with typed stores.
 - Introduce a small keystore protocol used by `wallet.py`/`transactionbuilder.py` so tests can cover wallet behaviors without depending on dict subclasses.
 
 ## Tests and docs
 - Add targeted tests around the OpenAPI method map (one call per API) to catch regressions when new RPC methods are added.
 - Update docs/examples to describe the single RPC path, static openapi map, and removal of condenser/appbase switches; prune any references to shipping JSON specs.
 - Untangle shared instance wiring: `nectar/instance.py`’s singleton/config cache should create one `Hive` (and shared httpx client) when `Hive(...)` is instantiated and avoid surprising resets between `shared_blockchain_instance()`, `set_shared_*`, and manual `Hive(keys=[...])` calls; document the lifecycle and make it deterministic.
+- Add a small regression test around `shared_blockchain_instance()`/`set_shared_*` ensuring the shared RPC transport is reused when a new Hive is built or injected (no duplicated httpx clients).

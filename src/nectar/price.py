@@ -139,7 +139,12 @@ class Price(dict):
             #    self["base"] = Amount(price["quote"], blockchain_instance=self.blockchain)
 
         elif price is not None and isinstance(base, Asset) and isinstance(quote, Asset):
-            frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            if isinstance(price, Price):
+                frac = Fraction(float(price["price"])).limit_denominator(10 ** base["precision"])
+            elif isinstance(price, (int, float, str)):
+                frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            else:
+                raise ValueError("Unsupported price type")
             self["quote"] = Amount(
                 amount=frac.denominator, asset=quote, blockchain_instance=self.blockchain
             )
@@ -150,7 +155,12 @@ class Price(dict):
         elif price is not None and isinstance(base, str) and isinstance(quote, str):
             base = Asset(base, blockchain_instance=self.blockchain)
             quote = Asset(quote, blockchain_instance=self.blockchain)
-            frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            if isinstance(price, Price):
+                frac = Fraction(float(price["price"])).limit_denominator(10 ** base["precision"])
+            elif isinstance(price, (int, float, str)):
+                frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            else:
+                raise ValueError("Unsupported price type")
             self["quote"] = Amount(
                 amount=frac.denominator, asset=quote, blockchain_instance=self.blockchain
             )
@@ -212,7 +222,7 @@ class Price(dict):
         self, a: Union[int, float, Decimal], b: Union[int, float, Decimal]
     ) -> Union[int, float, Decimal]:
         if b != 0.0:
-            return a / b
+            return float(a) / float(b)
         else:
             return float("inf")
 
@@ -430,19 +440,21 @@ class Price(dict):
         else:
             return self["price"] <= float(other or 0)
 
-    def __eq__(self, other: Union["Price", Amount, float, int]) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] == other["price"]
-        else:
+        if isinstance(other, (float, int)):
             return self["price"] == float(other or 0)
+        return False
 
-    def __ne__(self, other: Union["Price", Amount, float, int]) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] != other["price"]
-        else:
+        if isinstance(other, (float, int)):
             return self["price"] != float(other or 0)
+        return True
 
     def __ge__(self, other: Union["Price", Amount, float, int]) -> bool:
         if isinstance(other, Price):

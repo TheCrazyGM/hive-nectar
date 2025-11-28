@@ -31,10 +31,13 @@ class StoreInterface(dict):
 
     defaults = {}
 
-    @classmethod
-    def setdefault(cls, key, value):
-        """Allows to define default values"""
-        cls.defaults[key] = value
+    def setdefault(self, key, value=None):
+        """Allows to define default values on this store instance."""
+        if value is None and key in self.defaults:
+            return self.defaults[key]
+        if value is not None:
+            self.defaults[key] = value
+        return dict.setdefault(self, key, value)
 
     def __init__(self, *args, **kwargs):
         pass
@@ -115,18 +118,17 @@ class KeyInterface(StoreInterface):
         raise NotImplementedError
 
     def add(self, wif, pub=None):
-        """Add a new public/private key pair (correspondence has to be
-         checked elsewhere!)
+        """Add a new public/private key pair (correspondence has to be checked elsewhere!)
 
         :param str pub: Public key
         :param str wif: Private key
         """
         raise NotImplementedError
 
-    def delete(self, pub):
+    def delete(self, key):
         """Delete a pubkey/privatekey pair from the store
 
-        :param str pub: Public key
+        :param str key: Public key
         """
         raise NotImplementedError
 
@@ -179,14 +181,13 @@ class TokenInterface(StoreInterface):
         """Returns True/False to indicate required use of unlock"""
         return False
 
-    # Interface to deal with encrypted keys
-    def getPublicKeys(self):
-        """Returns the public keys stored in the database"""
+    # Interface to deal with tokens
+    def getPublicNames(self):
+        """Returns the public token names stored in the database"""
         raise NotImplementedError
 
     def getPrivateKeyForPublicKey(self, pub):
-        """Returns the (possibly encrypted) private key that
-         corresponds to a public key
+        """Returns the (possibly encrypted) token that corresponds to a name
 
         :param str pub: Public key
 
@@ -194,19 +195,18 @@ class TokenInterface(StoreInterface):
         """
         raise NotImplementedError
 
-    def add(self, wif, pub=None):
-        """Add a new public/private key pair (correspondence has to be
-         checked elsewhere!)
+    def add(self, token, name=None):
+        """Add a new token entry (correspondence has to be checked elsewhere!)
 
-        :param str pub: Public key
-        :param str wif: Private key
+        :param str name: Public identifier
+        :param str token: Token value
         """
         raise NotImplementedError
 
-    def delete(self, pub):
-        """Delete a pubkey/privatekey pair from the store
+    def delete(self, key):
+        """Delete a token entry from the store
 
-        :param str pub: Public key
+        :param str key: Public identifier
         """
         raise NotImplementedError
 

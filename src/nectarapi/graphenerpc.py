@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 _shared_httpx_client: httpx.Client | None = None
 
 
-def shared_httpx_client(proxies: Optional[dict[str, str]] = None) -> httpx.Client:
+def shared_httpx_client(proxy: Optional[str] = None) -> httpx.Client:
     """
     Return a process-wide httpx client with connection pooling.
 
@@ -36,9 +36,9 @@ def shared_httpx_client(proxies: Optional[dict[str, str]] = None) -> httpx.Clien
     repeatedly creating TCP/TLS handshakes.
     """
     global _shared_httpx_client
-    if proxies:
+    if proxy:
         # Proxy clients are per-instance to avoid leaking proxy settings globally.
-        return httpx.Client(http2=False, proxies=proxies)
+        return httpx.Client(http2=False, proxy=proxy)
     if _shared_httpx_client is None:
         _shared_httpx_client = httpx.Client(http2=False)
     return _shared_httpx_client
@@ -166,14 +166,11 @@ class GrapheneRPC:
                 self.nodes.reset_error_cnt_call()
                 log.debug("Trying to connect to node %s" % self.url)
                 self.ws = None
-                self._proxies = None
+                self._proxy: Optional[str] = None
                 if self.use_tor:
-                    self._proxies = {
-                        "http://": "socks5h://localhost:9050",
-                        "https://": "socks5h://localhost:9050",
-                    }
+                    self._proxy = "socks5h://localhost:9050"
                 # Use a shared client unless proxies are required.
-                self.session = shared_httpx_client(self._proxies)
+                self.session = shared_httpx_client(self._proxy)
                 self.ws = None
                 self.headers = {
                     "User-Agent": "nectar v%s" % (nectar_version),
@@ -189,9 +186,7 @@ class GrapheneRPC:
                 self.nodes.sleep_and_check_retries(str(e), sleep=do_sleep)
                 next_url = True
 
-    def request_send(
-        self, payload: Union[Dict[str, Any], List[Dict[str, Any]], bytes]
-    ) -> httpx.Response:
+    def request_send(self, payload: bytes) -> httpx.Response:
         """
         Send the prepared RPC payload to the currently connected node via HTTP POST.
 
@@ -210,14 +205,15 @@ class GrapheneRPC:
         assert self.url is not None, "URL must be initialized"
         auth: httpx.Auth | None = None
         if self.user is not None and self.password is not None:
-            auth = (self.user, self.password)
-        response = self.session.post(
-            self.url,
-            content=payload,  # type: ignore[arg-type]
-            headers=self.headers,
-            timeout=self.timeout,
-            auth=auth,
-        )
+            auth = httpx.BasicAuth(self.user, self.password)
+        post_kwargs: Dict[str, Any] = {
+            "content": payload,
+            "headers": self.headers,
+            "timeout": self.timeout,
+        }
+        if auth is not None:
+            post_kwargs["auth"] = auth
+        response = self.session.post(self.url, **post_kwargs)
         if response.status_code == 401:
             raise UnauthorizedError
         response.raise_for_status()
@@ -508,7 +504,7 @@ class GrapheneRPC:
             else:
                 ret = response.json()
         except ValueError:
-            self._check_for_server_error(reply)
+            self._check_for_server_error({"error": reply})
 
         log.debug(f"Reply: {json.dumps(reply)}")
 

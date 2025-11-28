@@ -42,7 +42,9 @@ class Signed_Transaction(GrapheneSigned_Transaction):
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
 
-    def sign(self, wifkeys: Union[str, List[str]], chain: str = "HIVE") -> Any:
+    def sign(
+        self, wifkeys: Union[str, List[str]], chain: Optional[Union[str, Dict[str, Any]]] = None
+    ) -> GrapheneSigned_Transaction:
         """
         Sign the transaction using one or more WIF-format private keys.
 
@@ -56,10 +58,10 @@ class Signed_Transaction(GrapheneSigned_Transaction):
 
     def verify(
         self,
-        pubkeys: Optional[List[str]] = None,
-        chain: str = "HIVE",
+        pubkeys: Optional[List[Any]] = None,
+        chain: Optional[Union[str, Dict[str, Any]]] = None,
         recover_parameter: bool = False,
-    ) -> Any:
+    ) -> List[Any]:
         """
         Verify this transaction's signatures.
 
@@ -72,8 +74,6 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         Returns:
             Any: The result returned by the superclass verify method (verification outcome as defined by the base implementation).
         """
-        if pubkeys is None:
-            pubkeys = []
         return super().verify(pubkeys, chain, recover_parameter)
 
     def getOperationKlass(self) -> type[Operation]:

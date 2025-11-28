@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Union
+from typing import Any
 
 try:
     from collections.abc import Mapping  # noqa
@@ -53,12 +53,21 @@ class Profile(DotDict):
     def __str__(self) -> str:
         return json.dumps(self)
 
-    def update(self, u: Union[Dict[str, Any], Mapping]) -> None:
-        for k, v in u.items():
-            if isinstance(v, Mapping):
-                self.setdefault(k, {}).update(v)
-            else:
-                self[k] = u[k]
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Update the profile with mapping/iterable semantics while preserving nested-merge behavior for mappings.
+        """
+        if args:
+            mapping = args[0]
+            if isinstance(mapping, Mapping):
+                for k, v in mapping.items():
+                    if isinstance(v, Mapping):
+                        self.setdefault(k, {}).update(v)
+                    else:
+                        self[k] = v
+                return
+        # Fallback to dict.update behavior
+        super().update(*args, **kwargs)
 
     def remove(self, key: str) -> None:
         parts = key.split(".")

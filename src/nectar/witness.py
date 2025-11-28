@@ -216,7 +216,7 @@ class Witness(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active")
 
-    def update(self, signing_key, url, props, account=None):
+    def update_witness(self, signing_key, url, props, account=None):
         """Update witness
 
         :param str signing_key: Signing key
@@ -236,6 +236,10 @@ class Witness(BlockchainObject):
         if not account:
             account = self["owner"]
         return self.blockchain.witness_update(signing_key, url, props, account=account)
+
+    def update(self, *args: Any, **kwargs: Any) -> Any:
+        """Compatibility shim to avoid clashing with MutableMapping.update"""
+        return self.update_witness(*args, **kwargs)
 
 
 class WitnessesObject(list):
@@ -376,12 +380,14 @@ class WitnessesObject(list):
             vote_sum += int(witness["votes"])
         return vote_sum
 
-    def __contains__(self, item):
+    def __contains__(self, item: object, /) -> bool:  # type: ignore[override]
         from .account import Account
 
         if isinstance(item, Account):
             name = item["name"]
-        elif len(self) > 0 and hasattr(self[0], "blockchain"):
+        elif isinstance(item, str):
+            name = item
+        elif len(self) > 0 and hasattr(self[0], "blockchain") and isinstance(item, dict):
             account = Account(item, blockchain_instance=self[0].blockchain)
             name = account["name"]
         else:

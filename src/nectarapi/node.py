@@ -75,6 +75,10 @@ class Nodes(list):
                 nodes_list.append(self[i].url)
         return nodes_list
 
+    def get_nodes(self) -> List[str]:
+        """Return the list of configured node URLs (including those currently marked errored)."""
+        return [n.url for n in self]
+
     def __repr__(self) -> str:
         nodes_list = self.export_working_nodes()
         return str(nodes_list)

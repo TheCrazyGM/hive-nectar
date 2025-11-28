@@ -256,34 +256,34 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         """Iterates through the store"""
         return iter(self.keys())
 
-    def keys(self) -> list[str]:
+    def keys(self):
         query = (f"SELECT {self.__key__} from {self.__tablename__}", ())
-        return [x[0] for x in self.sql_fetchall(query)]
+        key_list = [x[0] for x in self.sql_fetchall(query)]
+        return dict.fromkeys(key_list).keys()
 
     def __len__(self) -> int:
         """return lenght of store"""
         query = (f"SELECT id from {self.__tablename__}", ())
         return len(self.sql_fetchall(query))
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: object) -> bool:
         """Tests if a key is contained in the store.
 
         May test againsts self.defaults
 
         :param str value: Value
         """
-        if self._haveKey(key) or key in self.defaults:
+        key_str = str(key)
+        if self._haveKey(key_str) or key_str in self.defaults:
             return True
         else:
             return False
 
-    def items(self) -> list[Tuple[str, str]]:
+    def items(self):
         """returns all items off the store as tuples"""
         query = (f"SELECT {self.__key__}, {self.__value__} from {self.__tablename__}", ())
-        r = []
-        for key, value in self.sql_fetchall(query):
-            r.append((key, value))
-        return r
+        collected = {key: value for key, value in self.sql_fetchall(query)}
+        return collected.items()
 
     def get(self, key: str, default: Any = None) -> Any:
         """Return the key if exists or a default value

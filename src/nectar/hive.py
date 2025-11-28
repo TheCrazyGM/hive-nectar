@@ -394,13 +394,13 @@ class Hive(BlockChainInstance):
 
     def vests_to_rshares(
         self,
-        vests: Union[Amount, float],
-        post_rshares: int = 0,
+        vests: Union[Amount, float, int],
         voting_power: int = HIVE_100_PERCENT,
         vote_pct: int = HIVE_100_PERCENT,
         subtract_dust_threshold: bool = True,
         use_stored_data: bool = True,
-    ) -> float:
+        post_rshares: int = 0,
+    ) -> int | float:
         """
         Convert vesting shares to vote r-shares.
 

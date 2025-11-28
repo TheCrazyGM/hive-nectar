@@ -26,6 +26,8 @@ def varintdecode(data: Optional[Union[bytes, str]]) -> int:
     """Varint decoding."""
     if data is None:
         raise ValueError("Cannot decode varint from None")
+    if isinstance(data, str):
+        data = data.encode("utf-8")
     shift = 0
     result = 0
     for b in bytes(data):

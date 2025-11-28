@@ -3,7 +3,7 @@ import logging
 import re
 from binascii import hexlify, unhexlify
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from nectar.account import Account
 from nectar.instance import shared_blockchain_instance
@@ -70,7 +70,7 @@ timestamp={meta[timestamp]}
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> str:
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -215,7 +215,7 @@ class MessageV2:
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Dict[str, Any]:
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -363,9 +363,7 @@ class Message(MessageV1, MessageV2):
                 )
         raise ValueError("No Decoder accepted the message")
 
-    def sign(
-        self, account: Optional[Union[str, Account]] = None, **kwargs: Any
-    ) -> Union[str, Dict[str, Any]]:
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         for _format in self.supported_formats:
             try:
                 return _format.sign(self, account=account, **kwargs)

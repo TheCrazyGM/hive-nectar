@@ -2,6 +2,10 @@ from typing import Any, Dict
 
 import nectar
 
+# Track shared httpx client alongside the shared Hive instance so callers that
+# construct Hive directly (e.g., Hive(keys=[...])) still reuse the same pool.
+_shared_transport: Dict[str, Any] = {}
+
 
 class SharedInstance:
     """Singleton for the shared Blockchain Instance (Hive-only)."""
@@ -18,7 +22,7 @@ def shared_blockchain_instance() -> Any:
     """
     if not SharedInstance.instance:
         clear_cache()
-        SharedInstance.instance = nectar.Hive(**SharedInstance.config)
+        SharedInstance.instance = _build_hive(**SharedInstance.config)
     return SharedInstance.instance
 
 
@@ -31,6 +35,8 @@ def set_shared_blockchain_instance(blockchain_instance: Any) -> None:
     """
     clear_cache()
     SharedInstance.instance = blockchain_instance
+    if hasattr(blockchain_instance, "rpc") and getattr(blockchain_instance, "rpc", None):
+        _shared_transport["rpc"] = blockchain_instance.rpc
 
 
 def shared_hive_instance() -> Any:
@@ -80,3 +86,14 @@ def set_shared_config(config: Dict[str, Any]) -> None:
     if SharedInstance.instance:
         clear_cache()
         SharedInstance.instance = None
+
+
+def _build_hive(**config: Any) -> nectar.Hive:
+    """Internal helper to build a Hive instance while reusing shared transports."""
+    hive = nectar.Hive(**config)
+    if "rpc" in _shared_transport and hasattr(hive, "rpc"):
+        # Reuse existing RPC transport if present
+        hive.rpc = _shared_transport["rpc"]
+    else:
+        _shared_transport["rpc"] = getattr(hive, "rpc", None)
+    return hive

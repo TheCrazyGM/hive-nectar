@@ -771,11 +771,12 @@ class BlockChainInstance:
 
     def vests_to_rshares(
         self,
-        vests: float | int,
+        vests: float | int | Amount,
         voting_power: int = HIVE_100_PERCENT,
         vote_pct: int = HIVE_100_PERCENT,
         subtract_dust_threshold: bool = True,
         use_stored_data: bool = True,
+        post_rshares: int = 0,
     ) -> int | float:
         """
         Convert vesting shares to reward r-shares used for voting.

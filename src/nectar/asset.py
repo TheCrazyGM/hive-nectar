@@ -89,10 +89,13 @@ class Asset(BlockchainObject):
                 and cast(Dict[str, Any], self)["precision"] == other["precision"]
             )
         if isinstance(other, dict):
+            symbol = other["symbol"] if "symbol" in other else None
+            asset = other["asset"] if "asset" in other else None
+            precision = other["precision"] if "precision" in other else None
             return (
-                cast(Dict[str, Any], self)["symbol"] == other.get("symbol")
-                and cast(Dict[str, Any], self)["asset"] == other.get("asset")
-                and cast(Dict[str, Any], self)["precision"] == other.get("precision")
+                cast(Dict[str, Any], self)["symbol"] == symbol
+                and cast(Dict[str, Any], self)["asset"] == asset
+                and cast(Dict[str, Any], self)["precision"] == precision
             )
         if isinstance(other, (str, int)):
             return cast(Dict[str, Any], self)["symbol"] == other
@@ -106,10 +109,13 @@ class Asset(BlockchainObject):
                 or cast(Dict[str, Any], self)["precision"] != other["precision"]
             )
         if isinstance(other, dict):
+            symbol = other["symbol"] if "symbol" in other else None
+            asset = other["asset"] if "asset" in other else None
+            precision = other["precision"] if "precision" in other else None
             return (
-                cast(Dict[str, Any], self)["symbol"] != other.get("symbol")
-                or cast(Dict[str, Any], self)["asset"] != other.get("asset")
-                or cast(Dict[str, Any], self)["precision"] != other.get("precision")
+                cast(Dict[str, Any], self)["symbol"] != symbol
+                or cast(Dict[str, Any], self)["asset"] != asset
+                or cast(Dict[str, Any], self)["precision"] != precision
             )
         if isinstance(other, (str, int)):
             return cast(Dict[str, Any], self)["symbol"] != other
