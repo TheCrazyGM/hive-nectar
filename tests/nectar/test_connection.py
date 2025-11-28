@@ -18,7 +18,11 @@ class Testcases(unittest.TestCase):
         b1 = Hive(node="https://api.hive.blog", nobroadcast=True, num_retries=10)
         node_list = nodelist.get_hive_nodes()
 
-        b2 = Hive(node=node_list, nobroadcast=True, num_retries=10)
+        # Filter out the node we're already using to ensure we get a different one
+        alternative_nodes = [n for n in node_list if n != "https://api.hive.blog"]
+        self.assertTrue(len(alternative_nodes) > 0, "Should have alternative nodes available")
+
+        b2 = Hive(node=alternative_nodes, nobroadcast=True, num_retries=10)
 
         self.assertNotEqual(b1.rpc.url, b2.rpc.url)
 
