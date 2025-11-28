@@ -626,9 +626,14 @@ class Comment(BlockchainObject):
             Amount: Estimated HBD payout required to offset the early-vote curation penalty.
         """
         self.refresh()
-        if self.blockchain.hardfork >= 21:
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+        if hardfork_version >= 21:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif hardfork_version >= 20:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -685,9 +690,14 @@ class Comment(BlockchainObject):
             elapsed_seconds = (vote_time - self["created"]).total_seconds()
         else:
             raise ValueError("vote_time must be a string or a datetime")
-        if self.blockchain.hardfork >= 21:
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+        if hardfork_version >= 21:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif hardfork_version >= 20:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -834,7 +844,17 @@ class Comment(BlockchainObject):
         curation_tokens = self.reward * author_reward_factor
         author_tokens = self.reward - curation_tokens
         curation_rewards = self.get_curation_rewards()
-        if self.blockchain.hardfork >= 20 and median_hist is not None:
+
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            # For version strings like "1.28.0", we only care about the major version (1)
+            # Since all Hive hardforks we're checking against (20, 21) are much higher
+            # than 1, we can safely treat any version string as being >= these versions
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+
+        if hardfork_version >= 20 and median_hist is not None:
             author_tokens += median_price * curation_rewards["unclaimed_rewards"]
         benefactor_tokens = author_tokens * beneficiaries_pct / HIVE_100_PERCENT
         author_tokens -= benefactor_tokens

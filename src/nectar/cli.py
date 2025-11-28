@@ -1,5 +1,4 @@
 import ast
-import calendar
 import hashlib
 import json
 import logging
@@ -17,7 +16,7 @@ import click
 from prettytable import PrettyTable
 
 from nectar import exceptions
-from nectar.account import Account
+from nectar.account import Account, Accounts
 from nectar.amount import Amount
 from nectar.asciichart import AsciiChart
 from nectar.asset import Asset
@@ -1665,7 +1664,7 @@ def follower(account):
         a = Account(a, blockchain_instance=hv)
         print("\nFollowers statistics for @%s (please wait...)" % a.name)
         followers = a.get_followers(False)
-        if isinstance(followers, list):
+        if isinstance(followers, list) and not isinstance(followers, Accounts):
             raise ValueError("Expected Accounts object when raw_name_list is False")
         followers.print_summarize_table(tag_type="Followers")
 
@@ -1684,7 +1683,7 @@ def following(account):
         a = Account(a, blockchain_instance=hv)
         print("\nFollowing statistics for @%s (please wait...)" % a.name)
         following = a.get_following(False)
-        if isinstance(following, list):
+        if isinstance(following, list) and not isinstance(following, Accounts):
             raise ValueError("Expected Accounts object when raw_name_list is False")
         following.print_summarize_table(tag_type="Following")
 
@@ -1703,7 +1702,7 @@ def muter(account):
         a = Account(a, blockchain_instance=hv)
         print("\nMuters statistics for @%s (please wait...)" % a.name)
         muters = a.get_muters(False)
-        if isinstance(muters, list):
+        if isinstance(muters, list) and not isinstance(muters, Accounts):
             raise ValueError("Expected Accounts object when raw_name_list is False")
         muters.print_summarize_table(tag_type="Muters")
 
@@ -1722,7 +1721,7 @@ def muting(account):
         a = Account(a, blockchain_instance=hv)
         print("\nMuting statistics for @%s (please wait...)" % a.name)
         muting = a.get_mutings(False)
-        if isinstance(muting, list):
+        if isinstance(muting, list) and not isinstance(muting, Accounts):
             raise ValueError("Expected Accounts object when raw_name_list is False")
         muting.print_summarize_table(tag_type="Muting")
 
@@ -1791,14 +1790,21 @@ def notifications(
                 continue
             elif note["type"] == "vote" and not votes:
                 continue
+        # Handle date field which might be string or datetime
+        date_obj = note["date"]
+        if isinstance(date_obj, str):
+            # Parse ISO format date string
+            from datetime import datetime
+
+            date_obj = datetime.fromisoformat(date_obj.replace("Z", "+00:00"))
         t.add_row(
             [
-                str(datetime.fromtimestamp(calendar.timegm(note["date"].timetuple()))),
+                str(date_obj),
                 note["type"],
                 note["msg"],
             ]
         )
-        last_read = note["date"]
+        last_read = date_obj
     print(t)
     if mark_as_read:
         account.mark_notifications_as_read(last_read=last_read)
@@ -3394,13 +3400,10 @@ def tradehistory(days, hours, limit, width, height, ascii):
     trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
     price = []
     # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
-    base_str = hv.token_symbol
     for trade in trades:
-        base = 0
-        quote = 0
-        for order in trade:
-            base += float(order.as_base(base_str)["base"])
-            quote += float(order.as_base(base_str)["quote"])
+        # Each trade is a FilledOrder object with base, quote, price, date
+        base = float(trade["base"])
+        quote = float(trade["quote"])
         price.append(base / quote)
     if ascii:
         charset = "ascii"
@@ -4571,7 +4574,18 @@ def rewards(
                 if isinstance(timestamp, (int, float)):
                     received = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 else:
-                    received = formatTimeString(timestamp)
+                    # Try to parse the timestamp string
+                    try:
+                        received = formatTimeString(timestamp)
+                        # If it's still a string, try parsing as ISO format
+                        if isinstance(received, str):
+                            received = datetime.fromisoformat(received.replace("Z", "+00:00"))
+                        # Ensure timezone awareness
+                        if received.tzinfo is None:
+                            received = received.replace(tzinfo=timezone.utc)
+                    except Exception:
+                        # If all else fails, skip this entry
+                        continue
                 if received < limit_time:
                     continue
                 if v["type"] != "producer_reward":
