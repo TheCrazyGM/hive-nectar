@@ -684,14 +684,8 @@ class Testcases(unittest.TestCase):
         """Test notifications functionality."""
         hv = self.bts
         account = Account("gtg", blockchain_instance=hv)
-        try:
-            notifications = account.get_notifications()
-            assert isinstance(notifications, list)
-        except UnhandledRPCError as e:
-            if "Unable to parse endpoint data" in str(e):
-                self.skipTest("Notifications endpoint not available - skipping test")
-            else:
-                raise
+        notifications = account.get_notifications()
+        assert isinstance(notifications, list)
 
     def test_extract_account_name(self):
         hv = self.bts
