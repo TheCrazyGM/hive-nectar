@@ -282,7 +282,6 @@ class Amount(dict):
 
         amount_value = str(int(self))
 
-        use_appbase = True
         if self.new_appbase_format:
             payload = {
                 "amount": amount_value,
@@ -291,12 +290,7 @@ class Amount(dict):
             }
         else:
             payload = [amount_value, asset_precision, asset_identifier]
-        # If we're using appbase or condenser, return the payload
-        is_condenser = getattr(self.blockchain.rpc, "use_condenser", False)
-        if use_appbase or is_condenser:
-            return payload
-
-        return str(self)
+        return payload
 
     def __str__(self) -> str:
         amount = quantize(self["amount"], self["asset"]["precision"])
@@ -505,15 +499,16 @@ class Amount(dict):
         else:
             return quant_amount <= quantize((other or 0), self["asset"]["precision"])
 
-    def __eq__(self, other: Union["Amount", int, float, str]) -> bool:
+    def __eq__(self, other: object) -> bool:
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             return quant_amount == quantize(other["amount"], self["asset"]["precision"])
-        else:
+        if isinstance(other, (int, float, str, Decimal)):
             return quant_amount == quantize((other or 0), self["asset"]["precision"])
+        return False
 
-    def __ne__(self, other: Union["Amount", int, float, str]) -> bool:
+    def __ne__(self, other: object) -> bool:
         """
         Return True if this Amount is not equal to `other`.
 
@@ -525,11 +520,10 @@ class Amount(dict):
         quant_amount = quantize(self["amount"], self["asset"]["precision"])
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
-            return quantize(self["amount"], self["asset"]["precision"]) != quantize(
-                other["amount"], self["asset"]["precision"]
-            )
-        else:
+            return quant_amount != quantize(other["amount"], self["asset"]["precision"])
+        if isinstance(other, (int, float, str, Decimal)):
             return quant_amount != quantize((other or 0), self["asset"]["precision"])
+        return True
 
     def __ge__(self, other: Union["Amount", int, float, str]) -> bool:
         """

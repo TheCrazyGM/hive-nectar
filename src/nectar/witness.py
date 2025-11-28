@@ -84,9 +84,7 @@ class Witness(BlockchainObject):
         if not self.blockchain.is_connected():
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        witness = self.blockchain.rpc.find_witnesses(
-            {"owners": [self.identifier]}, api="database_api"
-        )["witnesses"]
+        witness = self.blockchain.rpc.find_witnesses({"owners": [self.identifier]})["witnesses"]
         if len(witness) > 0:
             witness = witness[0]
         if not witness:
@@ -447,7 +445,7 @@ class GetWitnesses(WitnessesObject):
         while name_cnt < len(name_list):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             witnesses += self.blockchain.rpc.find_witnesses(
-                {"owners": name_list[name_cnt : batch_limit + name_cnt]}, api="database_api"
+                {"owners": name_list[name_cnt : batch_limit + name_cnt]}
             )["witnesses"]
             name_cnt += batch_limit
         self.identifier = ""
@@ -491,10 +489,8 @@ class Witnesses(WitnessesObject):
 
     def refresh(self):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        self.active_witnessess = self.blockchain.rpc.get_active_witnesses(api="database_api")[
-            "witnesses"
-        ]
-        self.schedule = self.blockchain.rpc.get_witness_schedule(api="database_api")
+        self.active_witnessess = self.blockchain.rpc.get_active_witnesses()["witnesses"]
+        self.schedule = self.blockchain.rpc.get_witness_schedule()
         self.witness_count = self.blockchain.rpc.get_witness_count()
         self.current_witness = self.blockchain.get_dynamic_global_properties(use_stored_data=False)[
             "current_witness"
@@ -546,8 +542,7 @@ class WitnessesVotedByAccount(WitnessesObject):
             return
         limit = self.account["witnesses_voted_for"]
         witnessess_dict = self.blockchain.rpc.list_witness_votes(
-            {"start": [account_name], "limit": limit, "order": "by_account_witness"},
-            api="database_api",
+            {"start": [account_name], "limit": limit, "order": "by_account_witness"}
         )["votes"]
         witnessess = []
         for w in witnessess_dict:
@@ -630,8 +625,7 @@ class WitnessesRankedByVote(WitnessesObject):
         if last_limit < limit:
             last_limit += 1
         witnessess = self.blockchain.rpc.list_witnesses(
-            {"start": [0, last_account], "limit": last_limit, "order": "by_vote_name"},
-            api="database_api",
+            {"start": [0, last_account], "limit": last_limit, "order": "by_vote_name"}
         )["witnesses"]
 
         # self.witness_count = len(self.voted_witnessess)
@@ -689,7 +683,7 @@ class ListWitnesses(WitnessesObject):
         self.identifier = from_account
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         witnessess = self.blockchain.rpc.list_witnesses(
-            {"start": from_account, "limit": limit, "order": "by_name"}, api="database_api"
+            {"start": from_account, "limit": limit, "order": "by_name"}
         )["witnesses"]
         if len(witnessess) == 0:
             return

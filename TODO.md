@@ -1,106 +1,27 @@
-# Hive-Nectar Refactoring Plan (Phase 1)
+# Cleanup Backlog
 
-This document outlines the step-by-step plan to refactor the `hive-nectar` codebase, removing legacy components, modernizing the code, and aligning it with the `hived-api` specifications.
+Practical refactors to strip legacy branches, rely on the static `nectarapi/openapi.py` map (no bundled JSON specs), and make the codebase type-checkable without changing behavior.
 
-## I. Project-Wide Modernization
+## RPC surface
+- Flatten RPC callers to a single appbase JSON-RPC shape: drop condenser/appbase flags, retire `call` indirection, and collapse `_check_error_message`/API-probing in `nectarapi/noderpc.py` and `graphenerpc.py` to one path backed by the OpenAPI map.
+- Replace the per-process `requests` singleton with a lightweight shared `httpx` client (connection pooling, sane timeouts/retries) and drop the custom `SessionInstance` indirection.
+- Simplify node failover: move retry/backoff into one helper used by the RPC layer and `NodeList` instead of scattering error counters and manual `_request_id` handling.
+- Route RPC targets through `openapi.get_default_api_for_method` instead of hard-coded `api=` strings in `account.py`, `blockchain.py`, `block.py`, `wallet.py`, `market.py`, and `comment.py`; add a small test to assert `rpcutils.get_query` emits `{}` vs `[]` correctly for mapped APIs.
+- Normalize hivemind/bridge usage: ensure follow/reblog/vote lookups consistently hit the mapped bridge or condenser endpoint (no manual fallback branches) and document the canonical call per operation.
 
-These tasks should be performed across all modules as applicable.
+## Reward math and chain data
+- Deduplicate vote/vesting math: there are two `vests_to_rshares` implementations (base vs Hive) with different curves/dust handling—consolidate into one well-tested helper and guard against `None` dynamic properties.
+- Harden block/operation iterators so `block_num` is never `None` before casting and shared pagination code is reused across `blockchain.py`, `block.py`, and history helpers.
 
-- **[x] Replace `requests` with `httpx`:**
-  - Audit all modules for `requests` imports and usage.
-  - Replace with asynchronous-capable `httpx` calls.
-  - **Affected files:** `nectar/haf.py`, `nectar/hivesigner.py`, `nectar/imageuploader.py`, `nectar/market.py`, `nectarapi/graphenerpc.py`.
+## Models and typing
+- Replace `dict` inheritance for `Amount`, `Asset`, and `BlockchainObject` with thin data classes/wrappers; align `__eq__`/`__ne__`/`items` signatures to satisfy the type checker and remove LSP violations.
+- Tame `asciichart` number handling by rejecting `None` min/max upfront or defaulting them before float math.
 
-- **[x] Enforce Modern Python Standards:**
-  - **[x] Type Hinting:** Add or improve type hints for all function signatures and class variables.
-  - **[x] f-strings:** Replace all old-style `.format()` calls and `%` formatting with f-strings.
-  - **[x] Pathlib:** Use `pathlib.Path` for all file path manipulations.
+## Wallet and storage
+- Unify key/token store interfaces (`nectarstorage/interfaces.py` and backends): make `add/delete/getPrivateKeyForPublicKey` signatures match the interfaces, drop classmethod `setdefault` overrides, and share encryption/decryption helpers instead of per-store reimplementations.
+- Introduce a small keystore protocol used by `wallet.py`/`transactionbuilder.py` so tests can cover wallet behaviors without depending on dict subclasses.
 
-## II. Configuration (`nectar/storage.py`)
-
-- **[x] Simplify Configuration Defaults:**
-  - Remove Hivesigner-related keys: `hs_api_url`, `hs_oauth_base_url`, `oauth_base_url`.
-  - Evaluate and remove other unnecessary default settings.
-
-## III. Core Components (`nectar/hive.py`, `nectar/blockchaininstance.py`)
-
-- **[x] Eliminate Hivesigner Integration:**
-  - Remove `use_hs` and `hivesigner` parameters from `Hive()` and `BlockChainInstance()` constructors.
-  - Delete all logic related to initializing or handling `HiveSigner` objects.
-
-- **[ ] Remove Legacy Instance Kwargs:**
-  - Remove the backward-compatibility logic for `steem_instance` and `hive_instance`.
-  - The `blockchain_instance` parameter should be the single source for passing a client instance.
-
-## IV. API & RPC Layer (`nectarapi/`, `nectargrapheneapi/`)
-
-- **[x] Assume Appbase API:**
-  - **[x]** Remove all `is_appbase_ready()` and `get_use_appbase()` checks.
-  - **[x]** Refactor all RPC calls to assume a modern, Appbase-enabled Hive endpoint.
-  - **[x]** Delete conditional logic that branches between appbase and legacy API calls.
-  - **[x]** **FIXED:** Fixed API endpoint mapping - changed `api="database"` to `api="database_api"` and similar across all modules.
-  - **[x]** **FIXED:** Fixed RPC query generation in `rpcutils.py` to properly handle dict arguments for appbase.
-  - **[x]** **FIXED:** Fixed httpx request method to use `data` parameter instead of `content`.
-  - **Affected files:** `graphenerpc.py`, `rpcutils.py`, and all modules that call them.
-
-- **[x] Remove Legacy Chain Detection:**
-  - In `nectarapi/graphenerpc.py`, remove the logic that checks for and deletes `STEEM_CHAIN_ID` from node properties. The library should be Hive-first.
-
-## V. Blockchain Primitives (`nectarbase/`, `nectargraphenebase/`)
-
-- **[x] Clean Up Operations:**
-  - In `nectarbase/operations.py`, remove the deprecated `percent_steem_dollars` parameter and its logic. Use `percent_hbd` exclusively.
-
-- **[ ] Preserve Critical Legacy Identifiers (with clarification):**
-  - In `nectarbase/objects.py` and `nectarbase/ledgertransactions.py`, ensure that the serialization logic mapping `HIVE` -> `STEEM` and `HBD` -> `SBD` is preserved for cryptographic compatibility.
-  - Add prominent comments to these sections explaining *why* this legacy behavior is intentionally kept.
-  - The public key prefix `STM` must also be maintained.
-
-## VI. High-Level Abstractions (`nectar/` modules)
-
-This applies to `account.py`, `comment.py`, `discussions.py`, `market.py`, `vote.py`, `witness.py`, etc.
-
-- **[x] Remove Conditional `appbase` Logic:**
-  - Strip out all `if self.blockchain.rpc.get_use_appbase():` blocks and assume the `True` path.
-
-- **[x] Remove Legacy `steem_instance` Kwargs:**
-  - Clean up all function and class initializers that accept `steem_instance` or `hive_instance` for backward compatibility.
-
-- **[x] Refactor `discussions.py`:**
-  - **[PARTIALLY]** The module was partially refactored but still had issues:
-  - **[FIXED]** Added missing `observer` parameter to Query class
-  - **[FIXED]** Updated bridge API calls to use observer parameter  
-  - **[FIXED]** Removed legacy `use_appbase` documentation references
-  - **Status**: Core functionality now working, but module could use further cleanup
-
-- **[ ] Refactor `resteem` to `reblog`:**
-  - In `nectar/comment.py`, rename the `resteem()` method to `reblog()` to align with modern Hive terminology. Maintain the underlying operation name if it's still `resteem` at the protocol level, but the public-facing method name should change.
-
-## VII. Hivesigner Deprovisioning
-
-- **[x] Delete `nectar/hivesigner.py`:**
-  - The entire module is to be removed.
-
-- **[x] Scrub Hivesigner from `TransactionBuilder`:**
-  - In `nectar/transactionbuilder.py`, remove all code paths that delegate signing or broadcasting to Hivesigner. The library should only support local (WIF) or Ledger signing.
-
-- **[x] Purge Hivesigner from `CLI`:**
-  - **[PARTIALLY]** The `nectar/hivesigner.py` file was deleted, but **58 references** to hivesigner remain in `nectar/cli.py`.
-  - **NEEDS WORK:** Remove all command-line arguments, options, and logic related to Hivesigner (`--hivesigner-token`, `--create-hivesigner-link`, etc.).
-
-## VIII. Documentation and Final Review
-
-- **[ ] Update Documentation:**
-  - All removed features (Hivesigner, Steem/Blurt support, Appbase flags) must be scrubbed from the documentation (`docs/` directory).
-  - Update quickstart guides and examples to reflect the modernized API.
-
-- **[x] Final Audit:**
-  - **[FINDINGS]** Performed final search for remaining artifacts:
-    - `requests`: ✅ **0 references** (properly replaced with httpx)
-    - `steem`: ⚠️ **4 references** (mostly documentation, 1 deprecated `is_steem` method)
-    - `blurt`: ⚠️ **1 reference** (likely in dictionary/wordlist)
-    - `hivesigner`: ❌ **58 references** (CLI not properly cleaned up)
-    - `appbase`: ⚠️ **92 references** (mostly in documentation/comments, logic mostly removed)
-  - **[CRITICAL]** The "Assume Appbase API" task was marked as done but had broken RPC connectivity - **FIXED**
-  - **[CRITICAL]** The "Purge Hivesigner from CLI" task was marked as done but has 58 remaining references - **NEEDS WORK**
-  - **[TESTING]** Core RPC functionality now working after fixing API endpoint mapping
+## Tests and docs
+- Add targeted tests around the OpenAPI method map (one call per API) to catch regressions when new RPC methods are added.
+- Update docs/examples to describe the single RPC path, static openapi map, and removal of condenser/appbase switches; prune any references to shipping JSON specs.
+- Untangle shared instance wiring: `nectar/instance.py`’s singleton/config cache should create one `Hive` (and shared httpx client) when `Hive(...)` is instantiated and avoid surprising resets between `shared_blockchain_instance()`, `set_shared_*`, and manual `Hive(keys=[...])` calls; document the lifecycle and make it deterministic.

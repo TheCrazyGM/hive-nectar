@@ -147,8 +147,7 @@ class Block(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if self.only_ops or self.only_virtual_ops:
             ops_ops = self.blockchain.rpc.get_ops_in_block(
-                {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
-                api="account_history_api",
+                {"block_num": self.identifier, "only_virtual": self.only_virtual_ops}
             )
             ops = ops_ops["ops"] if ops_ops is not None else []
             timestamp = ops[0]["timestamp"] if ops else "1970-01-01T00:00:00"
@@ -158,7 +157,7 @@ class Block(BlockchainObject):
                 "operations": ops,
             }
         else:
-            block = self.blockchain.rpc.get_block({"block_num": self.identifier}, api="block_api")
+            block = self.blockchain.rpc.get_block({"block_num": self.identifier})
             if block and "block" in block:
                 block = block["block"]
         if not block:
@@ -352,9 +351,7 @@ class BlockHeader(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        block = self.blockchain.rpc.get_block_header(
-            {"block_num": self.identifier}, api="block_api"
-        )
+        block = self.blockchain.rpc.get_block_header({"block_num": self.identifier})
         if block is not None and "header" in block:
             block = block["header"]
         if not block:
@@ -443,7 +440,7 @@ class Blocks(list):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
 
         blocks = self.blockchain.rpc.get_block_range(
-            {"starting_block_num": starting_block_num, "count": count}, api="block_api"
+            {"starting_block_num": starting_block_num, "count": count}
         )["blocks"]
 
         super().__init__(

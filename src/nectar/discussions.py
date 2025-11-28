@@ -385,7 +385,7 @@ class Discussions_by_trending(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -445,7 +445,7 @@ class Discussions_by_author_before_date(list):
             }
             if start_permlink:
                 bridge_query["start_permlink"] = start_permlink
-            posts = self.blockchain.rpc.get_account_posts(bridge_query, api="bridge")
+            posts = self.blockchain.rpc.get_account_posts(bridge_query)
             # Filter by before_date if provided
             if before_date and before_date != "1970-01-01T00:00:00":
                 filtered_posts = []
@@ -520,7 +520,7 @@ class Comment_discussions_by_payout(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -588,7 +588,7 @@ class Post_discussions_by_payout(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -655,7 +655,7 @@ class Discussions_by_created(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -722,7 +722,7 @@ class Discussions_by_active(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -791,7 +791,7 @@ class Discussions_by_cashout(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -859,7 +859,7 @@ class Discussions_by_votes(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -928,7 +928,7 @@ class Discussions_by_children(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
         # We could try to sort posts by their children count here if needed
 
         if posts is None:
@@ -996,7 +996,7 @@ class Discussions_by_hot(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -1063,7 +1063,7 @@ class Discussions_by_feed(list):
             if "start_author" in reduced_query and "start_permlink" in reduced_query:
                 bridge_query["start_author"] = reduced_query["start_author"]
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
-            posts = self.blockchain.rpc.get_account_posts(bridge_query, api="bridge")
+            posts = self.blockchain.rpc.get_account_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -1130,7 +1130,7 @@ class Discussions_by_blog(list):
             if "start_author" in reduced_query and "start_permlink" in reduced_query:
                 bridge_query["start_author"] = reduced_query["start_author"]
                 bridge_query["start_permlink"] = reduced_query["start_permlink"]
-            posts = self.blockchain.rpc.get_account_posts(bridge_query, api="bridge")
+            posts = self.blockchain.rpc.get_account_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -1191,7 +1191,7 @@ class Discussions_by_comments(list):
                 "permlink": permlink,
             }
             # The bridge API returns a discussion tree, we need to flatten it
-            discussion = self.blockchain.rpc.get_discussion(bridge_query, api="bridge")
+            discussion = self.blockchain.rpc.get_discussion(bridge_query)
             # Extract comments from the discussion tree
             if discussion and isinstance(discussion, dict):
                 posts = []
@@ -1277,7 +1277,7 @@ class Discussions_by_promoted(list):
         if "start_author" in reduced_query and "start_permlink" in reduced_query:
             bridge_query["start_author"] = reduced_query["start_author"]
             bridge_query["start_permlink"] = reduced_query["start_permlink"]
-        posts = self.blockchain.rpc.get_ranked_posts(bridge_query, api="bridge")
+        posts = self.blockchain.rpc.get_ranked_posts(bridge_query)
 
         if posts is None:
             posts = []
@@ -1330,7 +1330,7 @@ class Discussions_by_replies(list):
         # Try to use the bridge API first (preferred method)
         if author and permlink:
             bridge_query = {"author": author, "permlink": permlink}
-            discussion = self.blockchain.rpc.get_discussion(bridge_query, api="bridge")
+            discussion = self.blockchain.rpc.get_discussion(bridge_query)
             if discussion and isinstance(discussion, dict):
                 # Exclude the main post itself
                 posts = [
@@ -1392,7 +1392,6 @@ class Replies_by_last_update(list):
                     author,
                     permlink,
                     limit_value,
-                    api="condenser_api",
                 )
             except Exception:
                 posts = []

@@ -123,9 +123,7 @@ class Account(BlockchainObject):
         """Refresh/Obtain an account's data from the API server"""
         if not self.blockchain.is_connected():
             return
-        account = self.blockchain.rpc.find_accounts(
-            {"accounts": [self.identifier]}, api="database_api"
-        )
+        account = self.blockchain.rpc.find_accounts({"accounts": [self.identifier]})
         if "accounts" in account:
             account = account["accounts"]
         if account and isinstance(account, list) and len(account) == 1:
@@ -726,12 +724,14 @@ class Account(BlockchainObject):
         if rep_data is not None:
             # Handle both dict and direct responses
             try:
-                if isinstance(rep_data, dict) and "reputation" in rep_data:
-                    return float(rep_data["reputation"])
+                if isinstance(rep_data, dict):
+                    if "reputation" in rep_data:
+                        return float(rep_data["reputation"])
+                    # Unknown dict shape; fall through to cached field.
                 elif isinstance(rep_data, (int, float)):
                     return float(rep_data)
                 else:
-                    # Try to convert to float if it's a string
+                    # Try to convert to float if it's a string-like
                     return float(rep_data)
             except (ValueError, TypeError, KeyError) as e:
                 log.warning(f"Failed to parse reputation data from HAF for {self['name']}: {e}")
@@ -1425,7 +1425,6 @@ class Account(BlockchainObject):
                     account,
                     start_entry_id,
                     limit,
-                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [c for c in ret]
@@ -1434,7 +1433,6 @@ class Account(BlockchainObject):
                     account,
                     start_entry_id,
                     limit,
-                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [c for c in ret]
@@ -1445,7 +1443,6 @@ class Account(BlockchainObject):
                     account,
                     start_entry_id,
                     limit,
-                    api="condenser_api",
                 )
                 ret = _extract_blog_items(ret)
                 return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
@@ -1474,9 +1471,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if only_unread:
-            unread_notes = self.blockchain.rpc.unread_notifications(
-                {"account": account}, api="bridge"
-            )
+            unread_notes = self.blockchain.rpc.unread_notifications({"account": account})
             if unread_notes is None:
                 return []
             if limit is None or limit > unread_notes["unread"]:
@@ -1486,7 +1481,7 @@ class Account(BlockchainObject):
         if limit > 100:
             limit = 100
         notifications = self.blockchain.rpc.account_notifications(
-            {"account": account, "limit": limit}, api="bridge"
+            {"account": account, "limit": limit}
         )
         if raw_data:
             return notifications
@@ -1545,9 +1540,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        result = self.blockchain.rpc.get_blog_authors(
-            {"blog_account": account}, api="condenser_api"
-        )
+        result = self.blockchain.rpc.get_blog_authors({"blog_account": account})
         if isinstance(result, dict) and "blog_authors" in result:
             return result["blog_authors"]
         return []
@@ -1560,7 +1553,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_follow_count(account, api="condenser_api")
+        return self.blockchain.rpc.get_follow_count(account)
 
     def get_followers(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns the account followers as list"""
@@ -1660,7 +1653,7 @@ class Account(BlockchainObject):
         if starting_account is not None:
             query["start"] = starting_account
 
-        followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
+            followers = self.blockchain.rpc.get_follow_list(query)
 
         name_list: list[dict[str, Any]] = followers or []
         if raw_name_list:
@@ -1699,11 +1692,11 @@ class Account(BlockchainObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             query = (self.name, last_user, what, limit)
             if direction == "follower":
-                followers = self.blockchain.rpc.get_followers(*query, api="condenser_api")
+                followers = self.blockchain.rpc.get_followers(*query)
                 if isinstance(followers, dict) and "followers" in followers:
                     followers = followers["followers"]
             elif direction == "following":
-                followers = self.blockchain.rpc.get_following(*query, api="condenser_api")
+                followers = self.blockchain.rpc.get_following(*query)
                 if isinstance(followers, dict) and "following" in followers:
                     followers = followers["following"]
 
@@ -1729,9 +1722,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         try:
-            subscriptions = self.blockchain.rpc.list_all_subscriptions(
-                {"account": account}, api="bridge"
-            )
+            subscriptions = self.blockchain.rpc.list_all_subscriptions({"account": account})
             if subscriptions is None:
                 return []
             return subscriptions
@@ -2064,9 +2055,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.find_owner_histories({"owner": account}, api="database_api")[
-            "owner_auths"
-        ]
+        return self.blockchain.rpc.find_owner_histories({"owner": account})["owner_auths"]
 
     def get_conversion_requests(self, account: str | None = None) -> list[dict[str, Any]]:
         """
@@ -2090,9 +2079,9 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
-            return self.blockchain.rpc.find_hbd_conversion_requests(
-                {"account": account}, api="database_api"
-            )["requests"]
+            return self.blockchain.rpc.find_hbd_conversion_requests({"account": account})[
+                "requests"
+            ]
         except Exception:
             return []
 
@@ -2123,7 +2112,6 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         delegations = self.blockchain.rpc.list_vesting_delegations(
             {"start": [account, start_account], "limit": limit, "order": "by_delegation"},
-            api="database_api",
         )["delegations"]
         return [d for d in delegations if d["delegator"] == account]
 
@@ -2150,7 +2138,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.find_withdraw_vesting_routes(
-            {"account": account, "order": "by_withdraw_route"}, api="database_api"
+            {"account": account, "order": "by_withdraw_route"}
         )["routes"]
 
     def get_savings_withdrawals(
@@ -2177,9 +2165,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.find_savings_withdrawals(
-            {"account": account}, api="database_api"
-        )["withdrawals"]
+        return self.blockchain.rpc.find_savings_withdrawals({"account": account})["withdrawals"]
 
     def get_recovery_request(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns the recovery request for an account
@@ -2207,9 +2193,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.find_account_recovery_requests(
-            {"accounts": [account]}, api="database_api"
-        )["requests"]
+        return self.blockchain.rpc.find_account_recovery_requests({"accounts": [account]})[
+            "requests"
+        ]
 
     def get_escrow(self, escrow_id: int = 0, account: str | None = None) -> list[dict[str, Any]]:
         """
@@ -2235,7 +2221,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.find_escrows({"from": account}, api="database_api")["escrows"]
+        return self.blockchain.rpc.find_escrows({"from": account})["escrows"]
 
     def verify_account_authority(
         self, keys: list[str] | str, account: str | None = None
@@ -2258,7 +2244,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
             return self.blockchain.rpc.verify_account_authority(
-                {"account": account, "signers": keys}, api="database_api"
+                {"account": account, "signers": keys}
             )
         except MissingRequiredActiveAuthority:
             return {"valid": False}
@@ -2277,7 +2263,7 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_tags_used_by_author(account, api="condenser_api")["tags"]
+        return self.blockchain.rpc.get_tags_used_by_author(account)["tags"]
 
     def get_expiring_vesting_delegations(
         self, after: str | None = None, limit: int = 1000, account: str | None = None
@@ -2308,9 +2294,9 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if after is None:
             after = datetime.now(timezone.utc) - timedelta(days=8)
-        return self.blockchain.rpc.find_vesting_delegation_expirations(
-            {"account": account}, api="database_api"
-        )["delegations"]
+        return self.blockchain.rpc.find_vesting_delegation_expirations({"account": account})[
+            "delegations"
+        ]
 
     def get_account_votes(
         self,
@@ -2350,8 +2336,7 @@ class Account(BlockchainObject):
                     "start": [account, start_author, start_permlink],
                     "limit": limit,
                     "order": "by_voter_comment",
-                },
-                api="database_api",
+                }
             )["votes"]
         except Exception:
             return []
@@ -2439,7 +2424,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if operation_filter_low is None and operation_filter_high is None:
             ret = self.blockchain.rpc.get_account_history(
-                {"account": account, "start": start, "limit": limit}, api="account_history_api"
+                {"account": account, "start": start, "limit": limit}
             )
             if ret is not None:
                 ret = ret["history"]
@@ -2452,7 +2437,6 @@ class Account(BlockchainObject):
                     "operation_filter_low": operation_filter_low,
                     "operation_filter_high": operation_filter_high,
                 },
-                api="account_history_api",
             )
             if ret is not None:
                 ret = ret["history"]
@@ -4996,7 +4980,7 @@ class Accounts(AccountsObject):
         while name_cnt < len(name_list):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             accounts += self.blockchain.rpc.find_accounts(
-                {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database_api"
+                {"accounts": name_list[name_cnt : batch_limit + name_cnt]}
             )["accounts"]
             name_cnt += batch_limit
 

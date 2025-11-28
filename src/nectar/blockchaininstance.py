@@ -171,11 +171,6 @@ class BlockChainInstance:
 
         # Store config for access through other Classes
         self.config = kwargs.get("config_store", get_default_config_store(**kwargs))
-        # Default to appbase/openapi; allow explicit override
-        if "use_condenser" in kwargs:
-            self.config["use_condenser"] = kwargs["use_condenser"]
-        else:
-            self.config.setdefault("use_condenser", False)
         if self.path is None:
             self.path = self.config["default_path"]
 
@@ -236,9 +231,6 @@ class BlockChainInstance:
             use_tor = self.config["use_tor"]
         else:
             use_tor = False
-
-        if "use_condenser" not in kwargs and "use_condenser" in self.config:
-            kwargs["use_condenser"] = bool(self.config["use_condenser"])
 
         self.rpc = NodeRPC(node, rpcuser, rpcpassword, use_tor=use_tor, **kwargs)
 
@@ -450,7 +442,7 @@ class BlockChainInstance:
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_dynamic_global_properties(api="database_api")
+        return self.rpc.get_dynamic_global_properties()
 
     def get_reserve_ratio(self) -> dict[str, Any] | None:
         """This call returns the *reserve ratio*"""
@@ -496,7 +488,7 @@ class BlockChainInstance:
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_feed_history(api="database_api")
+        return self.rpc.get_feed_history()
 
     def get_reward_funds(self, use_stored_data: bool = True) -> list[dict[str, Any]] | None:
         """Get details for a reward fund.
@@ -513,7 +505,7 @@ class BlockChainInstance:
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        funds = self.rpc.get_reward_funds(api="database_api")
+        funds = self.rpc.get_reward_funds()
         if funds is not None:
             funds = funds["funds"]
         else:
@@ -539,7 +531,7 @@ class BlockChainInstance:
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        ret = self.rpc.get_feed_history(api="database_api")["current_median_history"]
+        ret = self.rpc.get_feed_history()["current_median_history"]
         return ret
 
     def get_hardfork_properties(self, use_stored_data: bool = True) -> dict[str, Any] | None:
@@ -555,7 +547,7 @@ class BlockChainInstance:
             return None
         ret = None
         self.rpc.set_next_node_on_empty_reply(True)
-        ret = self.rpc.get_hardfork_properties(api="database_api")
+        ret = self.rpc.get_hardfork_properties()
         return ret
 
     def get_network(
@@ -642,13 +634,13 @@ class BlockChainInstance:
         """Returns the resource parameter"""
         if self.rpc is None:
             raise RuntimeError("RPC connection not established")
-        return self.rpc.get_resource_params(api="rc_api")["resource_params"]
+        return self.rpc.get_resource_params()["resource_params"]
 
     def get_resource_pool(self) -> dict[str, Any]:
         """Returns the resource pool"""
         if self.rpc is None:
             raise RuntimeError("RPC connection not established")
-        return self.rpc.get_resource_pool(api="rc_api")["resource_pool"]
+        return self.rpc.get_resource_pool()["resource_pool"]
 
     def get_rc_cost(self, resource_count: dict[str, int]) -> int:
         """
@@ -815,7 +807,7 @@ class BlockChainInstance:
 
     def token_power_to_vests(
         self, token_power: float, timestamp: datetime | None = None, use_stored_data: bool = True
-    ) -> None:
+    ) -> float:
         """Converts TokenPower to vests
 
         :param float token_power: Token power to convert
@@ -826,7 +818,7 @@ class BlockChainInstance:
 
     def vests_to_token_power(
         self, vests: float | Amount, timestamp: int | None = None, use_stored_data: bool = True
-    ) -> None:
+    ) -> float:
         """Converts vests to TokenPower
 
         :param amount.Amount vests/float vests: Vests to convert
@@ -838,7 +830,7 @@ class BlockChainInstance:
 
     def get_token_per_mvest(
         self, time_stamp: int | datetime | None = None, use_stored_data: bool = True
-    ) -> None:
+    ) -> float:
         """Returns the MVEST to TOKEN ratio
 
         :param int time_stamp: (optional) if set, return an estimated
@@ -849,7 +841,7 @@ class BlockChainInstance:
 
     def rshares_to_token_backed_dollar(
         self, rshares: int, not_broadcasted_vote: bool = False, use_stored_data: bool = True
-    ) -> None:
+    ) -> float:
         """Calculates the current HBD value of a vote"""
         raise Exception("not implemented")
 
@@ -861,7 +853,7 @@ class BlockChainInstance:
         vote_pct: int = HIVE_100_PERCENT,
         not_broadcasted_vote: bool = True,
         use_stored_data: bool = True,
-    ) -> None:
+    ) -> float:
         """
         Estimate the token-backed-dollar (HBD-like) value that a vote from the given token power would yield.
 
@@ -924,7 +916,7 @@ class BlockChainInstance:
         if self.rpc is None:
             return None
         self.rpc.set_next_node_on_empty_reply(True)
-        return self.rpc.get_witness_schedule(api="database_api")
+        return self.rpc.get_witness_schedule()
 
     def get_config(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Returns internal chain configuration.
@@ -938,7 +930,7 @@ class BlockChainInstance:
             if self.rpc is None:
                 return None
             self.rpc.set_next_node_on_empty_reply(True)
-            config = self.rpc.get_config(api="database_api")
+            config = self.rpc.get_config()
         return config
 
     @property
@@ -2076,7 +2068,7 @@ class BlockChainInstance:
                 "required_posting_auths": required_posting_auths,
                 "id": id,
                 "prefix": self.prefix,
-                "appbase": not self.txbuffer._use_condenser_api,
+                "appbase": True,
             }
         )
         if len(required_auths) > 0:
@@ -2489,7 +2481,7 @@ class BlockChainInstance:
         """
         if self.rpc is None:
             raise RuntimeError("RPC connection not established")
-        return self.rpc.get_methods(api="jsonrpc")
+        return self.rpc.get_methods()
 
     def get_apis(self) -> list[str]:
         """Returns all enabled apis"""

@@ -99,7 +99,7 @@ class Community(BlockchainObject):
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         community = self.blockchain.rpc.get_community(
-            {"name": self.identifier, "observer": self.observer}, api="bridge"
+            {"name": self.identifier, "observer": self.observer}
         )
 
         if not community:
@@ -216,7 +216,7 @@ class Community(BlockchainObject):
             params["last"] = last
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_community_roles(params, api="bridge")
+        return self.blockchain.rpc.list_community_roles(params)
 
     def get_subscribers(self, limit: int = 100, last: str | None = None) -> list:
         """Returns subscribers
@@ -240,7 +240,7 @@ class Community(BlockchainObject):
             params["last"] = last
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_subscribers(params, api="bridge")
+        return self.blockchain.rpc.list_subscribers(params)
 
     def get_activities(self, limit: int = 100, last_id: str | None = None) -> list:
         """Returns community activity
@@ -264,7 +264,7 @@ class Community(BlockchainObject):
             params["last_id"] = last_id
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.account_notifications(params, api="bridge")
+        return self.blockchain.rpc.account_notifications(params)
 
     def get_ranked_posts(
         self,
@@ -303,7 +303,7 @@ class Community(BlockchainObject):
             params["start_permlink"] = start_permlink
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_ranked_posts(params, api="bridge")
+        return self.blockchain.rpc.get_ranked_posts(params)
 
     def set_role(self, account: str, role: str, mod_account: str) -> dict:
         """Set role for a given account in the community.
@@ -813,7 +813,6 @@ class Communities(CommunityObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             batch = self.blockchain.rpc.list_communities(
                 {"sort": sort, "observer": observer, "last": last, "limit": batch_limit},
-                api="bridge",
             )
             if not batch:  # No more communities to fetch
                 break

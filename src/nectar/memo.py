@@ -432,7 +432,7 @@ class Memo:
             return BtsMemo.decode_memo_bts(
                 PrivateKey(memo_wif),
                 PublicKey(str(pubkey), prefix=self.chain_prefix),
-                int(nonce),
+                int(nonce or 0),
                 message,
             )
 

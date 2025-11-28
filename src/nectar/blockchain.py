@@ -293,7 +293,7 @@ class Blockchain:
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history_api")
+        ret = self.blockchain.rpc.get_transaction({"id": transaction_id})
         return ret
 
     def get_transaction_hex(self, transaction: Dict[str, Any]) -> str:
@@ -304,9 +304,7 @@ class Blockchain:
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction}, api="database_api")[
-            "hex"
-        ]
+        ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction})["hex"]
         return ret
 
     def get_current_block_num(self) -> int:
@@ -594,8 +592,16 @@ class Blockchain:
                                     only_virtual_ops=only_virtual_ops,
                                     blockchain_instance=self.blockchain,
                                 )
+                                block_num_value = block.block_num
+                                if block_num_value is None:
+                                    log.debug(
+                                        "Skipping missing block with no block_num: %s", blocknum
+                                    )
+                                    continue
+                                block["id"] = block_num_value
+                                block.identifier = block_num_value
                                 checked_results.append(block)
-                                result_block_nums.append(int(block.block_num))
+                                result_block_nums.append(int(block_num_value))
                             except Exception as e:
                                 log.error(str(e))
                         missing_block_num = list(
@@ -605,8 +611,12 @@ class Blockchain:
 
                     blocks = sorted(checked_results, key=itemgetter("id"))
                     for b in blocks:
-                        if latest_block < int(b.block_num):
-                            latest_block = int(b.block_num)
+                        block_num_value = b.block_num
+                        if block_num_value is None:
+                            log.debug("Skipping yielded block with no block_num: %s", b)
+                            continue
+                        if latest_block < int(block_num_value):
+                            latest_block = int(block_num_value)
                         yield b
 
                 if latest_block <= head_block:
@@ -638,7 +648,6 @@ class Blockchain:
                         for blocknum in range(blocknumblock, blocknumblock + batch_count):
                             ops_resp = self.blockchain.rpc.get_ops_in_block(
                                 {"block_num": blocknum, "only_virtual": True},
-                                api="account_history_api",
                             )
                             ops = (
                                 ops_resp.get("ops", []) if isinstance(ops_resp, dict) else ops_resp
@@ -654,7 +663,6 @@ class Blockchain:
                     else:
                         resp = self.blockchain.rpc.get_block_range(
                             {"starting_block_num": blocknumblock, "count": batch_count},
-                            api="block_api",
                         )
                         batch_blocks = resp.get("blocks", []) if isinstance(resp, dict) else resp
 
@@ -670,10 +678,14 @@ class Blockchain:
                             only_virtual_ops=only_virtual_ops,
                             blockchain_instance=self.blockchain,
                         )
-                        block_obj["id"] = block_obj.block_num
-                        block_obj.identifier = block_obj.block_num
-                        if latest_block < int(block_obj.block_num):
-                            latest_block = int(block_obj.block_num)
+                        block_num_value = block_obj.block_num
+                        if block_num_value is None:
+                            log.debug("Skipping block with missing block_num: %s", raw_block)
+                            continue
+                        block_obj["id"] = block_num_value
+                        block_obj.identifier = block_num_value
+                        if latest_block < int(block_num_value):
+                            latest_block = int(block_num_value)
                         yield block_obj
             else:
                 # Blocks from start until head block
@@ -1043,7 +1055,7 @@ class Blockchain:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         while True:
             ret = self.blockchain.rpc.list_accounts(
-                {"start": lastname, "limit": steps, "order": "by_name"}, api="database_api"
+                {"start": lastname, "limit": steps, "order": "by_name"}
             )["accounts"]
             for account in ret:
                 if isinstance(account, dict):
@@ -1093,7 +1105,7 @@ class Blockchain:
         first_batch = True
         while True:
             resp = self.blockchain.rpc.list_accounts(
-                {"start": lastname, "limit": batch_limit, "order": "by_name"}, api="database_api"
+                {"start": lastname, "limit": batch_limit, "order": "by_name"}
             )
             accounts = resp.get("accounts", []) if isinstance(resp, dict) else resp or []
             for account in accounts:
@@ -1131,7 +1143,7 @@ class Blockchain:
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         account = self.blockchain.rpc.list_accounts(
-            {"start": name, "limit": limit, "order": "by_name"}, api="database_api"
+            {"start": name, "limit": limit, "order": "by_name"}
         )
         if bool(account):
             return account["accounts"]
@@ -1156,11 +1168,11 @@ class Blockchain:
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if isinstance(name, list):
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": name}, api="rc_api")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": name})
             if bool(account):
                 return account["rc_accounts"]
         else:
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]}, api="rc_api")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]})
             if bool(account):
                 return account["rc_accounts"][0]
 
@@ -1187,7 +1199,7 @@ class Blockchain:
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         requests = self.blockchain.rpc.list_change_recovery_account_requests(
-            {"start": start, "limit": limit, "order": order}, api="database_api"
+            {"start": start, "limit": limit, "order": order}
         )
         if bool(requests):
             return requests["requests"]
@@ -1214,8 +1226,6 @@ class Blockchain:
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if isinstance(accounts, str):
             accounts = [accounts]
-        requests = self.blockchain.rpc.find_change_recovery_account_requests(
-            {"accounts": accounts}, api="database_api"
-        )
+        requests = self.blockchain.rpc.find_change_recovery_account_requests({"accounts": accounts})
         if bool(requests):
             return requests["requests"]

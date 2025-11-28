@@ -30,7 +30,7 @@ class Vote(BlockchainObject):
 
     :param str authorperm: perm link to post/comment
     :param nectar.nectar.nectar blockchain_instance: nectar
-        instance to use when accesing a RPC
+        instance to use when accessing an RPC
     """
 
     def __init__(
@@ -129,7 +129,6 @@ class Vote(BlockchainObject):
                 response = self.blockchain.rpc.get_active_votes(
                     author,
                     permlink,
-                    api="condenser_api",
                 )
                 votes = response["votes"] if isinstance(response, dict) else response
             except InvalidParameters:
@@ -138,7 +137,6 @@ class Vote(BlockchainObject):
                 votes = self.blockchain.rpc.get_active_votes(
                     author,
                     permlink,
-                    api="condenser_api",
                 )
                 if isinstance(votes, dict) and "votes" in votes:
                     votes = votes["votes"]
@@ -529,7 +527,6 @@ class ActiveVotes(VotesObject):
             votes = self.blockchain.rpc.get_active_votes(
                 authorperm["author"],
                 authorperm["permlink"],
-                api="condenser_api",
             )
             if isinstance(votes, dict) and "votes" in votes:
                 votes = votes["votes"]
@@ -537,7 +534,7 @@ class ActiveVotes(VotesObject):
         elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser_api")
+            votes = self.blockchain.rpc.get_active_votes(author, permlink)
             if isinstance(votes, dict) and "votes" in votes:
                 votes = votes["votes"]
         elif isinstance(authorperm, list):

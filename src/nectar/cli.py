@@ -382,8 +382,6 @@ def set(key, value):
         hv.config["default_path"] = value
     elif key == "default_canonical_url":
         hv.config["default_canonical_url"] = value
-    elif key == "use_condenser":
-        hv.config["use_condenser"] = value in ["true", "True"]
     elif key == "use_tor":
         hv.config["use_tor"] = value in ["true", "True"]
     else:
@@ -572,8 +570,6 @@ def config():
     t.add_row(["nodes", nodes])
     if "password_storage" not in availableConfigurationKeys:
         t.add_row(["password_storage", hv.config["password_storage"]])
-    if not hv.config["use_condenser"]:
-        t.add_row(["use_condenser", hv.config["use_condenser"]])
     t.add_row(["data_dir", hv.config.data_dir])
     t.add_row(["use_tor", bool(hv.config["use_tor"])])
     print(t)

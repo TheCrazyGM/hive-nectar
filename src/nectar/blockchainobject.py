@@ -1,7 +1,7 @@
 import json
 import threading
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 
 from nectar.instance import shared_blockchain_instance
 
@@ -37,7 +37,7 @@ class ObjectCache(dict):
                 if value is not None:
                     return value["data"]
 
-    def get(self, key: Any, default: Any) -> Any:
+    def get(self, key: Any, default: Any = None) -> Any:
         with self.lock:
             if key in self:
                 if self[key] is not None:
@@ -246,10 +246,10 @@ class BlockchainObject(dict):
             self.refresh()
         return super().__getitem__(key)
 
-    def items(self) -> List[Any]:
+    def items(self):
         if not self.cached:
             self.refresh()
-        return list(super().items())
+        return super().items()
 
     def __contains__(self, key: Any) -> bool:
         if not self.cached:

@@ -173,6 +173,8 @@ timestamp={meta[timestamp]}
 
         # Verify Signature
         pubkey = verify_message(enc_message, unhexlify(signature))
+        if pubkey is None:
+            raise InvalidMessageSignature("No public key recovered from signature")
 
         # Verify pubky
         pk = PublicKey(hexlify(pubkey).decode("ascii"), prefix=self.blockchain.prefix)
@@ -311,6 +313,8 @@ class MessageV2:
         pubkey = verify_message(enc_message, unhexlify(signature))
 
         # Verify pubky
+        if pubkey is None:
+            raise InvalidMessageSignature("No public key recovered from signature")
         pk = PublicKey(hexlify(pubkey).decode("ascii"), prefix=self.blockchain.prefix)
         if format(pk, self.blockchain.prefix) != memo_key:
             raise InvalidMessageSignature("The signature doesn't match the memo key")
@@ -359,10 +363,12 @@ class Message(MessageV1, MessageV2):
                 )
         raise ValueError("No Decoder accepted the message")
 
-    def sign(self, *args: Any, **kwargs: Any) -> Union[str, Dict[str, Any]]:
+    def sign(
+        self, account: Optional[Union[str, Account]] = None, **kwargs: Any
+    ) -> Union[str, Dict[str, Any]]:
         for _format in self.supported_formats:
             try:
-                return _format.sign(self, *args, **kwargs)
+                return _format.sign(self, account=account, **kwargs)
             except self.valid_exceptions as e:
                 raise e
             except Exception as e:

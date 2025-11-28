@@ -212,38 +212,22 @@ class Comment(BlockchainObject):
         from nectarapi.exceptions import InvalidParameters
 
         try:
-            if self.api in ("tags", "condenser", "condenser_api"):
-                try:
-                    content = self.blockchain.rpc.get_content(author, permlink, api="condenser_api")
-                except Exception:
-                    content = None
-                if content is None:
-                    try:
-                        content = self.blockchain.rpc.get_post(
-                            {"author": author, "permlink": permlink, "observer": self.observer},
-                            api="bridge",
-                        )
-                    except Exception:
-                        content = None
-            elif self.api in ("database", "database_api"):
+            if self.api == "condenser_api":
+                content = self.blockchain.rpc.get_content(
+                    author,
+                    permlink,
+                    api="condenser_api",
+                )
+            else:
+                # Default to bridge.get_post; database_api does not expose get_post
                 content = self.blockchain.rpc.get_post(
                     {"author": author, "permlink": permlink, "observer": self.observer},
                     api="bridge",
                 )
-            elif self.api == "bridge":
-                content = self.blockchain.rpc.get_post(
-                    {"author": author, "permlink": permlink, "observer": self.observer},
-                    api="bridge",
-                )
-            else:  # Default to bridge API for all content queries
-                content = self.blockchain.rpc.get_post(
-                    {"author": author, "permlink": permlink, "observer": self.observer},
-                    api="bridge",
-                )
-            if content is not None and "comments" in content:
-                content = content["comments"]
-            if isinstance(content, list) and len(content) > 0:
-                content = content[0]
+                if content is not None and "comments" in content:
+                    content = content["comments"]
+                if isinstance(content, list) and len(content) > 0:
+                    content = content[0]
         except InvalidParameters:
             raise ContentDoesNotExistsException(self.identifier)
         if not content or not content["author"] or not content["permlink"]:
@@ -1001,13 +985,9 @@ class Comment(BlockchainObject):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
-            return self.blockchain.rpc.get_reblogged_by(
-                post_author, post_permlink, api="condenser_api"
-            )["accounts"]
+            return self.blockchain.rpc.get_reblogged_by(post_author, post_permlink)["accounts"]
         except Exception:
-            return self.blockchain.rpc.get_reblogged_by(
-                [post_author, post_permlink], api="condenser_api"
-            )["accounts"]
+            return self.blockchain.rpc.get_reblogged_by([post_author, post_permlink])["accounts"]
 
     def get_replies(self, raw_data=False, identifier=None):
         """Returns content replies
@@ -1026,7 +1006,6 @@ class Comment(BlockchainObject):
         # Use bridge.get_discussion API
         content_replies = self.blockchain.rpc.get_discussion(
             {"author": post_author, "permlink": post_permlink, "observer": self.observer},
-            api="bridge",
         )
 
         if not content_replies:
@@ -1430,7 +1409,6 @@ class RankedPosts(list):
                         "start_author": start_author,
                         "start_permlink": start_permlink,
                     },
-                    api="bridge",
                 )
                 if posts is None:
                     continue
@@ -1534,7 +1512,6 @@ class AccountPosts(list):
                         "start_author": start_author,
                         "start_permlink": start_permlink,
                     },
-                    api="bridge",
                 )
                 if posts is None:
                     continue

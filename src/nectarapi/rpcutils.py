@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
 log = logging.getLogger(__name__)
 
@@ -9,93 +9,90 @@ def get_query(
     request_id: int,
     api_name: str,
     name: str,
-    args: Union[Dict[str, Any], List[Any]],
+    args: Union[Dict[str, Any], Iterable[Any], Any],
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    query = []
-    args = json.loads(json.dumps(args))
-    # Handle dict args (most common case for appbase)
-    if len(args) > 0 and isinstance(args, dict):
-        # For condenser_api broadcast_transaction, wrap in array
-        if api_name == "condenser_api" and name == "broadcast_transaction":
-            query = {
-                "method": "call",
-                "params": [api_name, name, [args]],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-        # For condenser_api, use the "call" method format
-        elif api_name == "condenser_api":
-            query = {
-                "method": "call",
-                "params": [api_name, name, args],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-        else:
-            # For other appbase APIs, use direct method format
-            query = {
-                "method": api_name + "." + name,
-                "params": args,
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-    elif len(args) > 0 and isinstance(args, list) and isinstance(args[0], dict):
-        # For condenser_api, use the "call" method format
-        if api_name == "condenser_api":
-            # For broadcast_transaction, wrap in array
-            if name == "broadcast_transaction":
-                query = {
-                    "method": "call",
-                    "params": [api_name, name, [args[0]]],
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                }
-            else:
-                query = {
-                    "method": "call",
-                    "params": [api_name, name, args[0]],
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                }
-        else:
-            # For other appbase APIs, use direct method format
-            query = {
-                "method": api_name + "." + name,
-                "params": args[0],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-    elif (
-        len(args) > 0
-        and isinstance(args, list)
-        and isinstance(args[0], list)
-        and len(args[0]) > 0
-        and isinstance(args[0][0], dict)
-    ):
-        for a in args[0]:
-            query.append(
-                {
-                    "method": api_name + "." + name,
-                    "params": a,
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                }
-            )
-            request_id += 1
-    elif args or api_name == "condenser_api":
-        # For condenser_api, always use the "call" method format, even with empty args
-        query = {
-            "method": "call",
-            "params": [api_name, name, args],
-            "jsonrpc": "2.0",
-            "id": request_id,
-        }
-        request_id += 1
+    """
+    Build an appbase-style JSON-RPC request payload.
+
+    Always emits the `api.method` form (no condenser `call` indirection). Supports:
+    - Single dict params
+    - Positional params passed as an iterable
+    - Batch creation when provided a list of dicts inside an iterable
+    """
+    normalized_args: Any
+    # Convert tuples to lists for easier inspection
+    if isinstance(args, tuple):
+        normalized_args = list(args)
     else:
-        query = {
-            "method": api_name + "." + name,
+        normalized_args = args
+
+    # Pass through plain dict
+    if isinstance(normalized_args, dict):
+        params: Union[Dict[str, Any], List[Any]] = json.loads(json.dumps(normalized_args))
+        return {
+            "method": f"{api_name}.{name}",
+            "params": params,
             "jsonrpc": "2.0",
-            "params": {},
             "id": request_id,
         }
-    return query
+
+    if isinstance(normalized_args, list) and normalized_args:
+        # Batch: list of dicts directly
+        if len(normalized_args) > 1 and all(isinstance(item, dict) for item in normalized_args):
+            queries: List[Dict[str, Any]] = []
+            for entry in normalized_args:
+                queries.append(
+                    {
+                        "method": f"{api_name}.{name}",
+                        "params": json.loads(json.dumps(entry)),
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                    }
+                )
+                request_id += 1
+            return queries
+
+        # Batch: list of dicts nested inside a single element
+        if (
+            len(normalized_args) == 1
+            and isinstance(normalized_args[0], list)
+            and normalized_args[0]
+            and all(isinstance(item, dict) for item in normalized_args[0])
+        ):
+            queries: List[Dict[str, Any]] = []
+            for entry in normalized_args[0]:
+                queries.append(
+                    {
+                        "method": f"{api_name}.{name}",
+                        "params": json.loads(json.dumps(entry)),
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                    }
+                )
+                request_id += 1
+            return queries
+
+        # Single dict wrapped in a list
+        if len(normalized_args) == 1 and isinstance(normalized_args[0], dict):
+            return {
+                "method": f"{api_name}.{name}",
+                "params": json.loads(json.dumps(normalized_args[0])),
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
+
+        # Generic positional args
+        return {
+            "method": f"{api_name}.{name}",
+            "params": json.loads(json.dumps(normalized_args)),
+            "jsonrpc": "2.0",
+            "id": request_id,
+        }
+
+    # Fallback: empty params (use list to satisfy condenser/appbase empty-arg methods)
+    return {
+        "method": f"{api_name}.{name}",
+        "jsonrpc": "2.0",
+        "params": [] if api_name == "condenser_api" else {},
+        "id": request_id,
+    }

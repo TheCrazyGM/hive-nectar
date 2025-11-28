@@ -152,7 +152,7 @@ class Testcases(unittest.TestCase):
         rpc = NodeRPC(urls=self.nodes_hiveio, num_retries=2, num_retries_call=3)
         with self.assertRaises(exceptions.NoMethodWithName):
             rpc.get_wrong_command()
-        with self.assertRaises(exceptions.UnhandledRPCError):
+        with self.assertRaises(exceptions.NoMethodWithName):
             rpc.get_accounts("test")
 
     def test_error_handling_appbase(self):

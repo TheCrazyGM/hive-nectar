@@ -81,22 +81,36 @@ class Asset(BlockchainObject):
     def precision(self) -> int:
         return cast(Dict[str, Any], self)["precision"]
 
-    def __eq__(self, other: Union["Asset", dict, str, int]) -> bool:
-        if isinstance(other, (Asset, dict)):
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Asset):
             return (
                 cast(Dict[str, Any], self)["symbol"] == other["symbol"]
                 and cast(Dict[str, Any], self)["asset"] == other["asset"]
                 and cast(Dict[str, Any], self)["precision"] == other["precision"]
             )
-        else:
+        if isinstance(other, dict):
+            return (
+                cast(Dict[str, Any], self)["symbol"] == other.get("symbol")
+                and cast(Dict[str, Any], self)["asset"] == other.get("asset")
+                and cast(Dict[str, Any], self)["precision"] == other.get("precision")
+            )
+        if isinstance(other, (str, int)):
             return cast(Dict[str, Any], self)["symbol"] == other
+        return False
 
-    def __ne__(self, other: Union["Asset", dict, str, int]) -> bool:
-        if isinstance(other, (Asset, dict)):
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, Asset):
             return (
                 cast(Dict[str, Any], self)["symbol"] != other["symbol"]
                 or cast(Dict[str, Any], self)["asset"] != other["asset"]
                 or cast(Dict[str, Any], self)["precision"] != other["precision"]
             )
-        else:
+        if isinstance(other, dict):
+            return (
+                cast(Dict[str, Any], self)["symbol"] != other.get("symbol")
+                or cast(Dict[str, Any], self)["asset"] != other.get("asset")
+                or cast(Dict[str, Any], self)["precision"] != other.get("precision")
+            )
+        if isinstance(other, (str, int)):
             return cast(Dict[str, Any], self)["symbol"] != other
+        return True

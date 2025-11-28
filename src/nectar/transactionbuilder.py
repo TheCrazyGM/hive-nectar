@@ -80,7 +80,6 @@ class TransactionBuilder(dict):
             self._require_reconstruction = True
         self._use_ledger = self.blockchain.use_ledger
         self.path = self.blockchain.path
-        self._use_condenser_api = bool(self.blockchain.config["use_condenser"])
         self.set_expiration(kwargs.get("expiration", self.blockchain.expiration))
 
     def set_expiration(self, p):
@@ -93,8 +92,7 @@ class TransactionBuilder(dict):
 
     def list_operations(self):
         """List all ops"""
-        appbase = not self._use_condenser_api
-        return [Operation(o, appbase=appbase, prefix=self.blockchain.prefix) for o in self.ops]
+        return [Operation(o, appbase=True, prefix=self.blockchain.prefix) for o in self.ops]
 
     def _is_signed(self):
         """Check if signatures exists"""
@@ -333,10 +331,9 @@ class TransactionBuilder(dict):
 
         """
         ops = list()
-        appbase = not self._use_condenser_api
         for op in self.ops:
             # otherwise, we simply wrap ops into Operations
-            ops.extend([Operation(op, appbase=appbase, prefix=self.blockchain.prefix)])
+            ops.extend([Operation(op, appbase=True, prefix=self.blockchain.prefix)])
 
         # calculation expiration time from last block time not system time
         # it fixes transaction expiration error when pushing transactions
@@ -477,7 +474,7 @@ class TransactionBuilder(dict):
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             args = {"trx": self.json()}
-            ret = self.blockchain.rpc.verify_authority(args, api="database_api")
+            ret = self.blockchain.rpc.verify_authority(args)
             if not ret:
                 raise InsufficientAuthorityError
             elif isinstance(ret, dict) and "valid" in ret and not ret["valid"]:
@@ -491,7 +488,7 @@ class TransactionBuilder(dict):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         args = {"trx": self.json()}
-        ret = self.blockchain.rpc.get_potential_signatures(args, api="database_api")
+        ret = self.blockchain.rpc.get_potential_signatures(args)
         if "keys" in ret:
             ret = ret["keys"]
         return ret
@@ -502,7 +499,7 @@ class TransactionBuilder(dict):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         args = {"trx": self.json()}
-        ret = self.blockchain.rpc.get_transaction_hex(args, api="database_api")
+        ret = self.blockchain.rpc.get_transaction_hex(args)
         if "hex" in ret:
             ret = ret["hex"]
         return ret
@@ -529,7 +526,7 @@ class TransactionBuilder(dict):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         args = {"trx": self.json(), "available_keys": available_keys}
-        ret = self.blockchain.rpc.get_required_signatures(args, api="database_api")
+        ret = self.blockchain.rpc.get_required_signatures(args)
         return ret
 
     def broadcast(self, max_block_age=-1, trx_id=True):
@@ -564,12 +561,8 @@ class TransactionBuilder(dict):
             return
         ret = self.json()
 
-        if not self._use_condenser_api:
-            args = {"trx": self.json(), "max_block_age": -1}
-            broadcast_api = "network_broadcast_api"
-        else:
-            args = self.json()
-            broadcast_api = "condenser_api"
+        args = {"trx": self.json(), "max_block_age": max_block_age}
+        broadcast_api = "network_broadcast_api"
 
         if self.blockchain.nobroadcast:
             log.info("Not broadcasting anything!")
@@ -578,9 +571,9 @@ class TransactionBuilder(dict):
         # Broadcast
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.blocking and self._use_condenser_api:
+            if self.blockchain.blocking:
                 ret = self.blockchain.rpc.broadcast_transaction_synchronous(args, api=broadcast_api)
-                if "trx" in ret:
+                if isinstance(ret, dict) and "trx" in ret:
                     ret.update(**ret.get("trx"))
             else:
                 self.blockchain.rpc.broadcast_transaction(args, api=broadcast_api)

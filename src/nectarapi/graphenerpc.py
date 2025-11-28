@@ -3,8 +3,9 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Union
 
-import requests
-from requests.exceptions import ConnectionError as ConnectError
+import httpx
+from httpx import ConnectError as HttpxConnectError
+from httpx import HTTPStatusError, RequestError, TimeoutException
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.version import version as nectar_version
@@ -18,35 +19,29 @@ from .exceptions import (
     WorkingNodeMissing,
 )
 from .node import Nodes
+from .openapi import get_default_api_for_method
 from .rpcutils import get_query
 
 log = logging.getLogger(__name__)
 
 
-class SessionInstance:
-    """Singleton for the Session Instance"""
-
-    instance = None
+_shared_httpx_client: httpx.Client | None = None
 
 
-def set_session_instance(instance: requests.Session) -> None:
-    """Set session instance"""
-    SessionInstance.instance = instance
-
-
-def shared_session_instance() -> requests.Session:
+def shared_httpx_client(proxies: Optional[dict[str, str]] = None) -> httpx.Client:
     """
-    Return a singleton requests.Session instance, creating it if necessary.
+    Return a process-wide httpx client with connection pooling.
 
-    Ensures a single shared HTTP session is reused across the process to take advantage
-    of connection pooling and shared session state (headers, cookies, adapters).
-
-    Returns:
-        requests.Session: The shared session object.
+    The client is constructed lazily and reused for all RPC calls to avoid
+    repeatedly creating TCP/TLS handshakes.
     """
-    if not SessionInstance.instance:
-        SessionInstance.instance = requests.Session()
-    return SessionInstance.instance
+    global _shared_httpx_client
+    if proxies:
+        # Proxy clients are per-instance to avoid leaking proxy settings globally.
+        return httpx.Client(http2=False, proxies=proxies)
+    if _shared_httpx_client is None:
+        _shared_httpx_client = httpx.Client(http2=False)
+    return _shared_httpx_client
 
 
 class GrapheneRPC:
@@ -62,7 +57,6 @@ class GrapheneRPC:
     :param int num_retries_call: Number of retries for RPC calls on node error (default is 5)
     :param int timeout: Timeout setting for HTTP nodes (default is 60)
     :param bool autoconnect: Automatically connect on initialization (default is True)
-    :param bool use_condenser: Use the old condenser_api RPC protocol
     :param bool use_tor: Use Tor proxy for connections
     :param dict custom_chains: Custom chains to add to known chains
     """
@@ -89,10 +83,8 @@ class GrapheneRPC:
         - user, password: optional basic-auth credentials applied to HTTP requests.
 
         Side effects:
-        - Builds a Nodes instance for node tracking and may call rpcconnect() when autoconnect is True.
+            - Builds a Nodes instance for node tracking and may call rpcconnect() when autoconnect is True.
         """
-        self.rpc_methods = {"offline": -1, "appbase": 3}
-        self.current_rpc = self.rpc_methods["appbase"]
         self._request_id = 0
         self.timeout = kwargs.get("timeout", 60)
         num_retries = kwargs.get("num_retries", 100)
@@ -107,15 +99,24 @@ class GrapheneRPC:
 
         self.nodes = Nodes(urls, num_retries, num_retries_call)
         if self.nodes.working_nodes_count == 0:
-            self.current_rpc = self.rpc_methods["offline"]
+            log.warning("No working nodes available at initialization")
 
         self.user = user
         self.password = password
         self.url = None
-        self.session = None
+        self.session: Optional[httpx.Client] = None
         self.rpc_queue = []
         if kwargs.get("autoconnect", True):
             self.rpcconnect()
+
+    def _handle_transport_error(self, exc: Exception, *, call_retry: bool = False) -> None:
+        """
+        Centralized transport error handling: increment counters, defer to node retry policy,
+        and reconnect to the next node.
+        """
+        self.nodes.increase_error_cnt()
+        self.nodes.sleep_and_check_retries(str(exc), sleep=False, call_retry=call_retry)
+        self.rpcconnect()
 
     @property
     def num_retries(self) -> int:
@@ -148,7 +149,7 @@ class GrapheneRPC:
         """
         Selects and establishes connection to an available RPC node.
 
-        Attempts to connect to the next available node (or reuse the current one) and initializes per-instance HTTP session state needed for subsequent RPC calls. On a successful connection this method sets: self.url, self.session (shared session reused), self._proxies (Tor proxies when configured), self.headers, and self.current_rpc (appbase mode by default). It also probes the node using get_config to detect whether the node supports appbase RPC format unless chain detection is disabled.
+        Attempts to connect to the next available node (or reuse the current one) and initializes per-instance HTTP session state needed for subsequent RPC calls. On a successful connection this method sets: self.url, self.session (shared session reused), self._proxies (Tor proxies when configured), and self.headers.
 
         Parameters:
             next_url (bool): If True, advance to the next node before attempting connection; if False, retry the current node.
@@ -165,23 +166,20 @@ class GrapheneRPC:
                 self.nodes.reset_error_cnt_call()
                 log.debug("Trying to connect to node %s" % self.url)
                 self.ws = None
-                self.session = shared_session_instance()
-                self.ws = None
-                self.session = shared_session_instance()
-                # Do not mutate the shared session; store per-instance proxies.
                 self._proxies = None
                 if self.use_tor:
                     self._proxies = {
-                        "http": "socks5h://localhost:9050",
-                        "https": "socks5h://localhost:9050",
+                        "http://": "socks5h://localhost:9050",
+                        "https://": "socks5h://localhost:9050",
                     }
-                self.current_rpc = self.rpc_methods["appbase"]
+                # Use a shared client unless proxies are required.
+                self.session = shared_httpx_client(self._proxies)
+                self.ws = None
                 self.headers = {
                     "User-Agent": "nectar v%s" % (nectar_version),
                     "content-type": "application/json; charset=utf-8",
                 }
             try:
-                self.current_rpc = self.rpc_methods["appbase"]
                 break
             except KeyboardInterrupt:
                 raise
@@ -191,7 +189,9 @@ class GrapheneRPC:
                 self.nodes.sleep_and_check_retries(str(e), sleep=do_sleep)
                 next_url = True
 
-    def request_send(self, payload: Union[Dict[str, Any], List[Dict[str, Any]], bytes]) -> Any:
+    def request_send(
+        self, payload: Union[Dict[str, Any], List[Dict[str, Any]], bytes]
+    ) -> httpx.Response:
         """
         Send the prepared RPC payload to the currently connected node via HTTP POST.
 
@@ -201,30 +201,26 @@ class GrapheneRPC:
             payload (str | bytes): The JSON-RPC payload (string or bytes) to send in the POST body.
 
         Returns:
-            requests.Response: The raw HTTP response object from the node.
+            httpx.Response: The raw HTTP response object from the node.
 
         Raises:
             UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
         """
         assert self.session is not None, "Session must be initialized"
         assert self.url is not None, "URL must be initialized"
+        auth: httpx.Auth | None = None
         if self.user is not None and self.password is not None:
-            response = self.session.post(
-                self.url,
-                data=payload,  # type: ignore
-                headers=self.headers,
-                timeout=self.timeout,
-                auth=(self.user, self.password),
-            )
-        else:
-            response = self.session.post(
-                self.url,
-                data=payload,
-                headers=self.headers,
-                timeout=self.timeout,  # type: ignore
-            )
+            auth = (self.user, self.password)
+        response = self.session.post(
+            self.url,
+            content=payload,  # type: ignore[arg-type]
+            headers=self.headers,
+            timeout=self.timeout,
+            auth=auth,
+        )
         if response.status_code == 401:
             raise UnauthorizedError
+        response.raise_for_status()
         return response
 
     def version_string_to_int(self, network_version: str) -> int:
@@ -477,7 +473,7 @@ class GrapheneRPC:
             raise RPCConnection("RPC is not connected!")
 
         reply = {}
-        response = None
+        response: httpx.Response | None = None
         while True:
             self.nodes.increase_error_cnt_call()
             try:
@@ -496,14 +492,10 @@ class GrapheneRPC:
                     break
             except KeyboardInterrupt:
                 raise
-            except ConnectError as e:
-                self.nodes.increase_error_cnt()
-                self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
-                self.rpcconnect()
+            except (HttpxConnectError, TimeoutException, HTTPStatusError, RequestError) as e:
+                self._handle_transport_error(e, call_retry=False)
             except Exception as e:
-                self.nodes.increase_error_cnt()
-                self.nodes.sleep_and_check_retries(str(e), sleep=False, call_retry=False)
-                self.rpcconnect()
+                self._handle_transport_error(e, call_retry=False)
 
         try:
             if response is None:
@@ -553,22 +545,8 @@ class GrapheneRPC:
         """Map all methods to RPC calls and pass through the arguments."""
 
         def method(*args, **kwargs):
-            # Detect the appropriate API based on method name patterns
-            # Check specific methods first, then general patterns
-            if name in ["get_key_references", "get_accounts", "get_account_references"]:
-                api_name = kwargs.get("api", "account_by_key_api")
-            elif name in ["broadcast_transaction", "broadcast_transaction_synchronous"]:
-                api_name = kwargs.get("api", "network_broadcast_api")
-            elif name.startswith("get_"):
-                api_name = kwargs.get("api", "condenser_api")
-            elif "account" in name and "history" in name:
-                api_name = kwargs.get("api", "account_history_api")
-            elif "block" in name:
-                api_name = kwargs.get("api", "block_api")
-            elif "follow" in name or "reputation" in name:
-                api_name = kwargs.get("api", "follow_api")
-            else:
-                api_name = kwargs.get("api", "database_api")
+            # Prefer explicit api override, then OpenAPI map, then database_api
+            api_name = kwargs.get("api") or get_default_api_for_method(name) or "database_api"
 
             # let's be able to define the num_retries per query
             stored_num_retries_call = self.nodes.num_retries_call

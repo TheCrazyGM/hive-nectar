@@ -207,6 +207,16 @@ class AsciiChart:
 
         """
         # axis and labels
+        if (
+            self.minimum is None
+            or self.maximum is None
+            or self.min2 is None
+            or self.max2 is None
+            or self.rows is None
+        ):
+            # Chart was not initialized; nothing to render.
+            return
+
         interval = abs(float(self.maximum) - float(self.minimum))
         intmin2 = int(self.min2)
         intmax2 = int(self.max2)

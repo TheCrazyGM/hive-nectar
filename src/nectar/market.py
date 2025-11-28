@@ -109,17 +109,18 @@ class Market(dict):
         """
         return "{}{}{}".format(self["quote"]["symbol"], separator, self["base"]["symbol"])
 
-    def __eq__(self, other: Union[str, "Market"]) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             quote_symbol, base_symbol = assets_from_string(other)
             return (
                 self["quote"]["symbol"] == quote_symbol and self["base"]["symbol"] == base_symbol
             ) or (self["quote"]["symbol"] == base_symbol and self["base"]["symbol"] == quote_symbol)
-        elif isinstance(other, Market):
+        if isinstance(other, Market):
             return (
                 self["quote"]["symbol"] == other["quote"]["symbol"]
                 and self["base"]["symbol"] == other["base"]["symbol"]
             )
+        return False
 
     def ticker(self, raw_data: bool = False) -> Union[Dict[str, Any], Any]:
         """
@@ -141,7 +142,7 @@ class Market(dict):
         data = {}
         # Core Exchange rate
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ticker = self.blockchain.rpc.get_ticker(api="market_history_api")
+        ticker = self.blockchain.rpc.get_ticker()
 
         if raw_data:
             return ticker
@@ -185,7 +186,7 @@ class Market(dict):
             raw_data (bool): If True, return the unprocessed RPC response.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        volume = self.blockchain.rpc.get_volume(api="market_history_api")
+        volume = self.blockchain.rpc.get_volume()
         if raw_data:
             return volume
         if "hbd_volume" in volume and "hive_volume" in volume:
@@ -258,7 +259,7 @@ class Market(dict):
 
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history_api")
+        orders = self.blockchain.rpc.get_order_book({"limit": limit})
         if raw_data:
             return orders
         asks = list(
@@ -302,9 +303,7 @@ class Market(dict):
             list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(limit > 0)
-        orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history_api")[
-            "trades"
-        ]
+        orders = self.blockchain.rpc.get_recent_trades({"limit": limit})["trades"]
         if raw_data:
             return orders
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
@@ -385,7 +384,6 @@ class Market(dict):
                 "end": formatTimeString(stop) if stop else None,
                 "limit": limit,
             },
-            api="market_history_api",
         )["trades"]
         if raw_data:
             return orders
@@ -394,7 +392,7 @@ class Market(dict):
 
     def market_history_buckets(self) -> List[int]:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ret = self.blockchain.rpc.get_market_history_buckets(api="market_history_api")
+        ret = self.blockchain.rpc.get_market_history_buckets()
         return ret["bucket_sizes"]
 
     def market_history(
@@ -438,7 +436,6 @@ class Market(dict):
                 "start": formatTimeFromNow(-start_age - end_age),
                 "end": formatTimeFromNow(-end_age),
             },
-            api="market_history_api",
         )["buckets"]
         if raw_data:
             return history
@@ -470,9 +467,7 @@ class Market(dict):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        orders = self.blockchain.rpc.find_limit_orders(
-            {"account": account["name"]}, api="database_api"
-        )["orders"]
+        orders = self.blockchain.rpc.find_limit_orders({"account": account["name"]})["orders"]
         if raw_data:
             return orders
         for o in orders:
