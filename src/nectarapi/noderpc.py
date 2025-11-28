@@ -57,41 +57,12 @@ class NodeRPC(GrapheneRPC):
         """
         if self.url is None:
             raise exceptions.RPCConnection("RPC is not connected!")
-        doRetry = True
-        maxRetryCountReached = False
-        while doRetry and not maxRetryCountReached:
-            doRetry = False
-            try:
-                # Forward call to GrapheneWebsocketRPC and catch+evaluate errors
-                reply = super().rpcexec(payload)
-                if (
-                    self.next_node_on_empty_reply
-                    and not bool(reply)
-                    and self.nodes.working_nodes_count > 1
-                ):
-                    self._retry_on_next_node("Empty Reply")
-                    doRetry = True
-                    self.next_node_on_empty_reply = True
-                else:
-                    self.next_node_on_empty_reply = False
-                    return reply
-            except exceptions.RPCErrorDoRetry as e:
-                msg = exceptions.decodeRPCErrorMsg(e).strip()
-                try:
-                    self.nodes.sleep_and_check_retries(str(msg), call_retry=True)
-                    doRetry = True
-                except exceptions.CallRetriesReached:
-                    if self.nodes.working_nodes_count > 1:
-                        self._retry_on_next_node(msg)
-                        doRetry = True
-                    else:
-                        self.next_node_on_empty_reply = False
-                        raise exceptions.CallRetriesReached
-            except Exception as e:
-                self.next_node_on_empty_reply = False
-                raise e
-            maxRetryCountReached = self.nodes.num_retries_call_reached
+        reply = super().rpcexec(payload)
+        if self.next_node_on_empty_reply and not bool(reply) and self.nodes.working_nodes_count > 1:
+            self._retry_on_next_node("Empty Reply")
+            return super().rpcexec(payload)
         self.next_node_on_empty_reply = False
+        return reply
 
     def _retry_on_next_node(self, error_msg):
         self.nodes.increase_error_cnt()
