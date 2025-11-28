@@ -392,50 +392,6 @@ class Hive(BlockChainInstance):
         )
         return rshares
 
-    def vests_to_rshares(
-        self,
-        vests: Union[Amount, float, int],
-        voting_power: int = HIVE_100_PERCENT,
-        vote_pct: int = HIVE_100_PERCENT,
-        subtract_dust_threshold: bool = True,
-        use_stored_data: bool = True,
-        post_rshares: int = 0,
-    ) -> int | float:
-        """
-        Convert vesting shares to vote r-shares.
-
-        Detailed behavior:
-        - `vests` is the voter's vesting amount in VESTS (not in micro-vests); the implementation multiplies this value by 1e6 internally.
-        - Computes the effective voting power using `voting_power` and `vote_pct`, applies Hive's normalization (HIVE_100_PERCENT), and returns the signed r-shares for that vote.
-        - If `subtract_dust_threshold` is True, results at or below the chain dust threshold return 0; otherwise the threshold is subtracted from the computed r-shares.
-        - The final r-shares are adjusted by `post_rshares` using the chain's vote-claim logic before being returned.
-
-        Parameters:
-            vests (int|float|Amount): Vesting shares in VESTS.
-            post_rshares (int): Current r-shares on the post being voted (used to compute claim adjustment).
-            voting_power (int): Voter's current voting power (100% == HIVE_100_PERCENT).
-            vote_pct (int): Vote percentage to apply (100% == HIVE_100_PERCENT); sign of this value determines vote direction.
-            subtract_dust_threshold (bool): If True, apply/subtract the chain dust threshold from the computed r-shares.
-            use_stored_data (bool): Whether to use cached chain data for thresholds and calculations.
-
-        Returns:
-            int: Signed r-shares resulting from the provided vesting shares and vote parameters.
-        """
-        # Calculate chain-accurate used power and derive rshares per core formula
-        if isinstance(vests, Amount):
-            vests = float(vests)
-        used_power = self._calc_resulting_vote(voting_power, vote_pct)
-        # calculate vote rshares
-        rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
-        if subtract_dust_threshold:
-            if abs(rshares) <= self.get_dust_threshold(use_stored_data=use_stored_data):
-                return 0
-            rshares -= math.copysign(
-                self.get_dust_threshold(use_stored_data=use_stored_data), vote_pct
-            )
-        rshares = self._calc_vote_claim(int(rshares), post_rshares)
-        return rshares
-
     def hbd_to_rshares(
         self,
         hbd: Union[str, int, Amount],

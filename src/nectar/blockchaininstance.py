@@ -793,6 +793,8 @@ class BlockChainInstance:
         Returns:
             int: Signed r-shares corresponding to the provided vesting shares and vote parameters. Returns 0 if the computed r-shares are at-or-below the dust threshold when subtraction is enabled.
         """
+        if isinstance(vests, Amount):
+            vests = float(vests)
         used_power = self._calc_resulting_vote(
             current_power=voting_power, weight=vote_pct, power=HIVE_100_PERCENT
         )
@@ -804,6 +806,8 @@ class BlockChainInstance:
             rshares -= math.copysign(
                 self.get_dust_threshold(use_stored_data=use_stored_data), vote_pct
             )
+        # Apply curve adjustment relative to existing post rshares
+        rshares = self._calc_vote_claim(int(rshares), post_rshares)
         return rshares
 
     def token_power_to_vests(
