@@ -91,9 +91,23 @@ def set_shared_config(config: Dict[str, Any]) -> None:
 def _build_hive(**config: Any) -> nectar.Hive:
     """Internal helper to build a Hive instance while reusing shared transports."""
     hive = nectar.Hive(**config)
-    if "rpc" in _shared_transport and hasattr(hive, "rpc"):
-        # Reuse existing RPC transport if present
-        hive.rpc = _shared_transport["rpc"]
+    stored_rpc = _shared_transport.get("rpc")
+    configured_nodes = config.get("node", [])
+    if isinstance(configured_nodes, str):
+        configured_nodes = [configured_nodes]
+
+    def _rpc_matches_config(rpc_obj: Any) -> bool:
+        if not configured_nodes or rpc_obj is None:
+            return True
+        return getattr(rpc_obj, "url", None) in configured_nodes
+
+    if stored_rpc and getattr(stored_rpc, "url", None) and _rpc_matches_config(stored_rpc):
+        hive.rpc = stored_rpc
     else:
+        rpc_obj = getattr(hive, "rpc", None)
+        if rpc_obj is not None:
+            current_url = getattr(rpc_obj, "url", None)
+            if not current_url and hasattr(rpc_obj, "rpcconnect"):
+                rpc_obj.rpcconnect()
         _shared_transport["rpc"] = getattr(hive, "rpc", None)
     return hive

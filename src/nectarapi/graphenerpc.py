@@ -12,6 +12,9 @@ from nectargraphenebase.version import version as nectar_version
 
 from .exceptions import (
     CallRetriesReached,
+    InvalidParameters,
+    NoApiWithName,
+    NoMethodWithName,
     RPCConnection,
     RPCError,
     RPCErrorDoRetry,
@@ -513,7 +516,7 @@ class GrapheneRPC:
                 error_message = ret["error"].get(
                     "detail", ret["error"].get("message", "Unknown error")
                 )
-                raise RPCError(error_message)
+                self._raise_for_error(error_message)
         elif isinstance(ret, list):
             ret_list = []
             for r in ret:
@@ -521,7 +524,7 @@ class GrapheneRPC:
                     error_message = r["error"].get(
                         "detail", r["error"].get("message", "Unknown error")
                     )
-                    raise RPCError(error_message)
+                    self._raise_for_error(error_message)
                 elif isinstance(r, dict) and "result" in r:
                     ret_list.append(r["result"])
                 else:
@@ -534,6 +537,17 @@ class GrapheneRPC:
         else:
             log.error(f"Unexpected response format: {ret} Node: {self.url}")
             raise RPCError(f"Unexpected response format: {ret}")
+
+    def _raise_for_error(self, error_message: str) -> None:
+        """Normalize common RPC error messages to dedicated exception types."""
+        lowered = error_message.lower()
+        if "invalid parameter" in lowered:
+            raise InvalidParameters(error_message)
+        if "could not find method" in lowered or "no method with name" in lowered:
+            raise NoMethodWithName(error_message)
+        if "could not find api" in lowered or "no api with name" in lowered:
+            raise NoApiWithName(error_message)
+        raise RPCError(error_message)
 
     # End of Deprecated methods
     ####################################################################

@@ -7,6 +7,7 @@ from typing import Any
 
 from prettytable import PrettyTable
 
+from nectarapi.exceptions import NoMethodWithName, RPCError
 from nectarbase import operations
 
 from .account import Account
@@ -497,7 +498,15 @@ class Witnesses(WitnessesObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         self.active_witnessess = self.blockchain.rpc.get_active_witnesses()["witnesses"]
         self.schedule = self.blockchain.rpc.get_witness_schedule()
-        self.witness_count = self.blockchain.rpc.get_witness_count()
+        try:
+            self.witness_count = self.blockchain.rpc.get_witness_count()
+        except (RPCError, NoMethodWithName):
+            try:
+                # Some nodes expose the method only on condenser_api; fall back to that.
+                self.witness_count = self.blockchain.rpc.get_witness_count(api="condenser_api")
+            except Exception:
+                # As a last resort, derive the count from the active witness set.
+                self.witness_count = len(self.active_witnessess)
         self.current_witness = self.blockchain.get_dynamic_global_properties(use_stored_data=False)[
             "current_witness"
         ]

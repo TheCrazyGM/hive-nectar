@@ -18,7 +18,7 @@ class Node:
         return self.url
 
 
-class Nodes(list):
+class Nodes(list[Node]):
     """Stores Node URLs and error counts"""
 
     def __init__(
@@ -48,7 +48,8 @@ class Nodes(list):
         self.current_node_index = -1
         self.freeze_current_node = False
 
-    def __iter__(self) -> "Nodes":
+    def __iter__(self) -> "Nodes":  # type: ignore[override]
+        # Iterator with rotation handled by __next__
         return self
 
     def __next__(self) -> str:
@@ -77,7 +78,7 @@ class Nodes(list):
 
     def get_nodes(self) -> List[str]:
         """Return the list of configured node URLs (including those currently marked errored)."""
-        return [n.url for n in self]
+        return [self[i].url for i in range(len(self))]
 
     def __repr__(self) -> str:
         nodes_list = self.export_working_nodes()
