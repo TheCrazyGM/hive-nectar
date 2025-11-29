@@ -1,7 +1,5 @@
 from typing import Any, Dict
 
-import nectar
-
 # Track shared httpx client alongside the shared Hive instance so callers that
 # construct Hive directly (e.g., Hive(keys=[...])) still reuse the same pool.
 _shared_transport: Dict[str, Any] = {}
@@ -88,9 +86,11 @@ def set_shared_config(config: Dict[str, Any]) -> None:
         SharedInstance.instance = None
 
 
-def _build_hive(**config: Any) -> nectar.Hive:
+def _build_hive(**config: Any) -> Any:
     """Internal helper to build a Hive instance while reusing shared transports."""
-    hive = nectar.Hive(**config)
+    from .hive import Hive
+
+    hive = Hive(**config)
     stored_rpc = _shared_transport.get("rpc")
     configured_nodes = config.get("node", [])
     if isinstance(configured_nodes, str):

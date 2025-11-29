@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from typing import Any, Dict, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -22,22 +23,58 @@ STATIC_NODES = [
 
 BEACON_URL = "https://beacon.peakd.com/api/nodes"
 REQUEST_TIMEOUT = 10  # seconds
+CACHE_DURATION = 300  # 5 minutes cache
+
+# Global cache for node data
+_cached_nodes: Optional[List[Dict[str, Any]]] = None
+_cache_timestamp: float = 0
 
 
 def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
-    """Fetch node list from PeakD beacon API.
+    """Fetch node list from PeakD beacon API with caching.
 
     Returns:
         List of node dictionaries from beacon API, or None if fetch fails
     """
+    global _cached_nodes, _cache_timestamp
+
+    current_time = time.time()
+
+    # Return cached data if still valid
+    if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
+        log.debug("Using cached beacon nodes")
+        return _cached_nodes
+
     try:
+        log.debug("Fetching fresh nodes from beacon API")
         request = Request(BEACON_URL, headers={"Accept": "*/*"})
         with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
             data = response.read().decode("utf-8")
-            return json.loads(data)
+            nodes = json.loads(data)
+
+            # Cache the successful result
+            _cached_nodes = nodes
+            _cache_timestamp = current_time
+            return nodes
     except (URLError, HTTPError, json.JSONDecodeError, Exception) as e:
         log.warning(f"Failed to fetch nodes from beacon API: {e}")
+        # Return cached data even if expired, as fallback
+        if _cached_nodes is not None:
+            log.info("Using expired cached nodes as fallback")
+            return _cached_nodes
         return None
+
+
+def clear_beacon_cache() -> None:
+    """Clear the cached beacon node data.
+
+    This forces the next NodeList() instantiation or update_nodes() call
+    to fetch fresh data from the beacon API.
+    """
+    global _cached_nodes, _cache_timestamp
+    _cached_nodes = None
+    _cache_timestamp = 0
+    log.debug("Beacon node cache cleared")
 
 
 class NodeList(list):
@@ -208,12 +245,13 @@ class NodeList(list):
         """Refresh nodes from beacon API.
 
         This method replaces the complex update logic with a simple refresh
-        from the beacon API.
+        from the beacon API and clears the cache to force fresh data.
 
         Args:
             weights: Ignored (beacon provides its own scoring)
             blockchain_instance: Ignored (beacon API is independent)
         """
+        clear_beacon_cache()
         self._refresh_nodes()
 
     def update(self, node_list: List[str]) -> None:
