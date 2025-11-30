@@ -3875,6 +3875,7 @@ class Account(BlockchainObject):
                 "memo": memo,
                 "from": account_name,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3939,6 +3940,7 @@ class Account(BlockchainObject):
                 "recurrence": recurrence,
                 "executions": executions,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3985,6 +3987,7 @@ class Account(BlockchainObject):
                 "to": to_name,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -4021,6 +4024,7 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
 
@@ -4066,6 +4070,7 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
 
@@ -4119,6 +4124,7 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -4180,6 +4186,7 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -4333,6 +4340,7 @@ class Account(BlockchainObject):
                 "delegatee": to_account["name"],
                 "vesting_shares": vesting_shares,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -4362,6 +4370,7 @@ class Account(BlockchainObject):
                 "account": account["name"],
                 "vesting_shares": amount,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
 
