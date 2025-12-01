@@ -317,7 +317,9 @@ class Comment(BlockchainObject):
             output["active_votes"] = new_active_votes
         return json.loads(str(json.dumps(output)))
 
-    def to_zero(self, account: Union[str, Account], partial: float = 100.0) -> float:
+    def to_zero(
+        self, account: Union[str, Account], partial: float = 100.0, nobroadcast: bool = False
+    ) -> float:
         """
         Compute the UI downvote percent needed for `account` to reduce this post's
         pending payout to approximately zero using payout-based math (reward fund
@@ -383,12 +385,16 @@ class Comment(BlockchainObject):
         if ui_pct_scaled > 0.0:
             ui_pct_scaled = 0.0
 
-        if ui_pct_scaled < 0.0:
+        if ui_pct_scaled < 0.0 and not nobroadcast:
             self.downvote(abs(ui_pct_scaled), voter=account)
         return ui_pct_scaled
 
     def to_token_value(
-        self, account: Union[str, Account], hbd: bool = False, partial: float = 100.0
+        self,
+        account: Union[str, Account],
+        hbd: bool = False,
+        partial: float = 100.0,
+        nobroadcast: bool = False,
     ) -> float:
         """
         Compute the UI upvote percent needed for `account` so the vote contributes
@@ -449,7 +455,7 @@ class Comment(BlockchainObject):
         if ui_pct_scaled < 0.0:
             ui_pct_scaled = 0.0
 
-        if ui_pct_scaled > 0.0:
+        if ui_pct_scaled > 0.0 and not nobroadcast:
             self.upvote(ui_pct_scaled, voter=account)
         return ui_pct_scaled
 
