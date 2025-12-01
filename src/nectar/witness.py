@@ -242,6 +242,23 @@ class Witness(BlockchainObject):
         """Compatibility shim to avoid clashing with MutableMapping.update"""
         return self.update_witness(*args, **kwargs)
 
+    @staticmethod
+    def get_witness_by_account(
+        account_name: str, blockchain_instance: Any | None = None
+    ) -> dict[str, Any] | None:
+        """
+        Fetch witness information by account name using the `get_witness_by_account` RPC call.
+
+        :param str account_name: Name of the witness account
+        :param blockchain_instance: Nectar instance (optional)
+        :return: Witness data dictionary or None if not found/error
+        """
+        blockchain = blockchain_instance or shared_blockchain_instance()
+        try:
+            return blockchain.rpc.get_witness_by_account(account_name)
+        except Exception:
+            return None
+
 
 class WitnessesObject(list):
     def printAsTable(self, sort_key="votes", reverse=True, return_str=False, **kwargs):

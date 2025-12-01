@@ -41,6 +41,7 @@ METHOD_API_MAP: Dict[str, str] = {
     # Keys
     "get_key_references": "account_by_key_api",
     # Witnesses (some nodes do not expose witness_api; database_api supports these)
+    "get_witness_by_account": "condenser_api",
     "find_witnesses": "database_api",
     "get_witness_schedule": "database_api",
     "get_witness_count": "database_api",
