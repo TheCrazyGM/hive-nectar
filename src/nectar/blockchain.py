@@ -643,50 +643,54 @@ class Blockchain:
                     latest_block = start - 1
                     for blocknumblock in range(start, head_block + 1, max_batch_size):
                         batch_count = min(max_batch_size, head_block - blocknumblock + 1)
-                    if only_virtual_ops:
-                        batch_blocks = []
-                        for blocknum in range(blocknumblock, blocknumblock + batch_count):
-                            ops_resp = self.blockchain.rpc.get_ops_in_block(
-                                {"block_num": blocknum, "only_virtual": True},
+                        if only_virtual_ops:
+                            batch_blocks = []
+                            for blocknum in range(blocknumblock, blocknumblock + batch_count):
+                                ops_resp = self.blockchain.rpc.get_ops_in_block(
+                                    {"block_num": blocknum, "only_virtual": True},
+                                )
+                                ops = (
+                                    ops_resp.get("ops", [])
+                                    if isinstance(ops_resp, dict)
+                                    else ops_resp
+                                )
+                                if not ops:
+                                    continue
+                                block_dict = {
+                                    "block": blocknum,
+                                    "timestamp": ops[0]["timestamp"],
+                                    "operations": ops,
+                                }
+                                batch_blocks.append(block_dict)
+                        else:
+                            resp = self.blockchain.rpc.get_block_range(
+                                {"starting_block_num": blocknumblock, "count": batch_count},
                             )
-                            ops = (
-                                ops_resp.get("ops", []) if isinstance(ops_resp, dict) else ops_resp
+                            batch_blocks = (
+                                resp.get("blocks", []) if isinstance(resp, dict) else resp
                             )
-                            if not ops:
+
+                        if not batch_blocks:
+                            raise BatchedCallsNotSupported(
+                                f"{self.blockchain.rpc.url} Doesn't support batched calls"
+                            )
+
+                        for raw_block in batch_blocks:
+                            block_obj = Block(
+                                raw_block,
+                                only_ops=only_ops,
+                                only_virtual_ops=only_virtual_ops,
+                                blockchain_instance=self.blockchain,
+                            )
+                            block_num_value = block_obj.block_num
+                            if block_num_value is None:
+                                log.debug("Skipping block with missing block_num: %s", raw_block)
                                 continue
-                            block_dict = {
-                                "block": blocknum,
-                                "timestamp": ops[0]["timestamp"],
-                                "operations": ops,
-                            }
-                            batch_blocks.append(block_dict)
-                    else:
-                        resp = self.blockchain.rpc.get_block_range(
-                            {"starting_block_num": blocknumblock, "count": batch_count},
-                        )
-                        batch_blocks = resp.get("blocks", []) if isinstance(resp, dict) else resp
-
-                    if not batch_blocks:
-                        raise BatchedCallsNotSupported(
-                            f"{self.blockchain.rpc.url} Doesn't support batched calls"
-                        )
-
-                    for raw_block in batch_blocks:
-                        block_obj = Block(
-                            raw_block,
-                            only_ops=only_ops,
-                            only_virtual_ops=only_virtual_ops,
-                            blockchain_instance=self.blockchain,
-                        )
-                        block_num_value = block_obj.block_num
-                        if block_num_value is None:
-                            log.debug("Skipping block with missing block_num: %s", raw_block)
-                            continue
-                        block_obj["id"] = block_num_value
-                        block_obj.identifier = block_num_value
-                        if latest_block < int(block_num_value):
-                            latest_block = int(block_num_value)
-                        yield block_obj
+                            block_obj["id"] = block_num_value
+                            block_obj.identifier = block_num_value
+                            if latest_block < int(block_num_value):
+                                latest_block = int(block_num_value)
+                            yield block_obj
             else:
                 # Blocks from start until head block
                 if start is not None:
