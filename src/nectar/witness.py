@@ -213,6 +213,7 @@ class Witness(BlockchainObject):
                     "quote": quote,
                 },
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active")

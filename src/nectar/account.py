@@ -4286,19 +4286,21 @@ class Account(BlockchainObject):
             op = operations.Claim_reward_balance(
                 **{
                     "account": account["name"],
-                    reward_token: reward_token_amount.json(),
-                    reward_backed_token: reward_backed_token_amount.json(),
-                    "reward_vests": reward_vests_amount.json(),
+                    reward_token: reward_token_amount,
+                    reward_backed_token: reward_backed_token_amount,
+                    "reward_vests": reward_vests_amount,
                     "prefix": self.blockchain.prefix,
+                    "json_str": True,
                 }
             )
         else:
             op = operations.Claim_reward_balance(
                 **{
                     "account": account["name"],
-                    reward_token: reward_token_amount.json(),
-                    "reward_vests": reward_vests_amount.json(),
+                    reward_token: reward_token_amount,
+                    "reward_vests": reward_vests_amount,
                     "prefix": self.blockchain.prefix,
+                    "json_str": True,
                 }
             )
 

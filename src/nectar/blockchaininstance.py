@@ -1294,9 +1294,10 @@ class BlockChainInstance:
         assert creator is not None  # Type checker: creator is guaranteed not None here
         creator = Account(creator, blockchain_instance=self)  # type: ignore[assignment]
         op = {
-            "fee": Amount(fee, blockchain_instance=self),
+            "fee": Amount(fee, blockchain_instance=self, json_str=True),
             "creator": creator["name"],
             "prefix": self.prefix,
+            "json_str": True,
         }
         op = operations.Claim_account(**op)
         return self.finalizeOp(op, creator, "active", **kwargs)
@@ -1699,6 +1700,7 @@ class BlockChainInstance:
             "memo_key": memo,
             "json_metadata": json_meta or {},
             "prefix": self.prefix,
+            "json_str": True,
         }
         op = operations.Account_create(**op)
         return self.finalizeOp(op, creator, "active", **kwargs)
@@ -1916,6 +1918,7 @@ class BlockChainInstance:
                 "owner": owner["name"],
                 "props": props_list,
                 "prefix": self.prefix,
+                "json_str": True,
             }
         )
         tb = TransactionBuilder(blockchain_instance=self)
@@ -1969,7 +1972,7 @@ class BlockChainInstance:
             raise e
         if "account_creation_fee" in props:
             props["account_creation_fee"] = Amount(
-                props["account_creation_fee"], blockchain_instance=self
+                props["account_creation_fee"], blockchain_instance=self, json_str=True
             )
         op = operations.Witness_update(
             **{
@@ -1977,8 +1980,9 @@ class BlockChainInstance:
                 "url": url,
                 "block_signing_key": signing_key,
                 "props": props,
-                "fee": Amount(0, self.token_symbol, blockchain_instance=self),
+                "fee": Amount(0, self.token_symbol, blockchain_instance=self, json_str=True),
                 "prefix": self.prefix,
+                "json_str": True,
             }
         )
         return self.finalizeOp(op, account, "active", **kwargs)

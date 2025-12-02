@@ -546,13 +546,18 @@ class Market(dict):
                     float(amount) * float(price),
                     self["base"]["symbol"],
                     blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "min_to_receive": Amount(
-                    float(amount), self["quote"]["symbol"], blockchain_instance=self.blockchain
+                    float(amount),
+                    self["quote"]["symbol"],
+                    blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
 
@@ -626,16 +631,21 @@ class Market(dict):
                 "owner": account["name"],
                 "orderid": orderid or random.getrandbits(32),
                 "amount_to_sell": Amount(
-                    float(amount), self["quote"]["symbol"], blockchain_instance=self.blockchain
+                    float(amount),
+                    self["quote"]["symbol"],
+                    blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "min_to_receive": Amount(
                     float(amount) * float(price),
                     self["base"]["symbol"],
                     blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         if returnOrderId:

@@ -635,6 +635,8 @@ class Witness_update(GrapheneObject):
             )
         if "prefix" not in kwargs["props"]:
             kwargs["props"]["prefix"] = prefix
+        if "json_str" not in kwargs["props"]:
+            kwargs["props"]["json_str"] = json_str
 
         super().__init__(
             OrderedDict(
@@ -788,8 +790,11 @@ class Feed_publish(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
+        json_str = kwargs.get("json_str", False)
         if "prefix" not in kwargs["exchange_rate"]:
             kwargs["exchange_rate"]["prefix"] = prefix
+        if "json_str" not in kwargs["exchange_rate"]:
+            kwargs["exchange_rate"]["json_str"] = json_str
         super().__init__(
             OrderedDict(
                 [

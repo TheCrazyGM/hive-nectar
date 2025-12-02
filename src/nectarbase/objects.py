@@ -36,7 +36,11 @@ def value_to_decimal(value: Union[str, float, int], decimal_places: int) -> deci
 
 class Amount:
     def __init__(
-        self, d: Union[str, Any], prefix: str = default_prefix, json_str: bool = False
+        self,
+        d: Union[str, Any],
+        prefix: str = default_prefix,
+        json_str: bool = False,
+        **kwargs,
     ) -> None:
         self.json_str = json_str
         if isinstance(d, str):
@@ -95,11 +99,32 @@ class Amount:
             self.amount = d["amount"]
             self.precision = d["precision"]
             self.str_repr = json.dumps(d)
+        elif isinstance(d, dict) and "amount" in d and "asset" in d:
+            self.amount = d["amount"]
+            asset_obj = d["asset"]
+            self.precision = asset_obj["precision"]
+            self.asset = asset_obj.get("asset", asset_obj.get("nai"))
+            self.symbol = asset_obj.get("symbol")
+            self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
+            if hasattr(d, "json"):
+                self.str_repr = json.dumps(d.json())
+            else:
+                # Fallback or manual construction if needed, but for now just str(d) or skip
+                # If d is a dict with Decimal, we can't json dump it directly.
+                # But we only expect nectar.amount.Amount here which has .json()
+                self.str_repr = json.dumps(
+                    d
+                )  # This might still fail if not Amount object but just dict with Decimal
+
         else:
             self.amount = d.amount
             self.symbol = d.symbol
-            self.asset = d.asset["asset"]
-            self.precision = d.asset["precision"]
+            self.asset = d.asset
+            self.precision = d.precision
+            self.amount = d.amount
+            self.symbol = d.symbol
+            self.asset = d.asset
+            self.precision = d.precision
             self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
             self.str_repr = str(d)
             # self.str_repr = json.dumps((d.json()))
@@ -210,13 +235,16 @@ class WitnessProps(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
             prefix = kwargs.get("prefix", default_prefix)
+            json_str = kwargs.get("json_str", False)
             if "sbd_interest_rate" in kwargs:
                 super().__init__(
                     OrderedDict(
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                ),
                             ),
                             ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
                             ("sbd_interest_rate", Uint16(kwargs["sbd_interest_rate"])),
@@ -229,7 +257,9 @@ class WitnessProps(GrapheneObject):
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                ),
                             ),
                             ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
                             ("hbd_interest_rate", Uint16(kwargs["hbd_interest_rate"])),
@@ -242,7 +272,9 @@ class WitnessProps(GrapheneObject):
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                ),
                             ),
                             ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
                         ]
@@ -322,11 +354,12 @@ class ExchangeRate(GrapheneObject):
                 kwargs = args[0]
 
             prefix = kwargs.get("prefix", default_prefix)
+            json_str = kwargs.get("json_str", False)
             super().__init__(
                 OrderedDict(
                     [
-                        ("base", Amount(kwargs["base"], prefix=prefix)),
-                        ("quote", Amount(kwargs["quote"], prefix=prefix)),
+                        ("base", Amount(kwargs["base"], prefix=prefix, json_str=json_str)),
+                        ("quote", Amount(kwargs["quote"], prefix=prefix, json_str=json_str)),
                     ]
                 )
             )
