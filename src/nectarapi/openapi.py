@@ -28,7 +28,6 @@ METHOD_API_MAP: Dict[str, str] = {
     "find_vesting_delegation_expirations": "database_api",
     "find_conversion_requests": "database_api",
     "find_hbd_conversion_requests": "database_api",
-    "find_proposals": "database_api",
     # Blocks
     "get_block": "block_api",
     "get_block_header": "block_api",
@@ -88,6 +87,8 @@ METHOD_API_MAP: Dict[str, str] = {
     "get_market_history_buckets": "market_history_api",
     # JSON-RPC meta
     "get_methods": "jsonrpc",
+    # Proposals
+    "find_proposals": "condenser_api",
 }
 
 
