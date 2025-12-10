@@ -312,7 +312,10 @@ class Testcases(unittest.TestCase):
         else:
             self.assertEqual((tx["operations"][1]["type"]), "comment_options_operation")
             op = tx["operations"][1]["value"]
-        self.assertEqual(len(op["extensions"][0][1]["beneficiaries"]), 2)
+        if isinstance(op["extensions"][0], dict):
+            self.assertEqual(len(op["extensions"][0]["value"]["beneficiaries"]), 2)
+        else:
+            self.assertEqual(len(op["extensions"][0][1]["beneficiaries"]), 2)
 
     def test_comment_option(self):
         bts = self.bts
@@ -326,7 +329,12 @@ class Testcases(unittest.TestCase):
             op = tx["operations"][0]["value"]
 
         self.assertIn("gtg", op["author"])
-        self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
+        if isinstance(op["max_accepted_payout"], dict):
+            self.assertEqual(
+                "1000000.000 HBD", str(Amount(op["max_accepted_payout"], blockchain_instance=bts))
+            )
+        else:
+            self.assertEqual("1000000.000 HBD", op["max_accepted_payout"])
         self.assertEqual(10000, op["percent_hbd"])
         self.assertEqual(True, op["allow_votes"])
         self.assertEqual(True, op["allow_curation_rewards"])
