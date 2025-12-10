@@ -179,11 +179,17 @@ class BlockChainInstance:
                 # Type assertion: we know node is not None here
                 assert node is not None
                 self.connect(
-                    node=node, rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                    node=node,
+                    rpcuser=rpcuser or "",
+                    rpcpassword=rpcpassword or "",
+                    **kwargs,
                 )
             else:
                 self.connect(
-                    node="", rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                    node="",
+                    rpcuser=rpcuser or "",
+                    rpcpassword=rpcpassword or "",
+                    **kwargs,
                 )
 
         self.clear_data()
@@ -199,7 +205,11 @@ class BlockChainInstance:
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(
-        self, node: str | list[str] = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
+        self,
+        node: str | list[str] = "",
+        rpcuser: str = "",
+        rpcpassword: str = "",
+        **kwargs,
     ) -> None:
         """
         Connect to a Hive node and initialize the internal RPC client.
@@ -675,7 +685,11 @@ class BlockChainInstance:
         return total_cost
 
     def _compute_rc_cost(
-        self, curve_params: dict[str, Any], current_pool: int, resource_count: int, rc_regen: int
+        self,
+        curve_params: dict[str, Any],
+        current_pool: int,
+        resource_count: int,
+        rc_regen: int,
     ) -> int:
         """Helper function for computing the RC costs"""
         num = int(rc_regen)
@@ -811,7 +825,10 @@ class BlockChainInstance:
         return rshares
 
     def token_power_to_vests(
-        self, token_power: float, timestamp: datetime | None = None, use_stored_data: bool = True
+        self,
+        token_power: float,
+        timestamp: datetime | None = None,
+        use_stored_data: bool = True,
     ) -> float:
         """Converts TokenPower to vests
 
@@ -822,7 +839,10 @@ class BlockChainInstance:
         raise Exception("not implemented")
 
     def vests_to_token_power(
-        self, vests: float | Amount, timestamp: int | None = None, use_stored_data: bool = True
+        self,
+        vests: float | Amount,
+        timestamp: int | None = None,
+        use_stored_data: bool = True,
     ) -> float:
         """Converts vests to TokenPower
 
@@ -845,7 +865,10 @@ class BlockChainInstance:
         raise Exception("not implemented")
 
     def rshares_to_token_backed_dollar(
-        self, rshares: int, not_broadcasted_vote: bool = False, use_stored_data: bool = True
+        self,
+        rshares: int,
+        not_broadcasted_vote: bool = False,
+        use_stored_data: bool = True,
     ) -> float:
         """Calculates the current HBD value of a vote"""
         raise Exception("not implemented")
@@ -2300,7 +2323,10 @@ class BlockChainInstance:
         # if comment_options are used, add a new op to the transaction
         if comment_options or beneficiaries:
             comment_op = self._build_comment_options_op(
-                account["name"] or "", permlink or "", comment_options or {}, beneficiaries or []
+                account["name"] or "",
+                permlink or "",
+                comment_options or {},
+                beneficiaries or [],
             )
             ops.append(comment_op)
 
@@ -2465,7 +2491,9 @@ class BlockChainInstance:
 
             options["beneficiaries"] = beneficiaries
 
-        default_max_payout = "1000000.000 %s" % (self.backed_token_symbol)
+        default_max_payout = Amount(
+            "1000000.000 %s" % (self.backed_token_symbol), blockchain_instance=self
+        )
         comment_op = operations.Comment_options(
             **{
                 "author": author,
