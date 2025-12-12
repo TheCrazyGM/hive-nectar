@@ -81,7 +81,13 @@ class ImageUploader:
         signature = sign_message(message, posting_wif)
         signature_in_hex = hexlify(signature).decode("ascii")
 
-        files = {image_name or "image": image_data}
+        # Prepare files for httpx
+        # We want to send the file with the field name "image" (expected by images.hive.blog)
+        # and the filename specified by image_name.
+        # If image_name is not provided, we default to "image".
+        filename = image_name or "image"
+        # files = {'field_name': ('filename', file_data)}
+        files = {"image": (filename, image_data)}
         url = "{}/{}/{}".format(self.base_url, account["name"], signature_in_hex)
 
         retries = 3
