@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.2.2 - 2025-12-16
+------------------
+
+Improvements
+~~~~~~~~~~~~
+
+-  **HTTP Client**: Completed the migration to ``httpx`` by replacing
+   all remaining ``requests`` and ``urllib`` usage in ``market.py``,
+   ``haf.py``, and ``nodelist.py``.
+-  **Logging**: Reduced log verbosity by setting ``httpx`` and
+   ``httpcore`` loggers to ``WARNING`` level.
+
+.. _section-1:
+
 0.2.0 - 2025-12-01
 ------------------
 
@@ -18,6 +32,8 @@ Breaking Changes
 -  **Refactor**: Standardized API endpoint naming to use ``_api`` suffix
    throughout codebase.
 -  **Refactor**: Deprecated ``appbase`` utility functions.
+
+.. _improvements-1:
 
 Improvements
 ~~~~~~~~~~~~
@@ -53,7 +69,7 @@ Fixes
 -  **Reliability**: Improved RPC retry logic and error handling for
    witness and node operations.
 
-.. _section-1:
+.. _section-2:
 
 0.1.5 - 2025-11-04
 ------------------
@@ -115,7 +131,7 @@ Fixes
    how to compute both the downvote-to-zero percent and the upvote
    percent to reach a target HBD.
 
-.. _section-2:
+.. _section-3:
 
 0.1.3 - 2025-09-18
 ------------------
@@ -123,14 +139,14 @@ Fixes
 -  **Test**: Working on getting 100% test coverage
 -  **Feature**: Added some HAF features for things like reputation.
 
-.. _section-3:
+.. _section-4:
 
 0.1.2 - 2025-09-17
 ------------------
 
 -  **Fix**: Replaced missing ``**kwargs`` in ``Blocks`` constructor.
 
-.. _section-4:
+.. _section-5:
 
 0.1.1 - 2025-09-17
 ------------------
@@ -212,7 +228,7 @@ Fixes
 -  **Feature**: Add a pure-Python fallback for public key derivation
    when the ``ecdsa`` library is unavailable, improving portability.
 
-.. _section-5:
+.. _section-6:
 
 0.0.11 - 2025-07-25
 -------------------
@@ -221,7 +237,7 @@ Fixes
    (``Comment``) and improved ``weighted_score`` type check in node list
    ranking (``NodeList``).
 
-.. _section-6:
+.. _section-7:
 
 0.0.10 - 2025-07-12
 -------------------
@@ -230,7 +246,7 @@ Fixes
    generation (in ``derive_permlink``) to resolve validation errors
    caused by the uppercase ``U``.
 
-.. _section-7:
+.. _section-8:
 
 0.0.9 - 2025-07-12
 ------------------
@@ -245,14 +261,14 @@ Fixes
       ensuring completeness.
    -  Removed unused fall-back paths and cleaned up internal code.
 
-.. _section-8:
+.. _section-9:
 
 0.0.8
 -----
 
 Added new documentation and type hints to community
 
-.. _section-9:
+.. _section-10:
 
 0.0.7
 -----
@@ -260,42 +276,42 @@ Added new documentation and type hints to community
 Removed all python2 legacy dependencies, drop python3 version
 requirement to >=3.10
 
-.. _section-10:
+.. _section-11:
 
 0.0.6
 -----
 
 Updated to more robust error reporting
 
-.. _section-11:
+.. _section-12:
 
 0.0.5
 -----
 
 More community fixes, including the Community Title Property
 
-.. _section-12:
+.. _section-13:
 
 0.0.4
 -----
 
 Small community fixes
 
-.. _section-13:
+.. _section-14:
 
 0.0.3
 -----
 
 Working on bridge api
 
-.. _section-14:
+.. _section-15:
 
 0.0.2
 -----
 
 Rebranded to Nectar
 
-.. _section-15:
+.. _section-16:
 
 0.0.1
 -----
