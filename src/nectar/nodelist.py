@@ -2,8 +2,8 @@ import json
 import logging
 import time
 from typing import Any, Dict, List, Optional
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+import httpx
 
 log = logging.getLogger(__name__)
 
@@ -47,16 +47,16 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
 
     try:
         log.debug("Fetching fresh nodes from beacon API")
-        request = Request(BEACON_URL, headers={"Accept": "*/*"})
-        with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
-            data = response.read().decode("utf-8")
-            nodes = json.loads(data)
+        with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+            response = client.get(BEACON_URL, headers={"Accept": "*/*"})
+            response.raise_for_status()
+            nodes = response.json()
 
             # Cache the successful result
             _cached_nodes = nodes
             _cache_timestamp = current_time
             return nodes
-    except (URLError, HTTPError, json.JSONDecodeError, Exception) as e:
+    except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, Exception) as e:
         log.warning(f"Failed to fetch nodes from beacon API: {e}")
         # Return cached data even if expired, as fallback
         if _cached_nodes is not None:

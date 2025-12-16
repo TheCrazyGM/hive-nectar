@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import requests
+import httpx
 
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
@@ -732,7 +732,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, timeout=30) for u in urls)
+                responses = list(httpx.get(u, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -819,7 +819,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
+                responses = list(httpx.get(u, headers=headers, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 

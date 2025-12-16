@@ -1,5 +1,11 @@
 """nectar."""
 
+import logging
+
+# Quiet httpx logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 from .hive import Hive
 from .version import version as __version__
 
