@@ -476,7 +476,7 @@ class Amount(dict):
 
     def __ipow__(self, other: Union[int, float, Decimal]) -> "Amount":
         if isinstance(other, Amount):
-            self["amount"] **= other
+            self["amount"] **= other["amount"]
         else:
             self["amount"] **= Decimal(other)
         if self.fixed_point_arithmetic:

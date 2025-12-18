@@ -2,4 +2,4 @@
 from typing import Dict
 
 operations: Dict[str, int] = {}
-operations["demooepration"] = 0
+operations["demo_operation"] = 0

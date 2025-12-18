@@ -74,15 +74,17 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         from ledgerblue.comm import getDongle  # type: ignore[import-not-found]
 
         dongle = getDongle(True)
-        apdu_list = self.build_apdu(path, chain)
-        for apdu in apdu_list:
-            result = dongle.exchange(bytes(apdu))
-        dongle.close()
-        sigs = []
-        signature = result
-        sigs.append(Signature(signature))
-        self.data["signatures"] = Array(sigs)
-        return self
+        try:
+            apdu_list = self.build_apdu(path, chain)
+            for apdu in apdu_list:
+                result = dongle.exchange(bytes(apdu))
+            sigs = []
+            signature = result
+            sigs.append(Signature(signature))
+            self.data["signatures"] = Array(sigs)
+            return self
+        finally:
+            dongle.close()
 
     def get_pubkey(
         self,
@@ -93,10 +95,12 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
         from ledgerblue.comm import getDongle  # type: ignore[import-not-found]
 
         dongle = getDongle(True)
-        apdu = self.build_apdu_pubkey(path, request_screen_approval)
-        result = dongle.exchange(bytes(apdu))
-        dongle.close()
-        offset = 1 + result[0]
-        address = result[offset + 1 : offset + 1 + result[offset]]
-        # public_key = result[1: 1 + result[0]]
-        return PublicKey(address.decode(), prefix=prefix)
+        try:
+            apdu = self.build_apdu_pubkey(path, request_screen_approval)
+            result = dongle.exchange(bytes(apdu))
+            offset = 1 + result[0]
+            address = result[offset + 1 : offset + 1 + result[offset]]
+            # public_key = result[1: 1 + result[0]]
+            return PublicKey(address.decode(), prefix=prefix)
+        finally:
+            dongle.close()

@@ -179,15 +179,7 @@ class GrapheneRPC:
                     "User-Agent": "nectar v%s" % (nectar_version),
                     "content-type": "application/json; charset=utf-8",
                 }
-            try:
-                break
-            except KeyboardInterrupt:
-                raise
-            except Exception as e:
-                self.nodes.increase_error_cnt()
-                do_sleep = not next_url or (next_url and self.nodes.working_nodes_count == 1)
-                self.nodes.sleep_and_check_retries(str(e), sleep=do_sleep)
-                next_url = True
+            break
 
     def request_send(self, payload: bytes) -> httpx.Response:
         """
@@ -424,18 +416,6 @@ class GrapheneRPC:
             raise RPCErrorDoRetry("Too Many Requests")
         elif re.search("Request Header Fields Too Large", reply_str) or re.search("431", reply_str):
             raise RPCErrorDoRetry("Request Header Fields Too Large")
-        elif re.search("Internal Server Error", reply_str) or re.search("500", reply_str):
-            raise RPCErrorDoRetry("Internal Server Error")
-        elif re.search("Not Implemented", reply_str) or re.search("501", reply_str):
-            raise RPCError("Not Implemented")
-        elif re.search("Bad Gateway", reply_str) or re.search("502", reply_str):
-            raise RPCErrorDoRetry("Bad Gateway")
-        elif re.search("Service Unavailable", reply_str) or re.search("503", reply_str):
-            raise RPCErrorDoRetry("Service Unavailable")
-        elif re.search("Gateway Timeout", reply_str) or re.search("504", reply_str):
-            raise RPCErrorDoRetry("Gateway Timeout")
-        elif re.search("HTTP Version not supported", reply_str) or re.search("505", reply_str):
-            raise RPCErrorDoRetry("HTTP Version not supported")
         elif re.search("Loop Detected", reply_str) or re.search("508", reply_str):
             raise RPCError("Loop Detected")
         elif re.search("Bandwidth Limit Exceeded", reply_str) or re.search("509", reply_str):
