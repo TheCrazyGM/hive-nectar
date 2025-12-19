@@ -535,7 +535,7 @@ class Hive(BlockChainInstance):
         used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests_value * 1e6)
         # Invert the linear relation (ignoring ceil):
         vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
-        return int(round(math.copysign(vote_pct_abs, rshares)))
+        return round(math.copysign(vote_pct_abs, rshares))
 
     def hbd_to_vote_pct(
         self,

@@ -637,16 +637,14 @@ class MnemonicKey(Prefix):
     def get_private(self) -> "PrivateKey":
         """Derive private key from the account_sequence, the role and the key_sequence"""
         if self.seed is None:
-            raise ValueError("seed is None, set or generate a mnemnoric first")
+            raise ValueError("seed is None, set or generate a mnemonic first")
         key = BIP32Key.fromEntropy(self.seed)
         path_result = parse_path(self.get_path(), as_bytes=False)
-        if isinstance(path_result, list):
-            for n in path_result:
-                key = key.ChildKey(n)
-                if key is None:
-                    raise ValueError(f"Failed to derive child key for path index: {n}")
-        else:
-            raise ValueError(f"Invalid path result: {path_result}")
+        for n in path_result:
+            key = key.ChildKey(n)
+            if key is None:
+                raise ValueError(f"Failed to derive child key for path index: {n}")
+
         return PrivateKey(key.WalletImportFormat(), prefix=self.prefix)
 
     def get_public(self) -> "PublicKey":

@@ -418,7 +418,7 @@ class TransactionBuilder(dict):
 
     def sign(self, reconstruct_tx=True):
         """
-        Sign the built transaction using HiveSigner, a Ledger device, or local WIFs and attach signatures to the builder.
+        Sign the built transaction using a Ledger device or local WIFs and attach signatures to the builder.
 
         If the transaction is not constructed (or if reconstruct_tx is True) the transaction will be reconstructed before signing. The method attempts signing in this order:
         1. Ledger (if ledger mode is active) — signs with the Ledger device and appends signatures.

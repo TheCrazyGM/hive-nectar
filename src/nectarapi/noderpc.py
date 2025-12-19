@@ -65,7 +65,7 @@ class NodeRPC(GrapheneRPC):
         self.next_node_on_empty_reply = False
         return reply
 
-    def _retry_on_next_node(self, error_msg):
+    def _retry_on_next_node(self, error_msg: str) -> None:
         self.nodes.increase_error_cnt()
         self.nodes.sleep_and_check_retries(error_msg, sleep=False, call_retry=False)
         self.next()

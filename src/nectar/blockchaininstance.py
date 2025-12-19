@@ -500,7 +500,7 @@ class BlockChainInstance:
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history()
 
-    def get_reward_funds(self, use_stored_data: bool = True) -> list[dict[str, Any]] | None:
+    def get_reward_funds(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -522,7 +522,9 @@ class BlockChainInstance:
             return None
         if len(funds) > 0:
             funds = funds[0]
-        ret = funds
+            ret = funds
+        else:
+            ret = None
         return ret
 
     def get_current_median_history(self, use_stored_data: bool = True) -> dict[str, Any] | None:
@@ -1523,7 +1525,7 @@ class BlockChainInstance:
                 "weight_threshold": 1,
             },
             "posting": {
-                "account_auths": active_accounts_authority,
+                "account_auths": posting_accounts_authority,
                 "key_auths": posting_key_authority,
                 "address_auths": [],
                 "weight_threshold": 1,

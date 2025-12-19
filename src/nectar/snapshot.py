@@ -61,7 +61,7 @@ class AccountSnapshot(list):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
-        super().__init__(account_history or [])
+        # super().__init__(account_history or [])
 
     def reset(self) -> None:
         """
@@ -308,8 +308,9 @@ class AccountSnapshot(list):
 
         Fetches operations from the underlying Account.history iterator and replaces the snapshot's contents with those operations. If start/stop are provided they may be block numbers or datetimes; set use_block_num=False to interpret them as virtual operation indices/timestamps instead of block numbers.
         """
-        super().__init__(
-            [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
+        self.clear()
+        self.extend(
+            h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)
         )
 
     def update_rewards(

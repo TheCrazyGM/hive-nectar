@@ -505,11 +505,12 @@ class UpdateProposalExtensions(Static_variant):
                 type_id = 1
             else:
                 type_id = ~0
+            data = o["value"]
         else:
             type_id, data = o
 
         if type_id == 1:
-            data = UpdateProposalEndDate(o["value"])
+            data = UpdateProposalEndDate(data)
         else:
             raise Exception("Unknown UpdateProposalExtension")
         super().__init__(data, type_id, False)

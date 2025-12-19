@@ -76,7 +76,9 @@ class StoreInterface(MutableMapping):
         return key in self._data
 
     def __delitem__(self, key: Any) -> None:
-        self._data.pop(key, None)
+        if key not in self._data:
+            raise KeyError(key)
+        self._data.pop(key)
 
     def items(self):
         """Returns all items off the store as tuples"""

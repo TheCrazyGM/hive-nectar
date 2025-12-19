@@ -191,10 +191,10 @@ class Market(dict):
             return volume
         if "hbd_volume" in volume and "hive_volume" in volume:
             return {
-                self["base"]["symbol"]: Amount(
+                self.blockchain.backed_token_symbol: Amount(
                     volume["hbd_volume"], blockchain_instance=self.blockchain
                 ),
-                self["quote"]["symbol"]: Amount(
+                self.blockchain.token_symbol: Amount(
                     volume["hive_volume"], blockchain_instance=self.blockchain
                 ),
             }

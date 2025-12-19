@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
@@ -28,6 +29,7 @@ CACHE_DURATION = 300  # 5 minutes cache
 # Global cache for node data
 _cached_nodes: Optional[List[Dict[str, Any]]] = None
 _cache_timestamp: float = 0
+_cache_lock = threading.Lock()
 
 
 def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
@@ -41,9 +43,10 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
     current_time = time.time()
 
     # Return cached data if still valid
-    if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
-        log.debug("Using cached beacon nodes")
-        return _cached_nodes
+    with _cache_lock:
+        if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
+            log.debug("Using cached beacon nodes")
+            return _cached_nodes
 
     try:
         log.debug("Fetching fresh nodes from beacon API")
@@ -53,15 +56,17 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
             nodes = response.json()
 
             # Cache the successful result
-            _cached_nodes = nodes
-            _cache_timestamp = current_time
+            with _cache_lock:
+                _cached_nodes = nodes
+                _cache_timestamp = current_time
             return nodes
     except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, Exception) as e:
         log.warning(f"Failed to fetch nodes from beacon API: {e}")
         # Return cached data even if expired, as fallback
-        if _cached_nodes is not None:
-            log.info("Using expired cached nodes as fallback")
-            return _cached_nodes
+        with _cache_lock:
+            if _cached_nodes is not None:
+                log.info("Using expired cached nodes as fallback")
+                return _cached_nodes
         return None
 
 
@@ -72,8 +77,9 @@ def clear_beacon_cache() -> None:
     to fetch fresh data from the beacon API.
     """
     global _cached_nodes, _cache_timestamp
-    _cached_nodes = None
-    _cache_timestamp = 0
+    with _cache_lock:
+        _cached_nodes = None
+        _cache_timestamp = 0
     log.debug("Beacon node cache cleared")
 
 
@@ -228,7 +234,11 @@ class NodeList(list):
         )
 
     def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> List[str]:
-        """Return a list of testnet node URLs.
+        """Return a list of testnet node URLs (currently unavailable).
+
+        Note: The PeakD beacon API does not provide testnet nodes. This method
+        currently returns an empty list. Use mainnet nodes for testing or
+        manually configure testnet endpoints.
 
         Args:
             testnet: Include testnet nodes (default: True)
