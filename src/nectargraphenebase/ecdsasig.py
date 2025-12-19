@@ -62,12 +62,7 @@ def compressedPubkey(pk: Union[ecdsa.keys.VerifyingKey, Any]) -> bytes:
     if isinstance(pk, ecdsa.keys.VerifyingKey):
         order = ecdsa.SECP256k1.order
         # Get the curve point from VerifyingKey
-        try:
-            # Try newer ecdsa version approach
-            point = pk.point  # type: ignore[attr-defined]
-        except AttributeError:
-            # Fallback for older versions
-            point = pk.pubkey.point  # type: ignore[attr-defined]
+        point = pk.pubkey.point  # type: ignore[attr-defined]
         x = point.x()
         y = point.y()
     elif isinstance(pk, PublicKey):
