@@ -3392,8 +3392,7 @@ def tradehistory(days, hours, limit, width, height, ascii):
     # Using built-in timezone support
     stop = datetime.now(timezone.utc)
     start = stop - timedelta(days=days)
-    intervall = timedelta(hours=hours)
-    trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
+    trades = m.trade_history(start=start, stop=stop, limit=limit)
     price = []
     # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
     for trade in trades:
