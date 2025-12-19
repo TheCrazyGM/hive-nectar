@@ -449,7 +449,10 @@ class Blocks(list):
                     x,
                     lazy=lazy,
                     full=full,
+                    only_ops=only_ops,
+                    only_virtual_ops=only_virtual_ops,
                     blockchain_instance=self.blockchain,
+                    **kwargs,
                 )
                 for x in blocks
             ]

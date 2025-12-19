@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
@@ -28,6 +29,7 @@ CACHE_DURATION = 300  # 5 minutes cache
 # Global cache for node data
 _cached_nodes: Optional[List[Dict[str, Any]]] = None
 _cache_timestamp: float = 0
+_cache_lock = threading.Lock()
 
 
 def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
@@ -41,9 +43,10 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
     current_time = time.time()
 
     # Return cached data if still valid
-    if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
-        log.debug("Using cached beacon nodes")
-        return _cached_nodes
+    with _cache_lock:
+        if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
+            log.debug("Using cached beacon nodes")
+            return _cached_nodes
 
     try:
         log.debug("Fetching fresh nodes from beacon API")
@@ -53,15 +56,17 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
             nodes = response.json()
 
             # Cache the successful result
-            _cached_nodes = nodes
-            _cache_timestamp = current_time
+            with _cache_lock:
+                _cached_nodes = nodes
+                _cache_timestamp = current_time
             return nodes
     except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, Exception) as e:
         log.warning(f"Failed to fetch nodes from beacon API: {e}")
         # Return cached data even if expired, as fallback
-        if _cached_nodes is not None:
-            log.info("Using expired cached nodes as fallback")
-            return _cached_nodes
+        with _cache_lock:
+            if _cached_nodes is not None:
+                log.info("Using expired cached nodes as fallback")
+                return _cached_nodes
         return None
 
 
@@ -72,8 +77,9 @@ def clear_beacon_cache() -> None:
     to fetch fresh data from the beacon API.
     """
     global _cached_nodes, _cache_timestamp
-    _cached_nodes = None
-    _cache_timestamp = 0
+    with _cache_lock:
+        _cached_nodes = None
+        _cache_timestamp = 0
     log.debug("Beacon node cache cleared")
 
 
@@ -138,7 +144,6 @@ class NodeList(list):
     def get_nodes(
         self,
         hive: bool = True,
-        exclude_limited: bool = False,
         dev: bool = False,
         testnet: bool = False,
         testnetdev: bool = False,
@@ -152,7 +157,6 @@ class NodeList(list):
 
         Args:
             hive: Filter for Hive nodes only (default: True)
-            exclude_limited: Exclude limited nodes (not applicable with beacon)
             dev: Include dev nodes (not applicable with beacon)
             testnet: Include testnet nodes (not applicable with beacon)
             testnetdev: Include testnet dev nodes (not applicable with beacon)
@@ -166,6 +170,19 @@ class NodeList(list):
             List of node URLs sorted by score (highest first)
         """
         filtered_nodes = []
+
+        # Determine allowed types based on flags (OR logic)
+        allowed_types = set()
+        if appbase:
+            allowed_types.add("appbase")
+        if normal:
+            allowed_types.add("normal")
+        if dev:
+            allowed_types.add("appbase-dev")
+        if testnet:
+            allowed_types.add("testnet")
+        if testnetdev:
+            allowed_types.add("testnet-dev")
 
         for node in self:
             # Filter by score
@@ -182,16 +199,8 @@ class NodeList(list):
             if not wss and node["url"].startswith("wss"):
                 continue
 
-            # Filter by type (beacon only provides appbase nodes)
-            if appbase and node["type"] != "appbase":
-                continue
-            if normal and node["type"] != "normal":
-                continue
-            if dev and node["type"] != "appbase-dev":
-                continue
-            if testnet and node["type"] != "testnet":
-                continue
-            if testnetdev and node["type"] != "testnet-dev":
+            # Filter by type (OR logic)
+            if allowed_types and node["type"] not in allowed_types:
                 continue
 
             filtered_nodes.append(node)
@@ -225,7 +234,11 @@ class NodeList(list):
         )
 
     def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> List[str]:
-        """Return a list of testnet node URLs.
+        """Return a list of testnet node URLs (currently unavailable).
+
+        Note: The PeakD beacon API does not provide testnet nodes. This method
+        currently returns an empty list. Use mainnet nodes for testing or
+        manually configure testnet endpoints.
 
         Args:
             testnet: Include testnet nodes (default: True)
@@ -234,6 +247,7 @@ class NodeList(list):
         Returns:
             List of testnet node URLs
         """
+        log.warning("Testnet nodes are not available from beacon API")
         return self.get_nodes(
             normal=False,
             appbase=False,

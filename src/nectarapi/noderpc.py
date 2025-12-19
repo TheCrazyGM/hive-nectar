@@ -59,12 +59,13 @@ class NodeRPC(GrapheneRPC):
             raise exceptions.RPCConnection("RPC is not connected!")
         reply = super().rpcexec(payload)
         if self.next_node_on_empty_reply and not bool(reply) and self.nodes.working_nodes_count > 1:
+            self.next_node_on_empty_reply = False
             self._retry_on_next_node("Empty Reply")
             return super().rpcexec(payload)
         self.next_node_on_empty_reply = False
         return reply
 
-    def _retry_on_next_node(self, error_msg):
+    def _retry_on_next_node(self, error_msg: str) -> None:
         self.nodes.increase_error_cnt()
         self.nodes.sleep_and_check_retries(error_msg, sleep=False, call_retry=False)
         self.next()

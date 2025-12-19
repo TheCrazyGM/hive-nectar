@@ -121,10 +121,6 @@ class Amount:
             self.symbol = d.symbol
             self.asset = d.asset
             self.precision = d.precision
-            self.amount = d.amount
-            self.symbol = d.symbol
-            self.asset = d.asset
-            self.precision = d.precision
             self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
             self.str_repr = str(d)
             # self.str_repr = json.dumps((d.json()))
@@ -509,11 +505,12 @@ class UpdateProposalExtensions(Static_variant):
                 type_id = 1
             else:
                 type_id = ~0
+            data = o["value"]
         else:
             type_id, data = o
 
         if type_id == 1:
-            data = UpdateProposalEndDate(o["value"])
+            data = UpdateProposalEndDate(data)
         else:
             raise Exception("Unknown UpdateProposalExtension")
         super().__init__(data, type_id, False)

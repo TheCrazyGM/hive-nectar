@@ -38,38 +38,24 @@ def addTzInfo(
     if not t:
         return None
 
+    # For non-UTC timezones, log a warning once and use UTC
+    if timezone_str.upper() != "UTC":
+        import logging
+
+        log = logging.getLogger(__name__)
+        log.warning(
+            f"Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
+        )
+        timezone_str = "UTC"
+
     if isinstance(t, datetime):
         if getattr(t, "tzinfo", None) is None:
-            # Use built-in timezone
-            if timezone_str.upper() == "UTC":
-                t = t.replace(tzinfo=timezone.utc)
-            else:
-                # For non-UTC timezones, we can't use pytz anymore
-                # This is a simplified approach - in the future, consider using zoneinfo for Python 3.9+
-                # For now, default to UTC with a warning
-                t = t.replace(tzinfo=timezone.utc)
-                print(
-                    f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
-                )
+            t = t.replace(tzinfo=timezone.utc)
         return t
     elif isinstance(t, date) and not isinstance(t, datetime):
-        # Convert date to datetime
-        if timezone_str.upper() == "UTC":
-            return datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
-        else:
-            print(
-                f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
-            )
-            return datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
+        return datetime.combine(t, time.min).replace(tzinfo=timezone.utc)
     elif isinstance(t, time):
-        # Convert time to datetime
-        if timezone_str.upper() == "UTC":
-            return datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
-        else:
-            print(
-                f"Warning: Non-UTC timezone '{timezone_str}' not supported without pytz. Using UTC instead."
-            )
-            return datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
+        return datetime.combine(date.today(), t).replace(tzinfo=timezone.utc)
 
     return None
 
@@ -336,10 +322,14 @@ def reputation_to_score(rep: Union[str, int]) -> float:
     return score
 
 
-def remove_from_dict(obj: Any, keys: List[str] = list(), keep_keys: bool = True) -> Dict[str, Any]:
+def remove_from_dict(
+    obj: Any, keys: Optional[List[str]] = None, keep_keys: bool = True
+) -> Dict[str, Any]:
     """Prune a class or dictionary of all but keys (keep_keys=True).
     Prune a class or dictionary of specified keys.(keep_keys=False).
     """
+    if keys is None:
+        keys = []
     if not isinstance(obj, dict):
         obj = dict(obj)
     if keep_keys:
@@ -457,7 +447,7 @@ def seperate_yaml_dict_from_body(content: str) -> Tuple[str, Dict[str, Any]]:
 
 def create_yaml_header(
     comment: Dict[str, Any],
-    json_metadata: Dict[str, Any] = {},
+    json_metadata: Optional[Dict[str, Any]] = None,
     reply_identifier: Optional[str] = None,
 ) -> str:
     """
@@ -491,6 +481,8 @@ def create_yaml_header(
     Returns:
         str: The composed YAML front-matter block as a string.
     """
+    if json_metadata is None:
+        json_metadata = {}
     yaml_prefix = "---\n"
     if comment["title"] != "":
         yaml_prefix += f'title: "{comment["title"]}"\n'
@@ -615,7 +607,7 @@ def import_custom_json(jsonid: str, json_data: Dict[str, Any]) -> Tuple[List[str
     Returns the author and required posting authorities for a custom_json operation.
 
     Args:
-        jsonid: The id of the custom json
+        jsonid: The id of the custom json (not used but kept for compatibility)
         json_data: The data of the custom json
 
     Returns:

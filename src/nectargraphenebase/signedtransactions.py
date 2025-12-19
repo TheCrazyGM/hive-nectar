@@ -50,8 +50,10 @@ class Signed_Transaction(GrapheneObject):
                 # Defensive: if a string, wrap in a list and log warning
                 sigs = kwargs["signatures"]
                 if isinstance(sigs, str):
-                    log.warning("signatures was a string, converting to list to avoid type errors.")
-                    sigs = [sigs]
+                    raise TypeError(
+                        "signatures parameter must be a list of signature strings, not a string. "
+                        f"Did you mean to pass [{sigs!r}]?"
+                    )
                 kwargs["signatures"] = Array([Signature(unhexlify(a)) for a in sigs])
 
             if "operations" in kwargs:
@@ -147,7 +149,7 @@ class Signed_Transaction(GrapheneObject):
     ) -> List[Any]:
         """Returned pubkeys have to be checked if they are existing"""
         if not chain:
-            raise
+            raise ValueError("chain parameter is required")
         chain_params = self.getChainParams(chain)
         self.deriveDigest(chain)
         signatures = self.data["signatures"].data
@@ -165,7 +167,8 @@ class Signed_Transaction(GrapheneObject):
                         if p is not None:
                             phex = hexlify(p).decode("ascii")
                             pubKeysFound.append(phex)
-                    except Exception:
+                    except (ValueError, AssertionError, ecdsa.keys.BadSignatureError) as e:
+                        log.debug("Signature recovery failed for parameter %d: %s", i, e)
                         p = None
             elif p is not None:
                 phex = hexlify(p).decode("ascii")
@@ -196,8 +199,8 @@ class Signed_Transaction(GrapheneObject):
         self.deriveDigest(chain)
 
         # Get Unique private keys
-        self.privkeys = []
-        [self.privkeys.append(item) for item in wifkeys if item not in self.privkeys]
+        # Preserve order while removing duplicates (Python 3.7+ dicts maintain insertion order)
+        self.privkeys = list(dict.fromkeys(wifkeys if isinstance(wifkeys, list) else [wifkeys]))
 
         # Sign the message with every private key given!
         sigs = []

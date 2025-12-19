@@ -92,7 +92,7 @@ class SqlitePlainKeyStore(SQLiteStore, KeyInterface):
         return [k for k, v in self.items()]
 
     def getPrivateKeyForPublicKey(self, pub):
-        return self[pub]
+        return self.get(str(pub), None)
 
     def add(self, wif, pub=None):
         if pub is None:

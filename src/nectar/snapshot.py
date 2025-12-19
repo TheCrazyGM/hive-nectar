@@ -61,7 +61,7 @@ class AccountSnapshot(list):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
-        super().__init__(account_history or [])
+        # super().__init__(account_history or [])
 
     def reset(self) -> None:
         """
@@ -174,10 +174,14 @@ class AccountSnapshot(list):
         start: Optional[Union[datetime, date, time, int]] = None,
         stop: Optional[Union[datetime, date, time, int]] = None,
         use_block_num: bool = True,
-        only_ops: List[str] = [],
-        exclude_ops: List[str] = [],
+        only_ops: Optional[List[str]] = None,
+        exclude_ops: Optional[List[str]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """Returns ops in the given range"""
+        if only_ops is None:
+            only_ops = []
+        if exclude_ops is None:
+            exclude_ops = []
         if start is not None and not isinstance(start, int):
             start = addTzInfo(start)
         if stop is not None and not isinstance(stop, int):
@@ -304,8 +308,9 @@ class AccountSnapshot(list):
 
         Fetches operations from the underlying Account.history iterator and replaces the snapshot's contents with those operations. If start/stop are provided they may be block numbers or datetimes; set use_block_num=False to interpret them as virtual operation indices/timestamps instead of block numbers.
         """
-        super().__init__(
-            [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
+        self.clear()
+        self.extend(
+            h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)
         )
 
     def update_rewards(
@@ -452,8 +457,8 @@ class AccountSnapshot(list):
 
     def build(
         self,
-        only_ops: List[str] = [],
-        exclude_ops: List[str] = [],
+        only_ops: Optional[List[str]] = None,
+        exclude_ops: Optional[List[str]] = None,
         enable_rewards: bool = False,
         enable_out_votes: bool = False,
         enable_in_votes: bool = False,
@@ -466,6 +471,10 @@ class AccountSnapshot(list):
             generator (*optional*)
 
         """
+        if only_ops is None:
+            only_ops = []
+        if exclude_ops is None:
+            exclude_ops = []
         if len(self.timestamps) > 0:
             start_timestamp = self.timestamps[-1]
         else:
@@ -498,7 +507,7 @@ class AccountSnapshot(list):
     def parse_op(
         self,
         op: Dict[str, Any],
-        only_ops: List[str] = [],
+        only_ops: Optional[List[str]] = None,
         enable_rewards: bool = False,
         enable_out_votes: bool = False,
         enable_in_votes: bool = False,
@@ -518,6 +527,8 @@ class AccountSnapshot(list):
         Returns:
             None
         """
+        if only_ops is None:
+            only_ops = []
         ts = parse_time(op["timestamp"])
 
         if op["type"] == "account_create":

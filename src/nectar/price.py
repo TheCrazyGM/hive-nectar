@@ -410,7 +410,9 @@ class Price(dict):
                 # If division returned a float, we can't do in-place modification
                 # Convert to Price by updating the base amount
                 self["base"] = Amount(
-                    float(tmp) * float(self["base"]), blockchain_instance=self.blockchain
+                    float(tmp) * float(self["base"]),
+                    self["base"]["symbol"],
+                    blockchain_instance=self.blockchain,
                 )
             else:
                 # tmp is a Price, do normal in-place update

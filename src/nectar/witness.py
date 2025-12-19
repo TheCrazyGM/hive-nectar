@@ -257,7 +257,7 @@ class Witness(BlockchainObject):
         blockchain = blockchain_instance or shared_blockchain_instance()
         try:
             return blockchain.rpc.get_witness_by_account(account_name)
-        except Exception:
+        except (RPCError, NoMethodWithName):
             return None
 
 

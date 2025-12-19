@@ -1,10 +1,7 @@
 import json
 from typing import Any
 
-try:
-    from collections.abc import Mapping  # noqa
-except ImportError:
-    from collections.abc import Mapping  # noqa
+from collections.abc import Mapping
 
 
 class DotDict(dict):
@@ -42,13 +39,13 @@ class Profile(DotDict):
     profile according to Hive profile metadata conventions.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any) -> None:
         """
         Initialize a Profile by delegating to the DotDict initializer.
 
-        This constructor accepts the same arguments as DotDict (e.g., dot-separated key/value pairs, a dict, or a JSON string) and performs no additional processing.
+        This constructor accepts the same arguments as DotDict.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(*args)
 
     def __str__(self) -> str:
         return json.dumps(self)

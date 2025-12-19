@@ -276,7 +276,8 @@ class MessageV2:
         assert memo_key, "missing 'key'"
 
         try:
-            Account(memo_key, prefix=self.blockchain.prefix)
+            # Validate that the memo key is a syntactically valid public key
+            PublicKey(memo_key, prefix=self.blockchain.prefix)
         except Exception:
             raise InvalidMemoKeyException("The memo key in the message is invalid")
 
