@@ -204,6 +204,17 @@ class Block(BlockchainObject):
     @property
     def operations(self) -> list[Any]:
         """Returns all block operations as list"""
+
+        def _normalize_op_type(op_type: Any) -> Any:
+            if isinstance(op_type, int):
+                try:
+                    from nectarbase.operationids import getOperationNameForId
+
+                    return getOperationNameForId(op_type)
+                except Exception:
+                    return op_type
+            return op_type
+
         if (self.only_ops or self.only_virtual_ops) and "operations" in self:
             ops = self["operations"]
             # Normalize get_ops_in_block format (which wraps op in "op" key)
@@ -213,16 +224,14 @@ class Block(BlockchainObject):
                     # Wrapper found: get_ops_in_block format
                     raw_op = x["op"]
                     if isinstance(raw_op, list):
-                        if isinstance(raw_op[0], int):
-                            try:
-                                from nectarbase.operationids import getOperationNameForId
-
-                                raw_op[0] = getOperationNameForId(raw_op[0])
-                            except Exception:
-                                pass
-                        op_dict = {"type": raw_op[0], "value": raw_op[1]}
+                        op_dict = {
+                            "type": _normalize_op_type(raw_op[0]),
+                            "value": raw_op[1],
+                        }
                     elif isinstance(raw_op, dict):
                         op_dict = raw_op.copy()
+                        if "type" in op_dict:
+                            op_dict["type"] = _normalize_op_type(op_dict["type"])
                     else:
                         continue  # Should not happen
 
@@ -234,6 +243,12 @@ class Block(BlockchainObject):
                     if "block" in x:
                         op_dict["block_num"] = x["block"]
 
+                    normalized_ops.append(op_dict)
+                elif isinstance(x, (list, tuple)) and len(x) >= 2:
+                    normalized_ops.append({"type": _normalize_op_type(x[0]), "value": x[1]})
+                elif isinstance(x, dict) and "type" in x and "value" in x:
+                    op_dict = x.copy()
+                    op_dict["type"] = _normalize_op_type(op_dict["type"])
                     normalized_ops.append(op_dict)
                 else:
                     # Legacy or direct format?
@@ -258,13 +273,8 @@ class Block(BlockchainObject):
 
             for op in tx["operations"]:
                 # Replace op id by op name when numeric
-                if isinstance(op, (list, tuple)) and len(op) > 0 and isinstance(op[0], int):
-                    try:
-                        from nectarbase.operationids import getOperationNameForId
-
-                        op[0] = getOperationNameForId(op[0])
-                    except Exception:
-                        pass
+                if isinstance(op, (list, tuple)) and len(op) > 0:
+                    op[0] = _normalize_op_type(op[0])
                 if isinstance(op, list):
                     if self.only_ops or self.only_virtual_ops:
                         op_dict = {"type": op[0], "value": op[1]}
@@ -285,6 +295,8 @@ class Block(BlockchainObject):
                     # If op is already a dictionary, we still need to inject metadata if we are in only_ops mode
                     if self.only_ops or self.only_virtual_ops:
                         op_dict = op.copy()
+                        if "type" in op_dict:
+                            op_dict["type"] = _normalize_op_type(op_dict["type"])
 
                         # In some cases op might be {"op": {"type": ..., "value": ...}} ??
                         # But loop above handles raw operations list.
