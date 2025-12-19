@@ -123,3 +123,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(isinstance(op, dict), f"Operation should be dict, got {type(op)}")
         self.assertIn("type", op)
         self.assertIn("value", op)
+
+        # We expect transaction keys to be injected now
+        self.assertIn("transaction_id", op, "transaction_id missing in normalized op")
+        self.assertIn("block_num", op, "block_num missing in normalized op")
