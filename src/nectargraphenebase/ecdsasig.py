@@ -62,12 +62,7 @@ def compressedPubkey(pk: Union[ecdsa.keys.VerifyingKey, Any]) -> bytes:
     if isinstance(pk, ecdsa.keys.VerifyingKey):
         order = ecdsa.SECP256k1.order
         # Get the curve point from VerifyingKey
-        try:
-            # Try newer ecdsa version approach
-            point = pk.point  # type: ignore[attr-defined]
-        except AttributeError:
-            # Fallback for older versions
-            point = pk.pubkey.point  # type: ignore[attr-defined]
+        point = pk.pubkey.point  # type: ignore[attr-defined]
         x = point.x()
         y = point.y()
     elif isinstance(pk, PublicKey):
@@ -282,7 +277,7 @@ def verify_message(
     Parameters:
         message (bytes or str): The message to verify. If a str, it will be UTF-8 encoded.
         signature (bytes or str): 65-byte compact signature where the first byte encodes the recovery parameter/version and the remaining 64 bytes are R||S. If a str, it will be UTF-8 encoded.
-        hashfn (callable): Hash function constructor used to compute the digest of the message (default: hashlib.sha256).
+        hashfn (callable): Hash function constructor used to compute the digest of the message (default: hashlib.sha256). Note: The actual verification uses SHA256 regardless of this parameter.
         recover_parameter (int, optional): Explicit recovery parameter (0–3). If omitted, it is extracted from the signature's first byte.
 
     Returns:
@@ -297,10 +292,6 @@ def verify_message(
         message = bytes(message, "utf-8")
     if not isinstance(signature, bytes):
         signature = bytes(signature, "utf-8")
-    if not isinstance(message, bytes):
-        raise AssertionError()
-    if not isinstance(signature, bytes):
-        raise AssertionError()
     digest = hashfn(message).digest()
     sig = signature[1:]
     if recover_parameter is None:

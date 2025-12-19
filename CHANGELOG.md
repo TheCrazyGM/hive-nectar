@@ -21,6 +21,7 @@
 ### Improvements
 
 - **HTTP Client**: Standardized HTTP/RPC communication by transitioning to `httpx` and implementing a single, shared client instance for improved efficiency and consistency.
+- **Transaction**: Increased default transaction expiration from 30 seconds to 300 seconds to better handle node clock skew and network latency.
 
 ### Features
 

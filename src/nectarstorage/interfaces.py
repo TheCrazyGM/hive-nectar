@@ -43,7 +43,7 @@ class StoreInterface(MutableMapping):
             self.defaults[key] = value
         return self._data.setdefault(key, value)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *_args, **_kwargs):
         self._data: dict[Any, Any] = {}
 
     def __setitem__(self, key, value):
