@@ -23,7 +23,6 @@ Submodules
    nectar.exceptions
    nectar.haf
    nectar.hive
-   nectar.hivesigner
    nectar.imageuploader
    nectar.instance
    nectar.market

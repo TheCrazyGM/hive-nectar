@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 import logging
 import struct
 from binascii import unhexlify
 
 # import time (not currently used)
-from datetime import timedelta
-
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
 from nectarbase.ledgertransactions import Ledger_Transaction
@@ -21,7 +18,7 @@ from .exceptions import (
     MissingKeyError,
     OfflineHasNoRPCException,
 )
-from .utils import formatTimeFromNow, formatTimeString
+from .utils import formatTimeFromNow
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +30,7 @@ class TransactionBuilder(dict):
 
     :param dict tx: transaction (Optional). If not set, the new transaction is created.
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param Hive blockchain_instance: If not set, shared_blockchain_instance() is used
 
     .. testcode::
@@ -75,7 +72,7 @@ class TransactionBuilder(dict):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):
-            super(TransactionBuilder, self).__init__(tx)
+            super().__init__(tx)
             # Load operations
             self.ops = tx["operations"]
             self._require_reconstruction = False
@@ -83,7 +80,6 @@ class TransactionBuilder(dict):
             self._require_reconstruction = True
         self._use_ledger = self.blockchain.use_ledger
         self.path = self.blockchain.path
-        self._use_condenser_api = bool(self.blockchain.config["use_condenser"])
         self.set_expiration(kwargs.get("expiration", self.blockchain.expiration))
 
     def set_expiration(self, p):
@@ -96,12 +92,7 @@ class TransactionBuilder(dict):
 
     def list_operations(self):
         """List all ops"""
-        if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
-            # appbase disabled by now
-            appbase = not self._use_condenser_api
-        else:
-            appbase = False
-        return [Operation(o, appbase=appbase, prefix=self.blockchain.prefix) for o in self.ops]
+        return [Operation(o, appbase=True, prefix=self.blockchain.prefix) for o in self.ops]
 
     def _is_signed(self):
         """Check if signatures exists"""
@@ -214,7 +205,6 @@ class TransactionBuilder(dict):
 
         Attempts to resolve signing credentials for `account` at the requested `permission` and attaches them to the builder state. Behavior varies by signing mode:
         - Ledger mode: verifies that the ledger-derived public key for the currently selected path is authorized for the account/permission (raises AssertionError if not).
-        - HiveSigner mode: sets the HiveSigner username (only supports "posting") and returns.
         - Wallet mode: fetches private keys from the local wallet and stores corresponding WIFs; if the account argument is a PublicKey, the matching WIF is retrieved and added.
 
         Parameters:
@@ -224,7 +214,6 @@ class TransactionBuilder(dict):
         Raises:
             WalletLocked: if the local wallet is locked when wallet keys are required.
             AssertionError: for invalid permission values, if the requested permission cannot be accessed, or if a ledger public key is not found in the account authorities.
-            ValueError: if HiveSigner is used with a permission other than "posting".
         """
         if not self.blockchain.is_connected():
             return
@@ -261,18 +250,10 @@ class TransactionBuilder(dict):
                             key_found = True
             if not key_found:
                 raise AssertionError(
-                    "Could not find pubkey from %s in path: %s!" % (account["name"], self.path)
+                    "Could not find pubkey from {} in path: {}!".format(account["name"], self.path)
                 )
             return
 
-        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
-            # HiveSigner only supports posting permission
-            if permission != "posting":
-                raise ValueError(
-                    f"HiveSigner only supports 'posting' permission, got '{permission}'"
-                )
-            self.blockchain.hivesigner.set_username(account["name"], permission)
-            return
         if self.blockchain.wallet.locked():
             raise WalletLocked()
 
@@ -350,31 +331,40 @@ class TransactionBuilder(dict):
 
         """
         ops = list()
-        if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
-            # appbase disabled by now
-            # broadcasting does not work at the moment
-            appbase = not self._use_condenser_api
-        else:
-            appbase = False
         for op in self.ops:
             # otherwise, we simply wrap ops into Operations
-            ops.extend([Operation(op, appbase=appbase, prefix=self.blockchain.prefix)])
+            ops.extend([Operation(op, appbase=True, prefix=self.blockchain.prefix)])
 
         # calculation expiration time from last block time not system time
         # it fixes transaction expiration error when pushing transactions
         # when blocks are moved forward with debug_produce_block*
+        # Prefer chain head time when connected to align with node clock and avoid expiration drift
+        exp_seconds = int(self.expiration or self.blockchain.expiration or 300)
+        # ensure at least 5 minutes to avoid expiration race with head block time drift
+        exp_seconds = max(exp_seconds, 300)
+        from datetime import datetime, timedelta, timezone
+
         if self.blockchain.is_connected():
-            now = formatTimeString(
-                self.blockchain.get_dynamic_global_properties(use_stored_data=False).get("time")
-            ).replace(tzinfo=None)
-            expiration = now + timedelta(seconds=int(self.expiration or self.blockchain.expiration))
-            expiration = expiration.replace(microsecond=0).isoformat()
+            dgp = self.blockchain.get_dynamic_global_properties(use_stored_data=False)
+            if dgp is None:
+                # Fallback to system time if we can't get chain time
+                expiration = formatTimeFromNow(exp_seconds)
+            else:
+                head_time_str = dgp.get("time")
+
+                head_time = datetime.strptime(head_time_str, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                now_utc = datetime.now(timezone.utc)
+                base_time = max(head_time, now_utc)
+                expiration_dt = base_time + timedelta(seconds=exp_seconds)
+                expiration = expiration_dt.strftime("%Y-%m-%dT%H:%M:%S")
         else:
-            expiration = formatTimeFromNow(self.expiration or self.blockchain.expiration)
+            expiration = formatTimeFromNow(exp_seconds)
 
         # We now wrap everything into an actual transaction
         if ref_block_num is None or ref_block_prefix is None:
-            ref_block_num, ref_block_prefix = self.get_block_params()
+            ref_block_num, ref_block_prefix = self.get_block_params(use_head_block=True)
         if self._use_ledger:
             self.ledgertx = Ledger_Transaction(
                 ref_block_prefix=ref_block_prefix,
@@ -394,7 +384,7 @@ class TransactionBuilder(dict):
             prefix=self.blockchain.prefix,
         )
 
-        super(TransactionBuilder, self).update(self.tx.json())
+        super().update(self.tx.json())
         self._unset_require_reconstruction()
 
     def get_block_params(self, use_head_block=False):
@@ -428,19 +418,17 @@ class TransactionBuilder(dict):
 
     def sign(self, reconstruct_tx=True):
         """
-        Sign the built transaction using HiveSigner, a Ledger device, or local WIFs and attach signatures to the builder.
+        Sign the built transaction using a Ledger device or local WIFs and attach signatures to the builder.
 
         If the transaction is not constructed (or if reconstruct_tx is True) the transaction will be reconstructed before signing. The method attempts signing in this order:
-        1. HiveSigner (if configured) — uses remote signing and attaches returned signatures.
-        2. Ledger (if ledger mode is active) — signs with the Ledger device and appends signatures.
-        3. Local WIFs from the builder — uses stored WIFs to sign the transaction and appends signatures.
+        1. Ledger (if ledger mode is active) — signs with the Ledger device and appends signatures.
+        2. Local WIFs from the builder — uses stored WIFs to sign the transaction and appends signatures.
 
         Parameters:
             reconstruct_tx (bool): If False and the transaction is already constructed, existing signatures are preserved and the transaction will not be rebuilt before signing. Defaults to True.
 
         Returns:
             The object returned by the signing step:
-              - HiveSigner result (dict) when HiveSigner was used successfully,
               - Ledger_Transaction when signed via Ledger,
               - Signed_Transaction when signed locally with WIFs.
             Returns None if there are no operations to sign.
@@ -452,20 +440,6 @@ class TransactionBuilder(dict):
             self.constructTx()
         if "operations" not in self or not self["operations"]:
             return
-        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
-            # Use HiveSigner for signing
-            try:
-                signed_tx = self.blockchain.hivesigner.sign(self.json())
-                if signed_tx and "signatures" in signed_tx:
-                    # Attach the signatures from HiveSigner to the transaction
-                    self["signatures"] = signed_tx["signatures"]
-                    return signed_tx
-                else:
-                    raise ValueError("HiveSigner failed to sign transaction")
-            except Exception as e:
-                log.error(f"HiveSigner signing failed: {e}")
-                # Fall back to regular signing if HiveSigner fails
-                pass
         # We need to set the default prefix, otherwise pubkeys are
         # presented wrongly!
         if self.blockchain.rpc is not None:
@@ -487,7 +461,7 @@ class TransactionBuilder(dict):
             if not any(self.wifs):
                 raise MissingKeyError
 
-            self.tx.sign(self.wifs, chain=self.blockchain.chain_params)
+            self.tx.sign(list(self.wifs), chain=self.blockchain.chain_params)
             # Defensive: ensure self["signatures"] is a list before extend
             if isinstance(self["signatures"], str):
                 log.warning(
@@ -504,11 +478,8 @@ class TransactionBuilder(dict):
         """Verify the authority of the signed transaction"""
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.rpc.get_use_appbase():
-                args = {"trx": self.json()}
-            else:
-                args = self.json()
-            ret = self.blockchain.rpc.verify_authority(args, api="database")
+            args = {"trx": self.json()}
+            ret = self.blockchain.rpc.verify_authority(args)
             if not ret:
                 raise InsufficientAuthorityError
             elif isinstance(ret, dict) and "valid" in ret and not ret["valid"]:
@@ -521,11 +492,8 @@ class TransactionBuilder(dict):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            args = {"trx": self.json()}
-        else:
-            args = self.json()
-        ret = self.blockchain.rpc.get_potential_signatures(args, api="database")
+        args = {"trx": self.json()}
+        ret = self.blockchain.rpc.get_potential_signatures(args)
         if "keys" in ret:
             ret = ret["keys"]
         return ret
@@ -535,11 +503,8 @@ class TransactionBuilder(dict):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            args = {"trx": self.json()}
-        else:
-            args = self.json()
-        ret = self.blockchain.rpc.get_transaction_hex(args, api="database")
+        args = {"trx": self.json()}
+        ret = self.blockchain.rpc.get_transaction_hex(args)
         if "hex" in ret:
             ret = ret["hex"]
         return ret
@@ -565,14 +530,8 @@ class TransactionBuilder(dict):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            args = {"trx": self.json(), "available_keys": available_keys}
-            ret = self.blockchain.rpc.get_required_signatures(args, api="database")
-        else:
-            ret = self.blockchain.rpc.get_required_signatures(
-                self.json(), available_keys, api="database"
-            )
-
+        args = {"trx": self.json(), "available_keys": available_keys}
+        ret = self.blockchain.rpc.get_required_signatures(args)
         return ret
 
     def broadcast(self, max_block_age=-1, trx_id=True):
@@ -594,8 +553,6 @@ class TransactionBuilder(dict):
             are no operations to broadcast.
 
         Side effects:
-            - May sign the transaction if it is not already signed.
-            - May use HiveSigner for broadcast when configured; falls back to RPC on failure.
             - Clears internal transaction state on successful broadcast or on errors.
             - May raise exceptions from the signing or RPC broadcast calls.
         """
@@ -609,28 +566,8 @@ class TransactionBuilder(dict):
             return
         ret = self.json()
 
-        # Returns an internal Error at the moment
-        if not self._use_condenser_api:
-            args = {"trx": self.json(), "max_block_age": max_block_age}
-            broadcast_api = "network_broadcast"
-        else:
-            args = self.json()
-            broadcast_api = "condenser"
-
-        if self.blockchain.use_hs and self.blockchain.hivesigner is not None:
-            # Use HiveSigner for broadcasting
-            try:
-                # HiveSigner.broadcast expects operations list, not full transaction
-                username = self.signing_accounts[0] if self.signing_accounts else None
-                ret = self.blockchain.hivesigner.broadcast(
-                    self.json()["operations"], username=username
-                )
-                self.clear()
-                return ret
-            except Exception as e:
-                log.error(f"HiveSigner broadcast failed: {e}")
-                # Fall back to RPC broadcasting if HiveSigner fails
-                pass
+        args = {"trx": self.json(), "max_block_age": max_block_age}
+        broadcast_api = "network_broadcast_api"
 
         if self.blockchain.nobroadcast:
             log.info("Not broadcasting anything!")
@@ -639,9 +576,9 @@ class TransactionBuilder(dict):
         # Broadcast
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.blocking and self._use_condenser_api:
+            if self.blockchain.blocking:
                 ret = self.blockchain.rpc.broadcast_transaction_synchronous(args, api=broadcast_api)
-                if "trx" in ret:
+                if isinstance(ret, dict) and "trx" in ret:
                     ret.update(**ret.get("trx"))
             else:
                 self.blockchain.rpc.broadcast_transaction(args, api=broadcast_api)
@@ -663,7 +600,7 @@ class TransactionBuilder(dict):
         self.ref_block_prefix = None
         # This makes sure that _is_constructed will return False afterwards
         self["expiration"] = None
-        super(TransactionBuilder, self).__init__({})
+        super().__init__({})
 
     def addSigningInformation(self, account, permission, reconstruct_tx=False):
         """This is a private method that adds side information to a

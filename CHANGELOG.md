@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.2.2 - 2025-12-16
+
+### Improvements
+
+- **HTTP Client**: Completed the migration to `httpx` by replacing all remaining `requests` and `urllib` usage in `market.py`, `haf.py`, and `nodelist.py`.
+- **Logging**: Reduced log verbosity by setting `httpx` and `httpcore` loggers to `WARNING` level.
+
+## 0.2.0 - 2025-12-01
+
+### Breaking Changes
+
+- **Refactor**: Removed `use_stored_data` parameter from `_calc_resulting_vote` call in `hive.py`.
+- **Refactor**: Converted `Amount.tuple` property to `as_tuple()` method.
+- **Refactor**: Converted API method calls from dict parameters to positional arguments across multiple modules.
+- **Refactor**: Removed legacy `HiveSigner` integration and related dependencies.
+- **Refactor**: Standardized API endpoint naming to use `_api` suffix throughout codebase.
+- **Refactor**: Deprecated `appbase` utility functions.
+
+### Improvements
+
+- **HTTP Client**: Standardized HTTP/RPC communication by transitioning to `httpx` and implementing a single, shared client instance for improved efficiency and consistency.
+- **Transaction**: Increased default transaction expiration from 30 seconds to 300 seconds to better handle node clock skew and network latency.
+
+### Features
+
+- **Transaction**: Added `json_str` parameter to multiple transaction operations.
+- **Node Management**: Simplified `NodeList` to use PeakD beacon API with static fallback nodes.
+- **Performance**: Improved blockchain tests with limited data collection and structure validation.
+- **Compatibility**: Removed Python 2 compatibility code and modernized syntax.
+- **CLI**: Added string time parsing support to account history methods.
+
+### Fixes
+
+- **Security**: Fixed `PasswordKey` seed generation and `PublicKey` string methods.
+- **Security**: Fixed cipher decoding in `extract_memo_data`.
+- **Reliability**: Improved type safety and null handling across almost all core modules (`Account`, `BlockChainInstance`, `Hive`, etc.).
+- **Reliability**: Fixed circular import in instance module.
+- **Reliability**: Improved RPC retry logic and error handling for witness and node operations.
+
 ## 0.1.5 - 2025-11-04
 
 - **Feature**: Added a `--witness/-w` flag to the `hive-nectar rewards` CLI that aggregates producer rewards into a PrettyTable, respecting the requested date window.

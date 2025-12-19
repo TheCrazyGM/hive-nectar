@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 import io
 from binascii import hexlify
+from typing import Any, Dict, Optional, Union
 
-import requests
+import httpx
+from httpx import ConnectError, HTTPStatusError, RequestError, TimeoutException
 
 from nectar.account import Account
 from nectar.exceptions import MissingKeyError
@@ -11,13 +12,13 @@ from nectargraphenebase.ecdsasig import sign_message
 from .instance import shared_blockchain_instance
 
 
-class ImageUploader(object):
+class ImageUploader:
     def __init__(
         self,
-        base_url="https://images.hive.blog",
-        challenge="ImageSigningChallenge",
-        blockchain_instance=None,
-    ):
+        base_url: str = "https://images.hive.blog",
+        challenge: str = "ImageSigningChallenge",
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Initialize the ImageUploader.
 
@@ -32,7 +33,12 @@ class ImageUploader(object):
         self.base_url = base_url
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-    def upload(self, image, account, image_name=None):
+    def upload(
+        self,
+        image: Union[str, bytes, io.BytesIO],
+        account: Union[str, Account],
+        image_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Upload an image to the configured image service, signing the upload with the account's posting key.
 
@@ -65,7 +71,8 @@ class ImageUploader(object):
             raise AssertionError("No local private posting key available to sign the image.")
 
         if isinstance(image, str):
-            image_data = open(image, "rb").read()
+            with open(image, "rb") as f:
+                image_data = f.read()
         elif isinstance(image, io.BytesIO):
             image_data = image.read()
         else:
@@ -75,7 +82,33 @@ class ImageUploader(object):
         signature = sign_message(message, posting_wif)
         signature_in_hex = hexlify(signature).decode("ascii")
 
-        files = {image_name or "image": image_data}
-        url = "%s/%s/%s" % (self.base_url, account["name"], signature_in_hex)
-        r = requests.post(url, files=files)
-        return r.json()
+        # Prepare files for httpx
+        # We want to send the file with the field name "image" (expected by images.hive.blog)
+        # and the filename specified by image_name.
+        # If image_name is not provided, we default to "image".
+        filename = image_name or "image"
+        # files = {'field_name': ('filename', file_data)}
+        files = {"image": (filename, image_data)}
+        url = "{}/{}/{}".format(self.base_url, account["name"], signature_in_hex)
+
+        retries = 3
+        timeout = 60
+
+        with httpx.Client(timeout=timeout) as client:
+            for i in range(retries + 1):
+                try:
+                    r = client.post(url, files=files)
+                    r.raise_for_status()
+                    return r.json()
+                except (
+                    ConnectError,
+                    RequestError,
+                    TimeoutException,
+                    HTTPStatusError,
+                ) as e:
+                    if i < retries:
+                        continue
+                    raise AssertionError(f"Upload failed after {retries} retries: {str(e)}") from e
+
+        # Should be unreachable if loop works correctly
+        raise AssertionError("Upload failed")

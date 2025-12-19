@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import logging
 import string
 from binascii import hexlify, unhexlify
+from typing import Any, Optional, Union
 
 from .prefix import Prefix
 
@@ -35,7 +35,7 @@ class Base58(Prefix):
 
     """
 
-    def __init__(self, data, prefix=None):
+    def __init__(self, data: Any, prefix: Optional[str] = None) -> None:
         self.set_prefix(prefix)
         if isinstance(data, Base58):
             data = repr(data)
@@ -50,7 +50,7 @@ class Base58(Prefix):
         else:
             raise ValueError("Error loading Base58 object")
 
-    def __format__(self, _format):
+    def __format__(self, _format: str) -> str:
         """Format output according to argument _format (wif,btc,...)
 
         :param str _format: Format to use
@@ -67,7 +67,7 @@ class Base58(Prefix):
         else:
             return _format.upper() + str(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Returns hex value of object
 
         :return: Hex string of instance's data
@@ -75,7 +75,7 @@ class Base58(Prefix):
         """
         return self._hex
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return graphene-base58CheckEncoded string of data
 
         :return: Base58 encoded data
@@ -83,7 +83,7 @@ class Base58(Prefix):
         """
         return gphBase58CheckEncode(self._hex)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Return raw bytes
 
         :return: Raw bytes of instance
@@ -97,7 +97,7 @@ class Base58(Prefix):
 BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 
-def base58decode(base58_str):
+def base58decode(base58_str: str) -> str:
     base58_text = bytes(base58_str, "ascii")
     n = 0
     leading_zeroes_count = 0
@@ -116,7 +116,10 @@ def base58decode(base58_str):
     return hexlify(bytearray(1) * leading_zeroes_count + res).decode("ascii")
 
 
-def base58encode(hexstring):
+def base58encode(hexstring: str) -> str:
+    # Handle odd-length hex strings by padding with leading zero
+    if len(hexstring) % 2 == 1:
+        hexstring = "0" + hexstring
     byteseq = bytes(unhexlify(bytes(hexstring, "ascii")))
     n = 0
     leading_zeroes_count = 0
@@ -134,25 +137,30 @@ def base58encode(hexstring):
     return (BASE58_ALPHABET[0:1] * leading_zeroes_count + res).decode("ascii")
 
 
-def ripemd160(s):
+def ripemd160(s: Union[str, bytes]) -> bytes:
     ripemd160 = hashlib.new("ripemd160")
     ripemd160.update(unhexlify(s))
     return ripemd160.digest()
 
 
-def doublesha256(s):
-    return hashlib.sha256(hashlib.sha256(unhexlify(s)).digest()).digest()
+def doublesha256(s: Union[str, bytes]) -> bytes:
+    if isinstance(s, str):
+        # Handle odd-length hex strings by padding with leading zero
+        if len(s) % 2 == 1:
+            s = "0" + s
+        s = unhexlify(s)
+    return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
 
-def b58encode(v):
+def b58encode(v: str) -> str:
     return base58encode(v)
 
 
-def b58decode(v):
+def b58decode(v: str) -> str:
     return base58decode(v)
 
 
-def base58CheckEncode(version, payload):
+def base58CheckEncode(version: int, payload: str) -> str:
     if isinstance(version, str):
         s = version + payload
     else:
@@ -162,11 +170,11 @@ def base58CheckEncode(version, payload):
     return base58encode(result)
 
 
-def base58CheckDecode(s, skip_first_bytes=True):
-    s = unhexlify(base58decode(s))
-    dec = hexlify(s[:-4]).decode("ascii")
+def base58CheckDecode(s: str, skip_first_bytes: bool = True) -> str:
+    s_bytes = unhexlify(base58decode(s))
+    dec = hexlify(s_bytes[:-4]).decode("ascii")
     checksum = doublesha256(dec)[:4]
-    if not (s[-4:] == checksum):
+    if not (s_bytes[-4:] == checksum):
         raise AssertionError()
     if skip_first_bytes:
         return dec[2:]
@@ -174,16 +182,16 @@ def base58CheckDecode(s, skip_first_bytes=True):
         return dec
 
 
-def gphBase58CheckEncode(s):
+def gphBase58CheckEncode(s: str) -> str:
     checksum = ripemd160(s)[:4]
     result = s + hexlify(checksum).decode("ascii")
     return base58encode(result)
 
 
-def gphBase58CheckDecode(s):
-    s = unhexlify(base58decode(s))
-    dec = hexlify(s[:-4]).decode("ascii")
+def gphBase58CheckDecode(s: str) -> str:
+    s_bytes = unhexlify(base58decode(s))
+    dec = hexlify(s_bytes[:-4]).decode("ascii")
     checksum = ripemd160(dec)[:4]
-    if not (s[-4:] == checksum):
+    if not (s_bytes[-4:] == checksum):
         raise AssertionError()
     return dec

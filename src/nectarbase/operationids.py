@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 #: Operation ids
+from typing import Dict, List
 
 # https://gitlab.syncad.com/hive/hive/-/blob/master/libraries/protocol/include/hive/protocol/operations.hpp
-ops = [
+ops: List[str] = [
     "vote",  # 0
     "comment",  # 1
     "transfer",  # 2
@@ -91,12 +91,12 @@ ops = [
     "failed_recurrent_transfer",  # last_regular + 35
 ]
 
-operations = {o: ops.index(o) for o in ops}
+operations: Dict[str, int] = {o: ops.index(o) for o in ops}
 
 
-def getOperationNameForId(i):
+def getOperationNameForId(i: int) -> str:
     """Convert an operation id into the corresponding string"""
     for key in operations:
-        if int(operations[key]) is int(i):
+        if operations[key] == i:
             return key
     return "Unknown Operation ID %d" % i

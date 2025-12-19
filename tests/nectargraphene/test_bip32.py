@@ -1,9 +1,7 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import binascii
 import unittest
 from binascii import unhexlify
+from typing import Optional, cast
 
 from nectargraphenebase.account import Mnemonic
 from nectargraphenebase.bip32 import BIP32_HARDEN, BIP32Key, parse_path
@@ -12,6 +10,10 @@ words = "news clever spot drama infant detail sword cover color throw foot prima
 
 
 class Testcases(unittest.TestCase):
+    def _require_child(self, key: Optional[BIP32Key]) -> BIP32Key:
+        self.assertIsNotNone(key)
+        return cast(BIP32Key, key)
+
     def test_btc_privkey(self):
         mobj = Mnemonic()
         mnemonic_words = (
@@ -20,13 +22,9 @@ class Testcases(unittest.TestCase):
         seed = mobj.to_seed(mnemonic_words)
 
         bip32_root_key_obj = BIP32Key.fromEntropy(seed)
-        bip32_child_key_obj = (
-            bip32_root_key_obj.ChildKey(44 + BIP32_HARDEN)
-            .ChildKey(0 + BIP32_HARDEN)
-            .ChildKey(0 + BIP32_HARDEN)
-            .ChildKey(0)
-            .ChildKey(0)
-        )
+        bip32_child_key_obj = bip32_root_key_obj
+        for idx in (44 + BIP32_HARDEN, 0 + BIP32_HARDEN, 0 + BIP32_HARDEN, 0, 0):
+            bip32_child_key_obj = self._require_child(bip32_child_key_obj.ChildKey(idx))
         self.assertEqual(bip32_child_key_obj.Address(), "1A9vZ4oPLb29szfRWVFe1VoEe7a2qEMjvJ")
         self.assertEqual(
             binascii.hexlify(bip32_child_key_obj.PublicKey()).decode(),
@@ -48,7 +46,7 @@ class Testcases(unittest.TestCase):
         )
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA3Fu8ZNFZDn3S24jWzHCLGsX9eSUcpvFY2FFKLzessSEkk1KQLhHpyG7rnfYtx7txBupUY546PT5tjb4kwXghpd1rRw1Xw8nAqS19EZuPSu",
@@ -58,13 +56,9 @@ class Testcases(unittest.TestCase):
             "xpub6GFFY4u9PbLLeW9Cd1pChQpFhgGy2He6uFAr7jQGSCyDdYLTwt1YNmabi4aRfHRxwiEEhwu2Bjm3ypHaWHXbmr48QP4Fd8PXcw1o9qpdLSQ",
         )
 
-        m = (
-            key.ChildKey(44 + BIP32_HARDEN)
-            .ChildKey(0 + BIP32_HARDEN)
-            .ChildKey(0 + BIP32_HARDEN)
-            .ChildKey(0 + BIP32_HARDEN)
-            .ChildKey(0)
-        )
+        m = key
+        for idx in (44 + BIP32_HARDEN, 0 + BIP32_HARDEN, 0 + BIP32_HARDEN, 0 + BIP32_HARDEN, 0):
+            m = self._require_child(m.ChildKey(idx))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA3Fu8ZNFZDn3S24jWzHCLGsX9eSUcpvFY2FFKLzessSEkk1KQLhHpyG7rnfYtx7txBupUY546PT5tjb4kwXghpd1rRw1Xw8nAqS19EZuPSu",
@@ -81,7 +75,7 @@ class Testcases(unittest.TestCase):
         key = BIP32Key.fromEntropy(seed)
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9yK7bXqEnmCpHMV4NM7FKj1vsiXQ14h6W8Bn5jkAHHBqrm2CSy82Wpb3FXHaG39v6zt3YCKiqNz4ydx3BNtgvDmU2bxXz1RJ9TXL7N91bTL",
@@ -95,7 +89,7 @@ class Testcases(unittest.TestCase):
         key2 = BIP32Key.fromExtendedKey(key.ExtendedKey(encoded=True))
         m = key2
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9yK7bXqEnmCpHMV4NM7FKj1vsiXQ14h6W8Bn5jkAHHBqrm2CSy82Wpb3FXHaG39v6zt3YCKiqNz4ydx3BNtgvDmU2bxXz1RJ9TXL7N91bTL",
@@ -120,7 +114,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7",
@@ -133,7 +127,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'/1"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H2EU4pWcQDnRnrVA1xe8fs",
@@ -146,7 +140,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'/1/2'"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM",
@@ -159,7 +153,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'/1/2'/2"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA2JDeKCSNNZky6uBCviVfJSKyQ1mDYahRjijr5idH2WwLsEd4Hsb2Tyh8RfQMuPh7f7RtyzTtdrbdqqsunu5Mm3wDvUAKRHSC34sJ7in334",
@@ -172,7 +166,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'/1/2'/2/1000000000"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76",
@@ -199,7 +193,7 @@ class Testcases(unittest.TestCase):
         path = "m/0"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9vHkqa6EV4sPZHYqZznhT2NPtPCjKuDKGY38FBWLvgaDx45zo9WQRUT3dKYnjwih2yJD9mkrocEZXo1ex8G81dwSM1fwqWpWkeS3v86pgKt",
@@ -212,7 +206,7 @@ class Testcases(unittest.TestCase):
         path = "m/0/2147483647'"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9wSp6B7kry3Vj9m1zSnLvN3xH8RdsPP1Mh7fAaR7aRLcQMKTR2vidYEeEg2mUCTAwCd6vnxVrcjfy2kRgVsFawNzmjuHc2YmYRmagcEPdU9",
@@ -224,7 +218,7 @@ class Testcases(unittest.TestCase):
         path = "m/0/2147483647'/1"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9zFnWC6h2cLgpmSA46vutJzBcfJ8yaJGg8cX1e5StJh45BBciYTRXSd25UEPVuesF9yog62tGAQtHjXajPPdbRCHuWS6T8XA2ECKADdw4Ef",
@@ -236,7 +230,7 @@ class Testcases(unittest.TestCase):
         path = "m/0/2147483647'/1/2147483646'"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA1RpRA33e1JQ7ifknakTFpgNXPmW2YvmhqLQYMmrj4xJXXWYpDPS3xz7iAxn8L39njGVyuoseXzU6rcxFLJ8HFsTjSyQbLYnMpCqE2VbFWc",
@@ -248,7 +242,7 @@ class Testcases(unittest.TestCase):
         path = "m/0/2147483647'/1/2147483646'/2"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38EGfSh6dqA9QWTyefMLEcBYJUuekgW4BYPJcr9E7j",
@@ -275,7 +269,7 @@ class Testcases(unittest.TestCase):
         path = "m/0'"
         m = key
         for n in parse_path(path):
-            m = m.ChildKey(n)
+            m = self._require_child(m.ChildKey(n))
         self.assertEqual(
             m.ExtendedKey(),
             "xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L",

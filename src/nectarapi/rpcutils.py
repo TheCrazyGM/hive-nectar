@@ -1,103 +1,98 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any, Dict, Iterable, List, Union
 
 log = logging.getLogger(__name__)
 
 
-def is_network_appbase_ready(props):
+def get_query(
+    request_id: int,
+    api_name: str,
+    name: str,
+    args: Union[Dict[str, Any], Iterable[Any], Any],
+) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Return True if the provided network/node properties indicate an appbase-ready node.
+    Build an appbase-style JSON-RPC request payload.
 
-    Checks for the presence of the "HIVE_BLOCKCHAIN_VERSION" key in props.
-
-    Parameters:
-        props (Mapping): Mapping (e.g., dict) of network or node properties.
-
-    Returns:
-        bool: True if "HIVE_BLOCKCHAIN_VERSION" exists in props, otherwise False.
+    Always emits the `api.method` form (no condenser `call` indirection). Supports:
+    - Single dict params
+    - Positional params passed as an iterable
+    - Batch creation when provided a list of dicts inside an iterable
     """
-    if "HIVE_BLOCKCHAIN_VERSION" in props:
-        return True
+    normalized_args: Any
+    # Convert tuples to lists for easier inspection
+    if isinstance(args, tuple):
+        normalized_args = list(args)
     else:
-        return False
+        normalized_args = args
 
-
-def get_query(appbase, request_id, api_name, name, args):
-    query = []
-    if not appbase or api_name == "condenser_api":
-        query = {
-            "method": "call",
-            "params": [api_name, name, args],
+    # Pass through plain dict
+    if isinstance(normalized_args, dict):
+        params: Union[Dict[str, Any], List[Any]] = json.loads(json.dumps(normalized_args))
+        return {
+            "method": f"{api_name}.{name}",
+            "params": params,
             "jsonrpc": "2.0",
             "id": request_id,
         }
-    else:
-        args = json.loads(json.dumps(args))
-        # print(args)
-        if len(args) > 0 and isinstance(args, list) and isinstance(args[0], dict):
-            query = {
-                "method": api_name + "." + name,
-                "params": args[0],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-        elif (
-            len(args) > 0
-            and isinstance(args, list)
-            and isinstance(args[0], list)
-            and len(args[0]) > 0
-            and isinstance(args[0][0], dict)
-        ):
-            for a in args[0]:
-                query.append(
+
+    if isinstance(normalized_args, list) and normalized_args:
+        # Batch: list of dicts directly
+        if len(normalized_args) > 1 and all(isinstance(item, dict) for item in normalized_args):
+            queries: List[Dict[str, Any]] = []
+            for entry in normalized_args:
+                queries.append(
                     {
-                        "method": api_name + "." + name,
-                        "params": a,
+                        "method": f"{api_name}.{name}",
+                        "params": json.loads(json.dumps(entry)),
                         "jsonrpc": "2.0",
                         "id": request_id,
                     }
                 )
                 request_id += 1
-        elif args:
-            query = {
-                "method": "call",
-                "params": [api_name, name, args],
-                "jsonrpc": "2.0",
-                "id": request_id,
-            }
-            request_id += 1
-        elif api_name == "condenser_api":
-            query = {
-                "method": api_name + "." + name,
-                "jsonrpc": "2.0",
-                "params": [],
-                "id": request_id,
-            }
-        else:
-            query = {
-                "method": api_name + "." + name,
-                "jsonrpc": "2.0",
-                "params": {},
-                "id": request_id,
-            }
-    return query
+            return queries
 
+        # Batch: list of dicts nested inside a single element
+        if (
+            len(normalized_args) == 1
+            and isinstance(normalized_args[0], list)
+            and normalized_args[0]
+            and all(isinstance(item, dict) for item in normalized_args[0])
+        ):
+            queries: List[Dict[str, Any]] = []
+            for entry in normalized_args[0]:
+                queries.append(
+                    {
+                        "method": f"{api_name}.{name}",
+                        "params": json.loads(json.dumps(entry)),
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                    }
+                )
+                request_id += 1
+            return queries
 
-def get_api_name(appbase, *args, **kwargs):
-    if not appbase:
-        # Sepcify the api to talk to
-        if ("api" in kwargs) and len(kwargs["api"]) > 0:
-            api_name = kwargs["api"].replace("_api", "") + "_api"
-        else:
-            api_name = None
-    else:
-        # Sepcify the api to talk to
-        if ("api" in kwargs) and len(kwargs["api"]) > 0:
-            if kwargs["api"] not in ["jsonrpc", "hive", "bridge"]:
-                api_name = kwargs["api"].replace("_api", "") + "_api"
-            else:
-                api_name = kwargs["api"]
-        else:
-            api_name = "condenser_api"
-    return api_name
+        # Single dict wrapped in a list
+        if len(normalized_args) == 1 and isinstance(normalized_args[0], dict):
+            return {
+                "method": f"{api_name}.{name}",
+                "params": json.loads(json.dumps(normalized_args[0])),
+                "jsonrpc": "2.0",
+                "id": request_id,
+            }
+
+        # Generic positional args
+        return {
+            "method": f"{api_name}.{name}",
+            "params": json.loads(json.dumps(normalized_args)),
+            "jsonrpc": "2.0",
+            "id": request_id,
+        }
+
+    # Fallback: empty params (use list to satisfy condenser/appbase empty-arg methods)
+    return {
+        "method": f"{api_name}.{name}",
+        "jsonrpc": "2.0",
+        "params": [] if api_name == "condenser_api" else {},
+        "id": request_id,
+    }

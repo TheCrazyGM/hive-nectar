@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
-import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -18,6 +18,7 @@ from .utils import (
     construct_authorperm,
     construct_authorpermvoter,
     formatTimeString,
+    parse_time,
     reputation_to_score,
     resolve_authorperm,
     resolve_authorpermvoter,
@@ -29,15 +30,12 @@ class Vote(BlockchainObject):
 
     :param str authorperm: perm link to post/comment
     :param nectar.nectar.nectar blockchain_instance: nectar
-        instance to use when accesing a RPC
-    :param steem_instance: (deprecated) use blockchain_instance instead
-    :param hive_instance: (deprecated) use blockchain_instance instead
+        instance to use when accessing an RPC
     """
 
     def __init__(
         self, voter, authorperm=None, lazy=False, full=False, blockchain_instance=None, **kwargs
     ):
-        # Handle legacy parameters
         """
         Initialize a Vote object representing a single vote on a post or comment.
 
@@ -50,35 +48,12 @@ class Vote(BlockchainObject):
 
         Behavior:
         - Normalizes numeric/time fields via internal parsing before initializing the underlying BlockchainObject.
-        - Chooses the blockchain instance in this order: explicit `blockchain_instance`, a deprecated legacy instance passed via `steem_instance` or `hive_instance` (emits DeprecationWarning), then a shared default instance.
+        - Chooses the blockchain instance in this order: explicit `blockchain_instance`, then a shared default instance.
         - Validates keyword arguments and raises on unknown or conflicting legacy instance keys.
-
-        Raises:
-        - ValueError: if more than one legacy instance key is supplied.
-        - TypeError: if unexpected keyword arguments are present.
         """
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
         # Check for unknown kwargs
         if kwargs:
             raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
 
         self.full = full
         self.lazy = lazy
@@ -126,7 +101,7 @@ class Vote(BlockchainObject):
             self["author"] = author
             self["permlink"] = permlink
 
-        super(Vote, self).__init__(
+        super().__init__(
             authorpermvoter,
             id_item="authorpermvoter",
             lazy=lazy,
@@ -138,7 +113,7 @@ class Vote(BlockchainObject):
         """
         Refresh the Vote object from the blockchain RPC, replacing its internal data with the latest on-chain vote.
 
-        If the object has no identifier or the blockchain is not connected, this method returns immediately. It resolves author, permlink, and voter from the stored identifier and queries the node for active votes (preferring appbase paths with a condenser fallback). If the matching vote is found, the object is reinitialized with the normalized vote data; otherwise VoteDoesNotExistsException is raised.
+        If the object has no identifier or the blockchain is not connected, this method returns immediately. It resolves author, permlink, and voter from the stored identifier and queries the node for active votes. If the matching vote is found, the object is reinitialized with the normalized vote data; otherwise VoteDoesNotExistsException is raised.
 
         Raises:
             VoteDoesNotExistsException: if the vote cannot be found or the RPC indicates the vote does not exist.
@@ -147,20 +122,24 @@ class Vote(BlockchainObject):
             return
         if not self.blockchain.is_connected():
             return
-        [author, permlink, voter] = resolve_authorpermvoter(self.identifier)
+        [author, permlink, voter] = resolve_authorpermvoter(str(self.identifier))
         try:
             self.blockchain.rpc.set_next_node_on_empty_reply(True)
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": author, "permlink": permlink}, api="condenser"
-                    )["votes"]
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(self.identifier)
-                except Exception:  # Fallback to condenser API
-                    votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
-            else:
-                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
+            try:
+                response = self.blockchain.rpc.get_active_votes(
+                    author,
+                    permlink,
+                )
+                votes = response["votes"] if isinstance(response, dict) else response
+            except InvalidParameters:
+                raise VoteDoesNotExistsException(self.identifier)
+            except Exception:
+                votes = self.blockchain.rpc.get_active_votes(
+                    author,
+                    permlink,
+                )
+                if isinstance(votes, dict) and "votes" in votes:
+                    votes = votes["votes"]
         except UnknownKey:
             raise VoteDoesNotExistsException(self.identifier)
 
@@ -173,7 +152,7 @@ class Vote(BlockchainObject):
             raise VoteDoesNotExistsException(self.identifier)
         vote = self._parse_json_data(vote)
         vote["authorpermvoter"] = construct_authorpermvoter(author, permlink, voter)
-        super(Vote, self).__init__(
+        super().__init__(
             vote,
             id_item="authorpermvoter",
             lazy=self.lazy,
@@ -191,21 +170,21 @@ class Vote(BlockchainObject):
                 vote[p] = int(vote.get(p, "0"))
 
         if "time" in vote and isinstance(vote.get("time"), str) and vote.get("time") != "":
-            vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
+            vote["time"] = parse_time(vote.get("time", "1970-01-01T00:00:00"))
         elif (
             "timestamp" in vote
             and isinstance(vote.get("timestamp"), str)
             and vote.get("timestamp") != ""
         ):
-            vote["time"] = formatTimeString(vote.get("timestamp", "1970-01-01T00:00:00"))
+            vote["time"] = parse_time(vote.get("timestamp", "1970-01-01T00:00:00"))
         elif (
             "last_update" in vote
             and isinstance(vote.get("last_update"), str)
             and vote.get("last_update") != ""
         ):
-            vote["last_update"] = formatTimeString(vote.get("last_update", "1970-01-01T00:00:00"))
+            vote["last_update"] = parse_time(vote.get("last_update", "1970-01-01T00:00:00"))
         else:
-            vote["time"] = formatTimeString("1970-01-01T00:00:00")
+            vote["time"] = parse_time("1970-01-01T00:00:00")
         return vote
 
     def json(self):
@@ -485,7 +464,7 @@ class VotesObject(list):
         t = PrettyTable(table_header)
         t.align = "l"
 
-    def __contains__(self, item):
+    def __contains__(self, item: object, /) -> bool:  # type: ignore[override]
         if isinstance(item, Account):
             name = item["name"]
             authorperm = ""
@@ -506,7 +485,9 @@ class VotesObject(list):
         return self.printAsTable(return_str=True)
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(self.identifier))
+        return "<{} {}>".format(
+            self.__class__.__name__, str(getattr(self, "identifier", "unknown"))
+        )
 
 
 class ActiveVotes(VotesObject):
@@ -517,7 +498,6 @@ class ActiveVotes(VotesObject):
     """
 
     def __init__(self, authorperm, lazy=False, full=False, blockchain_instance=None, **kwargs):
-        # Handle legacy parameters
         """
         Initialize an ActiveVotes collection for a post's active votes.
 
@@ -528,31 +508,12 @@ class ActiveVotes(VotesObject):
         - list: treated as a pre-fetched list of vote dicts.
         - dict: expects keys "active_votes" and "authorperm".
 
-        Handles legacy keyword parameters "steem_instance" and "hive_instance" (deprecated; a DeprecationWarning is emitted). If no explicit blockchain instance is provided, a shared instance is used. If the blockchain is not connected or no votes are found, initialization returns without populating the collection.
+        If no explicit blockchain instance is provided, a shared instance is used. If the blockchain is not connected or no votes are found, initialization returns without populating the collection.
 
         Raises:
             ValueError: if multiple legacy instance parameters are provided.
             VoteDoesNotExistsException: when the RPC reports invalid parameters for the requested post (no such post).
         """
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
-
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():
@@ -562,44 +523,20 @@ class ActiveVotes(VotesObject):
         if isinstance(authorperm, Comment):
             # if 'active_votes' in authorperm and len(authorperm["active_votes"]) > 0:
             #    votes = authorperm["active_votes"]
-            if self.blockchain.rpc.get_use_appbase():
-                self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                from nectarapi.exceptions import InvalidParameters
-
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(
-                        authorperm["author"], authorperm["permlink"], api="condenser"
-                    )
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(
-                        construct_authorperm(authorperm["author"], authorperm["permlink"])
-                    )
-                except Exception:  # Fallback to tags API
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": authorperm["author"], "permlink": authorperm["permlink"]},
-                        api="tags",
-                    )["votes"]
-            else:
-                votes = self.blockchain.rpc.get_active_votes(
-                    authorperm["author"], authorperm["permlink"], api="condenser"
-                )
+            self.blockchain.rpc.set_next_node_on_empty_reply(False)
+            votes = self.blockchain.rpc.get_active_votes(
+                authorperm["author"],
+                authorperm["permlink"],
+            )
+            if isinstance(votes, dict) and "votes" in votes:
+                votes = votes["votes"]
             authorperm = authorperm["authorperm"]
         elif isinstance(authorperm, str):
             [author, permlink] = resolve_authorperm(authorperm)
-            if self.blockchain.rpc.get_use_appbase():
-                self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                from nectarapi.exceptions import InvalidParameters
-
-                try:
-                    votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
-                except InvalidParameters:
-                    raise VoteDoesNotExistsException(construct_authorperm(author, permlink))
-                except Exception:  # Fallback to tags API
-                    votes = self.blockchain.rpc.get_active_votes(
-                        {"author": author, "permlink": permlink}, api="tags"
-                    )["votes"]
-            else:
-                votes = self.blockchain.rpc.get_active_votes(author, permlink, api="condenser")
+            self.blockchain.rpc.set_next_node_on_empty_reply(False)
+            votes = self.blockchain.rpc.get_active_votes(author, permlink)
+            if isinstance(votes, dict) and "votes" in votes:
+                votes = votes["votes"]
         elif isinstance(authorperm, list):
             votes = authorperm
             authorperm = None
@@ -609,7 +546,7 @@ class ActiveVotes(VotesObject):
         if votes is None:
             return
         self.identifier = authorperm
-        super(ActiveVotes, self).__init__(
+        super().__init__(
             [
                 Vote(
                     x,
@@ -708,8 +645,8 @@ class AccountVotes(VotesObject):
     def __init__(
         self,
         account,
-        start=None,
-        stop=None,
+        start: datetime | str | None = None,
+        stop: datetime | str | None = None,
         raw_data=False,
         lazy=False,
         full=False,
@@ -735,8 +672,21 @@ class AccountVotes(VotesObject):
                 Passed to Vote when constructing Vote objects; controls whether to fully populate vote data.
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Convert start/stop to datetime objects for comparison
+        start_dt = None
+        stop_dt = None
+        if start is not None:
+            if isinstance(start, str):
+                start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+            else:
+                start_dt = start
+        if stop is not None:
+            if isinstance(stop, str):
+                stop_dt = datetime.strptime(stop, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+            else:
+                stop_dt = stop
         account = Account(account, blockchain_instance=self.blockchain)
         votes = account.get_account_votes()
         self.identifier = account["name"]
@@ -750,12 +700,12 @@ class AccountVotes(VotesObject):
                 if time != "":
                     x["time"] = time
             if time != "" and isinstance(time, str):
-                d_time = formatTimeString(time)
+                d_time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
             elif isinstance(time, datetime):
                 d_time = time
             else:
-                d_time = addTzInfo(datetime(1970, 1, 1, 0, 0, 0))
-            if (start is None or d_time >= start) and (stop is None or d_time <= stop):
+                d_time = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            if (start_dt is None or d_time >= start_dt) and (stop_dt is None or d_time <= stop_dt):
                 if not raw_data:
                     vote_list.append(
                         Vote(
@@ -769,4 +719,4 @@ class AccountVotes(VotesObject):
                 else:
                     vote_list.append(x)
 
-        super(AccountVotes, self).__init__(vote_list)
+        super().__init__(vote_list)

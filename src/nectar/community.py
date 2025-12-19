@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
 import logging
 from datetime import date, datetime, time
-from typing import Union
 
 from prettytable import PrettyTable
 
@@ -54,7 +54,7 @@ class Community(BlockchainObject):
 
     def __init__(
         self,
-        community: Union[str, dict],
+        community: str | dict,
         observer: str = "",
         full: bool = True,
         lazy: bool = False,
@@ -80,7 +80,7 @@ class Community(BlockchainObject):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(community, dict):
             community = self._parse_json_data(community)
-        super(Community, self).__init__(
+        super().__init__(
             community, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
         )
 
@@ -99,7 +99,7 @@ class Community(BlockchainObject):
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         community = self.blockchain.rpc.get_community(
-            {"name": self.identifier, "observer": self.observer}, api="bridge"
+            {"name": self.identifier, "observer": self.observer}
         )
 
         if not community:
@@ -108,7 +108,7 @@ class Community(BlockchainObject):
         self.identifier = community["name"]
         # self.blockchain.refresh_data()
 
-        super(Community, self).__init__(
+        super().__init__(
             community,
             id_item="name",
             lazy=self.lazy,
@@ -194,7 +194,7 @@ class Community(BlockchainObject):
                     output[field] = date_val
         return json.loads(str(json.dumps(output)))
 
-    def get_community_roles(self, limit: int = 100, last: str = None) -> list:
+    def get_community_roles(self, limit: int = 100, last: str | None = None) -> list:
         """Lists community roles
 
         Args:
@@ -216,9 +216,9 @@ class Community(BlockchainObject):
             params["last"] = last
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_community_roles(params, api="bridge")
+        return self.blockchain.rpc.list_community_roles(params)
 
-    def get_subscribers(self, limit: int = 100, last: str = None) -> list:
+    def get_subscribers(self, limit: int = 100, last: str | None = None) -> list:
         """Returns subscribers
 
         Args:
@@ -240,9 +240,9 @@ class Community(BlockchainObject):
             params["last"] = last
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.list_subscribers(params, api="bridge")
+        return self.blockchain.rpc.list_subscribers(params)
 
-    def get_activities(self, limit: int = 100, last_id: str = None) -> list:
+    def get_activities(self, limit: int = 100, last_id: str | None = None) -> list:
         """Returns community activity
 
         Args:
@@ -264,14 +264,14 @@ class Community(BlockchainObject):
             params["last_id"] = last_id
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.account_notifications(params, api="bridge")
+        return self.blockchain.rpc.account_notifications(params)
 
     def get_ranked_posts(
         self,
-        observer: str = None,
+        observer: str | None = None,
         limit: int = 100,
-        start_author: str = None,
-        start_permlink: str = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
         sort: str = "created",
     ) -> list:
         """Returns community posts
@@ -303,7 +303,7 @@ class Community(BlockchainObject):
             params["start_permlink"] = start_permlink
 
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        return self.blockchain.rpc.get_ranked_posts(params, api="bridge")
+        return self.blockchain.rpc.get_ranked_posts(params)
 
     def set_role(self, account: str, role: str, mod_account: str) -> dict:
         """Set role for a given account in the community.
@@ -776,8 +776,8 @@ class Communities(CommunityObject):
     def __init__(
         self,
         sort: str = "rank",
-        observer: str = None,
-        last: str = None,
+        observer: str | None = None,
+        last: str | None = None,
         limit: int = 100,
         lazy: bool = False,
         full: bool = True,
@@ -813,7 +813,6 @@ class Communities(CommunityObject):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
             batch = self.blockchain.rpc.list_communities(
                 {"sort": sort, "observer": observer, "last": last, "limit": batch_limit},
-                api="bridge",
             )
             if not batch:  # No more communities to fetch
                 break
@@ -826,14 +825,14 @@ class Communities(CommunityObject):
             if community_cnt + batch_limit > limit:
                 batch_limit = limit - community_cnt
 
-        super(Communities, self).__init__(
+        super().__init__(
             [
                 Community(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in communities[:limit]  # Ensure we don't exceed the limit
             ]
         )
 
-    def search_title(self, title: str) -> "CommunityObject":
+    def search_title(self, title: str) -> CommunityObject:
         """Search for communities with titles containing the given string.
 
         The search is case-insensitive.

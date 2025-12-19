@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for pure Python secp256k1 tweak-add implementation"""
 
 import hashlib
 import os
 import sys
 import unittest
+from typing import cast
 
 # Add src to path so we can import nectargraphenebase
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -83,7 +83,7 @@ class TestTweakAdd(unittest.TestCase):
         """Test invalid tweak input types"""
         # Wrong type
         with self.assertRaises(ValueError) as cm:
-            self.test_pub.add(12345)
+            self.test_pub.add(cast(bytes, 12345))
         self.assertIn("must be bytes", str(cm.exception))
 
         # Wrong length

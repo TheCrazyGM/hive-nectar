@@ -1,19 +1,24 @@
-# -*- coding: utf-8 -*-
 import json
 import threading
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional, Union, cast
 
 from nectar.instance import shared_blockchain_instance
 
 
 class ObjectCache(dict):
-    def __init__(self, initial_data={}, default_expiration=10, auto_clean=True):
-        super(ObjectCache, self).__init__(initial_data)
+    def __init__(
+        self,
+        initial_data: Optional[Dict[Any, Any]] = None,
+        default_expiration: int = 10,
+        auto_clean: bool = True,
+    ) -> None:
+        super().__init__(initial_data or {})
         self.set_expiration(default_expiration)
         self.auto_clean = auto_clean
         self.lock = threading.RLock()
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         data = {
             "expires": datetime.now(timezone.utc) + timedelta(seconds=self.default_expiration),
             "data": value,
@@ -25,14 +30,14 @@ class ObjectCache(dict):
         if self.auto_clean:
             self.clear_expired_items()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> Any:
         with self.lock:
             if key in self:
                 value = dict.__getitem__(self, key)
                 if value is not None:
                     return value["data"]
 
-    def get(self, key, default):
+    def get(self, key: Any, default: Any = None) -> Any:
         with self.lock:
             if key in self:
                 if self[key] is not None:
@@ -42,7 +47,7 @@ class ObjectCache(dict):
             else:
                 return default
 
-    def clear_expired_items(self):
+    def clear_expired_items(self) -> None:
         with self.lock:
             del_list = []
             utc_now = datetime.now(timezone.utc)
@@ -56,7 +61,7 @@ class ObjectCache(dict):
             for key in del_list:
                 del self[key]
 
-    def __contains__(self, key):
+    def __contains__(self, key: Any) -> bool:
         with self.lock:
             if dict.__contains__(self, key):
                 value = dict.__getitem__(self, key)
@@ -68,15 +73,15 @@ class ObjectCache(dict):
                     value["data"] = None
             return False
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.auto_clean:
             self.clear_expired_items()
         n = 0
         with self.lock:
             n = len(list(self.keys()))
-        return "ObjectCache(n={}, default_expiration={})".format(n, self.default_expiration)
+        return f"ObjectCache(n={n}, default_expiration={self.default_expiration})"
 
-    def set_expiration(self, expiration):
+    def set_expiration(self, expiration: int) -> None:
         """Set new default expiration time in seconds (default: 10s)"""
         self.default_expiration = expiration
 
@@ -90,17 +95,17 @@ class BlockchainObject(dict):
 
     def __init__(
         self,
-        data,
-        klass=None,
-        space_id=1,
-        object_id=None,
-        lazy=False,
-        use_cache=True,
-        id_item=None,
-        blockchain_instance=None,
+        data: Union[Dict[str, Any], int, str, Any],
+        klass: Optional[type] = None,
+        space_id: int = 1,
+        object_id: Optional[Any] = None,
+        lazy: bool = False,
+        use_cache: bool = True,
+        id_item: Optional[str] = None,
+        blockchain_instance: Optional[Any] = None,
         *args,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a BlockchainObject, setting its identifier and optionally loading or caching its data.
 
@@ -146,12 +151,14 @@ class BlockchainObject(dict):
             self.id_item = id_item
         else:
             self.id_item = "id"
-        if klass and isinstance(data, klass):
-            self.identifier = data.get(self.id_item)
-            super(BlockchainObject, self).__init__(data)
+        if klass and isinstance(data, klass) and hasattr(data, "get"):
+            mapping_data = cast(Dict[str, Any], data)
+            self.identifier = mapping_data.get(self.id_item)
+            super().__init__(mapping_data)
         elif isinstance(data, dict):
-            self.identifier = data.get(self.id_item)
-            super(BlockchainObject, self).__init__(data)
+            mapping_data = cast(Dict[str, Any], data)
+            self.identifier = mapping_data.get(self.id_item)
+            super().__init__(mapping_data)
         elif isinstance(data, int):
             # This is only for block number basically
             self.identifier = data
@@ -173,7 +180,7 @@ class BlockchainObject(dict):
                 # Here we assume we deal with an id
                 self.testid(self.identifier)
             if self.iscached(data):
-                super(BlockchainObject, self).__init__(self.getcache(data))
+                super().__init__(self.getcache(data))
             elif not lazy and not self.cached:
                 self.refresh()
 
@@ -181,11 +188,19 @@ class BlockchainObject(dict):
             self.cache()
             self.cached = True
 
+    def refresh(self) -> None:
+        """Refresh the object's data from the API.
+
+        This method should be overridden by subclasses to implement
+        specific refresh logic. The base implementation does nothing.
+        """
+        pass
+
     @staticmethod
-    def clear_cache():
+    def clear_cache() -> None:
         BlockchainObject._cache = ObjectCache()
 
-    def test_valid_objectid(self, i):
+    def test_valid_objectid(self, i: Any) -> bool:
         if isinstance(i, str):
             return True
         elif isinstance(i, int):
@@ -193,56 +208,56 @@ class BlockchainObject(dict):
         else:
             return False
 
-    def testid(self, id):
+    def testid(self, id: Any) -> None:
         if not self.type_id:
             return
 
         if not self.type_ids:
             self.type_ids = [self.type_id]
 
-    def cache(self):
+    def cache(self) -> None:
         # store in cache
         if dict.__contains__(self, self.id_item):
             BlockchainObject._cache[self.get(self.id_item)] = self
 
-    def clear_cache_from_expired_items(self):
+    def clear_cache_from_expired_items(self) -> None:
         BlockchainObject._cache.clear_expired_items()
 
-    def set_cache_expiration(self, expiration):
+    def set_cache_expiration(self, expiration: int) -> None:
         BlockchainObject._cache.default_expiration = expiration
 
-    def set_cache_auto_clean(self, auto_clean):
+    def set_cache_auto_clean(self, auto_clean: bool) -> None:
         BlockchainObject._cache.auto_clean = auto_clean
 
-    def get_cache_expiration(self):
+    def get_cache_expiration(self) -> int:
         return BlockchainObject._cache.default_expiration
 
-    def get_cache_auto_clean(self):
+    def get_cache_auto_clean(self) -> bool:
         return BlockchainObject._cache.auto_clean
 
-    def iscached(self, id):
+    def iscached(self, id: Any) -> bool:
         return id in BlockchainObject._cache
 
-    def getcache(self, id):
+    def getcache(self, id: Any) -> Any:
         return BlockchainObject._cache.get(id, None)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> Any:
         if not self.cached:
             self.refresh()
-        return super(BlockchainObject, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def items(self):
         if not self.cached:
             self.refresh()
-        return list(super(BlockchainObject, self).items())
+        return super().items()
 
-    def __contains__(self, key):
+    def __contains__(self, key: Any) -> bool:
         if not self.cached:
             self.refresh()
-        return super(BlockchainObject, self).__contains__(key)
+        return super().__contains__(key)
 
-    def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(self.identifier))
+    def __repr__(self) -> str:
+        return "<{} {}>".format(self.__class__.__name__, str(self.identifier))
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return json.loads(str(json.dumps(self)))

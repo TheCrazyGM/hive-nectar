@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 import json
+from typing import Any, Dict, List, Union
 
 from nectargraphenebase.types import Id, JsonObj, Optional, String
 
 from .operationids import operations
 
 
-class Operation(object):
-    def __init__(self, op):
+class Operation:
+    def __init__(self, op: Union[List[Any], Dict[str, Any], Any]) -> None:
         if isinstance(op, list) and len(op) == 2:
             if isinstance(op[0], int):
                 self.opId = op[0]
@@ -44,29 +44,37 @@ class Operation(object):
             self.name = type(self.op).__name__.lower()  # also store name
             self.opId = self.operations()[self.name]
 
-    def operations(self):
+    def operations(self) -> Dict[str, int]:
         return operations
 
-    def getOperationNameForId(self, i):
+    def getOperationNameForId(self, i: int) -> str:
         """Convert an operation id into the corresponding string"""
         for key in self.operations():
             if int(self.operations()[key]) is int(i):
                 return key
         return "Unknown Operation ID %d" % i
 
-    def _getklass(self, name):
+    def _getklass(self, name: str) -> type:
         module = __import__("graphenebase.operations", fromlist=["operations"])
         class_ = getattr(module, name)
         return class_
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
+        if self.opId is None:
+            raise ValueError("Operation ID is None, cannot serialize operation")
         return bytes(Id(self.opId)) + bytes(self.op)
 
-    def __str__(self):
-        return json.dumps([self.opId, self.op.toJson()])
+    def __str__(self) -> str:
+        # Try to get JSON data from operation, fallback to raw object if toJson not available
+        # This handles both GrapheneObject instances (with toJson) and raw data
+        try:
+            op_data = self.op.toJson()  # type: ignore[attr-defined]
+        except (AttributeError, TypeError):
+            op_data = self.op
+        return json.dumps([self.opId, op_data])
 
 
-class GrapheneObject(object):
+class GrapheneObject:
     """Core abstraction class
 
     This class is used for any JSON reflected object in Graphene.
@@ -77,12 +85,12 @@ class GrapheneObject(object):
 
     """
 
-    def __init__(self, data=None):
+    def __init__(self, data: Any = None) -> None:
         self.data = data
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         if self.data is None:
-            return bytes()
+            return b""
         b = b""
         for name, value in list(self.data.items()):
             if isinstance(value, str):
@@ -91,7 +99,7 @@ class GrapheneObject(object):
                 b += bytes(value)
         return b
 
-    def __json__(self):
+    def __json__(self) -> Dict[str, Any]:
         if self.data is None:
             return {}
         d = {}  # JSON output is *not* ordered
@@ -108,15 +116,15 @@ class GrapheneObject(object):
                     d.update({name: value.__str__()})
         return d
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.__json__())
 
-    def toJson(self):
+    def toJson(self) -> Dict[str, Any]:
         return self.__json__()
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return self.__json__()
 
 
-def isArgsThisClass(self, args):
+def isArgsThisClass(self: Any, args: tuple) -> bool:
     return len(args) == 1 and type(args[0]).__name__ == type(self).__name__

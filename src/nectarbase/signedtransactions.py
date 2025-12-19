@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.signedtransactions import Signed_Transaction as GrapheneSigned_Transaction
@@ -20,16 +20,16 @@ class Signed_Transaction(GrapheneSigned_Transaction):
     :param dict custom_chains: custom chain which should be added to the known chains
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.known_chains = known_chains
         custom_chain = kwargs.get("custom_chains", {})
         if len(custom_chain) > 0:
             for c in custom_chain:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
-        super(Signed_Transaction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def add_custom_chains(self, custom_chain):
+    def add_custom_chains(self, custom_chain: Mapping[str, Any]) -> None:
         """
         Add entries from custom_chain into this transaction's known chains without overwriting existing entries.
 
@@ -42,7 +42,9 @@ class Signed_Transaction(GrapheneSigned_Transaction):
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
 
-    def sign(self, wifkeys, chain="HIVE"):
+    def sign(
+        self, wifkeys: Union[str, List[str]], chain: Optional[Union[str, Dict[str, Any]]] = None
+    ) -> GrapheneSigned_Transaction:
         """
         Sign the transaction using one or more WIF-format private keys.
 
@@ -52,9 +54,14 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         Returns:
             The value returned by the superclass `sign` implementation.
         """
-        return super(Signed_Transaction, self).sign(wifkeys, chain)
+        return super().sign(wifkeys, chain)
 
-    def verify(self, pubkeys=None, chain="HIVE", recover_parameter=False):
+    def verify(
+        self,
+        pubkeys: Optional[List[Any]] = None,
+        chain: Optional[Union[str, Dict[str, Any]]] = None,
+        recover_parameter: bool = False,
+    ) -> List[Any]:
         """
         Verify this transaction's signatures.
 
@@ -67,11 +74,9 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         Returns:
             Any: The result returned by the superclass verify method (verification outcome as defined by the base implementation).
         """
-        if pubkeys is None:
-            pubkeys = []
-        return super(Signed_Transaction, self).verify(pubkeys, chain, recover_parameter)
+        return super().verify(pubkeys, chain, recover_parameter)
 
-    def getOperationKlass(self):
+    def getOperationKlass(self) -> type[Operation]:
         """
         Return the Operation class used to construct operations for this transaction.
 
@@ -80,5 +85,5 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         """
         return Operation
 
-    def getKnownChains(self):
+    def getKnownChains(self) -> Dict[str, Any]:
         return self.known_chains

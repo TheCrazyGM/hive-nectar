@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import decimal
 import json
 import struct
 from collections import OrderedDict
+from typing import Any, Dict, Union
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
@@ -27,15 +27,21 @@ from .operationids import operations
 default_prefix = "STM"
 
 
-def value_to_decimal(value, decimal_places):
+def value_to_decimal(value: Union[str, float, int], decimal_places: int) -> decimal.Decimal:
     decimal.getcontext().rounding = decimal.ROUND_DOWN  # define rounding method
     return decimal.Decimal(str(float(value))).quantize(
         decimal.Decimal("1e-{}".format(decimal_places))
     )
 
 
-class Amount(object):
-    def __init__(self, d, prefix=default_prefix, json_str=False):
+class Amount:
+    def __init__(
+        self,
+        d: Union[str, Any],
+        prefix: str = default_prefix,
+        json_str: bool = False,
+        **kwargs,
+    ) -> None:
         self.json_str = json_str
         if isinstance(d, str):
             self.amount, self.symbol = d.strip().split(" ")
@@ -56,7 +62,9 @@ class Amount(object):
                         self.asset = asset["asset"]
             if self.precision is None:
                 raise Exception("Asset unknown")
-            self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
+            self.amount = round(
+                value_to_decimal(float(self.amount), self.precision) * 10**self.precision
+            )
             # Workaround to allow transfers in HIVE
 
             self.str_repr = "{:.{}f} {}".format(
@@ -91,17 +99,34 @@ class Amount(object):
             self.amount = d["amount"]
             self.precision = d["precision"]
             self.str_repr = json.dumps(d)
+        elif isinstance(d, dict) and "amount" in d and "asset" in d:
+            self.amount = d["amount"]
+            asset_obj = d["asset"]
+            self.precision = asset_obj["precision"]
+            self.asset = asset_obj.get("asset", asset_obj.get("nai"))
+            self.symbol = asset_obj.get("symbol")
+            self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
+            if hasattr(d, "json"):
+                self.str_repr = json.dumps(d.json())
+            else:
+                # Fallback or manual construction if needed, but for now just str(d) or skip
+                # If d is a dict with Decimal, we can't json dump it directly.
+                # But we only expect nectar.amount.Amount here which has .json()
+                self.str_repr = json.dumps(
+                    d
+                )  # This might still fail if not Amount object but just dict with Decimal
+
         else:
             self.amount = d.amount
             self.symbol = d.symbol
-            self.asset = d.asset["asset"]
-            self.precision = d.asset["precision"]
+            self.asset = d.asset
+            self.precision = d.precision
             self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
             self.str_repr = str(d)
             # self.str_repr = json.dumps((d.json()))
             # self.str_repr = '{:.{}f} {}'.format((float(self.amount) / 10 ** self.precision), self.precision, self.asset)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         # padding
         # The nodes still serialize the legacy symbol name for HBD as 'SBD' and HIVE as 'STEEM' in wire format.
         # To match get_transaction_hex and avoid digest mismatches, map 'HBD' -> 'SBD' and 'HIVE' -> 'STEEM' on serialization.
@@ -119,69 +144,83 @@ class Amount(object):
             _sym = "SBD"
         elif _sym == "HIVE":
             _sym = "STEEM"
-        symbol = _sym + "\x00" * (7 - len(_sym))
+        symbol = str(_sym) + "\x00" * (7 - len(str(_sym)))
         return (
             struct.pack("<q", int(self.amount))
             + struct.pack("<b", self.precision)
             + bytes(symbol, "ascii")
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.json_str:
             return json.dumps(
-                {"amount": str(self.amount), "precision": self.precision, "nai": self.asset}
+                {
+                    "amount": str(self.amount),
+                    "precision": self.precision,
+                    "nai": self.asset,
+                }
             )
         return self.str_repr
 
+    def toJson(self):
+        try:
+            return json.loads(str(self))
+        except Exception:
+            return str(self)
+
 
 class Operation(GPHOperation):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.appbase = kwargs.pop("appbase", False)
         self.prefix = kwargs.pop("prefix", default_prefix)
-        super(Operation, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def _getklass(self, name):
+    def _getklass(self, name: str) -> type:
         module = __import__("nectarbase.operations", fromlist=["operations"])
         class_ = getattr(module, name)
         return class_
 
-    def operations(self):
+    def operations(self) -> Dict[str, int]:
         return operations
 
-    def getOperationNameForId(self, i):
+    def getOperationNameForId(self, i: int) -> str:
         """Convert an operation id into the corresponding string"""
         for key in self.operations():
-            if int(self.operations()[key]) is int(i):
+            if int(self.operations()[key]) == int(i):
                 return key
         return "Unknown Operation ID %d" % i
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return json.loads(str(self))
         # return json.loads(str(json.dumps([self.name, self.op.toJson()])))
 
-    def __bytes__(self):
-        return bytes(Id(self.opId)) + bytes(self.op)
+    def __bytes__(self) -> bytes:
+        if self.opId is not None:
+            return bytes(Id(self.opId)) + bytes(self.op)
+        return bytes(self.op)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.appbase:
-            return json.dumps({"type": self.name.lower() + "_operation", "value": self.op.toJson()})
+            op_data = self.op.toJson() if isinstance(self.op, GrapheneObject) else str(self.op)
+            return json.dumps({"type": self.name.lower() + "_operation", "value": op_data})
         else:
-            return json.dumps([self.name.lower(), self.op.toJson()])
+            op_data = self.op.toJson() if isinstance(self.op, GrapheneObject) else str(self.op)
+            return json.dumps([self.name.lower(), op_data])
 
 
 class Memo(GrapheneObject):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         if isArgsThisClass(self, args):
             self.data = args[0].data
         else:
             prefix = kwargs.pop("prefix", default_prefix)
             if "encrypted" not in kwargs or not kwargs["encrypted"]:
-                super(Memo, self).__init__(None)
+                super().__init__(None)
             else:
                 if len(args) == 1 and len(kwargs) == 0:
                     kwargs = args[0]
                 if "encrypted" in kwargs and kwargs["encrypted"]:
-                    super(Memo, self).__init__(
+                    super().__init__(
                         OrderedDict(
                             [
                                 ("from", PublicKey(kwargs["from"], prefix=prefix)),
@@ -202,41 +241,63 @@ class WitnessProps(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
             prefix = kwargs.get("prefix", default_prefix)
+            json_str = kwargs.get("json_str", False)
             if "sbd_interest_rate" in kwargs:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
+                                ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                             ("sbd_interest_rate", Uint16(kwargs["sbd_interest_rate"])),
                         ]
                     )
                 )
             elif "hbd_interest_rate" in kwargs:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
+                                ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                             ("hbd_interest_rate", Uint16(kwargs["hbd_interest_rate"])),
                         ]
                     )
                 )
             else:
-                super(WitnessProps, self).__init__(
+                super().__init__(
                     OrderedDict(
                         [
                             (
                                 "account_creation_fee",
-                                Amount(kwargs["account_creation_fee"], prefix=prefix),
+                                Amount(
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
+                                ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                         ]
                     )
                 )
@@ -250,7 +311,7 @@ class Price(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
             prefix = kwargs.get("prefix", default_prefix)
-            super(Price, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("base", Amount(kwargs["base"], prefix=prefix)),
@@ -282,11 +343,11 @@ class Permission(GrapheneObject):
                 key=lambda x: x[0],
                 reverse=False,
             )
-            accountAuths = Map([[String(e[0]), Uint16(e[1])] for e in kwargs["account_auths"]])
+            accountAuths = Map([(String(e[0]), Uint16(e[1])) for e in kwargs["account_auths"]])
             keyAuths = Map(
-                [[PublicKey(e[0], prefix=prefix), Uint16(e[1])] for e in kwargs["key_auths"]]
+                [(PublicKey(e[0], prefix=prefix), Uint16(e[1])) for e in kwargs["key_auths"]]
             )
-            super(Permission, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("weight_threshold", Uint32(int(kwargs["weight_threshold"]))),
@@ -302,7 +363,7 @@ class Extension(Array):
         """We overload the __str__ function because the json
         representation is different for extensions
         """
-        return json.dumps(self.json)
+        return json.dumps(self.data if hasattr(self, "data") else [])
 
 
 class ExchangeRate(GrapheneObject):
@@ -314,11 +375,18 @@ class ExchangeRate(GrapheneObject):
                 kwargs = args[0]
 
             prefix = kwargs.get("prefix", default_prefix)
-            super(ExchangeRate, self).__init__(
+            json_str = kwargs.get("json_str", False)
+            super().__init__(
                 OrderedDict(
                     [
-                        ("base", Amount(kwargs["base"], prefix=prefix)),
-                        ("quote", Amount(kwargs["quote"], prefix=prefix)),
+                        (
+                            "base",
+                            Amount(kwargs["base"], prefix=prefix, json_str=json_str),
+                        ),
+                        (
+                            "quote",
+                            Amount(kwargs["quote"], prefix=prefix, json_str=json_str),
+                        ),
                     ]
                 )
             )
@@ -331,7 +399,7 @@ class Beneficiary(GrapheneObject):
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
-        super(Beneficiary, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -349,10 +417,13 @@ class Beneficiaries(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
 
-        super(Beneficiaries, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
-                    ("beneficiaries", Array([Beneficiary(o) for o in kwargs["beneficiaries"]])),
+                    (
+                        "beneficiaries",
+                        Array([Beneficiary(o) for o in kwargs["beneficiaries"]]),
+                    ),
                 ]
             )
         )
@@ -386,7 +457,12 @@ class CommentOptionExtensions(Static_variant):
             data = Beneficiaries(data)
         else:
             raise Exception("Unknown CommentOptionExtension")
-        super(CommentOptionExtensions, self).__init__(data, type_id)
+        super().__init__(data, type_id)
+
+    def __str__(self):
+        if self.type_id == 0:
+            return json.dumps({"type": "comment_payout_beneficiaries", "value": self.data.json()})
+        return super().__str__()
 
 
 class UpdateProposalEndDate(GrapheneObject):
@@ -397,7 +473,7 @@ class UpdateProposalEndDate(GrapheneObject):
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
 
-            super(UpdateProposalEndDate, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("end_date", PointInTime(kwargs["end_date"])),
@@ -429,11 +505,17 @@ class UpdateProposalExtensions(Static_variant):
                 type_id = 1
             else:
                 type_id = ~0
+            data = o["value"]
         else:
             type_id, data = o
 
         if type_id == 1:
-            data = UpdateProposalEndDate(o["value"])
+            data = UpdateProposalEndDate(data)
         else:
             raise Exception("Unknown UpdateProposalExtension")
-        super(UpdateProposalExtensions, self).__init__(data, type_id, False)
+        super().__init__(data, type_id, False)
+
+    def __str__(self):
+        if self.type_id == 1:
+            return json.dumps({"type": "update_proposal_end_date", "value": self.data.json()})
+        return super().__str__()

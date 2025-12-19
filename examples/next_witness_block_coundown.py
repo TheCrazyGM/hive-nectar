@@ -55,5 +55,5 @@ if __name__ == "__main__":
 
         time_diff_est = convert_block_diff_to_time_string(block_diff_est)
 
-        sys.stdout.write("\r Next block for %s in %s" % (witness["owner"], time_diff_est))
+        sys.stdout.write("\r Next block for {} in {}".format(witness["owner"], time_diff_est))
         sleep(30)

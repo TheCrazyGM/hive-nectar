@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import logging
 
 from nectar.blockchain import Blockchain
@@ -9,7 +7,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-class DemoBot(object):
+class DemoBot:
     def vote(self, vote_event):
         w = vote_event["weight"]
         if w > 0:

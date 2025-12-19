@@ -7,6 +7,5 @@ src
    nectar
    nectarapi
    nectarbase
-   nectargrapheneapi
    nectargraphenebase
    nectarstorage

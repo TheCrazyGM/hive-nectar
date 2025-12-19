@@ -1,10 +1,6 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import json
 import unittest
 from binascii import hexlify
-from builtins import str
 
 from nectargraphenebase import types
 

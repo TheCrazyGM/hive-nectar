@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import re
 from binascii import hexlify, unhexlify
 from datetime import datetime, timezone
+from typing import Any, Optional, Union
 
 from nectar.account import Account
 from nectar.instance import shared_blockchain_instance
@@ -20,7 +20,7 @@ from .exceptions import (
 log = logging.getLogger(__name__)
 
 
-class MessageV1(object):
+class MessageV1:
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     MESSAGE_SPLIT = (
@@ -49,7 +49,9 @@ timestamp={meta[timestamp]}
 {signature}
 {MESSAGE_SPLIT[3]}"""
 
-    def __init__(self, message, blockchain_instance=None, *args, **kwargs):
+    def __init__(
+        self, message: str, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+    ) -> None:
         """
         Initialize the message handler, normalize line endings, and set up signing context.
 
@@ -68,7 +70,7 @@ timestamp={meta[timestamp]}
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account=None, **kwargs):
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -110,7 +112,7 @@ timestamp={meta[timestamp]}
 
         return self.SIGNED_MESSAGE_ENCAPSULATED.format(MESSAGE_SPLIT=self.MESSAGE_SPLIT, **locals())
 
-    def verify(self, **kwargs):
+    def verify(self, **kwargs: Any) -> bool:
         """Verify a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -129,9 +131,9 @@ timestamp={meta[timestamp]}
         # Parse the meta data
         meta = dict(re.findall(r"(\S+)=(.*)", parts[1]))
 
-        log.info("Message is: {}".format(message))
-        log.info("Meta is: {}".format(json.dumps(meta)))
-        log.info("Signature is: {}".format(signature))
+        log.info(f"Message is: {message}")
+        log.info(f"Meta is: {json.dumps(meta)}")
+        log.info(f"Signature is: {signature}")
 
         # Ensure we have all the data in meta
         assert "account" in meta, "No 'account' could be found in meta data"
@@ -139,8 +141,8 @@ timestamp={meta[timestamp]}
         assert "block" in meta, "No 'block' could be found in meta data"
         assert "timestamp" in meta, "No 'timestamp' could be found in meta data"
 
-        account_name = meta.get("account").strip()
-        memo_key = meta["memokey"].strip()
+        account_name = meta.get("account", "").strip()
+        memo_key = meta.get("memokey", "").strip()
 
         try:
             PublicKey(memo_key, prefix=self.blockchain.prefix)
@@ -171,6 +173,8 @@ timestamp={meta[timestamp]}
 
         # Verify Signature
         pubkey = verify_message(enc_message, unhexlify(signature))
+        if pubkey is None:
+            raise InvalidMessageSignature("No public key recovered from signature")
 
         # Verify pubky
         pk = PublicKey(hexlify(pubkey).decode("ascii"), prefix=self.blockchain.prefix)
@@ -185,10 +189,12 @@ timestamp={meta[timestamp]}
         return True
 
 
-class MessageV2(object):
+class MessageV2:
     """Allow to sign and verify Messages that are sigend with a private key"""
 
-    def __init__(self, message, blockchain_instance=None, *args, **kwargs):
+    def __init__(
+        self, message: str, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+    ) -> None:
         """
         Initialize the message handler and set up default signing context.
 
@@ -209,7 +215,7 @@ class MessageV2(object):
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account=None, **kwargs):
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -245,7 +251,7 @@ class MessageV2(object):
 
         return dict(signed=enc_message, payload=payload, signature=signature)
 
-    def verify(self, **kwargs):
+    def verify(self, **kwargs: Any) -> bool:
         """Verify a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -263,14 +269,15 @@ class MessageV2(object):
         payload_dict = {k[0]: k[1] for k in zip(payload[::2], payload[1::2])}
         signature = self.message.get("signature")
 
-        account_name = payload_dict.get("from").strip()
-        memo_key = payload_dict.get("key").strip()
+        account_name = payload_dict.get("from", "").strip()
+        memo_key = payload_dict.get("key", "").strip()
 
         assert account_name, "Missing account name 'from'"
         assert memo_key, "missing 'key'"
 
         try:
-            Account(memo_key, prefix=self.blockchain.prefix)
+            # Validate that the memo key is a syntactically valid public key
+            PublicKey(memo_key, prefix=self.blockchain.prefix)
         except Exception:
             raise InvalidMemoKeyException("The memo key in the message is invalid")
 
@@ -307,6 +314,8 @@ class MessageV2(object):
         pubkey = verify_message(enc_message, unhexlify(signature))
 
         # Verify pubky
+        if pubkey is None:
+            raise InvalidMessageSignature("No public key recovered from signature")
         pk = PublicKey(hexlify(pubkey).decode("ascii"), prefix=self.blockchain.prefix)
         if format(pk, self.blockchain.prefix) != memo_key:
             raise InvalidMessageSignature("The signature doesn't match the memo key")
@@ -327,7 +336,7 @@ class Message(MessageV1, MessageV2):
         InvalidMemoKeyException,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         for _format in self.supported_formats:
             try:
                 _format.__init__(self, *args, **kwargs)
@@ -341,7 +350,7 @@ class Message(MessageV1, MessageV2):
                     )
                 )
 
-    def verify(self, **kwargs):
+    def verify(self, **kwargs: Any) -> bool:
         for _format in self.supported_formats:
             try:
                 return _format.verify(self, **kwargs)
@@ -355,10 +364,10 @@ class Message(MessageV1, MessageV2):
                 )
         raise ValueError("No Decoder accepted the message")
 
-    def sign(self, *args, **kwargs):
+    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
         for _format in self.supported_formats:
             try:
-                return _format.sign(self, *args, **kwargs)
+                return _format.sign(self, account=account, **kwargs)
             except self.valid_exceptions as e:
                 raise e
             except Exception as e:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import binascii
 import bisect
 import hashlib
@@ -7,28 +6,14 @@ import os
 import re
 import unicodedata
 from binascii import hexlify, unhexlify
+from typing import Any, List, Optional, Tuple, Union
 
-# Optional ecdsa import for backward compatibility
-try:
-    import ecdsa
-
-    ECDSA_AVAILABLE = True
-except ImportError:
-    ecdsa = None
-    ECDSA_AVAILABLE = False
+import ecdsa
+from ecdsa.numbertheory import square_root_mod_prime
+from ecdsa.util import number_to_string
 
 from .base58 import Base58, doublesha256, ripemd160
-
-# Optional bip32 import for BIP32 key derivation
-try:
-    from .bip32 import BIP32Key, parse_path
-
-    BIP32_AVAILABLE = True
-except ImportError:
-    BIP32Key = None
-    parse_path = None
-    BIP32_AVAILABLE = False
-
+from .bip32 import BIP32Key, parse_path
 from .dictionary import words as BrainKeyDictionary
 from .dictionary import words_bip39 as MnemonicDictionary
 from .prefix import Prefix
@@ -45,7 +30,7 @@ SECP256K1_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B
 SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
 
-def _mod_inverse(a, m):
+def _mod_inverse(a: int, m: int) -> int:
     """
     Return the modular inverse of a modulo m using the extended Euclidean algorithm.
 
@@ -71,14 +56,18 @@ def _mod_inverse(a, m):
     return x
 
 
-def _is_on_curve(x, y, p=SECP256K1_P, a=SECP256K1_A, b=SECP256K1_B):
+def _is_on_curve(
+    x: int, y: int, p: int = SECP256K1_P, a: int = SECP256K1_A, b: int = SECP256K1_B
+) -> bool:
     """Check if point (x, y) is on the secp256k1 curve: y² = x³ + a*x + b"""
     left_side = (y * y) % p
     right_side = (x * x * x + a * x + b) % p
     return left_side == right_side
 
 
-def _point_add(p1, p2, p=SECP256K1_P):
+def _point_add(
+    p1: Optional[Tuple[int, int]], p2: Optional[Tuple[int, int]], p: int = SECP256K1_P
+) -> Optional[Tuple[int, int]]:
     """
     Add two points on an elliptic curve over a prime field.
 
@@ -126,7 +115,9 @@ def _point_add(p1, p2, p=SECP256K1_P):
     return (x3, y3)
 
 
-def _scalar_mult(k, point, p=SECP256K1_P):
+def _scalar_mult(
+    k: int, point: Optional[Tuple[int, int]], p: int = SECP256K1_P
+) -> Optional[Tuple[int, int]]:
     """
     Compute k * point on the secp256k1 curve using the binary (double-and-add) method.
 
@@ -155,7 +146,7 @@ def _scalar_mult(k, point, p=SECP256K1_P):
     return result
 
 
-def _point_to_compressed(point):
+def _point_to_compressed(point: Tuple[int, int]) -> bytes:
     """
     Return the 33-byte SEC compressed encoding of an EC point on secp256k1.
 
@@ -174,7 +165,7 @@ def _point_to_compressed(point):
     return prefix.to_bytes(1, "big") + x.to_bytes(32, "big")
 
 
-def _compressed_to_point(compressed):
+def _compressed_to_point(compressed: bytes) -> Tuple[int, int]:
     """
     Convert a 33-byte SEC compressed public key to an (x, y) point on the secp256k1 curve.
 
@@ -213,7 +204,7 @@ def _compressed_to_point(compressed):
 
 
 # From <https://stackoverflow.com/questions/212358/binary-search-bisection-in-python/2233940#2233940>
-def binary_search(a, x, lo=0, hi=None):  # can't use a to specify default for hi
+def binary_search(a: List[Any], x: Any, lo: int = 0, hi: Optional[int] = None) -> int:
     """
     Locate the index of x in sorted sequence a using binary search.
 
@@ -241,36 +232,41 @@ class PasswordKey(Prefix):
     passphrase only.
     """
 
-    def __init__(self, account, password, role="active", prefix=None):
+    def __init__(
+        self,
+        account: Optional[str],
+        password: str,
+        role: str = "active",
+        prefix: Optional[str] = None,
+    ) -> None:
         self.set_prefix(prefix)
         self.account = account
         self.role = role
         self.password = password
 
-    def normalize(self, seed):
+    def normalize(self, seed: str) -> str:
         """Correct formating with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(seed))
 
-    def get_private(self):
+    def get_private(self) -> "PrivateKey":
         """Derive private key from the account, the role and the password"""
         if self.account is None and self.role is None:
             seed = self.password
         elif self.account == "" and self.role == "":
             seed = self.password
         else:
-            seed = self.account + self.role + self.password
-        seed = self.normalize(seed)
-        a = bytes(seed, "utf8")
-        s = hashlib.sha256(a).digest()
-        return PrivateKey(hexlify(s).decode("ascii"), prefix=self.prefix)
+            seed = self.normalize(f"{self.account or ''}{self.role or ''}{self.password}")
+        return PrivateKey(
+            hexlify(hashlib.sha256(seed.encode()).digest()).decode("ascii"), prefix=self.prefix
+        )
 
-    def get_public(self):
+    def get_public(self) -> "PublicKey":
         return self.get_private().pubkey
 
-    def get_private_key(self):
+    def get_private_key(self) -> "PrivateKey":
         return self.get_private()
 
-    def get_public_key(self):
+    def get_public_key(self) -> "PublicKey":
         return self.get_public()
 
 
@@ -294,7 +290,9 @@ class BrainKey(Prefix):
 
     """
 
-    def __init__(self, brainkey=None, sequence=0, prefix=None):
+    def __init__(
+        self, brainkey: Optional[str] = None, sequence: int = 0, prefix: Optional[str] = None
+    ) -> None:
         self.set_prefix(prefix)
         if not brainkey:
             self.brainkey = self.suggest()
@@ -302,26 +300,26 @@ class BrainKey(Prefix):
             self.brainkey = self.normalize(brainkey).strip()
         self.sequence = sequence
 
-    def __next__(self):
+    def __next__(self) -> "BrainKey":
         """Get the next private key (sequence number increment) for
         iterators
         """
         return self.next_sequence()
 
-    def next_sequence(self):
+    def next_sequence(self) -> "BrainKey":
         """Increment the sequence number by 1"""
         self.sequence += 1
         return self
 
-    def normalize(self, brainkey):
+    def normalize(self, brainkey: str) -> str:
         """Correct formating with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(brainkey))
 
-    def get_brainkey(self):
+    def get_brainkey(self) -> str:
         """Return brain key of this instance"""
         return self.normalize(self.brainkey)
 
-    def get_private(self):
+    def get_private(self) -> "PrivateKey":
         """Derive private key from the brain key and the current sequence
         number
         """
@@ -330,25 +328,25 @@ class BrainKey(Prefix):
         s = hashlib.sha256(hashlib.sha512(a).digest()).digest()
         return PrivateKey(hexlify(s).decode("ascii"), prefix=self.prefix)
 
-    def get_blind_private(self):
+    def get_blind_private(self) -> "PrivateKey":
         """Derive private key from the brain key (and no sequence number)"""
         a = bytes(self.brainkey, "ascii")
         return PrivateKey(hashlib.sha256(a).hexdigest(), prefix=self.prefix)
 
-    def get_public(self):
+    def get_public(self) -> "PublicKey":
         return self.get_private().pubkey
 
-    def get_private_key(self):
+    def get_private_key(self) -> "PrivateKey":
         return self.get_private()
 
-    def get_public_key(self):
+    def get_public_key(self) -> "PublicKey":
         return self.get_public()
 
-    def suggest(self, word_count=16):
+    def suggest(self, word_count: int = 16) -> str:
         """Suggest a new random brain key. Randomness is provided by the
         operating system using ``os.urandom()``.
         """
-        brainkey = [None] * word_count
+        brainkey: List[str] = [""] * word_count
         dict_lines = BrainKeyDictionary.split(",")
         if not len(dict_lines) == 49744:
             raise AssertionError()
@@ -365,14 +363,14 @@ class BrainKey(Prefix):
 #
 # Copyright (c) 2013 Pavol Rusnak
 # Copyright (c) 2017 mruddy
-class Mnemonic(object):
+class Mnemonic:
     """BIP39 mnemoric implementation"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.wordlist = MnemonicDictionary.split(",")
         self.radix = 2048
 
-    def generate(self, strength=128):
+    def generate(self, strength: int = 128) -> str:
         """Generates a word list based on the given strength
 
         :param int strength: initial entropy strength, must be one of [128, 160, 192, 224, 256]
@@ -386,7 +384,7 @@ class Mnemonic(object):
         return self.to_mnemonic(os.urandom(strength // 8))
 
     # Adapted from <http://tinyurl.com/oxmn476>
-    def to_entropy(self, words):
+    def to_entropy(self, words: Union[str, List[str]]) -> bytes:
         if not isinstance(words, list):
             words = words.split(" ")
         if len(words) not in [12, 15, 18, 21, 24]:
@@ -425,16 +423,16 @@ class Mnemonic(object):
         hashBytes = hashlib.sha256(entropy).digest()
         hashBits = list(
             itertools.chain.from_iterable(
-                ([c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)
+                [c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes
             )
         )
         # Check all the checksum bits.
         for i in range(checksumLengthBits):
             if concatBits[entropyLengthBits + i] != hashBits[i]:
                 raise ValueError("Failed checksum.")
-        return entropy
+        return bytes(entropy)
 
-    def to_mnemonic(self, data):
+    def to_mnemonic(self, data: bytes) -> str:
         if len(data) not in [16, 20, 24, 28, 32]:
             raise ValueError(
                 "Data length should be one of the following: [16, 20, 24, 28, 32], but it is not (%d)."
@@ -453,12 +451,13 @@ class Mnemonic(object):
         result_phrase = " ".join(result)
         return result_phrase
 
-    def check(self, mnemonic):
+    def check(self, mnemonic: Union[str, List[str]]) -> bool:
         """Checks the mnemonic word list is valid
         :param list mnemonic: mnemonic word list with lenght of 12, 15, 18, 21, 24
         :returns: True, when valid
         """
-        mnemonic = self.normalize_string(mnemonic).split(" ")
+        mnemonic_str = " ".join(mnemonic) if isinstance(mnemonic, list) else mnemonic
+        mnemonic = self.normalize_string(mnemonic_str).split(" ")
         # list of valid mnemonic lengths
         if len(mnemonic) not in [12, 15, 18, 21, 24]:
             return False
@@ -474,10 +473,10 @@ class Mnemonic(object):
         nh = bin(int(hashlib.sha256(nd).hexdigest(), 16))[2:].zfill(256)[: l // 33]
         return h == nh
 
-    def check_word(self, word):
+    def check_word(self, word: str) -> bool:
         return word in self.wordlist
 
-    def expand_word(self, prefix):
+    def expand_word(self, prefix: str) -> str:
         """Expands a word when sufficient chars are given
 
         :param str prefix: first chars of a valid dict word
@@ -494,17 +493,17 @@ class Mnemonic(object):
                 # this is not a validation routine, just return the input
                 return prefix
 
-    def expand(self, mnemonic):
+    def expand(self, mnemonic: str) -> str:
         """Expands all words given in a list"""
         return " ".join(map(self.expand_word, mnemonic.split(" ")))
 
     @classmethod
-    def normalize_string(cls, txt):
+    def normalize_string(cls, txt: str) -> str:
         """Normalizes strings"""
         return unicodedata.normalize("NFKD", txt)
 
     @classmethod
-    def to_seed(cls, mnemonic, passphrase=""):
+    def to_seed(cls, mnemonic: Union[str, List[str]], passphrase: str = "") -> bytes:
         """Returns a seed based on bip39
 
         :param str mnemonic: string containing a valid mnemonic word list
@@ -524,8 +523,13 @@ class MnemonicKey(Prefix):
     """This class derives a private key from a BIP39 mnemoric implementation"""
 
     def __init__(
-        self, word_list=None, passphrase="", account_sequence=0, key_sequence=0, prefix=None
-    ):
+        self,
+        word_list: Optional[Union[str, List[str]]] = None,
+        passphrase: str = "",
+        account_sequence: int = 0,
+        key_sequence: int = 0,
+        prefix: Optional[str] = None,
+    ) -> None:
         self.set_prefix(prefix)
         if word_list is not None:
             self.set_mnemonic(word_list, passphrase=passphrase)
@@ -533,27 +537,31 @@ class MnemonicKey(Prefix):
             self.seed = None
         self.account_sequence = account_sequence
         self.key_sequence = key_sequence
-        self.prefix = prefix
+        self.prefix = prefix or ""
         self.path = "m/48'/13'/0'/%d'/%d'" % (self.account_sequence, self.key_sequence)
 
-    def set_mnemonic(self, word_list, passphrase=""):
+    def set_mnemonic(self, word_list: Union[str, List[str]], passphrase: str = "") -> None:
         mnemonic = Mnemonic()
         if not mnemonic.check(word_list):
             raise ValueError("Word list is not valid!")
         self.seed = mnemonic.to_seed(word_list, passphrase=passphrase)
 
-    def generate_mnemonic(self, passphrase="", strength=256):
+    def generate_mnemonic(self, passphrase: str = "", strength: int = 256) -> str:
         mnemonic = Mnemonic()
         word_list = mnemonic.generate(strength=strength)
         self.seed = mnemonic.to_seed(word_list, passphrase=passphrase)
         return word_list
 
-    def set_path_BIP32(self, path):
+    def set_path_BIP32(self, path: str) -> None:
         self.path = path
 
     def set_path_BIP44(
-        self, account_sequence=0, chain_sequence=0, key_sequence=0, hardened_address=True
-    ):
+        self,
+        account_sequence: int = 0,
+        chain_sequence: int = 0,
+        key_sequence: int = 0,
+        hardened_address: bool = True,
+    ) -> None:
         if account_sequence < 0:
             raise ValueError("account_sequence must be >= 0")
         if key_sequence < 0:
@@ -575,7 +583,13 @@ class MnemonicKey(Prefix):
                 self.key_sequence,
             )
 
-    def set_path_BIP48(self, network_index=13, role="owner", account_sequence=0, key_sequence=0):
+    def set_path_BIP48(
+        self,
+        network_index: int = 13,
+        role: Union[str, int] = "owner",
+        account_sequence: int = 0,
+        key_sequence: int = 0,
+    ) -> None:
         if account_sequence < 0:
             raise ValueError("account_sequence must be >= 0")
         if key_sequence < 0:
@@ -604,38 +618,42 @@ class MnemonicKey(Prefix):
             self.key_sequence,
         )
 
-    def next_account_sequence(self):
+    def next_account_sequence(self) -> "MnemonicKey":
         """Increment the account sequence number by 1"""
         self.account_sequence += 1
         return self
 
-    def next_sequence(self):
+    def next_sequence(self) -> "MnemonicKey":
         """Increment the key sequence number by 1"""
         self.key_sequence += 1
         return self
 
-    def set_path(self, path):
+    def set_path(self, path: str) -> None:
         self.path = path
 
-    def get_path(self):
+    def get_path(self) -> str:
         return self.path
 
-    def get_private(self):
+    def get_private(self) -> "PrivateKey":
         """Derive private key from the account_sequence, the role and the key_sequence"""
         if self.seed is None:
-            raise ValueError("seed is None, set or generate a mnemnoric first")
+            raise ValueError("seed is None, set or generate a mnemonic first")
         key = BIP32Key.fromEntropy(self.seed)
-        for n in parse_path(self.get_path()):
+        path_result = parse_path(self.get_path(), as_bytes=False)
+        for n in path_result:
             key = key.ChildKey(n)
+            if key is None:
+                raise ValueError(f"Failed to derive child key for path index: {n}")
+
         return PrivateKey(key.WalletImportFormat(), prefix=self.prefix)
 
-    def get_public(self):
+    def get_public(self) -> "PublicKey":
         return self.get_private().pubkey
 
-    def get_private_key(self):
+    def get_private_key(self) -> "PrivateKey":
         return self.get_private()
 
-    def get_public_key(self):
+    def get_public_key(self) -> "PublicKey":
         return self.get_public()
 
 
@@ -653,12 +671,18 @@ class Address(Prefix):
 
     """
 
-    def __init__(self, address, prefix=None):
+    def __init__(self, address: str, prefix: Optional[str] = None) -> None:
         self.set_prefix(prefix)
         self._address = Base58(address, prefix=self.prefix)
 
     @classmethod
-    def from_pubkey(cls, pubkey, compressed=True, version=56, prefix=None):
+    def from_pubkey(
+        cls,
+        pubkey: Union[str, "PublicKey"],
+        compressed: bool = True,
+        version: int = 56,
+        prefix: Optional[str] = None,
+    ) -> "Address":
         """Load an address provided by the public key.
         Version: 56 => PTS
         """
@@ -676,7 +700,9 @@ class Address(Prefix):
         return cls(result, prefix=pubkey.prefix)
 
     @classmethod
-    def derivesha256address(cls, pubkey, compressed=True, prefix=None):
+    def derivesha256address(
+        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: Optional[str] = None
+    ) -> "Address":
         """Derive address using ``RIPEMD160(SHA256(x))``"""
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
         if compressed:
@@ -689,7 +715,9 @@ class Address(Prefix):
         return cls(result, prefix=pubkey.prefix)
 
     @classmethod
-    def derivesha512address(cls, pubkey, compressed=True, prefix=None):
+    def derivesha512address(
+        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: Optional[str] = None
+    ) -> "Address":
         """Derive address using ``RIPEMD160(SHA512(x))``"""
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
         if compressed:
@@ -701,25 +729,25 @@ class Address(Prefix):
         result = hexlify(ripemd160(result)).decode("ascii")
         return cls(result, prefix=pubkey.prefix)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Gives the hex representation of the ``GrapheneBase58CheckEncoded``
         Graphene address.
         """
         return repr(self._address)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns the readable Graphene address. This call is equivalent to
         ``format(Address, "STM")``
         """
         return format(self._address, self.prefix)
 
-    def __format__(self, _format):
+    def __format__(self, _format: str) -> str:
         """May be issued to get valid "MUSE", "PLAY" or any other Graphene compatible
         address with corresponding prefix.
         """
         return format(self._address, _format)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns the raw content of the ``Base58CheckEncoded`` address"""
         return bytes(self._address)
 
@@ -728,7 +756,12 @@ class GrapheneAddress(Address):
     """Graphene Addresses are different. Hence we have a different class"""
 
     @classmethod
-    def from_pubkey(cls, pubkey, compressed=True, version=56, prefix=None):
+    def from_pubkey(
+        cls,
+        pubkey: Union[str, "PublicKey"],
+        compressed: bool = True,
+        prefix: Optional[str] = None,
+    ) -> "GrapheneAddress":
         # Ensure this is a public key
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
         if compressed:
@@ -760,7 +793,7 @@ class PublicKey(Prefix):
 
     """
 
-    def __init__(self, pk, prefix=None):
+    def __init__(self, pk: Union[str, "PublicKey"], prefix: Optional[str] = None) -> None:
         """Init PublicKey
         :param str pk: Base58 encoded public key
         :param str prefix: Network prefix (defaults to ``STM``)
@@ -776,40 +809,56 @@ class PublicKey(Prefix):
             p = ecdsa.VerifyingKey.from_string(
                 unhexlify(pk[2:]), curve=ecdsa.SECP256k1
             ).pubkey.point
-            x_str = ecdsa.util.number_to_string(p.x(), order)
+            x_str = number_to_string(p.x(), order)
             pk = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
 
         self._pk = Base58(pk, prefix=self.prefix)
 
     @property
-    def pubkey(self):
-        return self._pk
+    def pubkey(self) -> str:
+        return repr(self._pk)
 
-    def get_public_key(self):
+    def get_public_key(self) -> str:
         """Returns the pubkey"""
         return self.pubkey
 
     @property
-    def compressed_key(self):
+    def compressed_key(self) -> "PublicKey":
         return PublicKey(self.compressed())
 
-    def _derive_y_from_x(self, x, is_even):
+    def __str__(self) -> str:
+        """Return the string representation of the public key"""
+        return self.prefix + str(self._pk)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the public key"""
+        return str(self)
+
+    def __format__(self, _format: str) -> str:
+        """Format the public key with the given prefix"""
+        return _format + str(self._pk)
+
+    def __bytes__(self) -> bytes:
+        """Return the bytes representation of the public key"""
+        return bytes(self._pk)
+
+    def _derive_y_from_x(self, x: int, is_even: bool) -> int:
         """Derive y point from x point"""
         curve = ecdsa.SECP256k1.curve
         # The curve equation over F_p is:
         #   y^2 = x^3 + ax + b
         a, b, p = curve.a(), curve.b(), curve.p()
         alpha = (pow(x, 3, p) + a * x + b) % p
-        beta = ecdsa.numbertheory.square_root_mod_prime(alpha, p)
+        beta = square_root_mod_prime(alpha, p)
         if (beta % 2) == is_even:
             beta = p - beta
         return beta
 
-    def compressed(self):
+    def compressed(self) -> str:
         """Derive compressed public key"""
         return repr(self._pk)
 
-    def uncompressed(self):
+    def uncompressed(self) -> str:
         """Derive uncompressed key"""
         public_key = repr(self._pk)
         prefix = public_key[0:2]
@@ -822,18 +871,18 @@ class PublicKey(Prefix):
         key = "04" + "%064x" % x + "%064x" % y
         return key
 
-    def point(self):
+    def point(self) -> Any:
         """Return the point for the public key"""
         string = unhexlify(self.uncompressed())
         return ecdsa.VerifyingKey.from_string(string[1:], curve=ecdsa.SECP256k1).pubkey.point
 
-    def child(self, offset256):
+    def child(self, offset256: bytes) -> "PublicKey":
         """Derive new public key from this key and a sha256 "offset" """
         a = bytes(self) + offset256
         s = hashlib.sha256(a).digest()
         return self.add(s)
 
-    def add(self, digest256):
+    def add(self, digest256: bytes) -> "PublicKey":
         """
         Return a new PublicKey obtained by adding a 32-byte tweak (interpreted as a big-endian scalar) times the curve generator to this public key.
 
@@ -882,7 +931,9 @@ class PublicKey(Prefix):
         return PublicKey(hexlify(result_compressed).decode("ascii"), prefix=self.prefix)
 
     @classmethod
-    def from_privkey(cls, privkey, prefix=None):
+    def from_privkey(
+        cls, privkey: Union[str, "PrivateKey"], prefix: Optional[str] = None
+    ) -> "PublicKey":
         """
         Derive a compressed public key from a private key and return a PublicKey instance.
 
@@ -899,58 +950,20 @@ class PublicKey(Prefix):
         privkey = PrivateKey(privkey, prefix=prefix or Prefix.prefix)
         secret = unhexlify(repr(privkey))
 
-        if ECDSA_AVAILABLE:
-            order = ecdsa.SigningKey.from_string(
-                secret, curve=ecdsa.SECP256k1
-            ).curve.generator.order()
-            p = ecdsa.SigningKey.from_string(
-                secret, curve=ecdsa.SECP256k1
-            ).verifying_key.pubkey.point
-            x_str = ecdsa.util.number_to_string(p.x(), order)
-            compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
-            return cls(compressed, prefix=prefix or Prefix.prefix)
-        # Fallback: derive with pure-Python EC math
-        secexp = int.from_bytes(secret, "big")
-        if secexp <= 0 or secexp >= SECP256K1_N:
-            raise ValueError("Invalid private key scalar")
-        G = (SECP256K1_GX, SECP256K1_GY)
-        P = _scalar_mult(secexp, G)
-        compressed = hexlify(_point_to_compressed(P)).decode("ascii")
+        order = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).curve.generator.order()
+        p = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).verifying_key.pubkey.point
+        x_str = number_to_string(p.x(), order)
+        compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
         return cls(compressed, prefix=prefix or Prefix.prefix)
 
-    def __repr__(self):
-        """Gives the hex representation of the Graphene public key."""
-        return repr(self._pk)
-
-    def __str__(self):
-        """Returns the readable Graphene public key. This call is equivalent to
-        ``format(PublicKey, "STM")``
-        """
-        return format(self._pk, self.prefix)
-
-    def __format__(self, _format):
-        """Formats the instance of:doc:`Base58 <base58>` according to ``_format``"""
-        return format(self._pk, _format)
-
-    def __bytes__(self):
-        """Returns the raw public key (has length 33)"""
-        return bytes(self._pk)
-
-    def __lt__(self, other):
-        """For sorting of public keys (due to graphene),
-        we actually sort according to addresses
-        """
-        assert isinstance(other, PublicKey)
-        return repr(self.address) < repr(other.address)
-
-    def unCompressed(self):
+    def unCompressed(self) -> str:
         """Alias for self.uncompressed() - LEGACY"""
         return self.uncompressed()
 
     @property
-    def address(self):
+    def address(self) -> GrapheneAddress:
         """Obtain a GrapheneAddress from a public key"""
-        return GrapheneAddress.from_pubkey(repr(self), prefix=self.prefix)
+        return GrapheneAddress.from_pubkey(str(self), prefix=self.prefix)
 
 
 class PrivateKey(Prefix):
@@ -977,7 +990,9 @@ class PrivateKey(Prefix):
 
     """
 
-    def __init__(self, wif=None, prefix=None):
+    def __init__(
+        self, wif: Optional[Union[str, "PrivateKey", Base58]] = None, prefix: Optional[str] = None
+    ) -> None:
         self.set_prefix(prefix)
         if wif is None:
             import os
@@ -993,34 +1008,34 @@ class PrivateKey(Prefix):
         assert len(repr(self._wif)) == 64
 
     @property
-    def bitcoin(self):
+    def bitcoin(self) -> PublicKey:
         return BitcoinPublicKey.from_privkey(self)
 
     @property
-    def address(self):
+    def address(self) -> Address:
         return Address.from_pubkey(self.pubkey, prefix=self.prefix)
 
     @property
-    def pubkey(self):
+    def pubkey(self) -> PublicKey:
         return self.compressed
 
-    def get_public_key(self):
+    def get_public_key(self) -> PublicKey:
         """Legacy: Returns the pubkey"""
         return self.pubkey
 
     @property
-    def compressed(self):
+    def compressed(self) -> PublicKey:
         return PublicKey.from_privkey(self, prefix=self.prefix)
 
     @property
-    def uncompressed(self):
+    def uncompressed(self) -> PublicKey:
         return PublicKey(self.pubkey.uncompressed(), prefix=self.prefix)
 
-    def get_secret(self):
+    def get_secret(self) -> bytes:
         """Get sha256 digest of the wif key."""
         return hashlib.sha256(bytes(self)).digest()
 
-    def derive_private_key(self, sequence):
+    def derive_private_key(self, sequence: int) -> "PrivateKey":
         """Derive new private key from this private key and an arbitrary
         sequence number
         """
@@ -1029,13 +1044,13 @@ class PrivateKey(Prefix):
         s = hashlib.sha256(hashlib.sha512(a).digest()).digest()
         return PrivateKey(hexlify(s).decode("ascii"), prefix=self.pubkey.prefix)
 
-    def child(self, offset256):
+    def child(self, offset256: bytes) -> "PrivateKey":
         """Derive new private key from this key and a sha256 "offset" """
         a = bytes(self.pubkey) + offset256
         s = hashlib.sha256(a).digest()
         return self.derive_from_seed(s)
 
-    def derive_from_seed(self, offset):
+    def derive_from_seed(self, offset: bytes) -> "PrivateKey":
         """
         Derive a new PrivateKey by adding a 32-byte integer offset to this key's seed modulo the secp256k1 order.
 
@@ -1054,30 +1069,34 @@ class PrivateKey(Prefix):
             secret = ("0" * (64 - len(secret))) + secret
         return PrivateKey(secret, prefix=self.pubkey.prefix)
 
-    def __format__(self, _format):
+    def __format__(self, _format: str) -> str:
         """Formats the instance of:doc:`Base58 <base58>` according to
         ``_format``
         """
         return format(self._wif, _format)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Gives the hex representation of the Graphene private key."""
         return repr(self._wif)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns the readable (uncompressed wif format) Graphene private key. This
         call is equivalent to ``format(PrivateKey, "WIF")``
         """
         return format(self._wif, "WIF")
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Returns the raw private key"""
         return bytes(self._wif)
 
 
 class BitcoinAddress(Address):
     @classmethod
-    def from_pubkey(cls, pubkey, compressed=False, version=56, prefix=None):
+    def from_pubkey(
+        cls,
+        pubkey: Union[str, PublicKey],
+        compressed: bool = False,
+    ) -> "BitcoinAddress":
         # Ensure this is a public key
         pubkey = PublicKey(pubkey)
         if compressed:
@@ -1089,7 +1108,7 @@ class BitcoinAddress(Address):
         addressbin = ripemd160(hexlify(hashlib.sha256(unhexlify(pubkey)).digest()))
         return cls(hexlify(addressbin).decode("ascii"))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns the readable Graphene address. This call is equivalent to
         ``format(Address, "GPH")``
         """
@@ -1098,5 +1117,5 @@ class BitcoinAddress(Address):
 
 class BitcoinPublicKey(PublicKey):
     @property
-    def address(self):
+    def address(self) -> BitcoinAddress:
         return BitcoinAddress.from_pubkey(repr(self))

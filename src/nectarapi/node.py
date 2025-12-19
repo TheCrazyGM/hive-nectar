@@ -1,32 +1,37 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 import time
+from typing import Any, List, Optional, Union
 
 from .exceptions import CallRetriesReached, NumRetriesReached
 
 log = logging.getLogger(__name__)
 
 
-class Node(object):
-    def __init__(self, url):
+class Node:
+    def __init__(self, url: str) -> None:
         self.url = url
         self.error_cnt = 0
         self.error_cnt_call = 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.url
 
 
-class Nodes(list):
+class Nodes(list[Node]):
     """Stores Node URLs and error counts"""
 
-    def __init__(self, urls, num_retries, num_retries_call):
+    def __init__(
+        self,
+        urls: Union[str, "Nodes", List[Any], tuple, set, None],
+        num_retries: int,
+        num_retries_call: int,
+    ) -> None:
         self.set_node_urls(urls)
         self.num_retries = num_retries
         self.num_retries_call = num_retries_call
 
-    def set_node_urls(self, urls):
+    def set_node_urls(self, urls: Union[str, "Nodes", List[Any], tuple, set, None]) -> None:
         if isinstance(urls, str):
             url_list = re.split(r",|;", urls)
             if url_list is None:
@@ -39,14 +44,15 @@ class Nodes(list):
             url_list = [urls]
         else:
             url_list = []
-        super(Nodes, self).__init__([Node(x) for x in url_list])
+        super().__init__([Node(x) for x in url_list])
         self.current_node_index = -1
         self.freeze_current_node = False
 
-    def __iter__(self):
+    def __iter__(self) -> "Nodes":  # type: ignore[override]
+        # Iterator with rotation handled by __next__
         return self
 
-    def __next__(self):
+    def __next__(self) -> str:
         next_node_count = 0
         if self.freeze_current_node:
             return self.url
@@ -63,19 +69,23 @@ class Nodes(list):
 
     next = __next__  # Python 2
 
-    def export_working_nodes(self):
+    def export_working_nodes(self) -> List[str]:
         nodes_list = []
         for i in range(len(self)):
             if self.num_retries < 0 or self[i].error_cnt <= self.num_retries:
                 nodes_list.append(self[i].url)
         return nodes_list
 
-    def __repr__(self):
+    def get_nodes(self) -> List[str]:
+        """Return the list of configured node URLs (including those currently marked errored)."""
+        return [self[i].url for i in range(len(self))]
+
+    def __repr__(self) -> str:
         nodes_list = self.export_working_nodes()
         return str(nodes_list)
 
     @property
-    def working_nodes_count(self):
+    def working_nodes_count(self) -> int:
         n = 0
         if self.freeze_current_node:
             i = self.current_node_index
@@ -90,59 +100,65 @@ class Nodes(list):
         return n
 
     @property
-    def url(self):
+    def url(self) -> str:
         if self.node is None:
             return ""
         return self.node.url
 
     @property
-    def node(self):
+    def node(self) -> Node:
         if self.current_node_index < 0:
             return self[0]
         return self[self.current_node_index]
 
     @property
-    def error_cnt(self):
+    def error_cnt(self) -> int:
         if self.node is None:
             return 0
         return self.node.error_cnt
 
     @property
-    def error_cnt_call(self):
+    def error_cnt_call(self) -> int:
         if self.node is None:
             return 0
         return self.node.error_cnt_call
 
     @property
-    def num_retries_call_reached(self):
+    def num_retries_call_reached(self) -> bool:
         return self.error_cnt_call >= self.num_retries_call
 
-    def disable_node(self):
+    def disable_node(self) -> None:
         """Disable current node"""
         if self.node is not None and self.num_retries_call >= 0:
             self.node.error_cnt_call = self.num_retries_call
 
-    def increase_error_cnt(self):
+    def increase_error_cnt(self) -> None:
         """Increase node error count for current node"""
         if self.node is not None:
             self.node.error_cnt += 1
 
-    def increase_error_cnt_call(self):
+    def increase_error_cnt_call(self) -> None:
         """Increase call error count for current node"""
         if self.node is not None:
             self.node.error_cnt_call += 1
 
-    def reset_error_cnt_call(self):
+    def reset_error_cnt_call(self) -> None:
         """Set call error count for current node to zero"""
         if self.node is not None:
             self.node.error_cnt_call = 0
 
-    def reset_error_cnt(self):
+    def reset_error_cnt(self) -> None:
         """Set node error count for current node to zero"""
         if self.node is not None:
             self.node.error_cnt = 0
 
-    def sleep_and_check_retries(self, errorMsg=None, sleep=True, call_retry=False, showMsg=True):
+    def sleep_and_check_retries(
+        self,
+        errorMsg: Optional[str] = None,
+        sleep: bool = True,
+        call_retry: bool = False,
+        showMsg: bool = True,
+    ) -> None:
         """Sleep and check if num_retries is reached"""
         if errorMsg:
             log.warning("Error: {}".format(errorMsg))

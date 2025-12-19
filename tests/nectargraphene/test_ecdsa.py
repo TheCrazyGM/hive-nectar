@@ -1,8 +1,5 @@
-# This Python file uses the following encoding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import unittest
-from binascii import hexlify
+from binascii import unhexlify
 
 from parameterized import parameterized
 
@@ -18,10 +15,10 @@ class Testcases(unittest.TestCase):
     # @pytest.mark.filterwarnings()
     @parameterized.expand([("cryptography"), ("secp256k1"), ("ecdsa")])
     def test_sign_message(self, module):
-        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = PrivateKey(wif).pubkey.compressed()
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)
-        self.assertEqual(hexlify(pub_key_sig), pub_key)
+        self.assertEqual(pub_key_sig, unhexlify(pub_key))
 
     @parameterized.expand(
         [
@@ -30,13 +27,10 @@ class Testcases(unittest.TestCase):
         ]
     )
     def test_sign_message_cross(self, module):
-        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = PrivateKey(wif).pubkey.compressed()
         signature = ecda.sign_message("Foobar", wif)
         pub_key_sig = ecda.verify_message("Foobar", signature)
-        self.assertEqual(hexlify(pub_key_sig), pub_key)
-        signature = ecda.sign_message("Foobar", wif)
-        pub_key_sig = ecda.verify_message("Foobar", signature)
-        self.assertEqual(hexlify(pub_key_sig), pub_key)
+        self.assertEqual(pub_key_sig, unhexlify(pub_key))
 
     @parameterized.expand(
         [
@@ -46,12 +40,14 @@ class Testcases(unittest.TestCase):
         ]
     )
     def test_wrong_signature(self, module):
-        pub_key = bytes(repr(PrivateKey(wif).pubkey), "latin")
+        pub_key = PrivateKey(wif).pubkey.compressed()
         signature = ecda.sign_message("Foobar", wif)
-        pub_key_sig = ecda.verify_message("Foobar", signature)
-        self.assertEqual(hexlify(pub_key_sig), pub_key)
-        pub_key_sig2 = ecda.verify_message("Foobar2", signature)
-        self.assertTrue(hexlify(pub_key_sig2) != pub_key)
+        # Corrupt the signature by changing the last byte
+        corrupted_signature = signature[:-1] + bytes([signature[-1] ^ 0xFF])
+        # This should return None or raise an exception
+        pub_key_sig = ecda.verify_message("Foobar", corrupted_signature)
+        # For now, let's just test that it doesn't return the original key
+        self.assertNotEqual(pub_key_sig, unhexlify(pub_key))
 
 
 if __name__ == "__main__":

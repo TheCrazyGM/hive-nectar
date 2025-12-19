@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
+from typing import Any
 
 
-def getBlockParams(ws):
+def getBlockParams(ws: Any) -> None:
     """Auxiliary method to obtain ``ref_block_num`` and
     ``ref_block_prefix``. Requires a websocket connection to a
     witness node!

@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
 from datetime import date, datetime
+from typing import Any
 
 from nectar.instance import shared_blockchain_instance
-from nectarapi.exceptions import ApiNotSupported
+from nectar.utils import formatTimeString, parse_time
 
 from .blockchainobject import BlockchainObject
 from .exceptions import BlockDoesNotExistsException
-from .utils import formatTimeString
 
 
 class Block(BlockchainObject):
@@ -43,14 +44,14 @@ class Block(BlockchainObject):
 
     def __init__(
         self,
-        block,
-        only_ops=False,
-        only_virtual_ops=False,
-        full=True,
-        lazy=False,
-        blockchain_instance=None,
+        block: int | float | dict,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a Block object representing a single blockchain block.
 
@@ -70,25 +71,25 @@ class Block(BlockchainObject):
             block = int(block)
         elif isinstance(block, dict):
             block = self._parse_json_data(block)
-        super(Block, self).__init__(
+        super().__init__(
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
         if self.identifier is None:
-            self.identifier = self.block_num
+            self.identifier = self.get(self.id_item)
 
-    def _parse_json_data(self, block):
+    def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
             "timestamp",
         ]
         for p in parse_times:
             if p in block and isinstance(block.get(p), str):
-                block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
+                block[p] = parse_time(block.get(p, "1970-01-01T00:00:00"))
         if "transactions" in block:
             for i in range(len(block["transactions"])):
                 if "expiration" in block["transactions"][i] and isinstance(
                     block["transactions"][i]["expiration"], str
                 ):
-                    block["transactions"][i]["expiration"] = formatTimeString(
+                    block["transactions"][i]["expiration"] = parse_time(
                         block["transactions"][i]["expiration"]
                     )
         elif "operations" in block:
@@ -96,12 +97,12 @@ class Block(BlockchainObject):
                 if "timestamp" in block["operations"][i] and isinstance(
                     block["operations"][i]["timestamp"], str
                 ):
-                    block["operations"][i]["timestamp"] = formatTimeString(
+                    block["operations"][i]["timestamp"] = parse_time(
                         block["operations"][i]["timestamp"]
                     )
         return block
 
-    def json(self):
+    def json(self) -> dict:
         output = self.copy()
         parse_times = [
             "timestamp",
@@ -135,7 +136,7 @@ class Block(BlockchainObject):
         output = self._parse_json_data(output)
         return ret
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Even though blocks never change, you freshly obtain its contents
         from an API with this method
         """
@@ -145,56 +146,28 @@ class Block(BlockchainObject):
             return
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if self.only_ops or self.only_virtual_ops:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ops_ops = self.blockchain.rpc.get_ops_in_block(
-                        {"block_num": self.identifier, "only_virtual": self.only_virtual_ops},
-                        api="account_history",
-                    )
-                    if ops_ops is None:
-                        ops = None
-                    else:
-                        ops = ops_ops["ops"]
-                except ApiNotSupported:
-                    ops = self.blockchain.rpc.get_ops_in_block(
-                        self.identifier, self.only_virtual_ops, api="condenser"
-                    )
-            else:
-                ops = self.blockchain.rpc.get_ops_in_block(self.identifier, self.only_virtual_ops)
-            if bool(ops):
-                block = {
-                    "block": ops[0]["block"],
-                    "timestamp": ops[0]["timestamp"],
-                    "operations": ops,
-                }
-            else:
-                block = {
-                    "block": self.identifier,
-                    "timestamp": "1970-01-01T00:00:00",
-                    "operations": [],
-                }
+            ops_ops = self.blockchain.rpc.get_ops_in_block(
+                {"block_num": self.identifier, "only_virtual": self.only_virtual_ops}
+            )
+            ops = ops_ops["ops"] if ops_ops is not None else []
+            timestamp = ops[0]["timestamp"] if ops else "1970-01-01T00:00:00"
+            block = {
+                "block": self.identifier,
+                "timestamp": timestamp,
+                "operations": ops,
+            }
         else:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    block = self.blockchain.rpc.get_block(
-                        {"block_num": self.identifier}, api="block"
-                    )
-                    if block and "block" in block:
-                        block = block["block"]
-                except ApiNotSupported:
-                    block = self.blockchain.rpc.get_block(self.identifier, api="condenser")
-            else:
-                block = self.blockchain.rpc.get_block(self.identifier)
+            block = self.blockchain.rpc.get_block({"block_num": self.identifier})
+            if block and "block" in block:
+                block = block["block"]
         if not block:
             message = f"Block {self.identifier} does not exist or is not available from {self.blockchain.rpc.url}"
             raise BlockDoesNotExistsException(message)
         block = self._parse_json_data(block)
-        super(Block, self).__init__(
-            block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
-        )
+        super().__init__(block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain)
 
     @property
-    def block_num(self):
+    def block_num(self) -> int | None:
         """Returns the block number"""
         if "block_id" in self:
             return int(self["block_id"][:8], base=16)
@@ -203,12 +176,12 @@ class Block(BlockchainObject):
         else:
             return None
 
-    def time(self):
+    def time(self) -> datetime:
         """Return a datetime instance for the timestamp of this block"""
         return self["timestamp"]
 
     @property
-    def transactions(self):
+    def transactions(self) -> list[dict[str, Any]]:
         """Returns all transactions as list"""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -225,7 +198,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def operations(self):
+    def operations(self) -> list[Any]:
         """Returns all block operations as list"""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -246,7 +219,7 @@ class Block(BlockchainObject):
         return ops
 
     @property
-    def json_transactions(self):
+    def json_transactions(self) -> list[dict[str, Any]]:
         """Returns all transactions as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return list()
@@ -268,7 +241,7 @@ class Block(BlockchainObject):
         return trxs
 
     @property
-    def json_operations(self):
+    def json_operations(self) -> list[Any]:
         """Returns all block operations as list, all dates are strings."""
         if self.only_ops or self.only_virtual_ops:
             return self["operations"]
@@ -286,11 +259,18 @@ class Block(BlockchainObject):
                 if "timestamp" in op:
                     p_date = op.get("timestamp", datetime(1970, 1, 1, 0, 0))
                     if isinstance(p_date, (datetime, date)):
-                        op_new.update({"timestamp": formatTimeString(p_date)})
+                        if isinstance(op_new, dict):
+                            op_new.update({"timestamp": formatTimeString(p_date)})
+                        else:
+                            # Handle list case - find timestamp in list and update it
+                            for i, item in enumerate(op_new):
+                                if isinstance(item, dict) and "timestamp" in item:
+                                    op_new[i] = {**item, "timestamp": formatTimeString(p_date)}
+                                    break
                 ops.append(op_new)
         return ops
 
-    def ops_statistics(self, add_to_ops_stat=None):
+    def ops_statistics(self, add_to_ops_stat: dict[str, int] | None = None) -> dict[str, int]:
         """Returns a statistic with the occurrence of the different operation types"""
         if add_to_ops_stat is None:
             import nectarbase.operationids
@@ -334,7 +314,14 @@ class BlockHeader(BlockchainObject):
 
     """
 
-    def __init__(self, block, full=True, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        block: int | float | dict,
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance: Any = None,
+        **kwargs,
+    ) -> None:
         """
         Initialize a BlockHeader.
 
@@ -353,51 +340,49 @@ class BlockHeader(BlockchainObject):
         self.lazy = lazy
         if isinstance(block, float):
             block = int(block)
-        super(BlockHeader, self).__init__(
+        super().__init__(
             block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Even though blocks never change, you freshly obtain its contents
         from an API with this method
         """
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            block = self.blockchain.rpc.get_block_header(
-                {"block_num": self.identifier}, api="block"
-            )
-            if block is not None and "header" in block:
-                block = block["header"]
-        else:
-            block = self.blockchain.rpc.get_block_header(self.identifier)
+        block = self.blockchain.rpc.get_block_header({"block_num": self.identifier})
+        if block is not None and "header" in block:
+            block = block["header"]
         if not block:
             raise BlockDoesNotExistsException(str(self.identifier))
         block = self._parse_json_data(block)
-        super(BlockHeader, self).__init__(
-            block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain
-        )
+        super().__init__(block, lazy=self.lazy, full=self.full, blockchain_instance=self.blockchain)
 
-    def time(self):
+    def time(self) -> datetime:
         """Return a datetime instance for the timestamp of this block"""
         return self["timestamp"]
 
     @property
-    def block_num(self):
+    def block_num(self) -> int:
         """Returns the block number"""
-        return self.identifier
+        if self.identifier is None:
+            raise ValueError("Block identifier is not set")
+        if isinstance(self.identifier, int):
+            return self.identifier
+        # Try to convert string or other types to int
+        return int(self.identifier)
 
-    def _parse_json_data(self, block):
+    def _parse_json_data(self, block: dict) -> dict:
         parse_times = [
             "timestamp",
         ]
         for p in parse_times:
             if p in block and isinstance(block.get(p), str):
-                block[p] = formatTimeString(block.get(p, "1970-01-01T00:00:00"))
+                block[p] = parse_time(block.get(p, "1970-01-01T00:00:00"))
         return block
 
-    def json(self):
+    def json(self) -> dict:
         output = self.copy()
         parse_times = [
             "timestamp",
@@ -424,15 +409,15 @@ class Blocks(list):
 
     def __init__(
         self,
-        starting_block_num,
-        count=1000,
-        lazy=False,
-        full=True,
-        only_ops=False,
-        only_virtual_ops=False,
-        blockchain_instance=None,
+        starting_block_num: int,
+        count: int = 1000,
+        lazy: bool = False,
+        full: bool = True,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+        blockchain_instance: Any = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a Blocks collection by fetching a contiguous range of blocks from the chain and populating the list with Block objects.
 
@@ -455,16 +440,19 @@ class Blocks(list):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
 
         blocks = self.blockchain.rpc.get_block_range(
-            {"starting_block_num": starting_block_num, "count": count}, api="block"
+            {"starting_block_num": starting_block_num, "count": count}
         )["blocks"]
 
-        super(Blocks, self).__init__(
+        super().__init__(
             [
                 Block(
                     x,
                     lazy=lazy,
                     full=full,
+                    only_ops=only_ops,
+                    only_virtual_ops=only_virtual_ops,
                     blockchain_instance=self.blockchain,
+                    **kwargs,
                 )
                 for x in blocks
             ]

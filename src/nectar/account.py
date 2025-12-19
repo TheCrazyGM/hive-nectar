@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
 import logging
 import math
 import random
-import warnings
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from prettytable import PrettyTable
 
@@ -19,10 +19,8 @@ from nectar.constants import (
 from nectar.instance import shared_blockchain_instance
 from nectar.rc import RC
 from nectarapi.exceptions import (
-    ApiNotSupported,
     FilteredItemNotFound,
     MissingRequiredActiveAuthority,
-    SupportedByHivemind,
 )
 from nectarbase import operations
 from nectargraphenebase.account import PasswordKey, PublicKey
@@ -35,14 +33,18 @@ from .utils import (
     addTzInfo,
     formatTimedelta,
     formatTimeString,
+    parse_time,
     remove_from_dict,
     reputation_to_score,
 )
 
+if TYPE_CHECKING:
+    from typing import Any
+
 log = logging.getLogger(__name__)
 
 
-def extract_account_name(account):
+def extract_account_name(account: str | Account | dict) -> str:
     if isinstance(account, str):
         return account
     elif isinstance(account, Account):
@@ -92,7 +94,14 @@ class Account(BlockchainObject):
 
     type_id = 2
 
-    def __init__(self, account, full=True, lazy=False, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        account: str | dict,
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance=None,
+        **kwargs,
+    ):
         """
         Create an Account wrapper for a blockchain account.
 
@@ -100,59 +109,26 @@ class Account(BlockchainObject):
             account (str | dict): Account name or raw account object/dict. If a dict is provided it will be parsed into the internal account representation.
             full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
             lazy (bool): If True, defer fetching/processing of some fields until needed.
-
-        Description:
-            Optionally accepts an explicit blockchain instance via the `blockchain_instance` argument; if not provided a shared instance is used. For backward compatibility the deprecated kwargs `steem_instance` and `hive_instance` are accepted (they emit a DeprecationWarning and are mapped to `blockchain_instance`), but specifying more than one legacy instance raises ValueError.
-
-        Returns:
-            None
         """
-        # Handle legacy parameters
-        legacy_keys = {"steem_instance", "hive_instance"}
-        legacy_instance = None
-        for key in legacy_keys:
-            if key in kwargs:
-                if legacy_instance is not None:
-                    raise ValueError(
-                        f"Cannot specify both {key} and another legacy instance parameter"
-                    )
-                legacy_instance = kwargs.pop(key)
-                warnings.warn(
-                    f"Parameter '{key}' is deprecated. Use 'blockchain_instance' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-        # Prefer explicit blockchain_instance, then legacy
-        if blockchain_instance is None and legacy_instance is not None:
-            blockchain_instance = legacy_instance
-
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(account, dict):
             account = self._parse_json_data(account)
-        super(Account, self).__init__(
-            account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
+        super().__init__(
+            account,
+            lazy=lazy,
+            full=full,
+            id_item="name",
+            blockchain_instance=self.blockchain,
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh/Obtain an account's data from the API server"""
         if not self.blockchain.is_connected():
             return
-        self.blockchain.rpc.set_next_node_on_empty_reply(self.blockchain.rpc.get_use_appbase())
-        if self.blockchain.rpc.get_use_appbase():
-            account = self.blockchain.rpc.find_accounts(
-                {"accounts": [self.identifier]}, api="database"
-            )
-        else:
-            if self.full:
-                account = self.blockchain.rpc.get_accounts([self.identifier], api="database")
-            else:
-                account = self.blockchain.rpc.lookup_account_names(
-                    [self.identifier], api="database"
-                )
-        if self.blockchain.rpc.get_use_appbase() and "accounts" in account:
+        account = self.blockchain.rpc.find_accounts({"accounts": [self.identifier]})
+        if "accounts" in account:
             account = account["accounts"]
         if account and isinstance(account, list) and len(account) == 1:
             account = account[0]
@@ -160,9 +136,8 @@ class Account(BlockchainObject):
             raise AccountDoesNotExistsException(self.identifier)
         account = self._parse_json_data(account)
         self.identifier = account["name"]
-        # self.blockchain.refresh_data()
 
-        super(Account, self).__init__(
+        super().__init__(
             account,
             id_item="name",
             lazy=self.lazy,
@@ -170,7 +145,7 @@ class Account(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, account):
+    def _parse_json_data(self, account: dict) -> dict:
         """
         Normalize and convert raw account JSON fields into proper Python types.
 
@@ -225,7 +200,7 @@ class Account(BlockchainObject):
         ]
         for p in parse_times:
             if p in account and isinstance(account.get(p), str):
-                account[p] = formatTimeString(account.get(p, "1970-01-01T00:00:00"))
+                account[p] = parse_time(account.get(p, "1970-01-01T00:00:00"))
         # Parse Amounts
         amounts = [
             "balance",
@@ -246,7 +221,7 @@ class Account(BlockchainObject):
                 account[p] = Amount(account[p], blockchain_instance=self.blockchain)
         return account
 
-    def json(self):
+    def json(self) -> dict:
         """
         Return a JSON-serializable representation of the account data with normalized field types.
 
@@ -328,19 +303,20 @@ class Account(BlockchainObject):
         for p in amounts:
             if p in output:
                 if p in output:
-                    output[p] = output.get(p).json()
+                    obj = output.get(p)
+                    if obj and hasattr(obj, "json"):
+                        output[p] = obj.json()
         return json.loads(str(json.dumps(output)))
 
-    def getSimilarAccountNames(self, limit=5):
+    def getSimilarAccountNames(self, limit: int = 5) -> list[str] | None:
         """Deprecated, please use get_similar_account_names"""
         return self.get_similar_account_names(limit=limit)
 
-    def get_rc(self):
-        """Return RC of account"""
-        b = Blockchain(blockchain_instance=self.blockchain)
-        return b.find_rc_accounts(self["name"])
+    def get_rc(self) -> dict[str, Any] | list[dict[str, Any]] | None:
+        """Return RC of account."""
+        return Blockchain(blockchain_instance=self.blockchain).find_rc_accounts(self["name"])
 
-    def get_rc_manabar(self):
+    def get_rc_manabar(self) -> dict[str, int | float | Amount]:
         """
         Return the account's current and maximum Resource Credit (RC) mana.
 
@@ -358,6 +334,17 @@ class Account(BlockchainObject):
             }
         """
         rc_param = self.get_rc()
+        if rc_param is None or (isinstance(rc_param, list) and len(rc_param) == 0):
+            return {
+                "last_mana": 0,
+                "last_update_time": 0,
+                "current_mana": 0,
+                "max_mana": 0,
+                "current_pct": 0,
+                "max_rc_creation_adjustment": Amount(0, blockchain_instance=self.blockchain),
+            }
+        if isinstance(rc_param, list):
+            rc_param = rc_param[0]
         max_mana = int(rc_param["max_rc"])
         last_mana = int(rc_param["rc_manabar"]["current_mana"])
         last_update_time = rc_param["rc_manabar"]["last_update_time"]
@@ -384,7 +371,7 @@ class Account(BlockchainObject):
             "max_rc_creation_adjustment": max_rc_creation_adjustment,
         }
 
-    def get_similar_account_names(self, limit=5):
+    def get_similar_account_names(self, limit: int = 5) -> list[str] | None:
         """Returns ``limit`` account names similar to the current account
         name as a list
 
@@ -401,12 +388,12 @@ class Account(BlockchainObject):
         return b.get_similar_account_names(self.name, limit=limit)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the account name"""
         return self["name"]
 
     @property
-    def profile(self):
+    def profile(self) -> dict:
         """Returns the account profile"""
         metadata = self.json_metadata
         if "profile" in metadata:
@@ -415,12 +402,12 @@ class Account(BlockchainObject):
             return {}
 
     @property
-    def rep(self):
+    def rep(self) -> float:
         """Returns the account reputation"""
         return self.get_reputation()
 
     @property
-    def sp(self):
+    def sp(self) -> Amount:
         """
         Return the account's Hive Power (HP).
 
@@ -429,28 +416,34 @@ class Account(BlockchainObject):
         return self.get_token_power()
 
     @property
-    def tp(self):
+    def tp(self) -> Amount:
         """Returns the account Hive Power"""
         return self.get_token_power()
 
     @property
-    def vp(self):
+    def vp(self) -> float:
         """Returns the account voting power in the range of 0-100%"""
         return self.get_voting_power()
 
     @property
-    def json_metadata(self):
+    def json_metadata(self) -> dict:
         if self["json_metadata"] == "":
             return {}
         return json.loads(self["json_metadata"])
 
     @property
-    def posting_json_metadata(self):
+    def posting_json_metadata(self) -> dict:
         if self["posting_json_metadata"] == "":
             return {}
         return json.loads(self["posting_json_metadata"])
 
-    def print_info(self, force_refresh=False, return_str=False, use_table=False, **kwargs):
+    def print_info(
+        self,
+        force_refresh: bool = False,
+        return_str: bool = False,
+        use_table: bool = False,
+        **kwargs,
+    ) -> str | None:
         """
         Print account summary information, either printed or returned as a string.
 
@@ -475,13 +468,19 @@ class Account(BlockchainObject):
             bandwidth is not None
             and bandwidth["allocated"] is not None
             and bandwidth["allocated"] > 0
+            and bandwidth["used"] is not None
         ):
             remaining = 100 - bandwidth["used"] / bandwidth["allocated"] * 100
             used_kb = bandwidth["used"] / 1024
             allocated_mb = bandwidth["allocated"] / 1024 / 1024
-        last_vote_time_str = formatTimedelta(
-            addTzInfo(datetime.now(timezone.utc)) - self["last_vote_time"]
-        )
+        last_vote_raw = self["last_vote_time"]
+        if isinstance(last_vote_raw, str):
+            last_vote_dt = datetime.strptime(last_vote_raw, "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+        else:
+            last_vote_dt = addTzInfo(last_vote_raw)
+        last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
         try:
             rc_mana = self.get_rc_manabar()
             rc = self.get_rc()
@@ -500,13 +499,19 @@ class Account(BlockchainObject):
             t.add_row(["Last vote", "%s ago" % last_vote_time_str])
             t.add_row(["Full in ", "%s" % (self.get_recharge_time_str())])
             t.add_row(
-                ["Token Power", "%.2f %s" % (self.get_token_power(), self.blockchain.token_symbol)]
+                [
+                    "Token Power",
+                    "{:.2f} {}".format(self.get_token_power(), self.blockchain.token_symbol),
+                ]
             )
             t.add_row(
                 [
                     "Balance",
                     "%s, %s"
-                    % (str(self.balances["available"][0]), str(self.balances["available"][1])),
+                    % (
+                        str(self.balances["available"][0]),
+                        str(self.balances["available"][1]),
+                    ),
                 ]
             )
             if (
@@ -517,47 +522,116 @@ class Account(BlockchainObject):
             ):
                 t.add_row(["Remaining Bandwidth", "%.2f %%" % (remaining)])
                 t.add_row(
-                    ["used/allocated Bandwidth", "(%.0f kb of %.0f mb)" % (used_kb, allocated_mb)]
+                    [
+                        "used/allocated Bandwidth",
+                        "({:.0f} kb of {:.0f} mb)".format(used_kb, allocated_mb),
+                    ]
                 )
             if rc_mana is not None:
-                estimated_rc = int(rc["max_rc"]) * rc_mana["current_pct"] / 100
+                if isinstance(rc, dict):
+                    max_rc = rc.get("max_rc", 0)
+                elif rc and isinstance(rc, list) and len(rc) > 0:
+                    max_rc = rc[0].get("max_rc", 0)
+                else:
+                    max_rc = 0
+                if isinstance(max_rc, dict):
+                    max_rc = max_rc.get("amount", 0)
+                estimated_rc = int(max_rc) * float(rc_mana["current_pct"]) / 100
                 t.add_row(["Remaining RC", "%.2f %%" % (rc_mana["current_pct"])])
                 t.add_row(
                     [
                         "Remaining RC",
-                        "(%.0f G RC of %.0f G RC)"
-                        % (estimated_rc / 10**9, int(rc["max_rc"]) / 10**9),
+                        "({:.0f} G RC of {:.0f} G RC)".format(
+                            estimated_rc / 10**9, int(max_rc) / 10**9
+                        ),
                     ]
                 )
                 t.add_row(["Full in ", "%s" % (self.get_manabar_recharge_time_str(rc_mana))])
-                t.add_row(["Est. RC for a comment", "%.2f G RC" % (rc_calc.comment() / 10**9)])
-                t.add_row(["Est. RC for a vote", "%.2f G RC" % (rc_calc.vote() / 10**9)])
-                t.add_row(["Est. RC for a transfer", "%.2f G RC" % (rc_calc.transfer() / 10**9)])
-                t.add_row(
-                    ["Est. RC for a custom_json", "%.2f G RC" % (rc_calc.custom_json() / 10**9)]
-                )
+                if rc_calc is not None:
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values for division
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
+                    )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
+                    t.add_row(["Est. RC for a comment", "%.2f G RC" % (comment_val / 10**9)])
+                    t.add_row(["Est. RC for a vote", "%.2f G RC" % (vote_val / 10**9)])
+                    t.add_row(["Est. RC for a transfer", "%.2f G RC" % (transfer_val / 10**9)])
+                    t.add_row(
+                        [
+                            "Est. RC for a custom_json",
+                            "%.2f G RC" % (custom_json_val / 10**9),
+                        ]
+                    )
 
-                t.add_row(
-                    [
-                        "Comments with current RC",
-                        "%d comments" % (int(estimated_rc / rc_calc.comment())),
-                    ]
-                )
-                t.add_row(
-                    ["Votes with current RC", "%d votes" % (int(estimated_rc / rc_calc.vote()))]
-                )
-                t.add_row(
-                    [
-                        "Transfer with current RC",
-                        "%d transfers" % (int(estimated_rc / rc_calc.transfer())),
-                    ]
-                )
-                t.add_row(
-                    [
-                        "Custom_json with current RC",
-                        "%d transfers" % (int(estimated_rc / rc_calc.custom_json())),
-                    ]
-                )
+                if estimated_rc is not None and rc_calc is not None:
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values from cost dictionaries if needed
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
+                    )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
+                    t.add_row(
+                        [
+                            "Comments with current RC",
+                            "%d comments"
+                            % (int(estimated_rc / comment_val) if comment_val > 0 else 0),
+                        ]
+                    )
+                    t.add_row(
+                        [
+                            "Votes with current RC",
+                            "%d votes" % (int(estimated_rc / vote_val) if vote_val > 0 else 0),
+                        ]
+                    )
+                    t.add_row(
+                        [
+                            "Transfers with current RC",
+                            "%d transfers"
+                            % (int(estimated_rc / transfer_val) if transfer_val > 0 else 0),
+                        ]
+                    )
+                    t.add_row(
+                        [
+                            "Custom json with current RC",
+                            "%d json ops"
+                            % (int(estimated_rc / custom_json_val) if custom_json_val > 0 else 0),
+                        ]
+                    )
 
             if return_str:
                 return t.get_string(**kwargs)
@@ -573,45 +647,77 @@ class Account(BlockchainObject):
             ret += "%.2f %% \n" % (self.get_downvoting_power())
             ret += "--- Balance ---\n"
             ret += "%.2f HP, " % (self.get_token_power())
-            ret += "%s, %s\n" % (
+            ret += "{}, {}\n".format(
                 str(self.balances["available"][0]),
                 str(self.balances["available"][1]),
             )
             if False and bandwidth["allocated"] > 0:
                 ret += "--- Bandwidth ---\n"
                 ret += "Remaining: %.2f %%" % (remaining)
-                ret += " (%.0f kb of %.0f mb)\n" % (used_kb, allocated_mb)
+                ret += " ({:.0f} kb of {:.0f} mb)\n".format(used_kb, allocated_mb)
             if rc_mana is not None:
-                estimated_rc = int(rc["max_rc"]) * rc_mana["current_pct"] / 100
+                if isinstance(rc, dict):
+                    max_rc = rc.get("max_rc", 0)
+                elif rc and isinstance(rc, list) and len(rc) > 0:
+                    max_rc = rc[0].get("max_rc", 0)
+                else:
+                    max_rc = 0
+                if isinstance(max_rc, dict):
+                    max_rc = max_rc.get("amount", 0)
+                estimated_rc = int(max_rc) * float(rc_mana["current_pct"]) / 100
                 ret += "--- RC manabar ---\n"
                 ret += "Remaining: %.2f %%" % (rc_mana["current_pct"])
-                ret += " (%.0f G RC of %.0f G RC)\n" % (
+                ret += " ({:.0f} G RC of {:.0f} G RC)\n".format(
                     estimated_rc / 10**9,
-                    int(rc["max_rc"]) / 10**9,
+                    int(max_rc) / 10**9,
                 )
                 ret += "full in %s\n" % (self.get_manabar_recharge_time_str(rc_mana))
                 ret += "--- Approx Costs ---\n"
-                ret += "comment - %.2f G RC - enough RC for %d comments\n" % (
-                    rc_calc.comment() / 10**9,
-                    int(estimated_rc / rc_calc.comment()),
-                )
-                ret += "vote - %.2f G RC - enough RC for %d votes\n" % (
-                    rc_calc.vote() / 10**9,
-                    int(estimated_rc / rc_calc.vote()),
-                )
-                ret += "transfer - %.2f G RC - enough RC for %d transfers\n" % (
-                    rc_calc.transfer() / 10**9,
-                    int(estimated_rc / rc_calc.transfer()),
-                )
-                ret += "custom_json - %.2f G RC - enough RC for %d custom_json\n" % (
-                    rc_calc.custom_json() / 10**9,
-                    int(estimated_rc / rc_calc.custom_json()),
-                )
+                if rc_calc is not None:
+                    comment_cost = rc_calc.comment()
+                    vote_cost = rc_calc.vote()
+                    transfer_cost = rc_calc.transfer()
+                    custom_json_cost = rc_calc.custom_json()
+                    # Extract numeric values for division
+                    comment_val = (
+                        comment_cost.get("amount", 0)
+                        if isinstance(comment_cost, dict)
+                        else comment_cost
+                    )
+                    vote_val = (
+                        vote_cost.get("amount", 0) if isinstance(vote_cost, dict) else vote_cost
+                    )
+                    transfer_val = (
+                        transfer_cost.get("amount", 0)
+                        if isinstance(transfer_cost, dict)
+                        else transfer_cost
+                    )
+                    custom_json_val = (
+                        custom_json_cost.get("amount", 0)
+                        if isinstance(custom_json_cost, dict)
+                        else custom_json_cost
+                    )
+                    ret += "comment - %.2f G RC - enough RC for %d comments\n" % (
+                        comment_val / 10**9,
+                        int(estimated_rc / comment_val) if comment_val > 0 else 0,
+                    )
+                    ret += "vote - %.2f G RC - enough RC for %d votes\n" % (
+                        vote_val / 10**9,
+                        int(estimated_rc / vote_val) if vote_val > 0 else 0,
+                    )
+                    ret += "transfer - %.2f G RC - enough RC for %d transfers\n" % (
+                        transfer_val / 10**9,
+                        int(estimated_rc / transfer_val) if transfer_val > 0 else 0,
+                    )
+                    ret += "custom_json - %.2f G RC - enough RC for %d custom_json\n" % (
+                        custom_json_val / 10**9,
+                        int(estimated_rc / custom_json_val) if custom_json_val > 0 else 0,
+                    )
             if return_str:
                 return ret
             print(ret)
 
-    def get_reputation(self):
+    def get_reputation(self) -> float:
         """
         Return the account's normalized reputation score.
 
@@ -628,12 +734,14 @@ class Account(BlockchainObject):
         if rep_data is not None:
             # Handle both dict and direct responses
             try:
-                if isinstance(rep_data, dict) and "reputation" in rep_data:
-                    return float(rep_data["reputation"])
+                if isinstance(rep_data, dict):
+                    if "reputation" in rep_data:
+                        return float(rep_data["reputation"])
+                    # Unknown dict shape; fall through to cached field.
                 elif isinstance(rep_data, (int, float)):
                     return float(rep_data)
                 else:
-                    # Try to convert to float if it's a string
+                    # Try to convert to float if it's a string-like
                     return float(rep_data)
             except (ValueError, TypeError, KeyError) as e:
                 log.warning(f"Failed to parse reputation data from HAF for {self['name']}: {e}")
@@ -651,7 +759,7 @@ class Account(BlockchainObject):
             log.warning(f"No reputation data available for {self['name']}")
             return reputation_to_score(0)
 
-    def get_manabar(self):
+    def get_manabar(self) -> dict[str, int | float | Amount]:
         """
         Return the account's voting manabar state.
 
@@ -682,16 +790,14 @@ class Account(BlockchainObject):
         last_mana = int(self["voting_manabar"]["current_mana"])
         last_update_time = self["voting_manabar"]["last_update_time"]
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
-        diff_in_seconds = (
-            addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
-        ).total_seconds()
+        diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
             last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
         if max_mana > 0:
-            current_mana_pct = current_mana / max_mana * 100
+            current_mana_pct = float(current_mana) / float(max_mana) * 100
         else:
             current_mana_pct = 0
         return {
@@ -702,7 +808,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_downvote_manabar(self):
+    def get_downvote_manabar(self) -> dict[str, int | float | Amount] | None:
         """
         Return the account's downvote manabar state and regeneration progress.
 
@@ -728,16 +834,14 @@ class Account(BlockchainObject):
         last_mana = int(self["downvote_manabar"]["current_mana"])
         last_update_time = self["downvote_manabar"]["last_update_time"]
         last_update = datetime.fromtimestamp(last_update_time, tz=timezone.utc)
-        diff_in_seconds = (
-            addTzInfo(datetime.now(timezone.utc)) - addTzInfo(last_update)
-        ).total_seconds()
+        diff_in_seconds = (datetime.now(timezone.utc) - last_update).total_seconds()
         current_mana = int(
             last_mana + diff_in_seconds * max_mana / HIVE_VOTING_MANA_REGENERATION_SECONDS
         )
         if current_mana > max_mana:
             current_mana = max_mana
         if max_mana > 0:
-            current_mana_pct = current_mana / max_mana * 100
+            current_mana_pct = float(current_mana) / float(max_mana) * 100
         else:
             current_mana_pct = 0
         return {
@@ -748,7 +852,7 @@ class Account(BlockchainObject):
             "current_mana_pct": current_mana_pct,
         }
 
-    def get_voting_power(self, with_regeneration=True):
+    def get_voting_power(self, with_regeneration: bool = True) -> float:
         """
         Return the account's current voting power as a percentage (0–100).
 
@@ -766,15 +870,13 @@ class Account(BlockchainObject):
                 total_vp = manabar["current_mana_pct"]
             else:
                 if manabar["max_mana"] > 0:
-                    total_vp = manabar["last_mana"] / manabar["max_mana"] * 100
+                    total_vp = float(manabar["last_mana"]) / float(manabar["max_mana"]) * 100
                 else:
                     total_vp = 0
         elif "voting_power" in self:
             if with_regeneration:
                 last_vote_time = self["last_vote_time"]
-                diff_in_seconds = (
-                    addTzInfo(datetime.now(timezone.utc)) - (last_vote_time)
-                ).total_seconds()
+                diff_in_seconds = (datetime.now(timezone.utc) - (last_vote_time)).total_seconds()
                 regenerated_vp = (
                     diff_in_seconds * HIVE_100_PERCENT / HIVE_VOTE_REGENERATION_SECONDS / 100
                 )
@@ -782,12 +884,12 @@ class Account(BlockchainObject):
                 regenerated_vp = 0
             total_vp = self["voting_power"] / 100 + regenerated_vp
         if total_vp > 100:
-            return 100
+            return 100.0
         if total_vp < 0:
-            return 0
-        return total_vp
+            return 0.0
+        return float(total_vp)
 
-    def get_downvoting_power(self, with_regeneration=True):
+    def get_downvoting_power(self, with_regeneration: bool = True) -> float:
         """Returns the account downvoting power in the range of 0-100%
 
         :param bool with_regeneration: When True, downvoting power regeneration is
@@ -797,20 +899,22 @@ class Account(BlockchainObject):
             return 0
 
         manabar = self.get_downvote_manabar()
+        if manabar is None:
+            return 0.0
         if with_regeneration:
             total_down_vp = manabar["current_mana_pct"]
         else:
             if manabar["max_mana"] > 0:
-                total_down_vp = manabar["last_mana"] / manabar["max_mana"] * 100
+                total_down_vp = float(manabar["last_mana"]) / float(manabar["max_mana"]) * 100
             else:
                 total_down_vp = 0
         if total_down_vp > 100:
-            return 100
+            return 100.0
         if total_down_vp < 0:
-            return 0
-        return total_down_vp
+            return 0.0
+        return float(total_down_vp)
 
-    def get_vests(self, only_own_vests=False):
+    def get_vests(self, only_own_vests: bool = False) -> Amount:
         """Returns the account vests
 
         :param bool only_own_vests: When True, only owned vests is
@@ -826,7 +930,7 @@ class Account(BlockchainObject):
 
         return vests
 
-    def get_effective_vesting_shares(self):
+    def get_effective_vesting_shares(self) -> int:
         """
         Return the account's effective vesting shares as an integer.
 
@@ -846,9 +950,25 @@ class Account(BlockchainObject):
                 - int(self["delegated_vesting_shares"])
                 + int(self["received_vesting_shares"])
             )
-        timestamp = (
-            self["next_vesting_withdrawal"] - addTzInfo(datetime(1970, 1, 1))
-        ).total_seconds()
+        next_withdraw = self["next_vesting_withdrawal"]
+        if next_withdraw is None:
+            return vesting_shares
+        if isinstance(next_withdraw, str):
+            next_withdraw_dt = datetime.strptime(next_withdraw, "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+        elif isinstance(next_withdraw, (datetime, date, time)):
+            next_withdraw_dt = addTzInfo(next_withdraw)
+            if next_withdraw_dt is None:
+                return vesting_shares
+            # Ensure we have a datetime object for the subtraction
+            if not isinstance(next_withdraw_dt, datetime):
+                next_withdraw_dt = datetime.combine(next_withdraw_dt, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
+        else:
+            return vesting_shares
+        timestamp = (next_withdraw_dt - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds()
         if (
             timestamp > 0
             and "vesting_withdraw_rate" in self
@@ -861,7 +981,7 @@ class Account(BlockchainObject):
             )
         return vesting_shares
 
-    def get_token_power(self, only_own_vests=False, use_stored_data=True):
+    def get_token_power(self, only_own_vests: bool = False, use_stored_data: bool = True) -> Amount:
         """
         Return the account's Hive Power (HP), including staked tokens and delegated amounts.
 
@@ -873,17 +993,18 @@ class Account(BlockchainObject):
             float: Hive Power (HP) equivalent for the account's vesting shares.
         """
         return self.blockchain.vests_to_token_power(
-            self.get_vests(only_own_vests=only_own_vests), use_stored_data=use_stored_data
+            self.get_vests(only_own_vests=only_own_vests),
+            use_stored_data=use_stored_data,
         )
 
     def get_voting_value(
         self,
-        post_rshares=0,
-        voting_weight=100,
-        voting_power=None,
-        token_power=None,
-        not_broadcasted_vote=True,
-    ):
+        post_rshares: int = 0,
+        voting_weight: int | float = 100,
+        voting_power: int | float | None = None,
+        token_power: int | float | None = None,
+        not_broadcasted_vote: bool = True,
+    ) -> Amount:
         """
         Estimate the vote value expressed in HBD for a potential vote by this account.
 
@@ -948,7 +1069,12 @@ class Account(BlockchainObject):
         )
 
     def get_vote_pct_for_HBD(
-        self, hbd, post_rshares=0, voting_power=None, hive_power=None, not_broadcasted_vote=True
+        self,
+        hbd,
+        post_rshares=0,
+        voting_power=None,
+        hive_power=None,
+        not_broadcasted_vote=True,
     ):
         """
         Return the voting percentage (weight) required for this account to produce a vote worth the given HBD amount.
@@ -973,12 +1099,12 @@ class Account(BlockchainObject):
 
     def get_vote_pct_for_vote_value(
         self,
-        token_units,
-        post_rshares=0,
-        voting_power=None,
-        token_power=None,
-        not_broadcasted_vote=True,
-    ):
+        token_units: int | float | Amount,
+        post_rshares: int = 0,
+        voting_power: int | float | None = None,
+        token_power: int | float | None = None,
+        not_broadcasted_vote: bool = True,
+    ) -> float:
         """
         Return the voting percentage required to produce a specified vote value in the blockchain's backed token (HBD).
 
@@ -1000,7 +1126,8 @@ class Account(BlockchainObject):
         if voting_power is None:
             voting_power = self.get_voting_power()
         if token_power is None:
-            token_power = self.get_token_power()
+            token_power_amount = self.get_token_power()
+            token_power = float(token_power_amount) if token_power_amount else 0.0
 
         if isinstance(token_units, Amount):
             desired_value = Amount(token_units, blockchain_instance=self.blockchain)
@@ -1040,7 +1167,7 @@ class Account(BlockchainObject):
         vote_pct = int(round(ratio * HIVE_100_PERCENT))
         return vote_pct
 
-    def get_creator(self):
+    def get_creator(self) -> str | None:
         """Returns the account creator or `None` if the account was mined"""
         if self["mined"]:
             return None
@@ -1049,7 +1176,9 @@ class Account(BlockchainObject):
             return None
         return ops[-1]["creator"]
 
-    def get_recharge_time_str(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_time_str(
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
+    ) -> str:
         """Returns the account recharge time as string
 
         :param float voting_power_goal: voting power goal in percentage (default is 100)
@@ -1058,11 +1187,14 @@ class Account(BlockchainObject):
 
         """
         remainingTime = self.get_recharge_timedelta(
-            voting_power_goal=voting_power_goal, starting_voting_power=starting_voting_power
+            voting_power_goal=voting_power_goal,
+            starting_voting_power=starting_voting_power,
         )
         return formatTimedelta(remainingTime)
 
-    def get_recharge_timedelta(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_timedelta(
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
+    ) -> timedelta:
         """
         Return the timedelta required to recharge the account's voting power to a target percentage.
 
@@ -1089,13 +1221,15 @@ class Account(BlockchainObject):
         else:
             raise ValueError("starting_voting_power must be a number.")
         if missing_vp < 0:
-            return 0
+            return timedelta(0)
         recharge_seconds = (
             missing_vp * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
-    def get_recharge_time(self, voting_power_goal=100, starting_voting_power=None):
+    def get_recharge_time(
+        self, voting_power_goal: float = 100, starting_voting_power: float | None = None
+    ) -> datetime:
         """Returns the account voting power recharge time in minutes
 
         :param float voting_power_goal: voting power goal in percentage (default is 100)
@@ -1103,11 +1237,13 @@ class Account(BlockchainObject):
             the provided value.
 
         """
-        return addTzInfo(datetime.now(timezone.utc)) + self.get_recharge_timedelta(
+        return datetime.now(timezone.utc) + self.get_recharge_timedelta(
             voting_power_goal, starting_voting_power
         )
 
-    def get_manabar_recharge_time_str(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_time_str(
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
+    ) -> str:
         """Returns the account manabar recharge time as string
 
         :param dict manabar: manabar dict from get_manabar() or get_rc_manabar()
@@ -1119,7 +1255,9 @@ class Account(BlockchainObject):
         )
         return formatTimedelta(remainingTime)
 
-    def get_manabar_recharge_timedelta(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_timedelta(
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
+    ) -> timedelta:
         """
         Return the time remaining for a manabar to recharge to a target percentage.
 
@@ -1137,13 +1275,15 @@ class Account(BlockchainObject):
         else:
             missing_rc_pct = recharge_pct_goal - manabar["current_pct"]
         if missing_rc_pct < 0:
-            return 0
+            return timedelta(0)
         recharge_seconds = (
             missing_rc_pct * 100 * HIVE_VOTING_MANA_REGENERATION_SECONDS / HIVE_100_PERCENT
         )
         return timedelta(seconds=recharge_seconds)
 
-    def get_manabar_recharge_time(self, manabar, recharge_pct_goal=100):
+    def get_manabar_recharge_time(
+        self, manabar: dict[str, Any], recharge_pct_goal: float = 100
+    ) -> datetime:
         """
         Return the UTC datetime when the given manabar will reach the specified recovery percentage.
 
@@ -1155,11 +1295,56 @@ class Account(BlockchainObject):
         Returns:
             datetime: Timezone-aware UTC datetime when the manabar is expected to reach the target percentage.
         """
-        return addTzInfo(datetime.now(timezone.utc)) + self.get_manabar_recharge_timedelta(
+        return datetime.now(timezone.utc) + self.get_manabar_recharge_timedelta(
             manabar, recharge_pct_goal
         )
 
-    def get_feed_entries(self, start_entry_id=0, limit=100, raw_data=True, account=None):
+    def get_feed(
+        self,
+        start_entry_id: int = 0,
+        limit: int = 100,
+        raw_data: bool = False,
+        short_entries: bool = False,
+        account=None,
+    ):
+        """
+        Return the feed entries for an account.
+
+        By default this returns a list of Comment objects for the account's feed. If raw_data=True the raw API dicts are returned instead. When both raw_data and short_entries are True the `get_feed_entries` API is used (returns shorter entry objects). If account is None the current Account's name is used.
+
+        Parameters:
+            start_entry_id (int): ID offset to start from (default 0).
+            limit (int): Maximum number of entries to return (default 100, max 100).
+            raw_data (bool): If True, return raw API dictionaries instead of Comment objects.
+            short_entries (bool): If True, use get_feed_entries API (shorter entries).
+            account (str, optional): Override account name to fetch feed for (default uses this Account).
+
+        Returns:
+            list: A list of feed entries (Comment objects or raw dicts depending on `raw_data`).
+        """
+        if short_entries or raw_data:
+            return self.get_feed_entries(
+                start_entry_id=start_entry_id,
+                limit=limit,
+                raw_data=raw_data,
+                account=account,
+            )
+        else:
+            return self.get_account_posts(
+                sort="feed",
+                limit=limit,
+                account=account,
+                observer=self["name"],
+                raw_data=raw_data,
+            )
+
+    def get_feed_entries(
+        self,
+        start_entry_id: int = 0,
+        limit: int = 100,
+        raw_data: bool = True,
+        account=None,
+    ):
         """
         Return a list of feed entries for the account.
 
@@ -1182,7 +1367,13 @@ class Account(BlockchainObject):
             account=account,
         )
 
-    def get_blog_entries(self, start_entry_id=0, limit=50, raw_data=True, account=None):
+    def get_blog_entries(
+        self,
+        start_entry_id: int = 0,
+        limit: int = 50,
+        raw_data: bool = True,
+        account=None,
+    ):
         """
         Return the account's blog entries.
 
@@ -1212,7 +1403,12 @@ class Account(BlockchainObject):
         )
 
     def get_blog(
-        self, start_entry_id=0, limit=50, raw_data=False, short_entries=False, account=None
+        self,
+        start_entry_id=0,
+        limit=50,
+        raw_data=False,
+        short_entries=False,
+        account=None,
     ):
         """
         Return the blog entries for an account.
@@ -1245,73 +1441,51 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        success = True
 
-        def _extract_blog_items(payload):
+        def _extract_blog_items(payload: Any) -> Any:
             if isinstance(payload, dict):
                 for key in ("blog", "blog_entries", "result"):
                     if key in payload:
                         return payload[key]
             return payload
 
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                if raw_data and short_entries:
-                    ret = self.blockchain.rpc.get_blog_entries(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [c for c in ret]
-                elif raw_data:
-                    ret = self.blockchain.rpc.get_blog(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [c for c in ret]
-                else:
-                    from .comment import Comment
-
-                    ret = self.blockchain.rpc.get_blog(
-                        {"account": account, "start_entry_id": start_entry_id, "limit": limit},
-                        api="condenser",
-                    )
-                    ret = _extract_blog_items(ret)
-                    return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
-            except Exception:
-                success = False
-
-        if not self.blockchain.rpc.get_use_appbase() or not success:
+        try:
             if raw_data and short_entries:
-                return [
-                    c
-                    for c in self.blockchain.rpc.get_blog_entries(
-                        account, start_entry_id, limit, api="condenser"
-                    )
-                ]
-
+                ret = self.blockchain.rpc.get_blog_entries(
+                    account,
+                    start_entry_id,
+                    limit,
+                )
+                ret = _extract_blog_items(ret)
+                return [c for c in ret]
             elif raw_data:
-                return [
-                    c
-                    for c in self.blockchain.rpc.get_blog(
-                        account, start_entry_id, limit, api="condenser"
-                    )
-                ]
-
+                ret = self.blockchain.rpc.get_blog(
+                    account,
+                    start_entry_id,
+                    limit,
+                )
+                ret = _extract_blog_items(ret)
+                return [c for c in ret]
             else:
                 from .comment import Comment
 
-                blog_list = self.blockchain.rpc.get_blog(
-                    account, start_entry_id, limit, api="condenser"
+                ret = self.blockchain.rpc.get_blog(
+                    account,
+                    start_entry_id,
+                    limit,
                 )
-                if blog_list is None:
-                    return []
-                return [
-                    Comment(c["comment"], blockchain_instance=self.blockchain) for c in blog_list
-                ]
+                ret = _extract_blog_items(ret)
+                return [Comment(c["comment"], blockchain_instance=self.blockchain) for c in ret]
+        except Exception:
+            return []
 
-    def get_notifications(self, only_unread=True, limit=100, raw_data=False, account=None):
+    def get_notifications(
+        self,
+        only_unread: bool = True,
+        limit: int | None = 100,
+        raw_data: bool = False,
+        account=None,
+    ):
         """Returns account notifications
 
         :param bool only_unread: When True, only unread notfications are shown
@@ -1327,9 +1501,7 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if only_unread:
-            unread_notes = self.blockchain.rpc.unread_notifications(
-                {"account": account}, api="bridge"
-            )
+            unread_notes = self.blockchain.rpc.unread_notifications({"account": account})
             if unread_notes is None:
                 return []
             if limit is None or limit > unread_notes["unread"]:
@@ -1339,7 +1511,7 @@ class Account(BlockchainObject):
         if limit > 100:
             limit = 100
         notifications = self.blockchain.rpc.account_notifications(
-            {"account": account, "limit": limit}, api="bridge"
+            {"account": account, "limit": limit}
         )
         if raw_data:
             return notifications
@@ -1349,7 +1521,9 @@ class Account(BlockchainObject):
             ret.append(note)
         return ret
 
-    def mark_notifications_as_read(self, last_read=None, account=None):
+    def mark_notifications_as_read(
+        self, last_read: str | None = None, account: str | None = None
+    ) -> dict[str, Any]:
         """Broadcast a mark all notification as read custom_json
 
         :param str last_read: When set, this datestring is used to set the mark as read date
@@ -1366,18 +1540,25 @@ class Account(BlockchainObject):
             last_notification = self.get_notifications(only_unread=False, limit=1, account=account)
             if len(last_notification) == 0:
                 raise ValueError("Notification list is empty")
-            last_read = datetime.now(timezone.utc)
-        if isinstance(last_read, datetime):
-            last_read = formatTimeString(last_read)
+            last_read_dt = datetime.now(timezone.utc)
+        else:
+            last_read_dt = (
+                addTzInfo(last_read) if isinstance(last_read, (datetime, date, time)) else None
+            )
+        if last_read_dt is None:
+            # if provided as string, trust it; otherwise format our datetime
+            last_read_str = str(last_read)
+        else:
+            last_read_str = formatTimeString(last_read_dt)
         json_body = [
             "setLastRead",
             {
-                "date": last_read,
+                "date": last_read_str,
             },
         ]
         return self.blockchain.custom_json("notify", json_body, required_posting_auths=[account])
 
-    def get_blog_authors(self, account=None):
+    def get_blog_authors(self, account: str | None = None) -> list[str]:
         """
         Return a list of author account names whose posts have been reblogged on the specified blog account.
 
@@ -1389,21 +1570,12 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                return self.blockchain.rpc.get_blog_authors(
-                    {"blog_account": account}, api="condenser"
-                )["blog_authors"]
-            except Exception:
-                return self.blockchain.rpc.get_blog_authors(
-                    {"blog_account": account}, api="condenser"
-                )["blog_authors"]
-        else:
-            return self.blockchain.rpc.get_blog_authors({"blog_account": account}, api="condenser")[
-                "blog_authors"
-            ]
+        result = self.blockchain.rpc.get_blog_authors({"blog_account": account})
+        if isinstance(result, dict) and "blog_authors" in result:
+            return result["blog_authors"]
+        return []
 
-    def get_follow_count(self, account=None):
+    def get_follow_count(self, account: str | None = None) -> dict[str, Any]:
         """get_follow_count"""
         if account is None:
             account = self["name"]
@@ -1411,15 +1583,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            try:
-                return self.blockchain.rpc.get_follow_count({"account": account}, api="condenser")
-            except Exception:
-                return self.blockchain.rpc.get_follow_count(account, api="condenser")
-        else:
-            return self.blockchain.rpc.get_follow_count(account, api="condenser")
+        return self.blockchain.rpc.get_follow_count(account)
 
-    def get_followers(self, raw_name_list=True, limit=100):
+    def get_followers(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns the account followers as list"""
         name_list = [x["follower"] for x in self._get_followers(direction="follower", limit=limit)]
         if raw_name_list:
@@ -1427,7 +1593,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_following(self, raw_name_list=True, limit=100):
+    def get_following(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns who the account is following as list"""
         name_list = [
             x["following"] for x in self._get_followers(direction="following", limit=limit)
@@ -1437,7 +1603,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_muters(self, raw_name_list=True, limit=100):
+    def get_muters(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """Returns the account muters as list"""
         name_list = [
             x["follower"]
@@ -1448,7 +1614,7 @@ class Account(BlockchainObject):
         else:
             return Accounts(name_list, blockchain_instance=self.blockchain)
 
-    def get_mutings(self, raw_name_list=True, limit=100):
+    def get_mutings(self, raw_name_list: bool = True, limit: int = 100) -> list[str] | Accounts:
         """
         Return the list of accounts this account has muted.
 
@@ -1471,9 +1637,9 @@ class Account(BlockchainObject):
     def get_follow_list(
         self,
         follow_type: str,
-        starting_account: Optional[str] = None,
+        starting_account: str | None = None,
         raw_name_list: bool = True,
-    ) -> Union[List[Dict[str, Any]], "Accounts"]:
+    ) -> list[dict[str, Any]] | Accounts:
         """
         Return the account follow list for a given follow_type (requires Hive HF >= 24).
 
@@ -1517,17 +1683,23 @@ class Account(BlockchainObject):
         if starting_account is not None:
             query["start"] = starting_account
 
-        followers = self.blockchain.rpc.get_follow_list(query, api="bridge")
+            followers = self.blockchain.rpc.get_follow_list(query)
 
-        name_list: List[Dict[str, Any]] = followers or []
+        name_list: list[dict[str, Any]] = followers or []
         if raw_name_list:
             return name_list
         else:
             # Convert list of dicts to list of account names for Accounts initializer
-            account_names: List[str] = [x["name"] for x in name_list if "name" in x]
+            account_names: list[str] = [x["name"] for x in name_list if "name" in x]
             return Accounts(account_names, blockchain_instance=self.blockchain)
 
-    def _get_followers(self, direction="follower", last_user="", what="blog", limit=100):
+    def _get_followers(
+        self,
+        direction: str = "follower",
+        last_user: str = "",
+        what: str = "blog",
+        limit: int = 100,
+    ) -> list[dict]:
         """
         Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
 
@@ -1552,45 +1724,16 @@ class Account(BlockchainObject):
         cnt = 0
         while limit_reached:
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.rpc.get_use_appbase():
-                query = {"account": self.name, "start": last_user, "type": what, "limit": limit}
-                if direction == "follower":
-                    try:
-                        followers = self.blockchain.rpc.get_followers(query, api="condenser")
-                    except Exception:
-                        followers = self.blockchain.rpc.get_followers(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    if isinstance(followers, dict) and "followers" in followers:
-                        followers = followers["followers"]
-                elif direction == "following":
-                    try:
-                        followers = self.blockchain.rpc.get_following(query, api="condenser")
-                    except Exception:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    if isinstance(followers, dict) and "following" in followers:
-                        followers = followers["following"]
-            else:
-                if direction == "follower":
-                    try:
-                        followers = self.blockchain.rpc.get_followers(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    except Exception:
-                        followers = self.blockchain.rpc.get_followers(
-                            [self.name, last_user, what, limit], api="condenser"
-                        )
-                elif direction == "following":
-                    try:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
-                    except Exception:
-                        followers = self.blockchain.rpc.get_following(
-                            self.name, last_user, what, limit, api="condenser"
-                        )
+            query = (self.name, last_user, what, limit)
+            if direction == "follower":
+                followers = self.blockchain.rpc.get_followers(*query)
+                if isinstance(followers, dict) and "followers" in followers:
+                    followers = followers["followers"]
+            elif direction == "following":
+                followers = self.blockchain.rpc.get_following(*query)
+                if isinstance(followers, dict) and "following" in followers:
+                    followers = followers["following"]
+
             if cnt == 0:
                 followers_list = followers
             elif followers is not None and len(followers) > 1:
@@ -1604,7 +1747,7 @@ class Account(BlockchainObject):
 
         return followers_list
 
-    def list_all_subscriptions(self, account=None):
+    def list_all_subscriptions(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns all subscriptions"""
         if account is None:
             account = self["name"]
@@ -1612,14 +1755,24 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        subscriptions = self.blockchain.rpc.list_all_subscriptions(
-            {"account": account}, api="bridge"
-        )
-        if subscriptions is None:
+        try:
+            subscriptions = self.blockchain.rpc.list_all_subscriptions({"account": account})
+            if subscriptions is None:
+                return []
+            return subscriptions
+        except Exception:
+            # The list_all_subscriptions API might not be supported on all nodes
+            # Return empty list as fallback
             return []
-        return subscriptions
 
-    def get_account_posts(self, sort="feed", limit=20, account=None, observer=None, raw_data=False):
+    def get_account_posts(
+        self,
+        sort: str = "feed",
+        limit: int = 20,
+        account: str | None = None,
+        observer: str | None = None,
+        raw_data: bool = False,
+    ) -> Any:
         """Returns account feed"""
         if account is None:
             account = self["name"]
@@ -1633,7 +1786,7 @@ class Account(BlockchainObject):
         return AccountPosts(sort, account, observer=observer, limit=limit, raw_data=raw_data)
 
     @property
-    def available_balances(self):
+    def available_balances(self) -> list[Amount]:
         """
         Return a list of the account's available balances as Amount objects.
 
@@ -1651,7 +1804,7 @@ class Account(BlockchainObject):
         return available_amount
 
     @property
-    def saving_balances(self):
+    def saving_balances(self) -> list[Amount]:
         """
         Return the account's savings balances.
 
@@ -1670,7 +1823,7 @@ class Account(BlockchainObject):
         return savings_amount
 
     @property
-    def reward_balances(self):
+    def reward_balances(self) -> list[Amount]:
         """
         Return the account's reward balances as a list of Amount objects.
 
@@ -1680,7 +1833,11 @@ class Account(BlockchainObject):
             list: A list of Amount instances (copies) for each available reward balance.
         """
         if "reward_hive_balance" in self and "reward_hbd_balance" in self:
-            amount_list = ["reward_hive_balance", "reward_hbd_balance", "reward_vesting_balance"]
+            amount_list = [
+                "reward_hive_balance",
+                "reward_hbd_balance",
+                "reward_vesting_balance",
+            ]
         else:
             amount_list = []
         rewards_amount = []
@@ -1690,24 +1847,32 @@ class Account(BlockchainObject):
         return rewards_amount
 
     @property
-    def total_balances(self):
+    def total_balances(self) -> list[Amount]:
         symbols = []
         for balance in self.available_balances:
             symbols.append(balance["symbol"])
         ret = []
         for i in range(len(symbols)):
             balance_sum = self.get_balance(self.available_balances, symbols[i])
-            balance_sum = balance_sum + self.get_balance(self.saving_balances, symbols[i])
-            balance_sum = balance_sum + self.get_balance(self.reward_balances, symbols[i])
+            saving_balance = self.get_balance(self.saving_balances, symbols[i])
+            reward_balance = self.get_balance(self.reward_balances, symbols[i])
+            if balance_sum is not None and saving_balance is not None:
+                balance_sum = balance_sum + saving_balance
+            elif saving_balance is not None:
+                balance_sum = saving_balance
+            if balance_sum is not None and reward_balance is not None:
+                balance_sum = balance_sum + reward_balance
+            elif reward_balance is not None:
+                balance_sum = reward_balance
             ret.append(balance_sum)
         return ret
 
     @property
-    def balances(self):
+    def balances(self) -> dict[str, list[Amount]]:
         """Returns all account balances as dictionary"""
         return self.get_balances()
 
-    def get_balances(self):
+    def get_balances(self) -> dict[str, list[Amount]]:
         """
         Return the account's balances grouped by category.
 
@@ -1727,7 +1892,9 @@ class Account(BlockchainObject):
             "total": self.total_balances,
         }
 
-    def get_balance(self, balances, symbol):
+    def get_balance(
+        self, balances: str | list[dict[str, Any]] | list[Amount], symbol: str
+    ) -> Amount | None:
         """
         Return a specific balance Amount for this account.
 
@@ -1756,13 +1923,14 @@ class Account(BlockchainObject):
             symbol = symbol["symbol"]
 
         for b in balances:
-            if b["symbol"] == symbol:
+            if isinstance(b, Amount) and b.symbol == symbol:
                 return b
-        from .amount import Amount
+            elif isinstance(b, dict) and b.get("symbol") == symbol:
+                return Amount(b, blockchain_instance=self.blockchain)
 
         return Amount(0, symbol, blockchain_instance=self.blockchain)
 
-    def interest(self):
+    def interest(self) -> dict[str, float | datetime | timedelta]:
         """Calculate interest for an account
 
         :param str account: Account name to get interest for
@@ -1811,25 +1979,27 @@ class Account(BlockchainObject):
             "interest": interest_amount,
             "last_payment": last_payment,
             "next_payment": next_payment,
-            "next_payment_duration": next_payment - addTzInfo(datetime.now(timezone.utc)),
+            "next_payment_duration": next_payment - datetime.now(timezone.utc),
             "interest_rate": interest_rate,
         }
 
     @property
-    def is_fully_loaded(self):
+    def is_fully_loaded(self) -> bool:
         """Is this instance fully loaded / e.g. all data available?
 
         :rtype: bool
         """
         return self.full
 
-    def ensure_full(self):
+    def ensure_full(self) -> None:
         """Ensure that all data are loaded"""
         if not self.is_fully_loaded:
             self.full = True
             self.refresh()
 
-    def get_account_bandwidth(self, bandwidth_type=1, account=None):
+    def get_account_bandwidth(
+        self, bandwidth_type: int = 1, account: str | None = None
+    ) -> dict[str, int | str]:
         """get_account_bandwidth"""
         if account is None:
             account = self["name"]
@@ -1839,7 +2009,7 @@ class Account(BlockchainObject):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         return self.blockchain.rpc.get_account_bandwidth(account, bandwidth_type)
 
-    def get_bandwidth(self):
+    def get_bandwidth(self) -> dict[str, int | None]:
         """Returns used and allocated bandwidth
 
         :rtype: dictionary
@@ -1869,7 +2039,8 @@ class Account(BlockchainObject):
             return {"used": None, "allocated": None}
         max_virtual_bandwidth = float(reserve_ratio["max_virtual_bandwidth"])
         total_vesting_shares = Amount(
-            global_properties["total_vesting_shares"], blockchain_instance=self.blockchain
+            global_properties["total_vesting_shares"],
+            blockchain_instance=self.blockchain,
         ).amount
         allocated_bandwidth = (
             max_virtual_bandwidth
@@ -1878,21 +2049,17 @@ class Account(BlockchainObject):
         )
         allocated_bandwidth = round(allocated_bandwidth / 1000000)
 
-        if self.blockchain.is_connected() and self.blockchain.rpc.get_use_appbase():
-            try:
-                account_bandwidth = self.get_account_bandwidth(bandwidth_type=1, account=account)
-            except Exception:
-                account_bandwidth = None
-            if account_bandwidth is None:
-                return {"used": 0, "allocated": allocated_bandwidth}
-            last_bandwidth_update = formatTimeString(account_bandwidth["last_bandwidth_update"])
-            average_bandwidth = float(account_bandwidth["average_bandwidth"])
-        else:
-            last_bandwidth_update = self["last_bandwidth_update"]
-            average_bandwidth = float(self["average_bandwidth"])
+        try:
+            account_bandwidth = self.get_account_bandwidth(bandwidth_type=1, account=account)
+        except Exception:
+            account_bandwidth = None
+        if account_bandwidth is None:
+            return {"used": 0, "allocated": allocated_bandwidth}
+        last_bandwidth_update = formatTimeString(str(account_bandwidth["last_bandwidth_update"]))
+        average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
-        seconds_since_last_update = addTzInfo(datetime.now(timezone.utc)) - last_bandwidth_update
+        seconds_since_last_update = datetime.now(timezone.utc) - last_bandwidth_update
         seconds_since_last_update = seconds_since_last_update.total_seconds()
         used_bandwidth = 0
         if seconds_since_last_update < total_seconds:
@@ -1905,7 +2072,7 @@ class Account(BlockchainObject):
         # print("bandwidth percent used: " + str(100 * used_bandwidth / allocated_bandwidth))
         # print("bandwidth percent remaining: " + str(100 - (100 * used_bandwidth / allocated_bandwidth)))
 
-    def get_owner_history(self, account=None):
+    def get_owner_history(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the owner authority history for an account.
 
@@ -1927,14 +2094,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_owner_histories({"owner": account}, api="database")[
-                "owner_auths"
-            ]
-        else:
-            return self.blockchain.rpc.get_owner_history(account)
+        return self.blockchain.rpc.find_owner_histories({"owner": account})["owner_auths"]
 
-    def get_conversion_requests(self, account=None):
+    def get_conversion_requests(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the list of pending HBD conversion requests for an account.
 
@@ -1955,18 +2117,16 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase() and "sbd_balance" in self:
-            return self.blockchain.rpc.find_sbd_conversion_requests(
-                {"account": account}, api="database"
-            )["requests"]
-        elif self.blockchain.rpc.get_use_appbase() and "hbd_balance" in self:
-            return self.blockchain.rpc.find_hbd_conversion_requests(
-                {"account": account}, api="database"
-            )["requests"]
-        else:
-            return self.blockchain.rpc.get_conversion_requests(account)
+        try:
+            return self.blockchain.rpc.find_hbd_conversion_requests({"account": account})[
+                "requests"
+            ]
+        except Exception:
+            return []
 
-    def get_vesting_delegations(self, start_account="", limit=100, account=None):
+    def get_vesting_delegations(
+        self, start_account: str = "", limit: int = 100, account: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Return the list of vesting delegations made by an account.
 
@@ -1989,16 +2149,16 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            delegations = self.blockchain.rpc.list_vesting_delegations(
-                {"start": [account, start_account], "limit": limit, "order": "by_delegation"},
-                api="database",
-            )["delegations"]
-            return [d for d in delegations if d["delegator"] == account]
-        else:
-            return self.blockchain.rpc.get_vesting_delegations(account, start_account, limit)
+        delegations = self.blockchain.rpc.list_vesting_delegations(
+            {
+                "start": [account, start_account],
+                "limit": limit,
+                "order": "by_delegation",
+            },
+        )["delegations"]
+        return [d for d in delegations if d["delegator"] == account]
 
-    def get_withdraw_routes(self, account=None):
+    def get_withdraw_routes(self, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return the account's withdraw vesting routes.
 
@@ -2020,14 +2180,13 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_withdraw_vesting_routes(
-                {"account": account, "order": "by_withdraw_route"}, api="database"
-            )["routes"]
-        else:
-            return self.blockchain.rpc.get_withdraw_routes(account, "all")
+        return self.blockchain.rpc.find_withdraw_vesting_routes(
+            {"account": account, "order": "by_withdraw_route"}
+        )["routes"]
 
-    def get_savings_withdrawals(self, direction="from", account=None):
+    def get_savings_withdrawals(
+        self, direction: str = "from", account: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Return the list of savings withdrawal requests for an account.
 
@@ -2049,16 +2208,9 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_savings_withdrawals(
-                {"account": account}, api="database"
-            )["withdrawals"]
-        elif direction == "from":
-            return self.blockchain.rpc.get_savings_withdraw_from(account)
-        elif direction == "to":
-            return self.blockchain.rpc.get_savings_withdraw_to(account)
+        return self.blockchain.rpc.find_savings_withdrawals({"account": account})["withdrawals"]
 
-    def get_recovery_request(self, account=None):
+    def get_recovery_request(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns the recovery request for an account
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2084,14 +2236,11 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_account_recovery_requests(
-                {"accounts": [account]}, api="database"
-            )["requests"]
-        else:
-            return self.blockchain.rpc.get_recovery_request(account)
+        return self.blockchain.rpc.find_account_recovery_requests({"accounts": [account]})[
+            "requests"
+        ]
 
-    def get_escrow(self, escrow_id=0, account=None):
+    def get_escrow(self, escrow_id: int = 0, account: str | None = None) -> list[dict[str, Any]]:
         """
         Return escrow(s) related to this account.
 
@@ -2115,12 +2264,11 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_escrows({"from": account}, api="database")["escrows"]
-        else:
-            return self.blockchain.rpc.get_escrow(account, escrow_id)
+        return self.blockchain.rpc.find_escrows({"from": account})["escrows"]
 
-    def verify_account_authority(self, keys, account=None):
+    def verify_account_authority(
+        self, keys: list[str] | str, account: str | None = None
+    ) -> dict[str, Any]:
         """
         Return whether the provided signers (public keys) are sufficient to authorize the specified account.
 
@@ -2138,16 +2286,13 @@ class Account(BlockchainObject):
             keys = [keys]
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         try:
-            if self.blockchain.rpc.get_use_appbase():
-                return self.blockchain.rpc.verify_account_authority(
-                    {"account": account, "signers": keys}, api="database"
-                )
-            else:
-                return self.blockchain.rpc.verify_account_authority(account, keys)
+            return self.blockchain.rpc.verify_account_authority(
+                {"account": account, "signers": keys}
+            )
         except MissingRequiredActiveAuthority:
             return {"valid": False}
 
-    def get_tags_used_by_author(self, account=None):
+    def get_tags_used_by_author(self, account: str | None = None) -> list[dict[str, Any]]:
         """Returns a list of tags used by an author.
 
         :param str account: When set, a different account is used for the request (Default is object account name)
@@ -2161,14 +2306,11 @@ class Account(BlockchainObject):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.get_tags_used_by_author(
-                {"author": account}, api="condenser"
-            )["tags"]
-        else:
-            return self.blockchain.rpc.get_tags_used_by_author(account, api="condenser")
+        return self.blockchain.rpc.get_tags_used_by_author(account)["tags"]
 
-    def get_expiring_vesting_delegations(self, after=None, limit=1000, account=None):
+    def get_expiring_vesting_delegations(
+        self, after: str | None = None, limit: int = 1000, account: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Return upcoming vesting-delegation expirations for an account.
 
@@ -2194,19 +2336,19 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if after is None:
-            after = addTzInfo(datetime.now(timezone.utc)) - timedelta(days=8)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.find_vesting_delegation_expirations(
-                {"account": account}, api="database"
-            )["delegations"]
-        else:
-            return self.blockchain.rpc.get_expiring_vesting_delegations(
-                account, formatTimeString(after), limit
-            )
+            after = datetime.now(timezone.utc) - timedelta(days=8)
+        return self.blockchain.rpc.find_vesting_delegation_expirations({"account": account})[
+            "delegations"
+        ]
 
     def get_account_votes(
-        self, account=None, start_author="", start_permlink="", limit=1000, start_date=None
-    ):
+        self,
+        account: str | None = None,
+        start_author: str = "",
+        start_permlink: str = "",
+        limit: int = 1000,
+        start_date: datetime | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Return a list of vote operations made by an account.
 
@@ -2230,49 +2372,34 @@ class Account(BlockchainObject):
         account = extract_account_name(account)
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        # self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        # if self.blockchain.rpc.get_use_appbase():
-        #     vote_list = self.blockchain.rpc.get_account_votes(account, api="condenser")
-        # else:
-        #    vote_list = self.blockchain.rpc.get_account_votes(account)
-        # if isinstance(vote_list, dict) and "error" in vote_list:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
+        try:
+            ret = self.blockchain.rpc.list_votes(
+                {
+                    "start": [account, start_author, start_permlink],
+                    "limit": limit,
+                    "order": "by_voter_comment",
+                }
+            )["votes"]
+        except Exception:
+            return []
         vote_list = []
-        finished = False
-        while not finished:
-            try:
-                ret = self.blockchain.rpc.list_votes(
-                    {
-                        "start": [account, start_author, start_permlink],
-                        "limit": limit,
-                        "order": "by_voter_comment",
-                    },
-                    api="database",
-                )["votes"]
-            except SupportedByHivemind:
-                return vote_list
-            if len(ret) < limit:
-                finished = True
-            if start_author != "":
-                if len(ret) == 0:
-                    finished = True
-                ret = ret[1:]
-            for vote in ret:
-                if vote["voter"] != account:
-                    finished = True
-                    continue
-                last_update = formatTimeString(vote["last_update"])
-                if start_date is not None and last_update < start_date:
-                    finished = True
-                    continue
-                vote_list.append(vote)
-                start_author = vote["author"]
-                start_permlink = vote["permlink"]
+        for vote in ret:
+            if vote.get("voter") != account:
+                continue
+            last_update = formatTimeString(str(vote["last_update"]))
+            if (
+                start_date is not None
+                and isinstance(last_update, datetime)
+                and last_update < start_date
+            ):
+                continue
+            vote_list.append(vote)
         return vote_list
         # else:
         #     return vote_list
 
-    def get_vote(self, comment):
+    def get_vote(self, comment: str | Any) -> dict[str, Any] | None:
         """Returns a vote if the account has already voted for comment.
 
         :param comment: can be a Comment object or a authorpermlink
@@ -2286,7 +2413,7 @@ class Account(BlockchainObject):
                 return v
         return None
 
-    def has_voted(self, comment):
+    def has_voted(self, comment: str | Any) -> bool:
         """Returns if the account has already voted for comment
 
         :param comment: can be a Comment object or a authorpermlink
@@ -2298,7 +2425,7 @@ class Account(BlockchainObject):
         active_votes = {v["voter"]: v for v in c["active_votes"]}
         return self["name"] in active_votes
 
-    def virtual_op_count(self, until=None):
+    def virtual_op_count(self, until: int | None = None) -> int:
         """Returns the number of individual account transactions
 
         :rtype: list
@@ -2321,8 +2448,13 @@ class Account(BlockchainObject):
                 return 0
 
     def _get_account_history(
-        self, account=None, start=-1, limit=1, operation_filter_low=None, operation_filter_high=None
-    ):
+        self,
+        account=None,
+        start: int = -1,
+        limit: int = 1,
+        operation_filter_low: int | None = None,
+        operation_filter_high: int | None = None,
+    ) -> list | None:
         if account is None:
             account = self["name"]
         account = extract_account_name(account)
@@ -2334,63 +2466,34 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if operation_filter_low is None and operation_filter_high is None:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ret = self.blockchain.rpc.get_account_history(
-                        {"account": account, "start": start, "limit": limit}, api="account_history"
-                    )
-                    if ret is not None:
-                        ret = ret["history"]
-                except ApiNotSupported:
-                    ret = self.blockchain.rpc.get_account_history(
-                        account, start, limit, api="condenser"
-                    )
-            else:
-                ret = self.blockchain.rpc.get_account_history(account, start, limit, api="database")
+            ret = self.blockchain.rpc.get_account_history(
+                {"account": account, "start": start, "limit": limit}
+            )
+            if ret is not None:
+                ret = ret["history"]
         else:
-            if self.blockchain.rpc.get_use_appbase():
-                try:
-                    ret = self.blockchain.rpc.get_account_history(
-                        {
-                            "account": account,
-                            "start": start,
-                            "limit": limit,
-                            "operation_filter_low": operation_filter_low,
-                            "operation_filter_high": operation_filter_high,
-                        },
-                        api="account_history",
-                    )
-                    if ret is not None:
-                        ret = ret["history"]
-                except ApiNotSupported:
-                    ret = self.blockchain.rpc.get_account_history(
-                        account,
-                        start,
-                        limit,
-                        operation_filter_low,
-                        operation_filter_high,
-                        api="condenser",
-                    )
-            else:
-                ret = self.blockchain.rpc.get_account_history(
-                    account,
-                    start,
-                    limit,
-                    operation_filter_low,
-                    operation_filter_high,
-                    api="database",
-                )
+            ret = self.blockchain.rpc.get_account_history(
+                {
+                    "account": account,
+                    "start": start,
+                    "limit": limit,
+                    "operation_filter_low": operation_filter_low,
+                    "operation_filter_high": operation_filter_high,
+                },
+            )
+            if ret is not None:
+                ret = ret["history"]
         return ret
 
-    def _get_blocknum_from_hist(self, index, min_index=1):
+    def _get_blocknum_from_hist(self, index: int, min_index: int = 1) -> int | None:
         if index >= 0 and index < min_index:
             index = min_index
         op = self._get_account_history(start=(index))
-        if len(op) == 0:
+        if op is None or len(op) == 0:
             return None
         return op[0][1]["block"]
 
-    def _get_first_blocknum(self):
+    def _get_first_blocknum(self) -> tuple[int | None, int]:
         min_index = 0
         try:
             created = self._get_blocknum_from_hist(0, min_index=min_index)
@@ -2399,7 +2502,13 @@ class Account(BlockchainObject):
             created = self._get_blocknum_from_hist(0, min_index=min_index)
         return created, min_index
 
-    def estimate_virtual_op_num(self, blocktime, stop_diff=0, max_count=100, min_index=None):
+    def estimate_virtual_op_num(
+        self,
+        blocktime: int | datetime | date | time,
+        stop_diff: int = 0,
+        max_count: int = 100,
+        min_index: int | None = None,
+    ) -> int:
         """Returns an estimation of an virtual operation index for a given time or blockindex
 
         :param blocktime: start time or start block index from which account
@@ -2452,22 +2561,32 @@ class Account(BlockchainObject):
         if isinstance(blocktime, (datetime, date, time)):
             b = Blockchain(blockchain_instance=self.blockchain)
             target_blocknum = b.get_estimated_block_num(addTzInfo(blocktime), accurate=True)
+        elif isinstance(blocktime, str):
+            try:
+                # Try to parse as a time string
+                from nectar.utils import parse_time
+
+                parsed_time = parse_time(blocktime)
+                b = Blockchain(blockchain_instance=self.blockchain)
+                target_blocknum = b.get_estimated_block_num(parsed_time, accurate=True)
+            except (ValueError, TypeError):
+                # If parsing fails, treat it as a block number string
+                target_blocknum = int(blocktime)
         else:
             target_blocknum = blocktime
 
         # the requested blocknum/timestamp is before the account creation date
-        if target_blocknum <= created:
+        if created is not None and target_blocknum <= created:
             return 0
 
         # get the block number from the account's latest operation
         latest_blocknum = self._get_blocknum_from_hist(-1, min_index=min_index)
-
         # requested blocknum/timestamp is after the latest account operation
-        if target_blocknum >= latest_blocknum:
+        if latest_blocknum is not None and target_blocknum >= latest_blocknum:
             return max_index
 
         # all account ops in a single block
-        if latest_blocknum - created == 0:
+        if latest_blocknum is not None and created is not None and latest_blocknum - created == 0:
             return 0
 
         # set initial search range
@@ -2488,12 +2607,19 @@ class Account(BlockchainObject):
             # linear approximation between the known upper and
             # lower bounds for the first iteration
             if cnt < 1:
-                op_num = int(
-                    (target_blocknum - block_lower)
-                    / (block_upper - block_lower)
-                    * (op_upper - op_lower)
-                    + op_lower
-                )
+                if (
+                    block_lower is not None
+                    and block_upper is not None
+                    and block_upper != block_lower
+                ):
+                    op_num = int(
+                        (target_blocknum - block_lower)
+                        / (block_upper - block_lower)
+                        * (op_upper - op_lower)
+                        + op_lower
+                    )
+                else:
+                    op_num = op_lower
             else:
                 # divide and conquer for the following iterations
                 op_num = int((op_upper + op_lower) / 2)
@@ -2513,7 +2639,7 @@ class Account(BlockchainObject):
                 return op_num
 
             # set new upper/lower boundaries for next iteration
-            if block_num < target_blocknum:
+            if block_num is not None and block_num < target_blocknum:
                 # current op number was too low -> search upwards
                 op_lower = op_num
                 block_lower = block_num
@@ -2524,12 +2650,12 @@ class Account(BlockchainObject):
                 block_upper = block_num
             cnt += 1
 
-    def get_curation_reward(self, days=7):
+    def get_curation_reward(self, days: int = 7) -> float:
         """Returns the curation reward of the last `days` days
 
         :param int days: limit number of days to be included int the return value
         """
-        stop = addTzInfo(datetime.now(timezone.utc)) - timedelta(days=days)
+        stop = datetime.now(timezone.utc) - timedelta(days=days)
         reward_vests = Amount(
             0, self.blockchain.vest_token_symbol, blockchain_instance=self.blockchain
         )
@@ -2539,7 +2665,7 @@ class Account(BlockchainObject):
             reward_vests += Amount(reward["reward"], blockchain_instance=self.blockchain)
         return self.blockchain.vests_to_token_power(float(reward_vests))
 
-    def curation_stats(self):
+    def curation_stats(self) -> dict[str, float]:
         """Returns the curation reward of the last 24h and 7d and the average
         of the last 7 days
 
@@ -2563,7 +2689,9 @@ class Account(BlockchainObject):
             "avg": self.get_curation_reward(days=7) / 7,
         }
 
-    def _get_operation_filter(self, only_ops=[], exclude_ops=[]):
+    def _get_operation_filter(
+        self, only_ops: list[str] | tuple = [], exclude_ops: list[str] | tuple = []
+    ) -> tuple[int | None, int | None]:
         from nectarbase.operationids import operations
 
         operation_filter_low = 0
@@ -2594,16 +2722,16 @@ class Account(BlockchainObject):
 
     def get_account_history(
         self,
-        index,
-        limit,
-        order=-1,
-        start=None,
-        stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        raw_output=False,
-    ):
+        index: int,
+        limit: int,
+        order: int = -1,
+        start: int | datetime | date | time | None = None,
+        stop: int | datetime | date | time | None = None,
+        use_block_num: bool = True,
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
+        raw_output: bool = False,
+    ) -> Any:
         """
         Yield account history operations for a single account.
 
@@ -2649,8 +2777,11 @@ class Account(BlockchainObject):
             txs = []
         if txs is None:
             return
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Only call addTzInfo on date/time objects, not integers
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
 
         if order == -1:
             txs_list = reversed(txs)
@@ -2659,29 +2790,119 @@ class Account(BlockchainObject):
         for item in txs_list:
             item_index, event = item
             if start and isinstance(start, (datetime, date, time)):
-                timediff = start - formatTimeString(event["timestamp"])
+                event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                timediff = start - event_time
                 if timediff.total_seconds() * float(order) > 0:
                     continue
-            elif start is not None and use_block_num and order == 1 and event["block"] < start:
-                continue
-            elif start is not None and use_block_num and order == -1 and event["block"] > start:
-                continue
-            elif start is not None and not use_block_num and order == 1 and item_index < start:
-                continue
-            elif start is not None and not use_block_num and order == -1 and item_index > start:
-                continue
+            elif start is not None and use_block_num:
+                # When use_block_num=True, start should be a block number, but if it's a time string, convert it
+                if isinstance(start, str):
+                    # Convert time string to block number
+                    from nectar.blockchain import Blockchain
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                    blockchain = Blockchain(blockchain_instance=self.blockchain)
+                    try:
+                        start_block = blockchain.get_estimated_block_num(start_dt, accurate=True)
+                        if order == 1 and event["block"] < start_block:
+                            continue
+                        elif order == -1 and event["block"] > start_block:
+                            continue
+                    except Exception:
+                        # If conversion fails, skip this filter
+                        pass
+                else:
+                    # start is an integer block number
+                    if order == 1 and event["block"] < start:
+                        continue
+                    elif order == -1 and event["block"] > start:
+                        continue
+            elif start is not None and not use_block_num:
+                # For non-block_num mode, start can be a datetime, time string, or integer
+                if isinstance(start, str):
+                    # Convert time string to datetime for comparison
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start_dt - event_time
+                    if timediff.total_seconds() * float(order) > 0:
+                        continue
+                elif isinstance(start, (datetime, date, time)):
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
+                    if timediff.total_seconds() * float(order) > 0:
+                        continue
+                else:
+                    # start is an integer (virtual operation count)
+                    if order == 1 and item_index < start:
+                        continue
+                    elif order == -1 and item_index > start:
+                        continue
             if stop is not None and isinstance(stop, (datetime, date, time)):
-                timediff = stop - formatTimeString(event["timestamp"])
+                event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                timediff = stop - event_time
                 if timediff.total_seconds() * float(order) < 0:
                     return
-            elif stop is not None and use_block_num and order == 1 and event["block"] > stop:
-                return
-            elif stop is not None and use_block_num and order == -1 and event["block"] < stop:
-                return
-            elif stop is not None and not use_block_num and order == 1 and item_index > stop:
-                return
-            elif stop is not None and not use_block_num and order == -1 and item_index < stop:
-                return
+            elif stop is not None and use_block_num:
+                # When use_block_num=True, stop should be a block number, but if it's a time string, convert it
+                if isinstance(stop, str):
+                    # Convert time string to block number
+                    from nectar.blockchain import Blockchain
+                    from nectar.utils import parse_time
+
+                    stop_dt = parse_time(stop)
+                    blockchain = Blockchain(blockchain_instance=self.blockchain)
+                    try:
+                        stop_block = blockchain.get_estimated_block_num(stop_dt, accurate=True)
+                        if order == 1 and event["block"] > stop_block:
+                            return
+                        elif order == -1 and event["block"] < stop_block:
+                            return
+                    except Exception:
+                        # If conversion fails, skip this filter
+                        pass
+                else:
+                    # stop is an integer block number
+                    if order == 1 and event["block"] > stop:
+                        return
+                    elif order == -1 and event["block"] < stop:
+                        return
+            elif stop is not None and not use_block_num:
+                # For non-block_num mode, stop can be a datetime, time string, or integer
+                if isinstance(stop, str):
+                    # Convert time string to datetime for comparison
+                    from nectar.utils import parse_time
+
+                    stop_dt = parse_time(stop)
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop_dt - event_time
+                    if timediff.total_seconds() * float(order) < 0:
+                        return
+                elif isinstance(stop, (datetime, date, time)):
+                    event_time = datetime.strptime(event["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
+                    if timediff.total_seconds() * float(order) < 0:
+                        return
+                else:
+                    # stop is an integer (virtual operation count)
+                    if order == 1 and item_index > stop:
+                        return
+                    elif order == -1 and item_index < stop:
+                        return
 
             if isinstance(event["op"], list):
                 op_type, op = event["op"]
@@ -2692,7 +2913,7 @@ class Account(BlockchainObject):
                 op = event["op"]["value"]
             block_props = remove_from_dict(event, keys=["op"], keep_keys=False)
 
-            def construct_op(account_name):
+            def construct_op(account_name: str) -> dict[str, Any]:
                 # verbatim output from RPC node
                 """
                 Construct a normalized, immutable operation dictionary for an account.
@@ -2722,6 +2943,8 @@ class Account(BlockchainObject):
                         "type": op_type,
                     }
                 )
+                from nectar.blockchain import Blockchain
+
                 _id = Blockchain.hash_op(immutable)
                 immutable.update(
                     {
@@ -2740,11 +2963,11 @@ class Account(BlockchainObject):
         self,
         start=None,
         stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        batch_size=1000,
-        raw_output=False,
+        use_block_num: bool = True,
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
+        batch_size: int = 1000,
+        raw_output: bool = False,
     ):
         """Returns a generator for individual account transactions. The
         earlist operation will be first. This call can be used in a
@@ -2823,13 +3046,18 @@ class Account(BlockchainObject):
         max_index = self.virtual_op_count()
         if not max_index:
             return
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        # Only call addTzInfo on date/time objects, not integers
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
         if (
             start is not None
             and not use_block_num
             and not isinstance(start, (datetime, date, time))
+            and not isinstance(start, str)
         ):
+            # start is an integer (virtual operation count)
             start_index = start
         elif start is not None and max_index > batch_size:
             created, min_index = self._get_first_blocknum()
@@ -2837,16 +3065,28 @@ class Account(BlockchainObject):
             if op_est < min_index:
                 op_est = min_index
             est_diff = 0
-            if isinstance(start, (datetime, date, time)):
+            if isinstance(start, (datetime, date, time, str)):
+                # start is a datetime or formatted time string
+                if isinstance(start, str):
+                    # Parse the time string to datetime
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                else:
+                    start_dt = start
                 for h in self.get_account_history(op_est, 0):
-                    block_date = formatTimeString(h["timestamp"])
-                while op_est > est_diff + batch_size and block_date > start:
+                    block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                while op_est > est_diff + batch_size and block_date > start_dt:
                     est_diff += batch_size
                     if op_est - est_diff < 0:
                         est_diff = op_est
                     for h in self.get_account_history(op_est - est_diff, 0):
-                        block_date = formatTimeString(h["timestamp"])
-            elif not isinstance(start, (datetime, date, time)):
+                        block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+            elif not isinstance(start, (datetime, date, time, str)):
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
                 while op_est > est_diff + batch_size and block_num > start:
@@ -2860,8 +3100,23 @@ class Account(BlockchainObject):
             start_index = 0
 
         if stop is not None and not use_block_num and not isinstance(stop, (datetime, date, time)):
-            if start_index + stop < _limit:
-                _limit = stop
+            # Check if stop is a formatted time string
+            if isinstance(stop, str):
+                try:
+                    # Try to parse it as a time string - if successful, it should be treated as a datetime
+                    from nectar.utils import parse_time
+
+                    parse_time(stop)
+                    # If parsing succeeds, this is a time string, not an integer, so skip the integer arithmetic
+                    pass
+                except (ValueError, TypeError):
+                    # If parsing fails, treat it as an integer
+                    if start_index + stop < _limit:
+                        _limit = stop
+            else:
+                # It's an integer, do the arithmetic
+                if start_index + stop < _limit:
+                    _limit = stop
 
         first = start_index + _limit - 1
         if first > max_index:
@@ -2913,24 +3168,74 @@ class Account(BlockchainObject):
                     timestamp = item["timestamp"]
                     block_num = item["block"]
                 if start is not None and isinstance(start, (datetime, date, time)):
-                    timediff = start - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
                     if timediff.total_seconds() > 0:
                         continue
                 elif start is not None and use_block_num and block_num < start:
                     continue
-                elif start is not None and not use_block_num and item_index < start:
-                    continue
+                elif start is not None and not use_block_num:
+                    # For non-block_num mode, start can be a datetime, time string, or integer
+                    if isinstance(start, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        start_dt = parse_time(start)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start_dt - event_time
+                        if timediff.total_seconds() > 0:
+                            continue
+                    elif isinstance(start, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start - event_time
+                        if timediff.total_seconds() > 0:
+                            continue
+                    else:
+                        # start is an integer (virtual operation count)
+                        if item_index < start:
+                            continue
                 elif last_item_index >= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
-                    timediff = stop - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
                     if timediff.total_seconds() < 0:
                         first = max_index + _limit
                         return
                 elif stop is not None and use_block_num and block_num > stop:
                     return
-                elif stop is not None and not use_block_num and item_index > stop:
-                    return
+                elif stop is not None and not use_block_num:
+                    # For non-block_num mode, stop can be a datetime, time string, or integer
+                    if isinstance(stop, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        stop_dt = parse_time(stop)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop_dt - event_time
+                        if timediff.total_seconds() < 0:
+                            return
+                    elif isinstance(stop, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop - event_time
+                        if timediff.total_seconds() < 0:
+                            return
+                    else:
+                        # stop is an integer (virtual operation count)
+                        if item_index > stop:
+                            return
                 if operation_filter:
                     yield item
                 else:
@@ -2965,14 +3270,14 @@ class Account(BlockchainObject):
 
     def history_reverse(
         self,
-        start=None,
-        stop=None,
-        use_block_num=True,
-        only_ops=[],
-        exclude_ops=[],
-        batch_size=1000,
-        raw_output=False,
-    ):
+        start: int | datetime | date | time | None = None,
+        stop: int | datetime | date | time | None = None,
+        use_block_num: bool = True,
+        only_ops: list[str] | tuple = [],
+        exclude_ops: list[str] | tuple = [],
+        batch_size: int = 1000,
+        raw_output: bool = False,
+    ) -> Any:
         """Returns a generator for individual account transactions. The
         latest operation will be first. This call can be used in a
         ``for`` loop.
@@ -3050,8 +3355,12 @@ class Account(BlockchainObject):
         """
         _limit = batch_size
         first = self.virtual_op_count()
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
+        if start is not None and not isinstance(start, (datetime, date, time)):
+            # Don't call addTzInfo on integers
+            pass
+        if stop is not None and not isinstance(stop, (datetime, date, time)):
+            # Don't call addTzInfo on integers
+            pass
         if not first or not batch_size:
             return
         if start is not None and isinstance(start, int) and start < 0 and not use_block_num:
@@ -3064,16 +3373,28 @@ class Account(BlockchainObject):
             est_diff = 0
             if op_est < min_index:
                 op_est = min_index
-            if isinstance(start, (datetime, date, time)):
+            if isinstance(start, (datetime, date, time, str)):
+                # start is a datetime or formatted time string
+                if isinstance(start, str):
+                    # Parse the time string to datetime
+                    from nectar.utils import parse_time
+
+                    start_dt = parse_time(start)
+                else:
+                    start_dt = start
                 for h in self.get_account_history(op_est, 0):
-                    block_date = formatTimeString(h["timestamp"])
-                while op_est + est_diff + batch_size < first and block_date < start:
+                    block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                while op_est + est_diff + batch_size < first and block_date < start_dt:
                     est_diff += batch_size
                     if op_est + est_diff > first:
                         est_diff = first - op_est
                     for h in self.get_account_history(op_est + est_diff, 0):
-                        block_date = formatTimeString(h["timestamp"])
-            else:
+                        block_date = datetime.strptime(h["timestamp"], "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+            elif not isinstance(start, (datetime, date, time, str)):
                 for h in self.get_account_history(op_est, 0):
                     block_num = h["block"]
                 while op_est + est_diff + batch_size < first and block_num < start:
@@ -3123,26 +3444,78 @@ class Account(BlockchainObject):
                     timestamp = item["timestamp"]
                     block_num = item["block"]
                 if start is not None and isinstance(start, (datetime, date, time)):
-                    timediff = start - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = start - event_time
                     if timediff.total_seconds() < 0:
                         continue
                 elif start is not None and use_block_num and block_num > start:
                     continue
-                elif start is not None and not use_block_num and item_index > start:
-                    continue
+                elif start is not None and not use_block_num:
+                    # For non-block_num mode, start can be a datetime, time string, or integer
+                    if isinstance(start, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        start_dt = parse_time(start)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start_dt - event_time
+                        if timediff.total_seconds() < 0:
+                            continue
+                    elif isinstance(start, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = start - event_time
+                        if timediff.total_seconds() < 0:
+                            continue
+                    else:
+                        # start is an integer (virtual operation count)
+                        if item_index > start:
+                            continue
                 elif last_item_index <= item_index:
                     continue
                 if stop is not None and isinstance(stop, (datetime, date, time)):
-                    timediff = stop - formatTimeString(timestamp)
+                    event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    timediff = stop - event_time
                     if timediff.total_seconds() > 0:
                         first = 0
                         return
                 elif stop is not None and use_block_num and block_num < stop:
                     first = 0
                     return
-                elif stop is not None and not use_block_num and item_index < stop:
-                    first = 0
-                    return
+                elif stop is not None and not use_block_num:
+                    # For non-block_num mode, stop can be a datetime, time string, or integer
+                    if isinstance(stop, str):
+                        # Convert time string to datetime for comparison
+                        from nectar.utils import parse_time
+
+                        stop_dt = parse_time(stop)
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop_dt - event_time
+                        if timediff.total_seconds() > 0:
+                            first = 0
+                            return
+                    elif isinstance(stop, (datetime, date, time)):
+                        event_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(
+                            tzinfo=timezone.utc
+                        )
+                        timediff = stop - event_time
+                        if timediff.total_seconds() > 0:
+                            first = 0
+                            return
+                    else:
+                        # stop is an integer (virtual operation count)
+                        if item_index < stop:
+                            first = 0
+                            return
                 if operation_filter:
                     yield item
                 else:
@@ -3158,7 +3531,7 @@ class Account(BlockchainObject):
             if first < 1:
                 break
 
-    def mute(self, mute, account=None):
+    def mute(self, mute: str, account: str | None = None) -> dict[str, Any]:
         """Mute another account
 
         :param str mute: Mute this account
@@ -3168,7 +3541,7 @@ class Account(BlockchainObject):
         """
         return self.follow(mute, what=["ignore"], account=account)
 
-    def unfollow(self, unfollow, account=None):
+    def unfollow(self, unfollow: str, account: str | None = None) -> dict[str, Any]:
         """Unfollow/Unmute another account's blog
 
         :param str unfollow: Unfollow/Unmute this account
@@ -3178,7 +3551,12 @@ class Account(BlockchainObject):
         """
         return self.follow(unfollow, what=[], account=account)
 
-    def follow(self, other, what=["blog"], account=None):
+    def follow(
+        self,
+        other: str | list[str],
+        what: list[str] = ["blog"],
+        account: str | None = None,
+    ) -> dict[str, Any]:
         """Follow/Unfollow/Mute/Unmute another account's blog
 
         .. note:: what can be one of the following on HIVE:
@@ -3207,7 +3585,9 @@ class Account(BlockchainObject):
         json_body = ["follow", {"follower": account, "following": other, "what": what}]
         return self.blockchain.custom_json("follow", json_body, required_posting_auths=[account])
 
-    def update_account_profile(self, profile, account=None, **kwargs):
+    def update_account_profile(
+        self, profile: dict[str, Any], account: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict profile: The new profile to use
@@ -3237,9 +3617,10 @@ class Account(BlockchainObject):
 
         """
         if account is None:
-            account = self
+            account_name = self["name"]
         else:
-            account = Account(account, blockchain_instance=self.blockchain)
+            account_obj = Account(account, blockchain_instance=self.blockchain)
+            account_name = account_obj["name"]  # noqa: F841
 
         if not isinstance(profile, dict):
             raise ValueError("Profile must be a dict type!")
@@ -3251,7 +3632,12 @@ class Account(BlockchainObject):
         metadata["profile"] = profile
         return self.update_account_metadata(metadata)
 
-    def update_account_metadata(self, metadata, account=None, **kwargs):
+    def update_account_metadata(
+        self,
+        metadata: dict[str, Any] | str,
+        account: str | Account | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """Update an account's profile in json_metadata
 
         :param dict metadata: The new metadata to use
@@ -3277,7 +3663,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def update_account_jsonmetadata(self, metadata, account=None, **kwargs):
+    def update_account_jsonmetadata(self, metadata, account=None, **kwargs) -> dict:
         """Update an account's profile in json_metadata using the posting key
 
         :param dict metadata: The new metadata to use
@@ -3289,13 +3675,25 @@ class Account(BlockchainObject):
             account = self
         else:
             account = Account(account, blockchain_instance=self.blockchain)
+
+        # We need to preserve the existing active json_metadata
+        if "json_metadata" not in account:
+            account.refresh()
+        current_active_meta = account.get("json_metadata", "")
+
         if isinstance(metadata, dict):
+            # Ensure version: 2 is present for profile updates
+            if "profile" in metadata and isinstance(metadata["profile"], dict):
+                if "version" not in metadata["profile"]:
+                    metadata["profile"]["version"] = 2
             metadata = json.dumps(metadata)
         elif not isinstance(metadata, str):
             raise ValueError("Profile must be a dict or string!")
+
         op = operations.Account_update2(
             **{
                 "account": account["name"],
+                "json_metadata": current_active_meta,
                 "posting_json_metadata": metadata,
                 "prefix": self.blockchain.prefix,
             }
@@ -3305,7 +3703,9 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------
     #  Approval and Disapproval of witnesses
     # -------------------------------------------------------------------------
-    def approvewitness(self, witness, account=None, approve=True, **kwargs):
+    def approvewitness(
+        self, witness: str, account: str | None = None, approve: bool = True, **kwargs
+    ) -> dict[str, Any]:
         """Approve a witness
 
         :param list witness: list of Witness name or id
@@ -3314,9 +3714,10 @@ class Account(BlockchainObject):
 
         """
         if account is None:
-            account = self
+            account_name = self["name"]
         else:
-            account = Account(account, blockchain_instance=self.blockchain)
+            account_obj = Account(account, blockchain_instance=self.blockchain)
+            account_name = account_obj["name"]
 
         # if not isinstance(witnesses, (list, set, tuple)):
         #     witnesses = {witnesses}
@@ -3326,15 +3727,17 @@ class Account(BlockchainObject):
 
         op = operations.Account_witness_vote(
             **{
-                "account": account["name"],
+                "account": account_name,
                 "witness": witness,
                 "approve": approve,
                 "prefix": self.blockchain.prefix,
             }
         )
-        return self.blockchain.finalizeOp(op, account, "active", **kwargs)
+        return self.blockchain.finalizeOp(op, account_name, "active", **kwargs)
 
-    def disapprovewitness(self, witness, account=None, **kwargs):
+    def disapprovewitness(
+        self, witness: str, account: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Disapprove a witness
 
         :param list witness: list of Witness name or id
@@ -3343,7 +3746,7 @@ class Account(BlockchainObject):
         """
         return self.approvewitness(witness=witness, account=account, approve=False)
 
-    def setproxy(self, proxy="", account=None):
+    def setproxy(self, proxy: str = "", account: str | Account | None = None) -> dict[str, Any]:
         """Set the witness and proposal system proxy of an account
 
         :param proxy: The account to set the proxy to (Leave empty for removing the proxy)
@@ -3365,7 +3768,9 @@ class Account(BlockchainObject):
         op = operations.Account_witness_proxy(**{"account": account.name, "proxy": proxy_name})
         return self.blockchain.finalizeOp(op, account, "active")
 
-    def update_memo_key(self, key, account=None, **kwargs):
+    def update_memo_key(
+        self, key: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Update an account's memo public key
 
         This method does **not** add any private keys to your
@@ -3393,7 +3798,9 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def update_account_keys(self, new_password, account=None, **kwargs):
+    def update_account_keys(
+        self, new_password: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Updates all account keys
 
         This method does **not** add any private keys to your
@@ -3443,7 +3850,9 @@ class Account(BlockchainObject):
 
         return self.blockchain.finalizeOp(op, account, "owner", **kwargs)
 
-    def change_recovery_account(self, new_recovery_account, account=None, **kwargs):
+    def change_recovery_account(
+        self, new_recovery_account: str, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Request a change of the recovery account.
 
         .. note:: It takes 30 days until the change applies. Another
@@ -3476,8 +3885,15 @@ class Account(BlockchainObject):
     # Simple Transfer
     # -------------------------------------------------------------------------
     def transfer(
-        self, to, amount, asset, memo="", skip_account_check=False, account=None, **kwargs
-    ):
+        self,
+        to: str | Account,
+        amount: int | float | str | Amount,
+        asset: str,
+        memo: str = "",
+        skip_account_check: bool = False,
+        account=None,
+        **kwargs,
+    ) -> dict:
         """
         Transfer an asset from this account to another account.
 
@@ -3510,7 +3926,8 @@ class Account(BlockchainObject):
             from .memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
-            memo = memoObj.encrypt(memo[1:])["message"]
+            encrypted_memo = memoObj.encrypt(memo[1:])
+            memo = encrypted_memo["message"] if encrypted_memo else ""
 
         op = operations.Transfer(
             **{
@@ -3519,7 +3936,7 @@ class Account(BlockchainObject):
                 "memo": memo,
                 "from": account_name,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
@@ -3529,16 +3946,16 @@ class Account(BlockchainObject):
     # -------------------------------------------------------------------------------
     def recurring_transfer(
         self,
-        to,
-        amount,
-        asset,
-        recurrence,
-        executions,
-        memo="",
-        skip_account_check=False,
-        account=None,
+        to: str | Account,
+        amount: int | float | str | Amount,
+        asset: str,
+        recurrence: int,
+        executions: int,
+        memo: str = "",
+        skip_account_check: bool = False,
+        account: str | Account | None = None,
         **kwargs,
-    ):
+    ) -> dict[str, Any]:
         """
         Schedule a recurring transfer of a token from this account to another.
 
@@ -3572,7 +3989,8 @@ class Account(BlockchainObject):
             from .memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
-            memo = memoObj.encrypt(memo[1:])["message"]
+            encrypted_memo = memoObj.encrypt(memo[1:])
+            memo = encrypted_memo["message"] if encrypted_memo else ""
 
         op = operations.Recurring_transfer(
             **{
@@ -3583,14 +4001,19 @@ class Account(BlockchainObject):
                 "recurrence": recurrence,
                 "executions": executions,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_to_vesting(
-        self, amount, to=None, account=None, skip_account_check=False, **kwargs
-    ):
+        self,
+        amount: int | float | str | Amount,
+        to=None,
+        account=None,
+        skip_account_check: bool = False,
+        **kwargs,
+    ) -> dict:
         """
         Power up HIVE by converting liquid HIVE into vesting shares (VESTS).
 
@@ -3625,12 +4048,17 @@ class Account(BlockchainObject):
                 "to": to_name,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def convert(self, amount, account=None, request_id=None):
+    def convert(
+        self,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
+        request_id: int | None = None,
+    ) -> dict[str, Any]:
         """
         Convert HBD to HIVE (takes ~3.5 days to settle).
 
@@ -3657,14 +4085,20 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
 
         return self.blockchain.finalizeOp(op, account, "active")
 
     # Added to differentiate and match the addition of the HF25 convert operation
-    def collateralized_convert(self, amount, account=None, request_id=None, **kwargs):
+    def collateralized_convert(
+        self,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
+        request_id: int | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Convert HBD to HIVE using the HF25 collateralized convert operation and broadcast the resulting transaction.
 
@@ -3697,13 +4131,21 @@ class Account(BlockchainObject):
                 "requestid": request_id,
                 "amount": amount,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
 
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def transfer_to_savings(self, amount, asset, memo, to=None, account=None, **kwargs):
+    def transfer_to_savings(
+        self,
+        amount: int | float | str | Amount,
+        asset: str,
+        memo: str,
+        to: str | Account | None = None,
+        account: str | Account | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Transfer HBD or HIVE from an account into its savings balance (or into another account's savings) and broadcast the transfer_to_savings operation.
 
@@ -3723,7 +4165,10 @@ class Account(BlockchainObject):
         Raises:
             AssertionError: If `asset` is not one of the allowed symbols.
         """
-        if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
+        if asset not in [
+            self.blockchain.token_symbol,
+            self.blockchain.backed_token_symbol,
+        ]:
             raise AssertionError()
 
         if account is None:
@@ -3743,14 +4188,21 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def transfer_from_savings(
-        self, amount, asset, memo, request_id=None, to=None, account=None, **kwargs
-    ):
+        self,
+        amount: int | float | str | Amount,
+        asset: str,
+        memo: str,
+        request_id: int | None = None,
+        to: str | Account | None = None,
+        account: str | Account | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Withdraw an amount from the account's savings into a liquid balance (HIVE or HBD).
 
@@ -3773,7 +4225,10 @@ class Account(BlockchainObject):
         Raises:
             AssertionError: If `asset` is not a supported token symbol for this chain.
         """
-        if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
+        if asset not in [
+            self.blockchain.token_symbol,
+            self.blockchain.backed_token_symbol,
+        ]:
             raise AssertionError()
 
         if account is None:
@@ -3798,12 +4253,14 @@ class Account(BlockchainObject):
                 "amount": amount,
                 "memo": memo,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def cancel_transfer_from_savings(self, request_id, account=None, **kwargs):
+    def cancel_transfer_from_savings(
+        self, request_id: int, account: str | Account | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Cancel a withdrawal from 'savings' account.
 
         :param str request_id: Identifier for tracking or cancelling
@@ -3825,7 +4282,7 @@ class Account(BlockchainObject):
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def _check_amount(self, amount, symbol):
+    def _check_amount(self, amount: int | float | str | Amount, symbol: str) -> Amount:
         if isinstance(amount, (float, int)):
             amount = Amount(amount, symbol, blockchain_instance=self.blockchain)
         elif isinstance(amount, str) and amount.replace(".", "", 1).replace(",", "", 1).isdigit():
@@ -3838,12 +4295,12 @@ class Account(BlockchainObject):
 
     def claim_reward_balance(
         self,
-        reward_hive=0,
-        reward_hbd=0,
-        reward_vests=0,
-        account=None,
+        reward_hive: int | float | str | Amount = 0,
+        reward_hbd: int | float | str | Amount = 0,
+        reward_vests: int | float | str | Amount = 0,
+        account: str | Account | None = None,
         **kwargs,
-    ):
+    ) -> dict[str, Any]:
         """
         Claim the account's pending reward balances (HIVE, HBD, and/or VESTS).
 
@@ -3900,6 +4357,7 @@ class Account(BlockchainObject):
                     reward_backed_token: reward_backed_token_amount,
                     "reward_vests": reward_vests_amount,
                     "prefix": self.blockchain.prefix,
+                    "json_str": True,
                 }
             )
         else:
@@ -3909,12 +4367,19 @@ class Account(BlockchainObject):
                     reward_token: reward_token_amount,
                     "reward_vests": reward_vests_amount,
                     "prefix": self.blockchain.prefix,
+                    "json_str": True,
                 }
             )
 
         return self.blockchain.finalizeOp(op, account, "posting", **kwargs)
 
-    def delegate_vesting_shares(self, to_account, vesting_shares, account=None, **kwargs):
+    def delegate_vesting_shares(
+        self,
+        to_account: str | Account,
+        vesting_shares: str | Amount,
+        account: str | Account | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Delegate vesting shares (Hive Power) from one account to another.
 
@@ -3944,11 +4409,17 @@ class Account(BlockchainObject):
                 "delegatee": to_account["name"],
                 "vesting_shares": vesting_shares,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def withdraw_vesting(self, amount, account=None, **kwargs):
+    def withdraw_vesting(
+        self,
+        amount: int | float | str | Amount,
+        account: str | Account | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """Withdraw VESTS from the vesting account.
 
         :param float amount: number of VESTS to withdraw over a period of
@@ -3968,14 +4439,20 @@ class Account(BlockchainObject):
                 "account": account["name"],
                 "vesting_shares": amount,
                 "prefix": self.blockchain.prefix,
+                "json_str": True,
             }
         )
 
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def set_withdraw_vesting_route(
-        self, to, percentage=100, account=None, auto_vest=False, **kwargs
-    ):
+        self,
+        to: str | Account,
+        percentage: float = 100,
+        account: str | Account | None = None,
+        auto_vest: bool = False,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Set or update a vesting withdraw route for an account.
 
@@ -4009,10 +4486,15 @@ class Account(BlockchainObject):
         return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def allow(
-        self, foreign, weight=None, permission="posting", account=None, threshold=None, **kwargs
-    ):
-        """Give additional access to an account by some other public
-        key or account.
+        self,
+        foreign: str,
+        weight: int | None = None,
+        permission: str = "posting",
+        account: str | Account | None = None,
+        threshold: int | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
+        """Give additional access to an account by some other public key or account.
 
         :param str foreign: The foreign account that will obtain access
         :param int weight: (optional) The weight to use. If not
@@ -4078,8 +4560,14 @@ class Account(BlockchainObject):
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
     def disallow(
-        self, foreign, permission="posting", account=None, weight=None, threshold=None, **kwargs
-    ):
+        self,
+        foreign: str,
+        permission: str = "posting",
+        account: str | Account | None = None,
+        weight: int | None = None,
+        threshold: int | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """Remove additional access to an account by some other public
         key or account.
 
@@ -4177,7 +4665,13 @@ class Account(BlockchainObject):
         else:
             return self.blockchain.finalizeOp(op, account, "active", **kwargs)
 
-    def feed_history(self, limit=None, start_author=None, start_permlink=None, account=None):
+    def feed_history(
+        self,
+        limit: int | None = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
+    ) -> Any:
         """
         Yield feed entries for an account in reverse chronological order.
 
@@ -4235,7 +4729,13 @@ class Account(BlockchainObject):
                 if feed_count == limit:
                     return
 
-    def blog_history(self, limit=None, start=-1, reblogs=True, account=None):
+    def blog_history(
+        self,
+        limit: int | None = None,
+        start: int = -1,
+        reblogs: bool = True,
+        account: str | Account | None = None,
+    ) -> Any:
         """
         Yield blog entries for an account in reverse chronological order.
 
@@ -4294,7 +4794,12 @@ class Account(BlockchainObject):
                 if post_count == limit:
                     return
 
-    def comment_history(self, limit=None, start_permlink=None, account=None):
+    def comment_history(
+        self,
+        limit: int | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
+    ) -> Any:
         """
         Yield comments authored by an account in reverse chronological order.
 
@@ -4346,7 +4851,13 @@ class Account(BlockchainObject):
                 if comment_count == limit:
                     return
 
-    def reply_history(self, limit=None, start_author=None, start_permlink=None, account=None):
+    def reply_history(
+        self,
+        limit: int | None = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
+        account: str | Account | None = None,
+    ) -> Any:
         """Stream the replies to an account in reverse time order.
 
         .. note:: RPC nodes keep a limited history of entries for the
@@ -4425,14 +4936,16 @@ class Account(BlockchainObject):
 
 
 class AccountsObject(list):
-    def printAsTable(self):
+    def printAsTable(self) -> None:
         t = PrettyTable(["Name"])
         t.align = "l"
         for acc in self:
             t.add_row([acc["name"]])
         print(t)
 
-    def print_summarize_table(self, tag_type="Follower", return_str=False, **kwargs):
+    def print_summarize_table(
+        self, tag_type: str = "Follower", return_str: bool = False, **kwargs
+    ) -> str | None:
         """
         Print or return a one-line summary table aggregating metrics for the accounts in this collection.
 
@@ -4466,12 +4979,12 @@ class AccountsObject(list):
             rep.append(f.rep)
             own_mvest.append(float(f.balances["available"][2]) / 1e6)
             eff_sp.append(f.get_token_power())
-            last_vote = addTzInfo(datetime.now(timezone.utc)) - (f["last_vote_time"])
+            last_vote = datetime.now(timezone.utc) - (f["last_vote_time"])
             if last_vote.days >= 365:
                 no_vote += 1
             else:
                 last_vote_h.append(last_vote.total_seconds() / 60 / 60)
-            last_post = addTzInfo(datetime.now(timezone.utc)) - (f["last_root_post"])
+            last_post = datetime.now(timezone.utc) - (f["last_root_post"])
             if last_post.days >= 365:
                 no_post += 1
             else:
@@ -4487,11 +5000,17 @@ class AccountsObject(list):
             t.add_row(["Max eff. HP", "%.2f" % max(eff_sp)])
         if len(last_vote_h) > 0:
             t.add_row(
-                ["Mean last vote diff in hours", "%.2f" % (sum(last_vote_h) / len(last_vote_h))]
+                [
+                    "Mean last vote diff in hours",
+                    "%.2f" % (sum(last_vote_h) / len(last_vote_h)),
+                ]
             )
         if len(last_post_d) > 0:
             t.add_row(
-                ["Mean last post diff in days", "%.2f" % (sum(last_post_d) / len(last_post_d))]
+                [
+                    "Mean last post diff in days",
+                    "%.2f" % (sum(last_post_d) / len(last_post_d)),
+                ]
             )
         t.add_row([tag_type + " without vote in 365 days", no_vote])
         t.add_row([tag_type + " without post in 365 days", no_post])
@@ -4544,17 +5063,12 @@ class Accounts(AccountsObject):
 
         while name_cnt < len(name_list):
             self.blockchain.rpc.set_next_node_on_empty_reply(False)
-            if self.blockchain.rpc.get_use_appbase():
-                accounts += self.blockchain.rpc.find_accounts(
-                    {"accounts": name_list[name_cnt : batch_limit + name_cnt]}, api="database"
-                )["accounts"]
-            else:
-                accounts += self.blockchain.rpc.get_accounts(
-                    name_list[name_cnt : batch_limit + name_cnt]
-                )
+            accounts += self.blockchain.rpc.find_accounts(
+                {"accounts": name_list[name_cnt : batch_limit + name_cnt]}
+            )["accounts"]
             name_cnt += batch_limit
 
-        super(Accounts, self).__init__(
+        super().__init__(
             [
                 Account(x, lazy=lazy, full=full, blockchain_instance=self.blockchain)
                 for x in accounts

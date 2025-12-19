@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import json
 import re
-import warnings
 from binascii import hexlify
 from collections import OrderedDict
+from typing import Any, Tuple
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.types import (
@@ -12,12 +11,14 @@ from nectargraphenebase.types import (
     HexString,
     Int16,
     Map,
-    Optional,
     PointInTime,
     String,
     Uint16,
     Uint32,
     Uint64,
+)
+from nectargraphenebase.types import (
+    Optional as GrapheneOptional,
 )
 
 from .objects import (
@@ -36,7 +37,7 @@ from .objects import (
 default_prefix = "STM"
 
 
-def check_for_class(self, args):
+def check_for_class(self: Any, args: Tuple[Any, ...]) -> bool:
     if isArgsThisClass(self, args):
         self.data = args[0].data
         return True
@@ -45,7 +46,7 @@ def check_for_class(self, args):
 
 
 class Transfer(GrapheneObject):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Allow for overwrite of prefix
         if check_for_class(self, args):
             return
@@ -57,13 +58,13 @@ class Transfer(GrapheneObject):
             kwargs["memo"] = ""
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
-            memo = Optional(Memo(**kwargs["memo"]))
+            memo = GrapheneOptional(Memo(**kwargs["memo"]))
         elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
-            memo = Optional(Memo(kwargs["memo"]))
+            memo = GrapheneOptional(Memo(kwargs["memo"]))
 
-        super(Transfer, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -89,13 +90,13 @@ class Recurring_transfer(GrapheneObject):
             kwargs["memo"] = ""
         if isinstance(kwargs["memo"], dict):
             kwargs["memo"]["prefix"] = prefix
-            memo = Optional(Memo(**kwargs["memo"]))
+            memo = GrapheneOptional(Memo(**kwargs["memo"]))
         elif isinstance(kwargs["memo"], str):
             memo = String(kwargs["memo"])
         else:
-            memo = Optional(Memo(kwargs["memo"]))
+            memo = GrapheneOptional(Memo(kwargs["memo"]))
 
-        super(Recurring_transfer, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -115,7 +116,7 @@ class Vote(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Vote, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("voter", String(kwargs["voter"])),
@@ -135,7 +136,7 @@ class Transfer_to_vesting(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        super(Transfer_to_vesting, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -153,7 +154,7 @@ class Withdraw_vesting(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
-        super(Withdraw_vesting, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -169,7 +170,7 @@ class Account_witness_vote(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Account_witness_vote, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -186,7 +187,7 @@ class Account_witness_proxy(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Account_witness_proxy, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -202,7 +203,7 @@ class Custom(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Custom, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("required_auths", Array([String(o) for o in kwargs["required_auths"]])),
@@ -219,7 +220,7 @@ class Custom_binary(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Custom_binary, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("id", Uint16(int(kwargs["id"]))),
@@ -236,7 +237,7 @@ class Op_wrapper(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
-        super(Op_wrapper, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("op", Operation(kwargs["op"], prefix=prefix)),
@@ -263,7 +264,7 @@ class Account_create(GrapheneObject):
             else:
                 meta = kwargs["json_metadata"]
 
-        super(Account_create, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("fee", Amount(kwargs["fee"], prefix=prefix, json_str=json_str)),
@@ -297,7 +298,7 @@ class Account_create_with_delegation(GrapheneObject):
             else:
                 meta = kwargs["json_metadata"]
 
-        super(Account_create_with_delegation, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("fee", Amount(kwargs["fee"], prefix=prefix, json_str=json_str)),
@@ -324,19 +325,19 @@ class Account_update(GrapheneObject):
         prefix = kwargs.get("prefix", default_prefix)
 
         if "owner" in kwargs:
-            owner = Optional(Permission(kwargs["owner"], prefix=prefix))
+            owner = GrapheneOptional(Permission(kwargs["owner"], prefix=prefix))
         else:
-            owner = Optional(None)
+            owner = GrapheneOptional(None)
 
         if "active" in kwargs:
-            active = Optional(Permission(kwargs["active"], prefix=prefix))
+            active = GrapheneOptional(Permission(kwargs["active"], prefix=prefix))
         else:
-            active = Optional(None)
+            active = GrapheneOptional(None)
 
         if "posting" in kwargs:
-            posting = Optional(Permission(kwargs["posting"], prefix=prefix))
+            posting = GrapheneOptional(Permission(kwargs["posting"], prefix=prefix))
         else:
-            posting = Optional(None)
+            posting = GrapheneOptional(None)
 
         meta = ""
         if "json_metadata" in kwargs and kwargs["json_metadata"]:
@@ -345,7 +346,7 @@ class Account_update(GrapheneObject):
             else:
                 meta = kwargs["json_metadata"]
 
-        super(Account_update, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -369,24 +370,24 @@ class Account_update2(GrapheneObject):
         extensions = Array([])
 
         if "owner" in kwargs:
-            owner = Optional(Permission(kwargs["owner"], prefix=prefix))
+            owner = GrapheneOptional(Permission(kwargs["owner"], prefix=prefix))
         else:
-            owner = Optional(None)
+            owner = GrapheneOptional(None)
 
         if "active" in kwargs:
-            active = Optional(Permission(kwargs["active"], prefix=prefix))
+            active = GrapheneOptional(Permission(kwargs["active"], prefix=prefix))
         else:
-            active = Optional(None)
+            active = GrapheneOptional(None)
 
         if "posting" in kwargs:
-            posting = Optional(Permission(kwargs["posting"], prefix=prefix))
+            posting = GrapheneOptional(Permission(kwargs["posting"], prefix=prefix))
         else:
-            posting = Optional(None)
+            posting = GrapheneOptional(None)
 
         if "memo_key" in kwargs:
-            memo_key = Optional(PublicKey(kwargs["memo_key"], prefix=prefix))
+            memo_key = GrapheneOptional(PublicKey(kwargs["memo_key"], prefix=prefix))
         else:
-            memo_key = Optional(None)
+            memo_key = GrapheneOptional(None)
 
         meta = ""
         if "json_metadata" in kwargs and kwargs["json_metadata"]:
@@ -401,7 +402,7 @@ class Account_update2(GrapheneObject):
             else:
                 posting_meta = kwargs["posting_json_metadata"]
 
-        super(Account_update2, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),
@@ -427,7 +428,7 @@ class Create_proposal(GrapheneObject):
         json_str = kwargs.get("json_str", False)
         extensions = Array([])
 
-        super(Create_proposal, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("creator", String(kwargs["creator"])),
@@ -454,7 +455,7 @@ class Update_proposal_votes(GrapheneObject):
         for e in kwargs["proposal_ids"]:
             proposal_ids.append(Uint64(e))
 
-        super(Update_proposal_votes, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("voter", String(kwargs["voter"])),
@@ -491,7 +492,7 @@ class Remove_proposal(GrapheneObject):
         for e in kwargs["proposal_ids"]:
             proposal_ids.append(Uint64(e))
 
-        super(Remove_proposal, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("proposal_owner", String(kwargs["proposal_owner"])),
@@ -532,7 +533,7 @@ class Update_proposal(GrapheneObject):
             }
             extensions = Array([UpdateProposalExtensions(extension)])
 
-        super(Update_proposal, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("proposal_id", Uint64(kwargs["proposal_id"])),
@@ -599,7 +600,7 @@ class Witness_set_properties(GrapheneObject):
                 props[k[0]] = k[1]
         props_list = []
         for k in props:
-            props_list.append(([String(k), HexString(props[k])]))
+            props_list.append([String(k), HexString(props[k])])
         props_list = sorted(
             props_list,
             key=lambda x: str(x[0]),
@@ -607,7 +608,7 @@ class Witness_set_properties(GrapheneObject):
         )
         map_props = Map(props_list)
 
-        super(Witness_set_properties, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -634,8 +635,10 @@ class Witness_update(GrapheneObject):
             )
         if "prefix" not in kwargs["props"]:
             kwargs["props"]["prefix"] = prefix
+        if "json_str" not in kwargs["props"]:
+            kwargs["props"]["json_str"] = json_str
 
-        super(Witness_update, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -663,7 +666,7 @@ class Comment(GrapheneObject):
             else:
                 meta = kwargs["json_metadata"]
 
-        super(Comment, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("parent_author", String(kwargs["parent_author"])),
@@ -693,7 +696,7 @@ class Custom_json(GrapheneObject):
         if len(kwargs["id"]) > 32:
             raise Exception("'id' too long")
 
-        super(Custom_json, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("required_auths", Array([String(o) for o in kwargs["required_auths"]])),
@@ -713,14 +716,13 @@ class Comment_options(GrapheneObject):
         """
         Initialize a Comment_options operation.
 
-        This constructor builds the serialized fields for a comment options operation from provided keyword arguments or a single dict positional argument. It converts and validates inputs into the expected Graphene types and handles backward compatibility and extensions.
+        This constructor builds the serialized fields for a comment options operation from provided keyword arguments or a single dict positional argument. It converts and validates inputs into the expected Graphene types and handles extensions.
 
         Expected kwargs:
         - author (str): post author.
         - permlink (str): post permlink.
         - max_accepted_payout (str|Amount): payout limit; converted to Amount using optional `prefix` and `json_str`.
         - percent_hbd (int|str): required percent value (primary source) stored as Uint16.
-        - percent_steem_dollars (int|str, optional, deprecated): fallback for `percent_hbd`; using it emits a DeprecationWarning.
         - allow_votes (bool): whether voting is allowed.
         - allow_curation_rewards (bool): whether curation rewards are allowed.
         - beneficiaries (list, optional): if provided, placed into extensions as a beneficiaries extension.
@@ -731,15 +733,13 @@ class Comment_options(GrapheneObject):
         Behavior and side effects:
         - If initialized from an existing GrapheneObject (via check_for_class), initialization returns early after copying.
         - If `beneficiaries` is present and non-empty, it is converted into an extensions entry.
-        - If neither `percent_hbd` nor `percent_steem_dollars` is provided, raises ValueError.
-        - If `percent_steem_dollars` is used, emits a DeprecationWarning.
         """
         if check_for_class(self, args):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
-        json_str = kwargs.get("json_str", False)
+        json_str = kwargs.get("json_str", True)
         # handle beneficiaries
         if "beneficiaries" in kwargs and kwargs["beneficiaries"]:
             kwargs["extensions"] = [[0, {"beneficiaries": kwargs["beneficiaries"]}]]
@@ -748,17 +748,8 @@ class Comment_options(GrapheneObject):
             extensions = Array([CommentOptionExtensions(o) for o in kwargs["extensions"]])
         percent_value = kwargs.get("percent_hbd")
         if percent_value is None:
-            # Backward compatibility: fall back to percent_steem_dollars
-            percent_value = kwargs.get("percent_steem_dollars")
-            if percent_value is not None:
-                warnings.warn(
-                    "Parameter 'percent_steem_dollars' is deprecated. Use 'percent_hbd' instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            else:
-                raise ValueError("Comment_options requires 'percent_hbd'")
-        super(Comment_options, self).__init__(
+            raise ValueError("Comment_options requires 'percent_hbd'")
+        super().__init__(
             OrderedDict(
                 [
                     ("author", String(kwargs["author"])),
@@ -782,7 +773,7 @@ class Delete_comment(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Delete_comment, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("author", String(kwargs["author"])),
@@ -799,9 +790,12 @@ class Feed_publish(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
+        json_str = kwargs.get("json_str", False)
         if "prefix" not in kwargs["exchange_rate"]:
             kwargs["exchange_rate"]["prefix"] = prefix
-        super(Feed_publish, self).__init__(
+        if "json_str" not in kwargs["exchange_rate"]:
+            kwargs["exchange_rate"]["json_str"] = json_str
+        super().__init__(
             OrderedDict(
                 [
                     ("publisher", String(kwargs["publisher"])),
@@ -819,7 +813,7 @@ class Convert(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        super(Convert, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -839,7 +833,7 @@ class Collateralized_convert(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        super(Collateralized_convert, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -856,12 +850,12 @@ class Set_withdraw_vesting_route(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Set_withdraw_vesting_route, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from_account", String(kwargs["from_account"])),
                     ("to_account", String(kwargs["to_account"])),
-                    ("percent", Uint16((kwargs["percent"]))),
+                    ("percent", Uint16(kwargs["percent"])),
                     ("auto_vest", Bool(kwargs["auto_vest"])),
                 ]
             )
@@ -874,7 +868,7 @@ class Limit_order_cancel(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Limit_order_cancel, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -892,7 +886,7 @@ class Claim_account(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        super(Claim_account, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("creator", String(kwargs["creator"])),
@@ -921,7 +915,7 @@ class Create_claimed_account(GrapheneObject):
             else:
                 meta = kwargs["json_metadata"]
 
-        super(Create_claimed_account, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("creator", String(kwargs["creator"])),
@@ -944,7 +938,7 @@ class Delegate_vesting_shares(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
-        super(Delegate_vesting_shares, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("delegator", String(kwargs["delegator"])),
@@ -963,7 +957,7 @@ class Limit_order_create(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
-        super(Limit_order_create, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -993,7 +987,7 @@ class Limit_order_create2(GrapheneObject):
         json_str = kwargs.get("json_str", False)
         if "prefix" not in kwargs["exchange_rate"]:
             kwargs["exchange_rate"]["prefix"] = prefix
-        super(Limit_order_create2, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("owner", String(kwargs["owner"])),
@@ -1016,7 +1010,7 @@ class Change_recovery_account(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Change_recovery_account, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account_to_recover", String(kwargs["account_to_recover"])),
@@ -1037,7 +1031,7 @@ class Transfer_from_savings(GrapheneObject):
         json_str = kwargs.get("json_str", False)
         if "memo" not in kwargs:
             kwargs["memo"] = ""
-        super(Transfer_from_savings, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -1056,7 +1050,7 @@ class Cancel_transfer_from_savings(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Cancel_transfer_from_savings, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -1104,7 +1098,7 @@ class Claim_reward_balance(GrapheneObject):
         reward_hbd = kwargs.get("reward_hbd", "0.000 HBD")
         reward_vests = kwargs["reward_vests"]
 
-        super(Claim_reward_balance, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(account)),
@@ -1126,7 +1120,7 @@ class Transfer_to_savings(GrapheneObject):
         json_str = kwargs.get("json_str", False)
         if "memo" not in kwargs:
             kwargs["memo"] = ""
-        super(Transfer_to_savings, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -1146,7 +1140,7 @@ class Request_account_recovery(GrapheneObject):
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
         new_owner = Permission(kwargs["new_owner_authority"], prefix=prefix)
-        super(Request_account_recovery, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("recovery_account", String(kwargs["recovery_account"])),
@@ -1167,7 +1161,7 @@ class Recover_account(GrapheneObject):
         prefix = kwargs.get("prefix", default_prefix)
         new_owner = Permission(kwargs["new_owner_authority"], prefix=prefix)
         recent_owner = Permission(kwargs["recent_owner_authority"], prefix=prefix)
-        super(Recover_account, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account_to_recover", String(kwargs["account_to_recover"])),
@@ -1211,7 +1205,7 @@ class Escrow_transfer(GrapheneObject):
             else:
                 meta = kwargs["json_meta"]
         if "hbd_amount" in kwargs and "hive_amount" in kwargs:
-            super(Escrow_transfer, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("from", String(kwargs["from"])),
@@ -1234,7 +1228,7 @@ class Escrow_transfer(GrapheneObject):
                 )
             )
         else:
-            super(Escrow_transfer, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("from", String(kwargs["from"])),
@@ -1258,7 +1252,7 @@ class Escrow_dispute(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Escrow_dispute, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -1294,7 +1288,7 @@ class Escrow_release(GrapheneObject):
         prefix = kwargs.get("prefix", default_prefix)
         json_str = kwargs.get("json_str", False)
         if "hive_amount" in kwargs and "hbd_amount" in kwargs:
-            super(Escrow_release, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("from", String(kwargs["from"])),
@@ -1313,7 +1307,7 @@ class Escrow_release(GrapheneObject):
                 )
             )
         else:
-            super(Escrow_release, self).__init__(
+            super().__init__(
                 OrderedDict(
                     [
                         ("from", String(kwargs["from"])),
@@ -1333,7 +1327,7 @@ class Escrow_approve(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Escrow_approve, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("from", String(kwargs["from"])),
@@ -1353,7 +1347,7 @@ class Decline_voting_rights(GrapheneObject):
             return
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
-        super(Decline_voting_rights, self).__init__(
+        super().__init__(
             OrderedDict(
                 [
                     ("account", String(kwargs["account"])),

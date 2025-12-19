@@ -1,10 +1,7 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import re
-from builtins import str
 
 
-def decodeRPCErrorMsg(e):
+def decodeRPCErrorMsg(e: Exception) -> str:
     """Helper function to decode the raised Exception and give it a
     python Exception class
     """

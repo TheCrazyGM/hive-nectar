@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import math
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from typing import Any, Dict, Optional, Union
 
 from nectar.constants import (
     HIVE_100_PERCENT,
@@ -23,6 +23,7 @@ from .utils import (
     formatTimeString,
     formatToTimeStamp,
     make_patch,
+    parse_time,
     resolve_authorperm,
 )
 
@@ -57,13 +58,13 @@ class Comment(BlockchainObject):
 
     def __init__(
         self,
-        authorperm,
-        api="bridge",
-        observer="",
-        full=True,
-        lazy=False,
-        blockchain_instance=None,
-    ):
+        authorperm: Union[str, Dict[str, Any]],
+        api: str = "bridge",
+        observer: str = "",
+        full: bool = True,
+        lazy: bool = False,
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Create a Comment object representing a Hive post or comment.
 
@@ -94,7 +95,7 @@ class Comment(BlockchainObject):
                 authorperm["author"], authorperm["permlink"]
             )
             authorperm = self._parse_json_data(authorperm)
-        super(Comment, self).__init__(
+        super().__init__(
             authorperm,
             id_item="authorperm",
             lazy=lazy,
@@ -102,7 +103,7 @@ class Comment(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, comment):
+    def _parse_json_data(self, comment: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalize and convert raw comment JSON fields into Python-native types.
 
@@ -130,7 +131,11 @@ class Comment(BlockchainObject):
         ]
         for p in parse_times:
             if p in comment and isinstance(comment.get(p), str):
-                comment[p] = formatTimeString(comment.get(p, "1970-01-01T00:00:00"))
+                comment[p] = parse_time(comment.get(p, "1970-01-01T00:00:00"))
+        if "parent_author" not in comment:
+            comment["parent_author"] = ""
+        if "parent_permlink" not in comment:
+            comment["parent_permlink"] = ""
         # Parse Amounts
         hbd_amounts = [
             "total_payout_value",
@@ -182,7 +187,7 @@ class Comment(BlockchainObject):
             new_active_votes = []
             for vote in comment["active_votes"]:
                 if "time" in vote and isinstance(vote.get("time"), str):
-                    vote["time"] = formatTimeString(vote.get("time", "1970-01-01T00:00:00"))
+                    vote["time"] = parse_time(vote.get("time", "1970-01-01T00:00:00"))
                 parse_int = [
                     "rshares",
                     "reputation",
@@ -197,53 +202,39 @@ class Comment(BlockchainObject):
             comment["active_votes"] = new_active_votes
         return comment
 
-    def refresh(self):
-        if self.identifier == "":
+    def refresh(self) -> None:
+        if not self.identifier:
             return
         if not self.blockchain.is_connected():
             return
-        [author, permlink] = resolve_authorperm(self.identifier)
+        [author, permlink] = resolve_authorperm(str(self.identifier))
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        if self.blockchain.rpc.get_use_appbase():
-            from nectarapi.exceptions import InvalidParameters
+        from nectarapi.exceptions import InvalidParameters
 
-            try:
-                if self.api == "tags":
-                    content = self.blockchain.rpc.get_discussion(
-                        {"author": author, "permlink": permlink}, api="tags"
-                    )
-                elif self.api == "database":
-                    content = self.blockchain.rpc.list_comments(
-                        {"start": [author, permlink], "limit": 1, "order": "by_permlink"},
-                        api="database",
-                    )
-                elif self.api == "bridge":
-                    content = self.blockchain.rpc.get_post(
-                        {"author": author, "permlink": permlink, "observer": self.observer},
-                        api="bridge",
-                    )
-                elif self.api == "condenser":
-                    content = self.blockchain.rpc.get_content(author, permlink, api="condenser")
-                else:
-                    raise ValueError("api must be: tags, database, bridge or condenser")
+        try:
+            if self.api == "condenser_api":
+                content = self.blockchain.rpc.get_content(
+                    author,
+                    permlink,
+                    api="condenser_api",
+                )
+            else:
+                # Default to bridge.get_post; database_api does not expose get_post
+                content = self.blockchain.rpc.get_post(
+                    {"author": author, "permlink": permlink, "observer": self.observer},
+                    api="bridge",
+                )
                 if content is not None and "comments" in content:
                     content = content["comments"]
                 if isinstance(content, list) and len(content) > 0:
                     content = content[0]
-            except InvalidParameters:
-                raise ContentDoesNotExistsException(self.identifier)
-        else:
-            from nectarapi.exceptions import InvalidParameters
-
-            try:
-                content = self.blockchain.rpc.get_content(author, permlink)
-            except InvalidParameters:
-                raise ContentDoesNotExistsException(self.identifier)
+        except InvalidParameters:
+            raise ContentDoesNotExistsException(self.identifier)
         if not content or not content["author"] or not content["permlink"]:
             raise ContentDoesNotExistsException(self.identifier)
         content = self._parse_json_data(content)
         content["authorperm"] = construct_authorperm(content["author"], content["permlink"])
-        super(Comment, self).__init__(
+        super().__init__(
             content,
             id_item="authorperm",
             lazy=self.lazy,
@@ -251,7 +242,7 @@ class Comment(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         """
         Return a JSON-serializable dict representation of the Comment.
 
@@ -269,7 +260,7 @@ class Comment(BlockchainObject):
         if "authorperm" in output:
             output.pop("authorperm")
         if "json_metadata" in output:
-            output["json_metadata"] = json.dumps(output["json_metadata"], separators=[",", ":"])
+            output["json_metadata"] = json.dumps(output["json_metadata"])
         if "tags" in output:
             output.pop("tags")
         parse_times = [
@@ -326,7 +317,9 @@ class Comment(BlockchainObject):
             output["active_votes"] = new_active_votes
         return json.loads(str(json.dumps(output)))
 
-    def to_zero(self, account, partial: float = 100.0) -> float:
+    def to_zero(
+        self, account: Union[str, Account], partial: float = 100.0, nobroadcast: bool = False
+    ) -> float:
         """
         Compute the UI downvote percent needed for `account` to reduce this post's
         pending payout to approximately zero using payout-based math (reward fund
@@ -392,11 +385,17 @@ class Comment(BlockchainObject):
         if ui_pct_scaled > 0.0:
             ui_pct_scaled = 0.0
 
-        if ui_pct_scaled < 0.0:
+        if ui_pct_scaled < 0.0 and not nobroadcast:
             self.downvote(abs(ui_pct_scaled), voter=account)
         return ui_pct_scaled
 
-    def to_token_value(self, account, hbd, partial: float = 100.0) -> float:
+    def to_token_value(
+        self,
+        account: Union[str, Account],
+        hbd: bool = False,
+        partial: float = 100.0,
+        nobroadcast: bool = False,
+    ) -> float:
         """
         Compute the UI upvote percent needed for `account` so the vote contributes
         approximately `hbd` HBD to payout (payout-based math).
@@ -456,28 +455,28 @@ class Comment(BlockchainObject):
         if ui_pct_scaled < 0.0:
             ui_pct_scaled = 0.0
 
-        if ui_pct_scaled > 0.0:
+        if ui_pct_scaled > 0.0 and not nobroadcast:
             self.upvote(ui_pct_scaled, voter=account)
         return ui_pct_scaled
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self["id"]
 
     @property
-    def author(self):
+    def author(self) -> str:
         return self["author"]
 
     @property
-    def permlink(self):
+    def permlink(self) -> str:
         return self["permlink"]
 
     @property
-    def authorperm(self):
+    def authorperm(self) -> str:
         return construct_authorperm(self["author"], self["permlink"])
 
     @property
-    def category(self):
+    def category(self) -> str:
         if "category" in self:
             return self["category"]
         else:
@@ -589,7 +588,23 @@ class Comment(BlockchainObject):
         The difference is computed as now (UTC) minus the post's `created` timestamp (a timezone-aware datetime).
         A positive timedelta indicates the post is in the past; a negative value can occur if `created` is in the future.
         """
-        return datetime.now(timezone.utc) - self["created"]
+        created = self["created"]
+        if isinstance(created, str):
+            created = parse_time(created)
+        return datetime.now(timezone.utc) - created
+
+    def is_archived(self):
+        """
+        Determine whether the post is archived (cashout window passed).
+        """
+        cashout = self.get("cashout_time")
+        if isinstance(cashout, str):
+            cashout = parse_time(cashout)
+        if not isinstance(cashout, datetime):
+            return False
+        return cashout <= datetime(1970, 1, 1, tzinfo=timezone.utc) or cashout < datetime.now(
+            timezone.utc
+        ) - timedelta(days=7)
 
     def curation_penalty_compensation_hbd(self):
         """
@@ -601,9 +616,14 @@ class Comment(BlockchainObject):
             Amount: Estimated HBD payout required to offset the early-vote curation penalty.
         """
         self.refresh()
-        if self.blockchain.hardfork >= 21:
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+        if hardfork_version >= 21:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif hardfork_version >= 20:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reverse_auction_window_seconds = HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -660,9 +680,14 @@ class Comment(BlockchainObject):
             elapsed_seconds = (vote_time - self["created"]).total_seconds()
         else:
             raise ValueError("vote_time must be a string or a datetime")
-        if self.blockchain.hardfork >= 21:
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+        if hardfork_version >= 21:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF21
-        elif self.blockchain.hardfork >= 20:
+        elif hardfork_version >= 20:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF20
         else:
             reward = elapsed_seconds / HIVE_REVERSE_AUCTION_WINDOW_SECONDS_HF6
@@ -809,7 +834,17 @@ class Comment(BlockchainObject):
         curation_tokens = self.reward * author_reward_factor
         author_tokens = self.reward - curation_tokens
         curation_rewards = self.get_curation_rewards()
-        if self.blockchain.hardfork >= 20 and median_hist is not None:
+
+        # Parse hardfork version (handle strings like "1.28.0")
+        if isinstance(self.blockchain.hardfork, str):
+            # For version strings like "1.28.0", we only care about the major version (1)
+            # Since all Hive hardforks we're checking against (20, 21) are much higher
+            # than 1, we can safely treat any version string as being >= these versions
+            hardfork_version = 25  # Use a reasonable high value for modern Hive
+        else:
+            hardfork_version = self.blockchain.hardfork
+
+        if hardfork_version >= 20 and median_hist is not None:
             author_tokens += median_price * curation_rewards["unclaimed_rewards"]
         benefactor_tokens = author_tokens * beneficiaries_pct / HIVE_100_PERCENT
         author_tokens -= benefactor_tokens
@@ -912,7 +947,12 @@ class Comment(BlockchainObject):
                 max_rewards = median_price.as_base(self.blockchain.token_symbol) * (
                     pending_payout_value * curator_reward_factor
                 )
-            unclaimed_rewards = max_rewards.copy()
+            # max_rewards is an Amount, ensure we have a copy
+            if isinstance(max_rewards, Amount):
+                unclaimed_rewards = max_rewards.copy()
+            else:
+                # Convert to Amount if it's not already
+                unclaimed_rewards = Amount(max_rewards, blockchain_instance=self.blockchain)
             pending_rewards = True
 
         active_votes = {}
@@ -923,7 +963,12 @@ class Comment(BlockchainObject):
             else:
                 claim = 0
             if claim > 0 and pending_rewards:
-                unclaimed_rewards -= claim
+                # Ensure claim is an Amount for subtraction
+                if not isinstance(claim, Amount):
+                    claim_amount = Amount(claim, blockchain_instance=self.blockchain)
+                else:
+                    claim_amount = claim
+                unclaimed_rewards = unclaimed_rewards - claim_amount
             if claim > 0:
                 active_votes[vote["voter"]] = claim
             else:
@@ -945,12 +990,10 @@ class Comment(BlockchainObject):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            return self.blockchain.rpc.get_reblogged_by(
-                {"author": post_author, "permlink": post_permlink}, api="condenser"
-            )["accounts"]
-        else:
-            return self.blockchain.rpc.get_reblogged_by(post_author, post_permlink, api="condenser")
+        try:
+            return self.blockchain.rpc.get_reblogged_by(post_author, post_permlink)["accounts"]
+        except Exception:
+            return self.blockchain.rpc.get_reblogged_by([post_author, post_permlink])["accounts"]
 
     def get_replies(self, raw_data=False, identifier=None):
         """Returns content replies
@@ -969,7 +1012,6 @@ class Comment(BlockchainObject):
         # Use bridge.get_discussion API
         content_replies = self.blockchain.rpc.get_discussion(
             {"author": post_author, "permlink": post_permlink, "observer": self.observer},
-            api="bridge",
         )
 
         if not content_replies:
@@ -1024,7 +1066,9 @@ class Comment(BlockchainObject):
         authorperm = construct_authorperm(self["author"], self["permlink"])
         return ActiveVotes(authorperm, lazy=False, blockchain_instance=self.blockchain)
 
-    def upvote(self, weight=+100, voter=None):
+    def upvote(
+        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
+    ) -> Dict[str, Any]:
         """Upvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -1040,7 +1084,9 @@ class Comment(BlockchainObject):
                 raise VotingInvalidOnArchivedPost
         return self.vote(weight, account=voter)
 
-    def downvote(self, weight=100, voter=None):
+    def downvote(
+        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
+    ) -> Dict[str, Any]:
         """Downvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -1056,7 +1102,13 @@ class Comment(BlockchainObject):
                 raise VotingInvalidOnArchivedPost
         return self.vote(-weight, account=voter)
 
-    def vote(self, weight, account=None, identifier=None, **kwargs):
+    def vote(
+        self,
+        weight: float,
+        account: Optional[Union[str, Account]] = None,
+        identifier: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Vote for a post
 
         :param float weight: Voting weight. Range: -100.0 - +100.0.
@@ -1185,7 +1237,9 @@ class Comment(BlockchainObject):
         account = Account(account, blockchain_instance=self.blockchain)
         if identifier is None:
             identifier = self.identifier
-        author, permlink = resolve_authorperm(identifier)
+        if identifier is None:
+            raise ValueError("No identifier available")
+        author, permlink = resolve_authorperm(str(identifier))
         json_body = ["reblog", {"account": account["name"], "author": author, "permlink": permlink}]
         return self.blockchain.custom_json(
             id="follow", json_data=json_body, required_posting_auths=[account["name"]]
@@ -1243,7 +1297,7 @@ class RecentReplies(list):
             comments.append(
                 Comment(post, lazy=lazy, full=full, blockchain_instance=self.blockchain)
             )
-        super(RecentReplies, self).__init__(comments)
+        super().__init__(comments)
 
 
 class RecentByPath(list):
@@ -1289,7 +1343,7 @@ class RecentByPath(list):
             blockchain_instance=self.blockchain,
         )
 
-        super(RecentByPath, self).__init__(ranked_posts)
+        super().__init__(ranked_posts)
 
 
 class RankedPosts(list):
@@ -1361,7 +1415,6 @@ class RankedPosts(list):
                         "start_author": start_author,
                         "start_permlink": start_permlink,
                     },
-                    api="bridge",
                 )
                 if posts is None:
                     continue
@@ -1393,7 +1446,7 @@ class RankedPosts(list):
                     break
                 # Otherwise, re-raise the exception
                 raise
-        super(RankedPosts, self).__init__(comments)
+        super().__init__(comments)
 
 
 class AccountPosts(list):
@@ -1465,7 +1518,6 @@ class AccountPosts(list):
                         "start_author": start_author,
                         "start_permlink": start_permlink,
                     },
-                    api="bridge",
                 )
                 if posts is None:
                     continue
@@ -1497,4 +1549,4 @@ class AccountPosts(list):
                     break
                 # Otherwise, re-raise the exception
                 raise
-        super(AccountPosts, self).__init__(comments)
+        super().__init__(comments)

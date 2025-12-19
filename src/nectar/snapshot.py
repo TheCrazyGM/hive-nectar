@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import re
 import warnings
 from bisect import bisect_left
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from nectar.account import Account
 from nectar.amount import Amount
@@ -28,8 +28,14 @@ class AccountSnapshot(list):
     :param Hive blockchain_instance: Hive instance
     """
 
-    def __init__(self, account, account_history=None, blockchain_instance=None, **kwargs):
-        super(AccountSnapshot, self).__init__(account_history or [])
+    def __init__(
+        self,
+        account: Union[str, Account],
+        account_history: Optional[List[Dict[str, Any]]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(account_history or [])
         # Warn about any unused kwargs to maintain backward compatibility
         """
         Initialize an AccountSnapshot for the given account.
@@ -55,9 +61,9 @@ class AccountSnapshot(list):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, blockchain_instance=self.blockchain)
         self.reset()
-        super(AccountSnapshot, self).__init__(account_history)
+        # super().__init__(account_history or [])
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset internal time-series and aggregation arrays while preserving the stored account history.
 
@@ -98,12 +104,18 @@ class AccountSnapshot(list):
         self.rep = []
         self.rep_timestamp = []
 
-    def search(self, search_str, start=None, stop=None, use_block_num=True):
+    def search(
+        self,
+        search_str: str,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+    ) -> List[Dict[str, Any]]:
         """Returns ops in the given range"""
         ops = []
-        if start is not None:
+        if start is not None and not isinstance(start, int):
             start = addTzInfo(start)
-        if stop is not None:
+        if stop is not None and not isinstance(stop, int):
             stop = addTzInfo(stop)
         for op in self:
             if use_block_num and start is not None and isinstance(start, int):
@@ -113,7 +125,21 @@ class AccountSnapshot(list):
                 if op["index"] < start:
                     continue
             elif start is not None and isinstance(start, (datetime, date, time)):
-                if start > formatTimeString(op["timestamp"]):
+                start_dt = addTzInfo(start) if isinstance(start, (date, time)) else start
+                # Ensure start_dt is always datetime for comparison
+                if isinstance(start_dt, (date, time)):
+                    start_dt = addTzInfo(start_dt)
+                if start_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(start_dt, time):
+                    start_dt = datetime.combine(datetime.now().date(), start_dt)
+                elif isinstance(start_dt, date):
+                    start_dt = datetime.combine(start_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if start_dt > op_timestamp_dt:
                     continue
             if use_block_num and stop is not None and isinstance(stop, int):
                 if op["block"] > stop:
@@ -122,18 +148,43 @@ class AccountSnapshot(list):
                 if op["index"] > stop:
                     continue
             elif stop is not None and isinstance(stop, (datetime, date, time)):
-                if stop < formatTimeString(op["timestamp"]):
+                stop_dt = addTzInfo(stop) if isinstance(stop, (date, time)) else stop
+                # Ensure stop_dt is always datetime for comparison
+                if isinstance(stop_dt, (date, time)):
+                    stop_dt = addTzInfo(stop_dt)
+                if stop_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(stop_dt, time):
+                    stop_dt = datetime.combine(datetime.now().date(), stop_dt)
+                elif isinstance(stop_dt, date):
+                    stop_dt = datetime.combine(stop_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if stop_dt < op_timestamp_dt:
                     continue
             op_string = json.dumps(list(op.values()))
             if re.search(search_str, op_string):
                 ops.append(op)
         return ops
 
-    def get_ops(self, start=None, stop=None, use_block_num=True, only_ops=[], exclude_ops=[]):
+    def get_ops(
+        self,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+        only_ops: Optional[List[str]] = None,
+        exclude_ops: Optional[List[str]] = None,
+    ) -> Generator[Dict[str, Any], None, None]:
         """Returns ops in the given range"""
-        if start is not None:
+        if only_ops is None:
+            only_ops = []
+        if exclude_ops is None:
+            exclude_ops = []
+        if start is not None and not isinstance(start, int):
             start = addTzInfo(start)
-        if stop is not None:
+        if stop is not None and not isinstance(stop, int):
             stop = addTzInfo(stop)
         for op in self:
             if use_block_num and start is not None and isinstance(start, int):
@@ -143,7 +194,21 @@ class AccountSnapshot(list):
                 if op["index"] < start:
                     continue
             elif start is not None and isinstance(start, (datetime, date, time)):
-                if start > formatTimeString(op["timestamp"]):
+                start_dt = addTzInfo(start) if isinstance(start, (date, time)) else start
+                # Ensure start_dt is always datetime for comparison
+                if isinstance(start_dt, (date, time)):
+                    start_dt = addTzInfo(start_dt)
+                if start_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(start_dt, time):
+                    start_dt = datetime.combine(datetime.now().date(), start_dt)
+                elif isinstance(start_dt, date):
+                    start_dt = datetime.combine(start_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if start_dt > op_timestamp_dt:
                     continue
             if use_block_num and stop is not None and isinstance(stop, int):
                 if op["block"] > stop:
@@ -152,14 +217,30 @@ class AccountSnapshot(list):
                 if op["index"] > stop:
                     continue
             elif stop is not None and isinstance(stop, (datetime, date, time)):
-                if stop < formatTimeString(op["timestamp"]):
+                stop_dt = addTzInfo(stop) if isinstance(stop, (date, time)) else stop
+                # Ensure stop_dt is always datetime for comparison
+                if isinstance(stop_dt, (date, time)):
+                    stop_dt = addTzInfo(stop_dt)
+                if stop_dt is None:
+                    continue
+                # Convert to datetime if still not datetime
+                if isinstance(stop_dt, time):
+                    stop_dt = datetime.combine(datetime.now().date(), stop_dt)
+                elif isinstance(stop_dt, date):
+                    stop_dt = datetime.combine(stop_dt, time.min)
+                op_timestamp_dt = formatTimeString(op["timestamp"])
+                if isinstance(op_timestamp_dt, str):
+                    op_timestamp_dt = parse_time(op_timestamp_dt)
+                if stop_dt < op_timestamp_dt:
                     continue
             if exclude_ops and op["type"] in exclude_ops:
                 continue
             if not only_ops or op["type"] in only_ops:
                 yield op
 
-    def get_data(self, timestamp=None, index=0):
+    def get_data(
+        self, timestamp: Optional[Union[datetime, date, time]] = None, index: int = 0
+    ) -> Dict[str, Any]:
         """
         Return a dictionary snapshot of the account state at or immediately before the given timestamp.
 
@@ -179,6 +260,13 @@ class AccountSnapshot(list):
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         timestamp = addTzInfo(timestamp)
+        # Ensure timestamp is datetime for bisect_left
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        elif isinstance(timestamp, (date, time)):
+            timestamp = addTzInfo(timestamp)
+            if timestamp is None:
+                timestamp = datetime.now(timezone.utc)
         # Find rightmost value less than x
         i = bisect_left(self.timestamps, timestamp)
         if i:
@@ -209,17 +297,30 @@ class AccountSnapshot(list):
             "index": index,
         }
 
-    def get_account_history(self, start=None, stop=None, use_block_num=True):
+    def get_account_history(
+        self,
+        start: Optional[Union[datetime, date, time, int]] = None,
+        stop: Optional[Union[datetime, date, time, int]] = None,
+        use_block_num: bool = True,
+    ) -> None:
         """
         Populate the snapshot with the account's history between start and stop.
 
         Fetches operations from the underlying Account.history iterator and replaces the snapshot's contents with those operations. If start/stop are provided they may be block numbers or datetimes; set use_block_num=False to interpret them as virtual operation indices/timestamps instead of block numbers.
         """
-        super(AccountSnapshot, self).__init__(
-            [h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)]
+        self.clear()
+        self.extend(
+            h for h in self.account.history(start=start, stop=stop, use_block_num=use_block_num)
         )
 
-    def update_rewards(self, timestamp, curation_reward, author_vests, author_hive, author_hbd):
+    def update_rewards(
+        self,
+        timestamp: Union[datetime, int],
+        curation_reward: Union[Amount, float],
+        author_vests: Union[Amount, float],
+        author_hive: Union[Amount, float],
+        author_hbd: Union[Amount, float],
+    ) -> None:
         """
         Record a reward event at a given timestamp.
 
@@ -240,7 +341,7 @@ class AccountSnapshot(list):
         self.curation_rewards.append(curation_reward)
         self.author_rewards.append({"vests": author_vests, "hive": author_hive, "hbd": author_hbd})
 
-    def update_out_vote(self, timestamp, weight):
+    def update_out_vote(self, timestamp: Union[datetime, int], weight: int) -> None:
         """
         Record an outbound vote event.
 
@@ -253,7 +354,9 @@ class AccountSnapshot(list):
         self.out_vote_timestamp.append(timestamp)
         self.out_vote_weight.append(weight)
 
-    def update_in_vote(self, timestamp, weight, op):
+    def update_in_vote(
+        self, timestamp: Union[datetime, int], weight: int, op: Dict[str, Any]
+    ) -> None:
         """
         Record an incoming vote event by parsing a Vote operation and appending its data to the snapshot's in-vote arrays.
 
@@ -285,7 +388,15 @@ class AccountSnapshot(list):
             print("Could not find: %s" % v)
             return
 
-    def update(self, timestamp, own, delegated_in=None, delegated_out=None, hive=0, hbd=0):
+    def update(
+        self,
+        timestamp: datetime,
+        own: Union[Amount, float],
+        delegated_in: Optional[Union[Dict[str, Any], int]] = None,
+        delegated_out: Optional[Union[Dict[str, Any], int]] = None,
+        hive: Union[Amount, float] = 0,
+        hbd: Union[Amount, float] = 0,
+    ) -> None:
         """
         Update internal time-series state with a new account event.
 
@@ -346,12 +457,12 @@ class AccountSnapshot(list):
 
     def build(
         self,
-        only_ops=[],
-        exclude_ops=[],
-        enable_rewards=False,
-        enable_out_votes=False,
-        enable_in_votes=False,
-    ):
+        only_ops: Optional[List[str]] = None,
+        exclude_ops: Optional[List[str]] = None,
+        enable_rewards: bool = False,
+        enable_out_votes: bool = False,
+        enable_in_votes: bool = False,
+    ) -> None:
         """Builds the account history based on all account operations
 
         :param array only_ops: Limit generator by these
@@ -360,14 +471,26 @@ class AccountSnapshot(list):
             generator (*optional*)
 
         """
+        if only_ops is None:
+            only_ops = []
+        if exclude_ops is None:
+            exclude_ops = []
         if len(self.timestamps) > 0:
             start_timestamp = self.timestamps[-1]
         else:
             start_timestamp = None
         for op in sorted(self, key=lambda k: k["timestamp"]):
             ts = parse_time(op["timestamp"])
-            if start_timestamp is not None and start_timestamp > ts:
-                continue
+            if start_timestamp is not None:
+                # Convert start_timestamp to datetime if it's time or date
+                if isinstance(start_timestamp, time):
+                    start_timestamp_dt = datetime.combine(datetime.now().date(), start_timestamp)
+                elif isinstance(start_timestamp, date):
+                    start_timestamp_dt = datetime.combine(start_timestamp, time.min)
+                else:
+                    start_timestamp_dt = start_timestamp
+                if start_timestamp_dt > ts:
+                    continue
             if op["type"] in exclude_ops:
                 continue
             if len(only_ops) > 0 and op["type"] not in only_ops:
@@ -382,8 +505,13 @@ class AccountSnapshot(list):
             )
 
     def parse_op(
-        self, op, only_ops=[], enable_rewards=False, enable_out_votes=False, enable_in_votes=False
-    ):
+        self,
+        op: Dict[str, Any],
+        only_ops: Optional[List[str]] = None,
+        enable_rewards: bool = False,
+        enable_out_votes: bool = False,
+        enable_in_votes: bool = False,
+    ) -> None:
         """
         Parse a single account-history operation and update the snapshot's internal state.
 
@@ -399,6 +527,8 @@ class AccountSnapshot(list):
         Returns:
             None
         """
+        if only_ops is None:
+            only_ops = []
         ts = parse_time(op["timestamp"])
 
         if op["type"] == "account_create":
@@ -600,7 +730,7 @@ class AccountSnapshot(list):
         ]:
             return
 
-    def build_sp_arrays(self):
+    def build_sp_arrays(self) -> None:
         """
         Build timelines of own and effective Hive Power (HP) for each stored timestamp.
 
@@ -629,7 +759,7 @@ class AccountSnapshot(list):
             self.own_sp.append(sp_own)
             self.eff_sp.append(sp_eff)
 
-    def build_rep_arrays(self):
+    def build_rep_arrays(self) -> None:
         """Build reputation arrays"""
         self.rep_timestamp = [self.timestamps[1]]
         self.rep = [reputation_to_score(0)]
@@ -641,7 +771,7 @@ class AccountSnapshot(list):
             self.rep.append(reputation_to_score(current_reputation))
             self.rep_timestamp.append(ts)
 
-    def build_vp_arrays(self):
+    def build_vp_arrays(self) -> None:
         """
         Build timelines for upvote and downvote voting power.
 
@@ -661,7 +791,13 @@ class AccountSnapshot(list):
         self.vp_timestamp = [self.timestamps[1]]
         self.vp = [HIVE_100_PERCENT]
         HF_21 = datetime(2019, 8, 27, 15, tzinfo=timezone.utc)
-        if self.timestamps[1] > HF_21:
+        # Ensure timestamps[1] is datetime for comparison
+        ts1 = self.timestamps[1]
+        if isinstance(ts1, time):
+            ts1 = datetime.combine(datetime.now().date(), ts1)
+        elif isinstance(ts1, date):
+            ts1 = datetime.combine(ts1, time.min)
+        if ts1 is not None and ts1 > HF_21:
             self.downvote_vp_timestamp = [self.timestamps[1]]
         else:
             self.downvote_vp_timestamp = [HF_21]
@@ -685,10 +821,14 @@ class AccountSnapshot(list):
                         {"current_mana_pct": self.downvote_vp[-2] / 100}
                     )
                     # Add full downvote VP once fully charged
-                    self.downvote_vp_timestamp.append(
-                        self.downvote_vp_timestamp[-1] + recharge_time
-                    )
-                    self.downvote_vp.append(HIVE_100_PERCENT)
+                    last_ts = self.downvote_vp_timestamp[-1]
+                    if isinstance(last_ts, time):
+                        last_ts = datetime.combine(datetime.now().date(), last_ts)
+                    elif isinstance(last_ts, date):
+                        last_ts = datetime.combine(last_ts, time.min)
+                    if last_ts is not None:
+                        self.downvote_vp_timestamp.append(last_ts + recharge_time)
+                        self.downvote_vp.append(HIVE_100_PERCENT)
 
                 # Add charged downvote VP just before new Vote
                 self.downvote_vp_timestamp.append(ts - timedelta(seconds=1))
@@ -718,8 +858,14 @@ class AccountSnapshot(list):
                             {"current_mana_pct": self.vp[-2] / 100}
                         )
                         # Add full VP once fully charged
-                        self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                        self.vp.append(HIVE_100_PERCENT)
+                        last_vp_ts = self.vp_timestamp[-1]
+                        if isinstance(last_vp_ts, time):
+                            last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+                        elif isinstance(last_vp_ts, date):
+                            last_vp_ts = datetime.combine(last_vp_ts, time.min)
+                        if last_vp_ts is not None:
+                            self.vp_timestamp.append(last_vp_ts + recharge_time)
+                            self.vp.append(HIVE_100_PERCENT)
                     if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                         seconds=1
                     ):
@@ -751,8 +897,14 @@ class AccountSnapshot(list):
                         {"current_mana_pct": self.vp[-2] / 100}
                     )
                     # Add full VP once fully charged
-                    self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
-                    self.vp.append(HIVE_100_PERCENT)
+                    last_vp_ts = self.vp_timestamp[-1]
+                    if isinstance(last_vp_ts, time):
+                        last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+                    elif isinstance(last_vp_ts, date):
+                        last_vp_ts = datetime.combine(last_vp_ts, time.min)
+                    if last_vp_ts is not None:
+                        self.vp_timestamp.append(last_vp_ts + recharge_time)
+                        self.vp.append(HIVE_100_PERCENT)
                 if self.vp[-1] == HIVE_100_PERCENT and ts - self.vp_timestamp[-1] > timedelta(
                     seconds=1
                 ):
@@ -770,21 +922,35 @@ class AccountSnapshot(list):
             recharge_time = self.account.get_manabar_recharge_timedelta(
                 {"current_mana_pct": self.vp[-2] / 100}
             )
-            self.vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
+            last_vp_ts = self.vp_timestamp[-1]
+            if isinstance(last_vp_ts, time):
+                last_vp_ts = datetime.combine(datetime.now().date(), last_vp_ts)
+            elif isinstance(last_vp_ts, date):
+                last_vp_ts = datetime.combine(last_vp_ts, time.min)
+            if last_vp_ts is not None:
+                self.vp_timestamp.append(last_vp_ts + recharge_time)
 
         if self.account.get_downvoting_power() == 100:
             self.downvote_vp.append(10000)
             recharge_time = self.account.get_manabar_recharge_timedelta(
                 {"current_mana_pct": self.downvote_vp[-2] / 100}
             )
-            self.downvote_vp_timestamp.append(self.vp_timestamp[-1] + recharge_time)
+            last_downvote_ts = self.downvote_vp_timestamp[-1]
+            if isinstance(last_downvote_ts, time):
+                last_downvote_ts = datetime.combine(datetime.now().date(), last_downvote_ts)
+            elif isinstance(last_downvote_ts, date):
+                last_downvote_ts = datetime.combine(last_downvote_ts, time.min)
+            if last_downvote_ts is not None:
+                self.downvote_vp_timestamp.append(last_downvote_ts + recharge_time)
 
         self.vp.append(self.account.get_voting_power() * 100)
         self.downvote_vp.append(self.account.get_downvoting_power() * 100)
         self.downvote_vp_timestamp.append(datetime.now(timezone.utc))
         self.vp_timestamp.append(datetime.now(timezone.utc))
 
-    def build_curation_arrays(self, end_date=None, sum_days=7):
+    def build_curation_arrays(
+        self, end_date: Optional[Union[datetime, date, time]] = None, sum_days: int = 7
+    ) -> None:
         """
         Compute curation-per-1000-HP time series and store them in
         self.curation_per_1000_HP_timestamp and self.curation_per_1000_HP.
@@ -838,11 +1004,21 @@ class AccountSnapshot(list):
             else:
                 self.curation_per_1000_HP_timestamp.append(end_date)
                 self.curation_per_1000_HP.append(curation_sum)
-                end_date = end_date + timedelta(days=sum_days)
+                # Ensure end_date is a datetime for arithmetic
+                if isinstance(end_date, datetime):
+                    end_date = end_date + timedelta(days=sum_days)
+                elif isinstance(end_date, date):
+                    end_date = datetime.combine(end_date, time.min, timezone.utc) + timedelta(
+                        days=sum_days
+                    )
+                else:  # time object
+                    end_date = datetime.combine(date.today(), end_date, timezone.utc) + timedelta(
+                        days=sum_days
+                    )
                 curation_sum = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
-    def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, str(self.account["name"]))
+    def __repr__(self) -> str:
+        return "<{} {}>".format(self.__class__.__name__, str(self.account["name"]))

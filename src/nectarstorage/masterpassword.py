@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/masterpassword.py
 import hashlib
 import logging
@@ -14,7 +13,7 @@ from .exceptions import WalletLocked, WrongMasterPasswordException
 log = logging.getLogger(__name__)
 
 
-class MasterPassword(object):
+class MasterPassword:
     """The keys are encrypted with a Masterpassword that is stored in
     the configurationStore. It has a checksum to verify correctness
     of the password
@@ -58,7 +57,7 @@ class MasterPassword(object):
             KEYRING_AVAILABLE = False
             if password_storage == "keyring":
                 try:
-                    import keyring
+                    import keyring  # type: ignore[import-not-found]
 
                     if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):
                         KEYRING_AVAILABLE = True

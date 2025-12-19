@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import os
 import random
 import struct
 from binascii import hexlify, unhexlify
+from typing import Any, Dict, Optional, Tuple, Union
 
 from nectar.instance import shared_blockchain_instance
 from nectar.version import version as __version__
@@ -14,7 +14,7 @@ from .account import Account
 from .exceptions import MissingKeyError
 
 
-class Memo(object):
+class Memo:
     """Deals with Memos that are attached to a transfer
 
     :param Account from_account: Account that has sent the memo
@@ -135,7 +135,13 @@ class Memo(object):
 
     """
 
-    def __init__(self, from_account=None, to_account=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        from_account: Optional[Union[str, Account, PrivateKey]] = None,
+        to_account: Optional[Union[str, Account, PublicKey]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize a Memo helper that resolves sender/recipient identifiers into Account/Key objects.
 
@@ -155,24 +161,49 @@ class Memo(object):
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-        if to_account and len(to_account) < 51:
-            self.to_account = Account(to_account, blockchain_instance=self.blockchain)
-        elif to_account and len(to_account) >= 51:
-            self.to_account = PublicKey(to_account)
+        # Handle to_account
+        if to_account:
+            if isinstance(to_account, str):
+                if len(to_account) < 51:
+                    self.to_account = Account(to_account, blockchain_instance=self.blockchain)
+                else:
+                    self.to_account = PublicKey(to_account)
+            elif isinstance(to_account, Account):
+                self.to_account = to_account
+            elif isinstance(to_account, PublicKey):
+                self.to_account = to_account
+            else:
+                self.to_account = None
         else:
             self.to_account = None
-        if from_account and len(from_account) < 51:
-            self.from_account = Account(from_account, blockchain_instance=self.blockchain)
-        elif from_account and len(from_account) >= 51:
-            self.from_account = PrivateKey(from_account)
+
+        # Handle from_account
+        if from_account:
+            if isinstance(from_account, str):
+                if len(from_account) < 51:
+                    self.from_account = Account(from_account, blockchain_instance=self.blockchain)
+                else:
+                    self.from_account = PrivateKey(from_account)
+            elif isinstance(from_account, Account):
+                self.from_account = from_account
+            elif isinstance(from_account, PrivateKey):
+                self.from_account = from_account
+            else:
+                self.from_account = None
         else:
             self.from_account = None
 
-    def unlock_wallet(self, *args, **kwargs):
+    def unlock_wallet(self, *args: Any, **kwargs: Any) -> None:
         """Unlock the library internal wallet"""
         self.blockchain.wallet.unlock(*args, **kwargs)
 
-    def encrypt(self, memo, bts_encrypt=False, return_enc_memo_only=False, nonce=None):
+    def encrypt(
+        self,
+        memo: str,
+        bts_encrypt: bool = False,
+        return_enc_memo_only: bool = False,
+        nonce: Optional[str] = None,
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Encrypt a memo
 
         :param str memo: clear text memo message
@@ -197,14 +228,22 @@ class Memo(object):
         else:
             pubkey = self.to_account
         if not memo_wif:
-            raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            if isinstance(self.from_account, Account):
+                raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            else:
+                raise MissingKeyError("Memo key missing!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
 
         if bts_encrypt:
+            # Convert nonce to int for encode_memo_bts
+            nonce_int = int(nonce) if nonce else 0
             enc = BtsMemo.encode_memo_bts(
-                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce, memo
+                PrivateKey(memo_wif),
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                nonce_int,
+                memo,
             )
 
             return {
@@ -216,8 +255,8 @@ class Memo(object):
         else:
             enc = BtsMemo.encode_memo(
                 PrivateKey(memo_wif),
-                PublicKey(pubkey, prefix=self.chain_prefix),
-                nonce,
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                int(nonce),
                 memo,
                 prefix=self.chain_prefix,
             )
@@ -249,20 +288,23 @@ class Memo(object):
         else:
             pubkey = self.to_account
         if not memo_wif:
-            raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            if isinstance(self.from_account, Account):
+                raise MissingKeyError("Memo key for %s missing!" % self.from_account["name"])
+            else:
+                raise MissingKeyError("Memo key missing!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
 
         file_size = os.path.getsize(infile)
         priv = PrivateKey(memo_wif)
-        pub = PublicKey(pubkey, prefix=self.chain_prefix)
+        pub = PublicKey(str(pubkey), prefix=self.chain_prefix)
         enc = BtsMemo.encode_memo(
-            priv, pub, nonce, "nectar/%s" % __version__, prefix=self.chain_prefix
+            priv, pub, int(nonce), "nectar/%s" % __version__, prefix=self.chain_prefix
         )
         enc = unhexlify(base58decode(enc[1:]))
         shared_secret = BtsMemo.get_shared_secret(priv, pub)
-        aes, check = BtsMemo.init_aes2(shared_secret, nonce)
+        aes, check = BtsMemo.init_aes2(shared_secret, int(nonce))
         with open(outfile, "wb") as fout:
             fout.write(struct.pack("<Q", len(enc)))
             fout.write(enc)
@@ -278,12 +320,12 @@ class Memo(object):
                     encd = aes.encrypt(data)
                     fout.write(encd)
 
-    def extract_decrypt_memo_data(self, memo):
+    def extract_decrypt_memo_data(self, memo: str) -> Tuple[Any, Any, Any]:
         """Returns information about an encrypted memo"""
         from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(memo)
         return from_key, to_key, nonce
 
-    def decrypt(self, memo):
+    def decrypt(self, memo: Union[str, Dict[str, Any]]) -> Optional[str]:
         """
         Decrypt a memo message produced for a transfer.
 
@@ -323,6 +365,13 @@ class Memo(object):
             nonce = ""
 
         if memo_to is None or memo_from is None:
+            if message is None:
+                return None
+            # Ensure message is a string for extract_memo_data
+            if isinstance(message, dict):
+                message = str(message.get("memo") or message.get("message") or "")
+            elif not isinstance(message, str):
+                message = str(message)
             from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(message)
             try:
                 memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(to_key))
@@ -334,11 +383,7 @@ class Memo(object):
                     pubkey = to_key
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [str(to_key), str(from_key)]
-                        )
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
             pubkey = memo_to
@@ -347,34 +392,51 @@ class Memo(object):
             pubkey = memo_from
         else:
             try:
-                memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
-                pubkey = memo_from["memo_key"]
+                if isinstance(memo_to, Account):
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
+                else:
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_to))
+                if isinstance(memo_from, Account):
+                    pubkey = memo_from["memo_key"]
+                else:
+                    pubkey = memo_from
             except MissingKeyError:
                 try:
                     # if that failed, we assume that we have sent the memo
-                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
-                        memo_from["memo_key"]
-                    )
-                    pubkey = memo_to["memo_key"]
+                    if isinstance(memo_from, Account):
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
+                            memo_from["memo_key"]
+                        )
+                    else:
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_from))
+                    if isinstance(memo_to, Account):
+                        pubkey = memo_to["memo_key"]
+                    else:
+                        pubkey = memo_to
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [memo_to["name"], memo_from["name"]]
-                        )
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
+
+        # Ensure message is a string for decode functions
+        if isinstance(message, dict):
+            message = str(message.get("memo") or message.get("message") or "")
+        elif not isinstance(message, str):
+            message = str(message)
 
         if message[0] == "#" or memo_to is None or memo_from is None:
             return BtsMemo.decode_memo(PrivateKey(memo_wif), message)
         else:
             return BtsMemo.decode_memo_bts(
-                PrivateKey(memo_wif), PublicKey(pubkey, prefix=self.chain_prefix), nonce, message
+                PrivateKey(memo_wif),
+                PublicKey(str(pubkey), prefix=self.chain_prefix),
+                int(nonce or 0),
+                message,
             )
 
-    def decrypt_binary(self, infile, outfile, buffer_size=2048):
+    def decrypt_binary(self, infile: str, outfile: str, buffer_size: int = 2048) -> Dict[str, Any]:
         """Decrypt a binary file
 
         :param str infile: encrypted binary file
@@ -406,11 +468,7 @@ class Memo(object):
                     pubkey = to_key
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [str(to_key), str(from_key)]
-                        )
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
         elif memo_to is not None and memo_from is not None and isinstance(memo_from, PrivateKey):
             memo_wif = memo_from
             if isinstance(memo_to, Account):
@@ -425,31 +483,39 @@ class Memo(object):
                 pubkey = memo_from
         else:
             try:
-                memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
-                pubkey = memo_from["memo_key"]
+                if isinstance(memo_to, Account):
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(memo_to["memo_key"])
+                else:
+                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_to))
+                if isinstance(memo_from, Account):
+                    pubkey = memo_from["memo_key"]
+                else:
+                    pubkey = memo_from
             except MissingKeyError:
                 try:
                     # if that failed, we assume that we have sent the memo
-                    memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
-                        memo_from["memo_key"]
-                    )
-                    pubkey = memo_to["memo_key"]
+                    if isinstance(memo_from, Account):
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(
+                            memo_from["memo_key"]
+                        )
+                    else:
+                        memo_wif = self.blockchain.wallet.getPrivateKeyForPublicKey(str(memo_from))
+                    if isinstance(memo_to, Account):
+                        pubkey = memo_to["memo_key"]
+                    else:
+                        pubkey = memo_to
                 except MissingKeyError:
                     # if all fails, raise exception
-                    raise MissingKeyError(
-                        "Non of the required memo keys are installed!Need any of {}".format(
-                            [memo_to["name"], memo_from["name"]]
-                        )
-                    )
+                    raise MissingKeyError("Non of the required memo keys are installed!")
 
         if not hasattr(self, "chain_prefix"):
             self.chain_prefix = self.blockchain.prefix
         priv = PrivateKey(memo_wif)
-        pubkey = PublicKey(pubkey, prefix=self.chain_prefix)
+        pubkey = PublicKey(str(pubkey), prefix=self.chain_prefix)
         nectar_version = BtsMemo.decode_memo(priv, memo)
         shared_secret = BtsMemo.get_shared_secret(priv, pubkey)
         # Init encryption
-        aes, checksum = BtsMemo.init_aes2(shared_secret, nonce)
+        aes, checksum = BtsMemo.init_aes2(shared_secret, int(nonce))
         with open(infile, "rb") as fin:
             memo_size = struct.unpack("<Q", fin.read(struct.calcsize("<Q")))[0]
             memo = fin.read(memo_size)

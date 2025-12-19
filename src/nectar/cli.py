@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 import ast
-import calendar
 import hashlib
 import json
 import logging
@@ -12,12 +10,13 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import click
 from prettytable import PrettyTable
 
 from nectar import exceptions
-from nectar.account import Account
+from nectar.account import Account, Accounts
 from nectar.amount import Amount
 from nectar.asciichart import AsciiChart
 from nectar.asset import Asset
@@ -26,13 +25,12 @@ from nectar.blockchain import Blockchain
 from nectar.comment import Comment
 from nectar.community import Communities, Community
 from nectar.hive import Hive
-from nectar.hivesigner import HiveSigner
 from nectar.imageuploader import ImageUploader
 from nectar.instance import set_shared_blockchain_instance, shared_blockchain_instance
 from nectar.market import Market
 from nectar.memo import Memo
 from nectar.message import Message
-from nectar.nodelist import NodeList, node_answer_time
+from nectar.nodelist import NodeList
 from nectar.price import Price
 from nectar.profile import Profile
 from nectar.rc import RC
@@ -79,33 +77,40 @@ availableConfigurationKeys = [
 ]
 
 
-def prompt_callback(ctx, param, value):
+def prompt_callback(ctx: Any, param: Any, value: str) -> bool:
     if value in ["yes", "y", "ye"]:
-        value = True
+        return True
     else:
         print("Please write yes, ye or y to confirm!")
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return False
 
 
-def asset_callback(ctx, param, value):
+def asset_callback(ctx: Any, param: Any, value: str) -> str:
     if value not in ["HIVE", "HBD", "TBD", "TESTS"]:
         print("Please choose HIVE/HBD (or TESTS/TBD for test assets) as asset!")
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return value
     else:
         return value
 
 
-def prompt_flag_callback(ctx, param, value):
+def prompt_flag_callback(ctx: Any, param: Any, value: bool) -> bool:
     if not value:
         ctx.abort()
+        # This line is unreachable but needed for type checker
+        return False
+    return True
 
 
-def is_keyring_available():
+def is_keyring_available() -> bool:
     KEYRING_AVAILABLE = False
     try:
-        import keyring
+        import keyring  # type: ignore
 
-        if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):
+        if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):  # type: ignore
             KEYRING_AVAILABLE = True
         else:
             KEYRING_AVAILABLE = False
@@ -125,7 +130,7 @@ def unlock_wallet(hv, password=None, allow_wif=True):
         return True
     password_storage = hv.config["password_storage"]
     if not password and password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         password = keyring.get_password("nectar", "wallet")
     if not password and password_storage == "environment" and "UNLOCK" in os.environ:
@@ -202,53 +207,6 @@ def unlock_wallet(hv, password=None, allow_wif=True):
         return True
 
 
-def unlock_token_wallet(hv, hs, password=None):
-    if hv.unsigned and hv.nobroadcast:
-        return True
-    if hv.use_ledger:
-        return True
-    if not hs.locked():
-        return True
-    if not hs.store.is_encrypted():
-        return True
-    password_storage = hv.config["password_storage"]
-    if not password and password_storage == "keyring" and is_keyring_available():
-        import keyring
-
-        password = keyring.get_password("nectar", "wallet")
-    if not password and password_storage == "environment" and "UNLOCK" in os.environ:
-        password = os.environ.get("UNLOCK")
-    if bool(password):
-        hs.unlock(password)
-    else:
-        password = click.prompt(
-            "Password to unlock wallet", confirmation_prompt=False, hide_input=True
-        )
-        try:
-            hs.unlock(password)
-        except Exception:
-            raise exceptions.WrongMasterPasswordException(
-                "entered password is not a valid password"
-            )
-
-    if hs.locked():
-        if password_storage == "keyring" or password_storage == "environment":
-            print("Wallet could not be unlocked with %s!" % password_storage)
-            password = click.prompt(
-                "Password to unlock wallet", confirmation_prompt=False, hide_input=True
-            )
-            if bool(password):
-                unlock_token_wallet(hv, hs, password=password)
-                if not hs.locked():
-                    return True
-        else:
-            print("Wallet could not be unlocked!")
-        return False
-    else:
-        print("Wallet Unlocked!")
-        return True
-
-
 def export_trx(tx, export):
     if export is not None:
         with open(export, "w", encoding="utf-8") as f:
@@ -262,6 +220,14 @@ def export_trx(tx, export):
 )
 @click.option("--offline", "-o", is_flag=True, default=False, help="Prevent connecting to network")
 @click.option("--no-broadcast", "-d", is_flag=True, default=False, help="Do not broadcast")
+@click.option(
+    "--testnet",
+    "-t",
+    is_flag=True,
+    default=False,
+    help="Legacy compatibility flag (no-op, Hive only).",
+)
+# Note: The testnet flag is deliberately retained for backward compatibility but is unused in the implementation.
 @click.option("--no-wallet", "-p", is_flag=True, default=False, help="Do not load the wallet")
 @click.option(
     "--unsigned",
@@ -269,13 +235,6 @@ def export_trx(tx, export):
     is_flag=True,
     default=False,
     help="Nothing will be signed, changes the default value of expires to 3600",
-)
-@click.option(
-    "--create-link",
-    "-l",
-    is_flag=True,
-    default=False,
-    help="Creates hivesigner links from all broadcast operations",
 )
 # Hive is the only supported chain; no chain selection flags
 @click.option(
@@ -294,13 +253,6 @@ def export_trx(tx, export):
     "--path", help="BIP32 path from which the keys are derived, when not set, default_path is used."
 )
 @click.option(
-    "--token",
-    "-t",
-    is_flag=True,
-    default=False,
-    help="Uses a hivesigner token to broadcast (only broadcast operation with posting permission)",
-)
-@click.option(
     "--expires",
     "-e",
     default=30,
@@ -312,13 +264,12 @@ def cli(
     node,
     offline,
     no_broadcast,
+    testnet,  # noqa: ARG001
     no_wallet,
     unsigned,
-    create_link,
     keys,
     use_ledger,
     path,
-    token,
     expires,
     verbose,
 ):
@@ -353,12 +304,6 @@ def cli(
                     keys_list.append(keyfile[account][role])
     if len(keys_list) > 0:
         autoconnect = True
-    if create_link:
-        no_broadcast = True
-        unsigned = True
-        hs = HiveSigner()
-    else:
-        hs = None
     debug = verbose > 0
     # Hive-only instance
     hv = Hive(
@@ -368,9 +313,7 @@ def cli(
         offline=offline,
         nowallet=no_wallet,
         unsigned=unsigned,
-        use_hs=token,
         expiration=expires,
-        hivesigner=hs,
         use_ledger=use_ledger,
         path=path,
         debug=debug,
@@ -415,7 +358,7 @@ def set(key, value):
     elif key == "password_storage":
         hv.config["password_storage"] = value
         if is_keyring_available() and value == "keyring":
-            import keyring
+            import keyring  # type: ignore
 
             password = click.prompt(
                 "Password to unlock wallet (Will be stored in keyring)",
@@ -424,7 +367,7 @@ def set(key, value):
             )
             password = keyring.set_password("nectar", "wallet", password)
         elif is_keyring_available() and value != "keyring":
-            import keyring
+            import keyring  # type: ignore
 
             try:
                 keyring.delete_password("nectar", "wallet")
@@ -436,20 +379,10 @@ def set(key, value):
             )
     elif key == "client_id":
         hv.config["client_id"] = value
-    elif key == "hot_sign_redirect_uri":
-        hv.config["hot_sign_redirect_uri"] = value
-    elif key == "hs_api_url":
-        hv.config["hs_api_url"] = value
-    elif key == "oauth_base_url":
-        # Keep generic key and also update HiveSigner oauth base for consistency
-        hv.config["oauth_base_url"] = value
-        hv.config["hs_oauth_base_url"] = value
     elif key == "default_path":
         hv.config["default_path"] = value
     elif key == "default_canonical_url":
         hv.config["default_canonical_url"] = value
-    elif key == "use_condenser":
-        hv.config["use_condenser"] = value in ["true", "True"]
     elif key == "use_tor":
         hv.config["use_tor"] = value in ["true", "True"]
     else:
@@ -518,7 +451,9 @@ def pingnode(sort, remove):
         hv.set_default_nodes(sorted_node_list)
     else:
         node = hv.rpc.url
-        rpc_answer_time = node_answer_time(node)
+        nodelist = NodeList()
+        node_times = nodelist.get_node_answer_time([node], verbose=False)
+        rpc_answer_time = node_times[0]["delay_ms"] / 1000 if node_times else 0
         rpc_time_str = "%.2f" % (rpc_answer_time * 1000)
         t.add_row([node, rpc_time_str])
         print(t)
@@ -602,7 +537,7 @@ def updatenodes(show, test, only_https, only_wss):
             sorted_nodes = sorted(nodelist, key=lambda node: node["score"], reverse=True)
             for node in sorted_nodes:
                 if node["url"] in nodes:
-                    score = float("{0:.1f}".format(node["score"]))
+                    score = float("{:.1f}".format(node["score"]))
                     t.add_row([node["url"], node["version"], score])
             print(t)
         if not test:
@@ -636,8 +571,6 @@ def config():
     t.add_row(["nodes", nodes])
     if "password_storage" not in availableConfigurationKeys:
         t.add_row(["password_storage", hv.config["password_storage"]])
-    if not hv.config["use_condenser"]:
-        t.add_row(["use_condenser", hv.config["use_condenser"]])
     t.add_row(["data_dir", hv.config.data_dir])
     t.add_row(["use_tor", bool(hv.config["use_tor"])])
     print(t)
@@ -668,7 +601,7 @@ def createwallet(wipe):
         return
     password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         password = keyring.set_password("nectar", "wallet", password)
     elif password_storage == "environment":
@@ -739,7 +672,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: %s - %s" % (account["name"], key_type))
+                print("Account: {} - {}".format(account["name"], key_type))
             except Exception as e:
                 print(str(e))
     else:
@@ -753,7 +686,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: %s - %s" % (account["name"], key_type))
+                print("Account: {} - {}".format(account["name"], key_type))
             except Exception as e:
                 print(str(e))
                 continue
@@ -1132,59 +1065,6 @@ def passwordgen(role, account, import_password, import_coldcard, wif, export_pub
 
 
 @cli.command()
-@click.argument("name")
-@click.option(
-    "--unsafe-import-token",
-    help="Private key to import to wallet (unsafe, unless shell history is deleted afterwards)",
-)
-def addtoken(name, unsafe_import_token):
-    """Add key to wallet
-
-    When no [OPTION] is given, a password prompt for unlocking the wallet
-    and a prompt for entering the private key are shown.
-    """
-    hv = shared_blockchain_instance()
-    if hv.rpc is not None:
-        hv.rpc.rpcconnect()
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    if not unsafe_import_token:
-        unsafe_import_token = click.prompt(
-            "Enter private token", confirmation_prompt=False, hide_input=True
-        )
-    hs.addToken(name, unsafe_import_token)
-    set_shared_blockchain_instance(hv)
-
-
-@cli.command()
-@click.option(
-    "--confirm",
-    prompt="Are your sure?",
-    hide_input=False,
-    callback=prompt_flag_callback,
-    is_flag=True,
-    confirmation_prompt=False,
-    help="Please confirm!",
-)
-@click.argument("name")
-def deltoken(confirm, name):
-    """Delete name from the wallet
-
-    name is the public name from the private token
-    which will be deleted from the wallet
-    """
-    hv = shared_blockchain_instance()
-    if hv.rpc is not None:
-        hv.rpc.rpcconnect()
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    hs.removeTokenFromPublicName(name)
-    set_shared_blockchain_instance(hv)
-
-
-@cli.command()
 @click.option("--path", "-p", help="Set path (when using ledger)")
 @click.option(
     "--ledger-approval",
@@ -1219,24 +1099,6 @@ def listkeys(path, ledger_approval):
         t.align = "l"
         for key in hv.wallet.getPublicKeys():
             t.add_row([key])
-    print(t)
-
-
-@cli.command()
-def listtoken():
-    """Show stored token"""
-    hv = shared_blockchain_instance()
-    t = PrettyTable(["name", "scope", "status"])
-    t.align = "l"
-    hs = HiveSigner(blockchain_instance=hv)
-    if not unlock_token_wallet(hv, hs):
-        return
-    for name in hs.getPublicNames():
-        ret = hs.me(username=name)
-        if "error" in ret:
-            t.add_row([name, "-", ret["error"]])
-        else:
-            t.add_row([name, ret["scope"], "ok"])
     print(t)
 
 
@@ -1324,8 +1186,6 @@ def upvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.upvote(weight, voter=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not upvote.")
         tx = {}
@@ -1354,8 +1214,6 @@ def delete(post, account, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.delete(account=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Could not delete post.")
         tx = {}
@@ -1391,8 +1249,6 @@ def downvote(post, account, weight, export):
     try:
         post = Comment(post, blockchain_instance=hv)
         tx = post.downvote(weight, voter=account)
-        if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-            tx = hv.hivesigner.url_from_tx(tx)
     except exceptions.VotingInvalidOnArchivedPost:
         print("Post/Comment is older than 7 days! Did not downvote.")
         tx = {}
@@ -1421,8 +1277,6 @@ def transfer(to, amount, asset, memo, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.transfer(to, amount, asset, memo)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1448,8 +1302,6 @@ def powerup(amount, account, to, export):
     except Exception:
         amount = str(amount)
     tx = acc.transfer_to_vesting(amount, to=to)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1477,8 +1329,6 @@ def powerdown(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.withdraw_vesting(amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1511,8 +1361,6 @@ def delegate(amount, to_account, account, export):
             amount = hv.hp_to_vests(float(amount))
 
     tx = acc.delegate_vesting_shares(to_account, amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1576,8 +1424,6 @@ def powerdownroute(to, percentage, account, auto_vest, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.set_withdraw_vesting_route(to, percentage, auto_vest=auto_vest)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1619,8 +1465,6 @@ def changerecovery(new_recovery_account, account, export):
         tb.appendWif(str(owner_key))
         tb.sign()
         tx = tb.broadcast()
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1645,8 +1489,6 @@ def convert(amount, account, export):
     except Exception:
         amount = str(amount)
     tx = acc.convert(amount)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -1667,7 +1509,7 @@ def changewalletpassphrase():
         return
     password_storage = hv.config["password_storage"]
     if password_storage == "keyring" and is_keyring_available():
-        import keyring
+        import keyring  # type: ignore
 
         keyring.set_password("nectar", "wallet", newpassword)
     elif password_storage == "environment":
@@ -1767,7 +1609,7 @@ def interest(account):
                 i["last_payment"],
                 "in %s" % (i["next_payment_duration"]),
                 "%.1f%%" % i["interest_rate"],
-                "%.3f %s" % (i["interest"], hv.backed_token_symbol),
+                "{:.3f} {}".format(i["interest"], hv.backed_token_symbol),
             ]
         )
     print(t)
@@ -1788,12 +1630,14 @@ def followlist(follow_type, account, limit):
         hv.rpc.rpcconnect()
     if not account:
         if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
+            account = hv.config["default_account"]
     account = Account(account, blockchain_instance=hv)
     if follow_type == "blog":
         name_list = account.get_following(limit=limit)
     else:
-        name_list = account.get_follow_list(follow_type, limit=limit)
+        name_list = account.get_follow_list(follow_type)
+        if limit and len(name_list) > limit:
+            name_list = name_list[:limit]
     t = PrettyTable(["index", "name"])
     t.align = "r"
     i = 0
@@ -1810,13 +1654,15 @@ def follower(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nFollowers statistics for @%s (please wait...)" % a.name)
         followers = a.get_followers(False)
+        if isinstance(followers, list) and not isinstance(followers, Accounts):
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         followers.print_summarize_table(tag_type="Followers")
 
 
@@ -1827,13 +1673,15 @@ def following(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nFollowing statistics for @%s (please wait...)" % a.name)
         following = a.get_following(False)
+        if isinstance(following, list) and not isinstance(following, Accounts):
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         following.print_summarize_table(tag_type="Following")
 
 
@@ -1844,13 +1692,15 @@ def muter(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nMuters statistics for @%s (please wait...)" % a.name)
         muters = a.get_muters(False)
+        if isinstance(muters, list) and not isinstance(muters, Accounts):
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         muters.print_summarize_table(tag_type="Muters")
 
 
@@ -1861,13 +1711,15 @@ def muting(account):
     hv = shared_blockchain_instance()
     if hv.rpc is not None:
         hv.rpc.rpcconnect()
-    if not account:
-        if "default_account" in hv.config:
-            account = [hv.config["default_account"]]
-    for a in account:
+    accounts = list(account or [])
+    if not accounts and "default_account" in hv.config:
+        accounts = [hv.config["default_account"]]
+    for a in accounts:
         a = Account(a, blockchain_instance=hv)
         print("\nMuting statistics for @%s (please wait...)" % a.name)
         muting = a.get_mutings(False)
+        if isinstance(muting, list) and not isinstance(muting, Accounts):
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         muting.print_summarize_table(tag_type="Muting")
 
 
@@ -1935,14 +1787,21 @@ def notifications(
                 continue
             elif note["type"] == "vote" and not votes:
                 continue
+        # Handle date field which might be string or datetime
+        date_obj = note["date"]
+        if isinstance(date_obj, str):
+            # Parse ISO format date string
+            from datetime import datetime
+
+            date_obj = datetime.fromisoformat(date_obj.replace("Z", "+00:00"))
         t.add_row(
             [
-                str(datetime.fromtimestamp(calendar.timegm(note["date"].timetuple()))),
+                str(date_obj),
                 note["type"],
                 note["msg"],
             ]
         )
-        last_read = note["date"]
+        last_read = date_obj
     print(t)
     if mark_as_read:
         account.mark_notifications_as_read(last_read=last_read)
@@ -2021,8 +1880,6 @@ def allow(foreign_account, permission, account, weight, threshold, export):
     if threshold is not None:
         threshold = int(threshold)
     tx = acc.allow(foreign_account, weight=weight, permission=permission, threshold=threshold)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2067,10 +1924,10 @@ def disallow(foreign_account, permission, account, weight, threshold, export):
         from nectargraphenebase.account import PasswordKey
 
         pwd = click.prompt("Password for Key Derivation", confirmation_prompt=True)
-        foreign_account = [format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)]
+        foreign_account = format(PasswordKey(account, pwd, permission).get_public(), hv.prefix)
+    elif isinstance(foreign_account, (list, tuple)):
+        foreign_account = foreign_account[0]
     tx = acc.disallow(foreign_account, permission=permission, weight=weight, threshold=threshold)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2104,11 +1961,10 @@ def claimaccount(creator, fee, number, export):
     if not unlock_wallet(hv):
         return
     creator = Account(creator, blockchain_instance=hv)
-    fee = Amount("%.3f %s" % (float(fee), hv.token_symbol), blockchain_instance=hv)
+    fee = Amount("{:.3f} {}".format(float(fee), hv.token_symbol), blockchain_instance=hv)
     tx = None
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
+    if float(fee) > 0:
         tx = hv.claim_account(creator, fee=fee)
-        tx = hv.hivesigner.url_from_tx(tx)
     elif float(fee) == 0:
         rc = RC(blockchain_instance=hv)
         current_costs = rc.claim_account(tx_size=200)
@@ -2206,8 +2062,6 @@ def changekeys(account, owner, active, posting, memo, import_pub, export):
         memo_key=memo,
         password=None,
     )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2322,8 +2176,6 @@ def newaccount(
                 memo_key=memo,
                 posting_key=posting,
             )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2362,8 +2214,6 @@ def setprofile(variable, value, account, pair, export):
     json_metadata = Profile(acc["json_metadata"] if acc["json_metadata"] else {})
     json_metadata.update(profile)
     tx = acc.update_account_profile(json_metadata)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2390,8 +2240,6 @@ def delprofile(variable, account, export):
         json_metadata.remove(var)
 
     tx = acc.update_account_profile(json_metadata)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2508,8 +2356,6 @@ def updatememokey(account, key, export):
         if not hv.nobroadcast:
             hv.wallet.addPrivateKey(memo_privkey)
     tx = acc.update_memo_key(key)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2548,8 +2394,6 @@ def beneficiaries(authorperm, beneficiaries, export):
     for b in beneficiaries_list_sorted:
         Account(b["account"], blockchain_instance=hv)
     tx = hv.comment_options(options, authorperm, beneficiaries_list_sorted, account=account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -2587,11 +2431,12 @@ def message(message_file, account, verify):
     else:
         if not unlock_wallet(hv):
             return
-        out = m.sign(account)
-    if message_file is not None:
+        signed = m.sign(account)
+        out = signed if isinstance(signed, str) else json.dumps(signed, indent=4)
+    if message_file is not None and not verify:
         with open(message_file, "w", encoding="utf-8") as f:
             f.write(out)
-    else:
+    elif not verify:
         print(out)
 
 
@@ -2652,6 +2497,9 @@ def decrypt(memo, account, output, info, text, binary):
                 output = entry + ".dec"
             ret = m.decrypt_binary(entry, output, buffer_size=2048)
             if info:
+                if ret is None:
+                    print("No information available for decrypt_binary result")
+                    return
                 t = PrettyTable(["Key", "Value"])
                 t.align = "l"
                 t.add_row(["file", entry])
@@ -2662,12 +2510,16 @@ def decrypt(memo, account, output, info, text, binary):
             message = entry
         if text:
             out = m.decrypt(message)
+            if out is None:
+                raise ValueError("Failed to decrypt message")
             if output is None:
                 output = entry
             with open(output, "w", encoding="utf-8") as f:
                 f.write(out)
         elif not binary:
             out = m.decrypt(message)
+            if out is None:
+                raise ValueError("Failed to decrypt message")
             if info:
                 print("message: %s" % out)
             if output:
@@ -2716,13 +2568,27 @@ def encrypt(receiver, memo, account, output, text, binary):
                 message = message[1:]
 
         if text:
-            out = m.encrypt(message)["message"]
+            encrypted = m.encrypt(message)
+            if encrypted is None:
+                print("Failed to encrypt message")
+                return
+            out = encrypted.get("message") if isinstance(encrypted, dict) else encrypted
+            if out is None:
+                print("Failed to encrypt message")
+                return
             if output is None:
                 output = entry
             with open(output, "w", encoding="utf-8") as f:
                 f.write(out)
         elif not binary:
-            out = m.encrypt(message)["message"]
+            encrypted = m.encrypt(message)
+            if encrypted is None:
+                print("Failed to encrypt message")
+                return
+            out = encrypted.get("message") if isinstance(encrypted, dict) else encrypted
+            if out is None:
+                print("Failed to encrypt message")
+                return
             if output is None:
                 print(out)
             else:
@@ -2747,7 +2613,7 @@ def uploadimage(image, account, image_name):
     if image_name is None:
         print("![](%s)" % tx["url"])
     else:
-        print("![%s](%s)" % (image_name, tx["url"]))
+        print("![{}]({})".format(image_name, tx["url"]))
 
 
 @cli.command()
@@ -2839,7 +2705,7 @@ def download(permlink, account, save, export):
         if "beneficiaries" in comment:
             beneficiaries = []
             for b in comment["beneficiaries"]:
-                beneficiaries.append("%s:%.2f%%" % (b["account"], b["weight"] / 10000 * 100))
+                beneficiaries.append("{}:{:.2f}%".format(b["account"], b["weight"] / 10000 * 100))
             if len(beneficiaries) > 0:
                 yaml_prefix += "beneficiaries: %s\n" % ",".join(beneficiaries)
         if reply_identifier is not None:
@@ -2902,12 +2768,12 @@ def createpost(
     if community is None:
         community_found = False
         while not community_found:
-            community = input("community account (name or title): ")
+            community_name = input("community account (name or title): ")
             try:
-                community = Community(community)
+                community = Community(community_name)
             except Exception:
                 c = Communities(limit=1000)
-                comm_cand = c.search_title(community)
+                comm_cand = c.search_title(community_name)
                 if len(comm_cand) == 0:
                     print("No community could be found!")
                     continue
@@ -2917,7 +2783,9 @@ def createpost(
                     continue
                 community = comm_cand[int(index) - 1]
             ret = input(
-                "Selected community: %s - %s [yes/no]? " % (community["name"], community["title"])
+                "Selected community: {} - {} [yes/no]? ".format(
+                    community["name"], community["title"]
+                )
             )
             if ret in ["y", "yes"]:
                 community_found = True
@@ -3078,18 +2946,9 @@ def post(
         parse_body = bool(parameter["parse_body"])
     else:
         parse_body = not no_parse_body
-    max_accepted_payout = None
-    if "max_accepted_payout" in parameter:
-        max_accepted_payout = parameter["max_accepted_payout"]
-    percent_hbd = None
-    if "percent_hbd" in parameter:
-        percent_hbd = parameter["percent_hbd"]
-    max_accepted_payout = None
-    if "max_accepted_payout" in parameter:
-        max_accepted_payout = parameter["max_accepted_payout"]
-    comment_options = None
-    if max_accepted_payout is not None or percent_hbd is not None:
-        comment_options = {}
+    max_accepted_payout = parameter.get("max_accepted_payout")
+    percent_hbd = parameter.get("percent_hbd")
+    comment_options = {}
     if max_accepted_payout is not None:
         if hv.backed_token_symbol not in max_accepted_payout:
             max_accepted_payout = str(
@@ -3197,8 +3056,6 @@ def post(
             parse_body=False,
             app="hive-nectar/%s" % (__version__),
         )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3231,8 +3088,6 @@ def reply(authorperm, body, account, title, export):
         reply_identifier=authorperm,
         app="hive-nectar/%s" % (__version__),
     )
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3253,8 +3108,6 @@ def approvewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.approvewitness(witness, approve=True)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3275,8 +3128,6 @@ def disapprovewitness(witness, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.disapprovewitness(witness)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3297,8 +3148,6 @@ def setproxy(proxy, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy(proxy, account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3318,8 +3167,6 @@ def delproxy(account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.setproxy("", account)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3436,16 +3283,16 @@ def stream(lines, head, table, follow):
             if ops_type == "custom_json":
                 content = ops["id"]
             elif ops_type == "vote":
-                content = "%.2f%% @%s/%s - %s" % (
+                content = "{:.2f}% @{}/{} - {}".format(
                     ops["weight"] / 100,
                     ops["author"],
                     ops["permlink"][:30],
                     ops["voter"],
                 )
             elif ops_type == "transfer":
-                content = "%s: @%s -> @%s" % (str(ops["amount"]), ops["from"], ops["to"])
+                content = "{}: @{} -> @{}".format(str(ops["amount"]), ops["from"], ops["to"])
             elif ops_type == "transfer_to_vesting":
-                content = "%s: @%s -> @%s" % (str(ops["amount"]), ops["from"], ops["to"])
+                content = "{}: @{} -> @{}".format(str(ops["amount"]), ops["from"], ops["to"])
             t.add_row([str(block_num), str(trx_num), ops_type, content])
             if op_count >= lines and not follow:
                 print(t)
@@ -3546,17 +3393,13 @@ def tradehistory(days, hours, limit, width, height, ascii):
     # Using built-in timezone support
     stop = datetime.now(timezone.utc)
     start = stop - timedelta(days=days)
-    intervall = timedelta(hours=hours)
-    trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
+    trades = m.trade_history(start=start, stop=stop, limit=limit)
     price = []
     # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
-    base_str = hv.token_symbol
     for trade in trades:
-        base = 0
-        quote = 0
-        for order in trade:
-            base += float(order.as_base(base_str)["base"])
-            quote += float(order.as_base(base_str)["quote"])
+        # Each trade is a FilledOrder object with base, quote, price, date
+        base = float(trade["base"])
+        quote = float(trade["quote"])
         price.append(base / quote)
     if ascii:
         charset = "ascii"
@@ -3733,7 +3576,7 @@ def buy(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):
@@ -3742,8 +3585,6 @@ def buy(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=hv)
     acc = Account(account, blockchain_instance=hv)
     tx = market.buy(p, a, account=acc, orderid=orderid)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3796,7 +3637,7 @@ def sell(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "%s:%s" % (hv.backed_token_symbol, hv.token_symbol),
+            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):
@@ -3804,8 +3645,6 @@ def sell(amount, asset, price, account, orderid, export):
     a = Amount(float(amount), asset, blockchain_instance=hv)
     acc = Account(account, blockchain_instance=hv)
     tx = market.sell(p, a, account=acc, orderid=orderid)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3827,8 +3666,6 @@ def cancel(orderid, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = market.cancel(orderid, account=acc)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3870,8 +3707,6 @@ def reblog(identifier, account):
     acc = Account(account, blockchain_instance=hv)
     post = Comment(identifier, blockchain_instance=hv)
     tx = post.reblog(account=acc)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -3897,8 +3732,6 @@ def follow(follow, account, what, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(follow, what=what)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3922,8 +3755,6 @@ def mute(mute, account, what, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.follow(mute, what=what)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3944,8 +3775,6 @@ def unfollow(unfollow, account, export):
         return
     acc = Account(account, blockchain_instance=hv)
     tx = acc.unfollow(unfollow)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -3981,7 +3810,8 @@ def witnessupdate(
     if account_creation_fee is not None:
         props["account_creation_fee"] = str(
             Amount(
-                "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+                "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol),
+                blockchain_instance=hv,
             )
         )
     if maximum_block_size is not None:
@@ -3989,8 +3819,6 @@ def witnessupdate(
     if hbd_interest_rate is not None:
         props["hbd_interest_rate"] = int(float(hbd_interest_rate) * 100)
     tx = witness.update(signing_key or witness["signing_key"], url or witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4015,8 +3843,6 @@ def witnessdisable(witness, export):
     props = witness["props"]
     null_key = ("%s" + "1111111111111111111111111111111114T1Anm") % hv.prefix
     tx = witness.update(null_key, witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4038,8 +3864,6 @@ def witnessenable(witness, signing_key, export):
     witness = Witness(witness, blockchain_instance=hv)
     props = witness["props"]
     tx = witness.update(signing_key, witness["url"], props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4070,15 +3894,13 @@ def witnesscreate(
         return
     props = {
         "account_creation_fee": Amount(
-            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
         ),
         "maximum_block_size": int(maximum_block_size),
         "hbd_interest_rate": int(hbd_interest_rate * 100),
     }
 
     tx = hv.witness_update(pub_signing_key, url, props, account=witness)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -4114,7 +3936,7 @@ def witnessproperties(
     props = {}
     if account_creation_fee is not None:
         props["account_creation_fee"] = Amount(
-            "%.3f %s" % (float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
         )
     if account_subsidy_budget is not None:
         props["account_subsidy_budget"] = int(account_subsidy_budget)
@@ -4130,8 +3952,6 @@ def witnessproperties(
         props["url"] = url
 
     tx = hv.witness_set_properties(wif, witness, props)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4177,7 +3997,9 @@ def witnessfeed(witness, wif, base, quote, support_peg):
 
     hive_usd = None
     print(
-        "Old price %.3f (base: %s, quote %s)" % (float(last_published_price), old_base, old_quote)
+        "Old price {:.3f} (base: {}, quote {})".format(
+            float(last_published_price), old_base, old_quote
+        )
     )
     if quote is None and not support_peg:
         quote = Amount("1.000 %s" % hv.token_symbol, blockchain_instance=hv)
@@ -4202,14 +4024,12 @@ def witnessfeed(witness, wif, base, quote, support_peg):
         else:
             base = Amount(base, hv.backed_token_symbol, blockchain_instance=hv)
     new_price = Price(base=base, quote=quote, blockchain_instance=hv)
-    print("New price %.3f (base: %s, quote %s)" % (float(new_price), base, quote))
+    print("New price {:.3f} (base: {}, quote {})".format(float(new_price), base, quote))
     if wif is not None:
         props = {"hbd_exchange_rate": new_price}
         tx = hv.witness_set_properties(wif, witness["owner"], props)
     else:
         tx = witness.feed_publish(base, quote=quote)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     tx = json.dumps(tx, indent=4)
     print(tx)
 
@@ -4614,9 +4434,9 @@ def curation(
                         + voter
                         + [
                             "%.1f min" % row[1],
-                            "%.3f %s" % (float(row[2]), hv.backed_token_symbol),
-                            "%.3f %s" % (float(row[3]), hv.backed_token_symbol),
-                            "%.3f %s" % (row[4], HP_symbol),
+                            "{:.3f} {}".format(float(row[2]), hv.backed_token_symbol),
+                            "{:.3f} {}".format(float(row[3]), hv.backed_token_symbol),
+                            "{:.3f} {}".format(row[4], HP_symbol),
                             "%.1f %%" % (row[5]),
                         ]
                     )
@@ -4635,9 +4455,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % highest_vote[1],
-                        "%.3f %s" % (float(highest_vote[2]), hv.backed_token_symbol),
-                        "%.3f %s" % (float(highest_vote[3]), hv.backed_token_symbol),
-                        "%.3f %s" % (highest_vote[4], HP_symbol),
+                        "{:.3f} {}".format(float(highest_vote[2]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(float(highest_vote[3]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(highest_vote[4], HP_symbol),
                         "%.1f %%" % (highest_vote[5]),
                     ]
                 )
@@ -4646,9 +4466,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % max_curation[1],
-                        "%.3f %s" % (float(max_curation[2]), hv.backed_token_symbol),
-                        "%.3f %s" % (float(max_curation[3]), hv.backed_token_symbol),
-                        "%.3f %s" % (max_curation[4], HP_symbol),
+                        "{:.3f} {}".format(float(max_curation[2]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(float(max_curation[3]), hv.backed_token_symbol),
+                        "{:.3f} {}".format(max_curation[4], HP_symbol),
                         "%.1f %%" % (max_curation[5]),
                     ]
                 )
@@ -4657,9 +4477,9 @@ def curation(
                     sum_line
                     + [
                         "-",
-                        "%.3f %s" % (sum_curation[0], hv.backed_token_symbol),
-                        "%.3f %s" % (sum_curation[1], hv.backed_token_symbol),
-                        "%.3f %s" % (sum_curation[2], HP_symbol),
+                        "{:.3f} {}".format(sum_curation[0], hv.backed_token_symbol),
+                        "{:.3f} {}".format(sum_curation[1], hv.backed_token_symbol),
+                        "{:.3f} {}".format(sum_curation[2], HP_symbol),
                         "%.2f %%" % curation_sum_percentage,
                     ]
                 )
@@ -4750,7 +4570,20 @@ def rewards(
                 if isinstance(timestamp, (int, float)):
                     received = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 else:
-                    received = formatTimeString(timestamp)
+                    # Try to parse the timestamp string
+                    try:
+                        received = formatTimeString(timestamp)
+                        # If it's still a string, try parsing as ISO format
+                        if isinstance(received, str):
+                            received = datetime.fromisoformat(received.replace("Z", "+00:00"))
+                        # Ensure timezone awareness
+                        if received.tzinfo is None:
+                            received = received.replace(tzinfo=timezone.utc)
+                    except Exception as e:
+                        # If all else fails, skip this entry
+                        if hv.debug:
+                            print(f"Skipping entry due to timestamp parsing error: {e}")
+                        continue
                 if received < limit_time:
                     continue
                 if v["type"] != "producer_reward":
@@ -4805,7 +4638,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4817,7 +4650,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4828,7 +4661,7 @@ def rewards(
                     "Author",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4839,7 +4672,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4850,7 +4683,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -4860,7 +4693,7 @@ def rewards(
                 [
                     "Received",
                     hv.backed_token_symbol,
-                    "%sP + %s" % (hv.token_symbol[0], hv.token_symbol),
+                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -5031,8 +4864,8 @@ def rewards(
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -5042,8 +4875,8 @@ def rewards(
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5054,8 +4887,8 @@ def rewards(
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %sP" % (sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -5359,8 +5192,8 @@ def pending(
                     "Sum",
                     "-",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5370,8 +5203,8 @@ def pending(
             t.add_row(
                 [
                     "Sum",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5382,8 +5215,8 @@ def pending(
                 [
                     "Sum",
                     "-",
-                    "%.2f %s" % (sum_reward[0], hv.backed_token_symbol),
-                    "%.2f %s" % (sum_reward[1], sp_symbol),
+                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
+                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -5448,8 +5281,6 @@ def claimreward(
         reward_vests = r[1]
 
     tx = acc.claim_reward_balance(reward_sbd, reward_vests)
-    if hv.unsigned and hv.nobroadcast and hv.hivesigner is not None:
-        tx = hv.hivesigner.url_from_tx(tx)
     export_trx(tx, export)
     tx = json.dumps(tx, indent=4)
     print(tx)
@@ -6077,7 +5908,7 @@ def draw(
         block["id"],
         trx_id,
     )
-    body += "| trx id | [%s](https://hiveblocks.com/tx/%s) |\n" % (trx_id, trx_id)
+    body += "| trx id | [{}](https://hiveblocks.com/tx/{}) |\n".format(trx_id, trx_id)
     body += "| block id | %s |\n" % block["block_id"]
     body += "| previous id | %s |\n" % block["previous"]
     body += "| hash type | %s |\n" % hashtype
@@ -6100,7 +5931,7 @@ def draw(
 
 if __name__ == "__main__":
     if getattr(sys, "frozen", False):
-        os.environ["SSL_CERT_FILE"] = os.path.join(sys._MEIPASS, "lib", "cert.pem")
+        os.environ["SSL_CERT_FILE"] = os.path.join(sys._MEIPASS, "lib", "cert.pem")  # type: ignore
         cli(sys.argv[1:])
     else:
         cli()

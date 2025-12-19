@@ -1,6 +1,5 @@
 import json
 import unittest
-from builtins import str
 
 from nectarbase.objects import Amount, Operation
 

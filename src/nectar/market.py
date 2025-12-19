@@ -1,7 +1,9 @@
-# -*- coding: utf-8 -*-
 import logging
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+import httpx
 
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
@@ -10,21 +12,8 @@ from .account import Account
 from .amount import Amount
 from .asset import Asset
 from .price import FilledOrder, Order, Price
-from .utils import (
-    addTzInfo,
-    assets_from_string,
-    formatTimeFromNow,
-    formatTimeString,
-)
+from .utils import addTzInfo, assets_from_string, formatTimeFromNow, formatTimeString
 
-REQUEST_MODULE = None
-if not REQUEST_MODULE:
-    try:
-        import requests
-
-        REQUEST_MODULE = "requests"
-    except ImportError:
-        REQUEST_MODULE = None
 log = logging.getLogger(__name__)
 
 
@@ -59,7 +48,13 @@ class Market(dict):
 
     """
 
-    def __init__(self, base=None, quote=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        base: Optional[Union[str, Asset]] = None,
+        quote: Optional[Union[str, Asset]] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Create a Market mapping with "base" and "quote" Asset objects.
 
@@ -79,25 +74,30 @@ class Market(dict):
             quote_symbol, base_symbol = assets_from_string(base)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
-            super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
-            )
+            super().__init__({"base": base, "quote": quote}, blockchain_instance=self.blockchain)
         elif base and quote:
-            quote = Asset(quote, blockchain_instance=self.blockchain)
-            base = Asset(base, blockchain_instance=self.blockchain)
-            super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
+            # Handle Asset objects properly without converting to string
+            if isinstance(quote, Asset):
+                quote_asset = quote
+            else:
+                quote_asset = Asset(str(quote), blockchain_instance=self.blockchain)
+
+            if isinstance(base, Asset):
+                base_asset = base
+            else:
+                base_asset = Asset(str(base), blockchain_instance=self.blockchain)
+
+            super().__init__(
+                {"base": base_asset, "quote": quote_asset}, blockchain_instance=self.blockchain
             )
         elif base is None and quote is None:
             quote = Asset(self.blockchain.backed_token_symbol, blockchain_instance=self.blockchain)
             base = Asset(self.blockchain.token_symbol, blockchain_instance=self.blockchain)
-            super(Market, self).__init__(
-                {"base": base, "quote": quote}, blockchain_instance=self.blockchain
-            )
+            super().__init__({"base": base, "quote": quote}, blockchain_instance=self.blockchain)
         else:
             raise ValueError("Unknown Market config")
 
-    def get_string(self, separator=":"):
+    def get_string(self, separator: str = ":") -> str:
         """
         Return the market identifier as "QUOTE{separator}BASE" (e.g. "HIVE:HBD").
 
@@ -107,21 +107,22 @@ class Market(dict):
         Returns:
             str: Formatted market string in the form "<quote><separator><base>".
         """
-        return "%s%s%s" % (self["quote"]["symbol"], separator, self["base"]["symbol"])
+        return "{}{}{}".format(self["quote"]["symbol"], separator, self["base"]["symbol"])
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             quote_symbol, base_symbol = assets_from_string(other)
             return (
                 self["quote"]["symbol"] == quote_symbol and self["base"]["symbol"] == base_symbol
             ) or (self["quote"]["symbol"] == base_symbol and self["base"]["symbol"] == quote_symbol)
-        elif isinstance(other, Market):
+        if isinstance(other, Market):
             return (
                 self["quote"]["symbol"] == other["quote"]["symbol"]
                 and self["base"]["symbol"] == other["base"]["symbol"]
             )
+        return False
 
-    def ticker(self, raw_data=False):
+    def ticker(self, raw_data: bool = False) -> Union[Dict[str, Any], Any]:
         """
         Return the market ticker for this Market (HIVE:HBD).
 
@@ -141,7 +142,7 @@ class Market(dict):
         data = {}
         # Core Exchange rate
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ticker = self.blockchain.rpc.get_ticker(api="market_history")
+        ticker = self.blockchain.rpc.get_ticker()
 
         if raw_data:
             return ticker
@@ -172,7 +173,7 @@ class Market(dict):
 
         return data
 
-    def volume24h(self, raw_data=False):
+    def volume24h(self, raw_data: bool = False) -> Optional[Union[Dict[str, Amount], Any]]:
         """
         Return 24-hour trading volume for this market.
 
@@ -185,20 +186,20 @@ class Market(dict):
             raw_data (bool): If True, return the unprocessed RPC response.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        volume = self.blockchain.rpc.get_volume(api="market_history")
+        volume = self.blockchain.rpc.get_volume()
         if raw_data:
             return volume
         if "hbd_volume" in volume and "hive_volume" in volume:
             return {
-                self["base"]["symbol"]: Amount(
+                self.blockchain.backed_token_symbol: Amount(
                     volume["hbd_volume"], blockchain_instance=self.blockchain
                 ),
-                self["quote"]["symbol"]: Amount(
+                self.blockchain.token_symbol: Amount(
                     volume["hive_volume"], blockchain_instance=self.blockchain
                 ),
             }
 
-    def orderbook(self, limit=25, raw_data=False):
+    def orderbook(self, limit: int = 25, raw_data: bool = False) -> Union[Dict[str, Any], Any]:
         """Returns the order book for the HBD/HIVE market.
 
         :param int limit: Limit the amount of orders (default: 25)
@@ -258,10 +259,7 @@ class Market(dict):
 
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_order_book({"limit": limit}, api="market_history")
-        else:
-            orders = self.blockchain.rpc.get_order_book(limit, api="database_api")
+        orders = self.blockchain.rpc.get_order_book({"limit": limit})
         if raw_data:
             return orders
         asks = list(
@@ -289,7 +287,9 @@ class Market(dict):
         data = {"asks": asks, "bids": bids, "asks_date": asks_date, "bids_date": bids_date}
         return data
 
-    def recent_trades(self, limit=25, raw_data=False):
+    def recent_trades(
+        self, limit: int = 25, raw_data: bool = False
+    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
         """
         Return recent trades for this market.
 
@@ -303,63 +303,48 @@ class Market(dict):
             list: A list of FilledOrder objects when `raw_data` is False, or a list of raw trade dicts as returned by the market_history API when `raw_data` is True.
         """
         self.blockchain.rpc.set_next_node_on_empty_reply(limit > 0)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_recent_trades({"limit": limit}, api="market_history")[
-                "trades"
-            ]
-        else:
-            orders = self.blockchain.rpc.get_recent_trades(limit, api="market_history")
+        orders = self.blockchain.rpc.get_recent_trades({"limit": limit})["trades"]
         if raw_data:
             return orders
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
         return filled_order
 
-    def trade_history(self, start=None, stop=None, intervall=None, limit=25, raw_data=False):
+    def trade_history(
+        self,
+        start: Optional[Union[datetime, date, time]] = None,
+        stop: Optional[Union[datetime, date, time]] = None,
+        limit: int = 25,
+        raw_data: bool = False,
+    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
         """Returns the trade history for the internal market
-
-        This function allows to fetch a fixed number of trades at fixed
-        intervall times to reduce the call duration time. E.g. it is possible to
-        receive the trades from the last 7 days, by fetching 100 trades each 6 hours.
-
-        When intervall is set to None, all trades are received between start and stop.
-        This can take a while.
 
         :param datetime start: Start date
         :param datetime stop: Stop date
-        :param timedelta intervall: Defines the intervall
         :param int limit: Defines how many trades are fetched at each intervall point
         :param bool raw_data: when True, the raw data are returned
         """
         if not stop:
             stop = datetime.now(timezone.utc)
         if not start:
-            start = stop - timedelta(hours=1)
-        start = addTzInfo(start)
-        stop = addTzInfo(stop)
-        current_start = start
-        filled_order = []
-        fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
-        if intervall is None and len(fo) > 0:
-            current_start = fo[-1]["date"]
-            filled_order += fo
-        elif intervall is not None:
-            current_start += intervall
-            filled_order += [fo]
-        last_date = fo[-1]["date"]
-        while len(fo) > 0 and last_date < stop:
-            fo = self.trades(start=current_start, stop=stop, limit=limit, raw_data=raw_data)
-            if len(fo) == 0 or fo[-1]["date"] == last_date:
-                break
-            last_date = fo[-1]["date"]
-            if intervall is None:
-                current_start = last_date
-                filled_order += fo
+            # Ensure stop is a datetime for arithmetic operations
+            if isinstance(stop, datetime):
+                start = stop - timedelta(hours=1)
             else:
-                current_start += intervall
-                filled_order += [fo]
-        return filled_order
+                # Convert date/time to datetime for arithmetic
+                if isinstance(stop, date):
+                    start = datetime.combine(stop, time.min, timezone.utc) - timedelta(hours=1)
+                else:  # time object
+                    start = datetime.combine(date.today(), stop, timezone.utc) - timedelta(hours=1)
+        # Fetch a single page of trades; callers can page manually if needed.
+        return self.trades(start=start, stop=stop, limit=limit, raw_data=raw_data)
 
-    def trades(self, limit=100, start=None, stop=None, raw_data=False):
+    def trades(
+        self,
+        limit: int = 100,
+        start: Optional[Union[datetime, date, time]] = None,
+        stop: Optional[Union[datetime, date, time]] = None,
+        raw_data: bool = False,
+    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
         """Returns your trade history for a given market.
 
         :param int limit: Limit the amount of orders (default: 100)
@@ -372,33 +357,42 @@ class Market(dict):
         if not stop:
             stop = datetime.now(timezone.utc)
         if not start:
-            start = stop - timedelta(hours=24)
+            # Ensure stop is a datetime for arithmetic operations
+            if isinstance(stop, datetime):
+                start = stop - timedelta(hours=24)
+            else:
+                # Convert date/time to datetime for arithmetic
+                if isinstance(stop, date):
+                    start = datetime.combine(stop, time.min, timezone.utc) - timedelta(hours=24)
+                else:  # time object
+                    start = datetime.combine(date.today(), stop, timezone.utc) - timedelta(hours=24)
         start = addTzInfo(start)
         stop = addTzInfo(stop)
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.get_trade_history(
-                {"start": formatTimeString(start), "end": formatTimeString(stop), "limit": limit},
-                api="market_history",
-            )["trades"]
-        else:
-            orders = self.blockchain.rpc.get_trade_history(
-                formatTimeString(start), formatTimeString(stop), limit, api="market_history"
-            )
+        orders = self.blockchain.rpc.get_trade_history(
+            {
+                "start": formatTimeString(start) if start else None,
+                "end": formatTimeString(stop) if stop else None,
+                "limit": limit,
+            },
+        )["trades"]
         if raw_data:
             return orders
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
         return filled_order
 
-    def market_history_buckets(self):
+    def market_history_buckets(self) -> List[int]:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        ret = self.blockchain.rpc.get_market_history_buckets(api="market_history")
-        if self.blockchain.rpc.get_use_appbase():
-            return ret["bucket_sizes"]
-        else:
-            return ret
+        ret = self.blockchain.rpc.get_market_history_buckets()
+        return ret["bucket_sizes"]
 
-    def market_history(self, bucket_seconds=300, start_age=3600, end_age=0, raw_data=False):
+    def market_history(
+        self,
+        bucket_seconds: Union[int, float] = 300,
+        start_age: int = 3600,
+        end_age: int = 0,
+        raw_data: bool = False,
+    ) -> Union[List[Dict[str, Any]], Any]:
         """
         Return market history buckets for a time window.
 
@@ -417,38 +411,35 @@ class Market(dict):
             ValueError: If bucket_seconds is not a valid bucket size or valid index into available buckets.
         """
         buckets = self.market_history_buckets()
-        if bucket_seconds < 5 and bucket_seconds >= 0:
+        if (
+            isinstance(bucket_seconds, int)
+            and bucket_seconds < len(buckets)
+            and bucket_seconds >= 0
+        ):
             bucket_seconds = buckets[bucket_seconds]
         else:
             if bucket_seconds not in buckets:
                 raise ValueError("You need select the bucket_seconds from " + str(buckets))
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            history = self.blockchain.rpc.get_market_history(
-                {
-                    "bucket_seconds": bucket_seconds,
-                    "start": formatTimeFromNow(-start_age - end_age),
-                    "end": formatTimeFromNow(-end_age),
-                },
-                api="market_history",
-            )["buckets"]
-        else:
-            history = self.blockchain.rpc.get_market_history(
-                bucket_seconds,
-                formatTimeFromNow(-start_age - end_age),
-                formatTimeFromNow(-end_age),
-                api="market_history",
-            )
+        history = self.blockchain.rpc.get_market_history(
+            {
+                "bucket_seconds": bucket_seconds,
+                "start": formatTimeFromNow(-start_age - end_age),
+                "end": formatTimeFromNow(-end_age),
+            },
+        )["buckets"]
         if raw_data:
             return history
         new_history = []
         for h in history:
             if "open" in h and isinstance(h.get("open"), str):
                 h["open"] = formatTimeString(h.get("open", "1970-01-01T00:00:00"))
-            new_history.append(h)
+                new_history.append(h)
         return new_history
 
-    def accountopenorders(self, account=None, raw_data=False):
+    def accountopenorders(
+        self, account: Optional[Union[str, Account]] = None, raw_data: bool = False
+    ) -> Union[List[Order], List[Dict[str, Any]], None]:
         """Returns open Orders
 
         :param Account account: Account name or instance of Account to show orders for in this market
@@ -467,12 +458,7 @@ class Market(dict):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            orders = self.blockchain.rpc.find_limit_orders(
-                {"account": account["name"]}, api="database"
-            )["orders"]
-        else:
-            orders = self.blockchain.rpc.get_open_orders(account["name"])
+        orders = self.blockchain.rpc.find_limit_orders({"account": account["name"]})["orders"]
         if raw_data:
             return orders
         for o in orders:
@@ -489,14 +475,14 @@ class Market(dict):
 
     def buy(
         self,
-        price,
-        amount,
-        expiration=None,
-        killfill=False,
-        account=None,
-        orderid=None,
-        returnOrderId=False,
-    ):
+        price: Union[str, Price, float],
+        amount: Union[str, Amount],
+        expiration: Optional[int] = None,
+        killfill: bool = False,
+        account: Optional[Union[str, Account]] = None,
+        orderid: Optional[int] = None,
+        returnOrderId: bool = False,
+    ) -> Union[Dict[str, Any], str]:
         """
         Place a buy order (limit order) on this market.
 
@@ -551,14 +537,18 @@ class Market(dict):
                     float(amount) * float(price),
                     self["base"]["symbol"],
                     blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "min_to_receive": Amount(
-                    float(amount), self["quote"]["symbol"], blockchain_instance=self.blockchain
+                    float(amount),
+                    self["quote"]["symbol"],
+                    blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
 
@@ -577,14 +567,14 @@ class Market(dict):
 
     def sell(
         self,
-        price,
-        amount,
-        expiration=None,
-        killfill=False,
-        account=None,
-        orderid=None,
-        returnOrderId=False,
-    ):
+        price: Union[str, Price, float],
+        amount: Union[str, Amount],
+        expiration: Optional[int] = None,
+        killfill: bool = False,
+        account: Optional[Union[str, Account]] = None,
+        orderid: Optional[int] = None,
+        returnOrderId: bool = False,
+    ) -> Union[Dict[str, Any], str]:
         """
         Place a limit sell order on this market, selling the market's quote asset for its base asset.
 
@@ -632,17 +622,21 @@ class Market(dict):
                 "owner": account["name"],
                 "orderid": orderid or random.getrandbits(32),
                 "amount_to_sell": Amount(
-                    float(amount), self["quote"]["symbol"], blockchain_instance=self.blockchain
+                    float(amount),
+                    self["quote"]["symbol"],
+                    blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "min_to_receive": Amount(
                     float(amount) * float(price),
                     self["base"]["symbol"],
                     blockchain_instance=self.blockchain,
+                    json_str=True,
                 ),
                 "expiration": formatTimeFromNow(expiration),
                 "fill_or_kill": killfill,
                 "prefix": self.blockchain.prefix,
-                "json_str": not bool(self.blockchain.config["use_condenser"]),
+                "json_str": True,
             }
         )
         if returnOrderId:
@@ -658,7 +652,12 @@ class Market(dict):
 
         return tx
 
-    def cancel(self, orderNumbers, account=None, **kwargs):
+    def cancel(
+        self,
+        orderNumbers: Union[int, List[int], Set[int], Tuple[int, ...]],
+        account: Optional[Union[str, Account]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Cancels an order you have placed in a given market. Requires
         only the "orderNumbers".
 
@@ -685,14 +684,16 @@ class Market(dict):
         return self.blockchain.finalizeOp(op, account["name"], "active", **kwargs)
 
     @staticmethod
-    def _weighted_average(values, weights):
+    def _weighted_average(
+        values: List[Union[int, float]], weights: List[Union[int, float]]
+    ) -> float:
         """Calculates a weighted average"""
         if not (len(values) == len(weights) and len(weights) > 0):
             raise AssertionError("Length of both array must be the same and greater than zero!")
         return sum(x * y for x, y in zip(values, weights)) / sum(weights)
 
     @staticmethod
-    def btc_usd_ticker(verbose=False):
+    def btc_usd_ticker(verbose: bool = False) -> float:
         """
         Return the market-weighted BTC/USD price aggregated from multiple external sources.
 
@@ -722,7 +723,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, timeout=30) for u in urls)
+                responses = list(httpx.get(u, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -732,34 +733,34 @@ class Market(dict):
                 if hasattr(x, "status_code") and x.status_code == 200 and x.json()
             ]:
                 try:
-                    if "bitfinex" in r.url:
+                    if "bitfinex" in str(r.url):
                         data = r.json()
                         prices["bitfinex"] = {
                             "price": float(data["last_price"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "gdax" in r.url:
+                    elif "gdax" in str(r.url):
                         data = r.json()
                         prices["gdax"] = {
                             "price": float(data["price"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "kraken" in r.url:
+                    elif "kraken" in str(r.url):
                         data = r.json()["result"]["XXBTZUSD"]["p"]
                         prices["kraken"] = {"price": float(data[0]), "volume": float(data[1])}
-                    elif "okcoin" in r.url:
+                    elif "okcoin" in str(r.url):
                         data = r.json()["ticker"]
                         prices["okcoin"] = {
                             "price": float(data["last"]),
                             "volume": float(data["vol"]),
                         }
-                    elif "bitstamp" in r.url:
+                    elif "bitstamp" in str(r.url):
                         data = r.json()
                         prices["bitstamp"] = {
                             "price": float(data["last"]),
                             "volume": float(data["volume"]),
                         }
-                    elif "coingecko" in r.url:
+                    elif "coingecko" in str(r.url):
                         data = r.json()["bitcoin"]
                         if "usd_24h_vol" in data:
                             volume = float(data["usd_24h_vol"])
@@ -781,7 +782,7 @@ class Market(dict):
         )
 
     @staticmethod
-    def hive_btc_ticker():
+    def hive_btc_ticker() -> float:
         """
         Return the HIVE/BTC price as a volume-weighted average from multiple public exchanges.
 
@@ -809,7 +810,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
+                responses = list(httpx.get(u, headers=headers, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -819,43 +820,43 @@ class Market(dict):
                 if hasattr(x, "status_code") and x.status_code == 200 and x.json()
             ]:
                 try:
-                    if "poloniex" in r.url:
+                    if "poloniex" in str(r.url):
                         data = r.json()["BTC_HIVE"]
                         prices["poloniex"] = {
                             "price": float(data["last"]),
                             "volume": float(data["baseVolume"]),
                         }
-                    elif "bittrex" in r.url:
+                    elif "bittrex" in str(r.url):
                         data = r.json()["result"][0]
                         price = (data["Bid"] + data["Ask"]) / 2
                         prices["bittrex"] = {"price": price, "volume": data["BaseVolume"]}
-                    elif "binance" in r.url:
+                    elif "binance" in str(r.url):
                         data = [x for x in r.json() if x["symbol"] == "HIVEBTC"][0]
                         prices["binance"] = {
                             "price": float(data["lastPrice"]),
                             "volume": float(data["quoteVolume"]),
                         }
-                    elif "huobi" in r.url:
+                    elif "huobi" in str(r.url):
                         data = r.json()["data"][-1]
                         prices["huobi"] = {
                             "price": float(data["close"]),
                             "volume": float(data["vol"]),
                         }
-                    elif "upbit" in r.url:
+                    elif "upbit" in str(r.url):
                         data = r.json()[-1]
                         prices["upbit"] = {
                             "price": float(data["tradePrice"]),
                             "volume": float(data["tradeVolume"]),
                         }
-                    elif "probit" in r.url:
+                    elif "probit" in str(r.url):
                         data = r.json()["data"]
-                        prices["huobi"] = {
+                        prices["probit"] = {
                             "price": float(data["last"]),
                             "volume": float(data["base_volume"]),
                         }
-                    elif "coingecko" in r.url:
+                    elif "coingecko" in str(r.url):
                         data = r.json()["hive"]
-                        if "btc_24h_vol":
+                        if "btc_24h_vol" in data:
                             volume = float(data["btc_24h_vol"])
                         else:
                             volume = 1
@@ -870,6 +871,6 @@ class Market(dict):
             [x["price"] for x in prices.values()], [x["volume"] for x in prices.values()]
         )
 
-    def hive_usd_implied(self):
+    def hive_usd_implied(self) -> float:
         """Returns the current HIVE/USD market price"""
         return self.hive_btc_ticker() * self.btc_usd_ticker()

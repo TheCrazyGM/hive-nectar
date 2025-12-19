@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import json
 import logging
 import math
 import time
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from datetime import time as datetime_time
 from queue import Queue
 from threading import Event, Thread
 from time import sleep
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from nectar.instance import shared_blockchain_instance
 from nectarapi.exceptions import UnknownTransaction
@@ -36,7 +37,7 @@ if not FUTURES_MODULE:
 
 # default exception handler. if you want to take some action on failed tasks
 # maybe add the task back into the queue, then make your own handler and pass it in
-def default_handler(name, exception, *args, **kwargs):
+def default_handler(name: str, exception: Exception, *args: Any, **kwargs: Any) -> None:
     log.warning(f"{name} raised {exception} with args {args!r} and kwargs {kwargs!r}")
     pass
 
@@ -44,7 +45,15 @@ def default_handler(name, exception, *args, **kwargs):
 class Worker(Thread):
     """Thread executing tasks from a given tasks queue"""
 
-    def __init__(self, name, queue, results, abort, idle, exception_handler):
+    def __init__(
+        self,
+        name: str,
+        queue: Queue,
+        results: Queue,
+        abort: Event,
+        idle: Event,
+        exception_handler: Callable,
+    ) -> None:
         Thread.__init__(self)
         self.name = name
         self.queue = queue
@@ -55,7 +64,7 @@ class Worker(Thread):
         self.daemon = True
         self.start()
 
-    def run(self):
+    def run(self) -> None:
         """Thread work loop calling the function with the params"""
         # keep running until told to abort
         while not self.abort.is_set():
@@ -89,7 +98,12 @@ class Worker(Thread):
 class Pool:
     """Pool of threads consuming tasks from a queue"""
 
-    def __init__(self, thread_count, batch_mode=True, exception_handler=default_handler):
+    def __init__(
+        self,
+        thread_count: int,
+        batch_mode: bool = True,
+        exception_handler: Callable = default_handler,
+    ) -> None:
         # batch mode means block when adding tasks if no threads available to process
         self.queue = Queue(thread_count if batch_mode else 0)
         self.resultQueue = Queue(0)
@@ -99,11 +113,11 @@ class Pool:
         self.idles = []
         self.threads = []
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Tell my threads to quit"""
         self.abort()
 
-    def run(self, block=False):
+    def run(self, block: bool = False) -> bool:
         """Start the threads, or restart them if you've aborted"""
         # either wait for them to finish or return false if some arent
         if block:
@@ -133,15 +147,15 @@ class Pool:
             )
         return True
 
-    def enqueue(self, func, *args, **kargs):
+    def enqueue(self, func: Callable, *args: Any, **kargs: Any) -> None:
         """Add a task to the queue"""
         self.queue.put((func, args, kargs))
 
-    def join(self):
+    def join(self) -> None:
         """Wait for completion of all the tasks in the queue"""
         self.queue.join()
 
-    def abort(self, block=False):
+    def abort(self, block: bool = False) -> None:
         """Tell each worker that its done working"""
         # tell the threads to stop after they are done with what they are currently doing
         for a in self.aborts:
@@ -150,19 +164,19 @@ class Pool:
         while block and self.alive():
             sleep(1)
 
-    def alive(self):
+    def alive(self) -> bool:
         """Returns True if any threads are currently running"""
         return True in [t.is_alive() for t in self.threads]
 
-    def idle(self):
+    def idle(self) -> bool:
         """Returns True if all threads are waiting for work"""
         return False not in [i.is_set() for i in self.idles]
 
-    def done(self):
+    def done(self) -> bool:
         """Returns True if not tasks are left to be completed"""
         return self.queue.empty()
 
-    def results(self, sleep_time=0):
+    def results(self, sleep_time: Union[int, float] = 0) -> List[Any]:
         """Get the set of results that have been processed, repeatedly call until done"""
         sleep(sleep_time)
         results = []
@@ -176,7 +190,7 @@ class Pool:
         return results
 
 
-class Blockchain(object):
+class Blockchain:
     """This class allows to access the blockchain and read data
     from it
 
@@ -228,12 +242,12 @@ class Blockchain(object):
 
     def __init__(
         self,
-        blockchain_instance=None,
-        mode="irreversible",
-        max_block_wait_repetition=None,
-        data_refresh_time_seconds=900,
+        blockchain_instance: Any = None,
+        mode: str = "irreversible",
+        max_block_wait_repetition: Optional[int] = None,
+        data_refresh_time_seconds: int = 900,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize the Blockchain helper.
 
@@ -260,10 +274,10 @@ class Blockchain(object):
             self.max_block_wait_repetition = 3
         self.block_interval = self.blockchain.get_block_interval()
 
-    def is_irreversible_mode(self):
+    def is_irreversible_mode(self) -> bool:
         return self.mode == "last_irreversible_block_num"
 
-    def is_transaction_existing(self, transaction_id):
+    def is_transaction_existing(self, transaction_id: str) -> bool:
         """Returns true, if the transaction_id is valid"""
         try:
             self.get_transaction(transaction_id)
@@ -271,7 +285,7 @@ class Blockchain(object):
         except UnknownTransaction:
             return False
 
-    def get_transaction(self, transaction_id):
+    def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
         """Returns a transaction from the blockchain
 
         :param str transaction_id: transaction_id
@@ -279,13 +293,10 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_transaction({"id": transaction_id}, api="account_history")
-        else:
-            ret = self.blockchain.rpc.get_transaction(transaction_id, api="database")
+        ret = self.blockchain.rpc.get_transaction({"id": transaction_id})
         return ret
 
-    def get_transaction_hex(self, transaction):
+    def get_transaction_hex(self, transaction: Dict[str, Any]) -> str:
         """Returns a hexdump of the serialized binary form of a transaction.
 
         :param dict transaction: transaction
@@ -293,15 +304,10 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction}, api="database")[
-                "hex"
-            ]
-        else:
-            ret = self.blockchain.rpc.get_transaction_hex(transaction, api="database")
+        ret = self.blockchain.rpc.get_transaction_hex({"trx": transaction})["hex"]
         return ret
 
-    def get_current_block_num(self):
+    def get_current_block_num(self) -> int:
         """This call returns the current block number
 
         .. note:: The block number returned depends on the ``mode`` used
@@ -314,7 +320,7 @@ class Blockchain(object):
             raise ValueError(self.mode + " is not in " + str(props))
         return int(props.get(self.mode))
 
-    def get_current_block(self, only_ops=False, only_virtual_ops=False):
+    def get_current_block(self, only_ops: bool = False, only_virtual_ops: bool = False) -> Block:
         """This call returns the current block
 
         :param bool only_ops: Returns block with operations only, when set to True (default: False)
@@ -330,7 +336,12 @@ class Blockchain(object):
             blockchain_instance=self.blockchain,
         )
 
-    def get_estimated_block_num(self, date, estimateForwards=False, accurate=True):
+    def get_estimated_block_num(
+        self,
+        date: Union[datetime, date, datetime_time, None],
+        estimateForwards: bool = False,
+        accurate: bool = True,
+    ) -> int:
         """This call estimates the block number based on a given date
 
         :param datetime date: block time for which a block number is estimated
@@ -350,6 +361,10 @@ class Blockchain(object):
         """
         last_block = self.get_current_block()
         date = addTzInfo(date)
+        # Ensure we have a datetime object for arithmetic operations
+        if date is None or not isinstance(date, datetime):
+            raise ValueError("date must be a datetime object after addTzInfo processing")
+        block_number: int = 1
         if estimateForwards:
             block_offset = 10
             first_block = BlockHeader(block_offset, blockchain_instance=self.blockchain)
@@ -359,15 +374,16 @@ class Blockchain(object):
             )
         else:
             time_diff = last_block.time() - date
-            block_number = math.floor(
-                last_block.identifier - time_diff.total_seconds() / self.block_interval
-            )
+            if last_block.identifier is not None:
+                block_number = math.floor(
+                    last_block.identifier - time_diff.total_seconds() / self.block_interval
+                )
         if block_number < 1:
             block_number = 1
 
         if accurate:
-            if block_number > last_block.identifier:
-                block_number = last_block.identifier
+            if last_block.identifier is not None and block_number > int(last_block.identifier):
+                block_number = int(last_block.identifier)
             block_time_diff = timedelta(seconds=10)
 
             last_block_time_diff_seconds = 10
@@ -377,7 +393,7 @@ class Blockchain(object):
                 block_time_diff.total_seconds() > self.block_interval
                 or block_time_diff.total_seconds() < -self.block_interval
             ):
-                block = BlockHeader(block_number, blockchain_instance=self.blockchain)
+                block = BlockHeader(int(block_number), blockchain_instance=self.blockchain)
                 second_last_block_time_diff_seconds = last_block_time_diff_seconds
                 last_block_time_diff_seconds = block_time_diff.total_seconds()
                 block_time_diff = date - block.time()
@@ -386,7 +402,7 @@ class Blockchain(object):
                     and second_last_block_time_diff_seconds < 10
                 ):
                     return int(block_number)
-                delta = block_time_diff.total_seconds() // self.block_interval
+                delta: int = int(block_time_diff.total_seconds() // self.block_interval)
                 if delta == 0 and block_time_diff.total_seconds() < 0:
                     delta = -1
                 elif delta == 0 and block_time_diff.total_seconds() > 0:
@@ -394,12 +410,12 @@ class Blockchain(object):
                 block_number += delta
                 if block_number < 1:
                     break
-                if block_number > last_block.identifier:
+                if last_block.identifier is not None and block_number > int(last_block.identifier):
                     break
 
         return int(block_number)
 
-    def block_time(self, block_num):
+    def block_time(self, block_num: int) -> datetime:
         """Returns a datetime of the block with the given block
         number.
 
@@ -407,7 +423,7 @@ class Blockchain(object):
         """
         return Block(block_num, blockchain_instance=self.blockchain).time()
 
-    def block_timestamp(self, block_num):
+    def block_timestamp(self, block_num: int) -> int:
         """Returns the timestamp of the block with the given block
         number as integer.
 
@@ -417,7 +433,7 @@ class Blockchain(object):
         return int(time.mktime(block_time.timetuple()))
 
     @property
-    def participation_rate(self):
+    def participation_rate(self) -> float:
         """Returns the witness participation rate in a range from 0 to 1"""
         return (
             bin(
@@ -432,14 +448,14 @@ class Blockchain(object):
 
     def blocks(
         self,
-        start=None,
-        stop=None,
-        max_batch_size=None,
-        threading=False,
-        thread_num=8,
-        only_ops=False,
-        only_virtual_ops=False,
-    ):
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        max_batch_size: Optional[int] = None,
+        threading: bool = False,
+        thread_num: int = 8,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+    ) -> Any:
         """
         Yield Block objects from `start` up to `stop` (or the chain head).
 
@@ -472,9 +488,10 @@ class Blockchain(object):
         # Let's find out how often blocks are generated!
         current_block = self.get_current_block()
         current_block_num = current_block.block_num
-        if not start:
+        if not start and current_block_num is not None:
             start = current_block_num
         head_block_reached = False
+        pool: Any = None
         if threading and FUTURES_MODULE is not None:
             pool = ThreadPoolExecutor(max_workers=thread_num)
         elif threading:
@@ -499,7 +516,10 @@ class Blockchain(object):
             else:
                 current_block_num = self.get_current_block_num()
                 head_block = current_block_num
-            if threading and not head_block_reached:
+            if threading and not head_block_reached and start is not None:
+                if pool is None:
+                    raise RuntimeError("Threading is enabled but no pool was initialized")
+                pool_any = cast(Any, pool)
                 latest_block = start - 1
                 result_block_nums = []
                 for blocknum in range(start, head_block + 1, thread_num):
@@ -518,7 +538,7 @@ class Blockchain(object):
                         results = []
                         if FUTURES_MODULE is not None:
                             futures.append(
-                                pool.submit(
+                                pool_any.submit(
                                     Block,
                                     blocknum + i,
                                     only_ops=only_ops,
@@ -527,7 +547,7 @@ class Blockchain(object):
                                 )
                             )
                         else:
-                            pool.enqueue(
+                            pool_any.enqueue(
                                 Block,
                                 blocknum + i,
                                 only_ops=only_ops,
@@ -541,11 +561,11 @@ class Blockchain(object):
                         except Exception as e:
                             log.error(str(e))
                     else:
-                        pool.run(True)
-                        pool.join()
-                        for result in pool.results():
+                        pool_any.run(True)
+                        pool_any.join()
+                        for result in pool_any.results():
                             results.append(result)
-                        pool.abort()
+                        pool_any.abort()
                     self.blockchain.rpc.nodes.num_retries = num_retries
                     # self.blockchain.rpc.nodes.freeze_current_node = freeze
                     new_error_cnt = self.blockchain.rpc.nodes.node.error_cnt
@@ -572,8 +592,16 @@ class Blockchain(object):
                                     only_virtual_ops=only_virtual_ops,
                                     blockchain_instance=self.blockchain,
                                 )
+                                block_num_value = block.block_num
+                                if block_num_value is None:
+                                    log.debug(
+                                        "Skipping missing block with no block_num: %s", blocknum
+                                    )
+                                    continue
+                                block["id"] = block_num_value
+                                block.identifier = block_num_value
                                 checked_results.append(block)
-                                result_block_nums.append(int(block.block_num))
+                                result_block_nums.append(int(block_num_value))
                             except Exception as e:
                                 log.error(str(e))
                         missing_block_num = list(
@@ -583,8 +611,12 @@ class Blockchain(object):
 
                     blocks = sorted(checked_results, key=itemgetter("id"))
                     for b in blocks:
-                        if latest_block < int(b.block_num):
-                            latest_block = int(b.block_num)
+                        block_num_value = b.block_num
+                        if block_num_value is None:
+                            log.debug("Skipping yielded block with no block_num: %s", b)
+                            continue
+                        if latest_block < int(block_num_value):
+                            latest_block = int(block_num_value)
                         yield b
 
                 if latest_block <= head_block:
@@ -600,86 +632,78 @@ class Blockchain(object):
                             yield block
             elif (
                 max_batch_size is not None
+                and start is not None
                 and (head_block - start) >= max_batch_size
                 and not head_block_reached
             ):
                 if not self.blockchain.is_connected():
                     raise OfflineHasNoRPCException("No RPC available in offline mode!")
                 self.blockchain.rpc.set_next_node_on_empty_reply(False)
-                latest_block = start - 1
-                batches = max_batch_size
-                for blocknumblock in range(start, head_block + 1, batches):
-                    # Get full block
-                    if (head_block - blocknumblock) < batches:
-                        batches = head_block - blocknumblock + 1
-                    # add up to 'batches' calls to the queue
-                    block_batch = []
-                    for blocknum in range(blocknumblock, blocknumblock + batches):
-                        if blocknum == blocknumblock + batches - 1:
-                            add_to_queue = False  # execute the call with the last request
-                        else:
-                            add_to_queue = True  # append request to the queue w/o executing
+                if start is not None:
+                    latest_block = start - 1
+                    for blocknumblock in range(start, head_block + 1, max_batch_size):
+                        batch_count = min(max_batch_size, head_block - blocknumblock + 1)
                         if only_virtual_ops:
-                            if self.blockchain.rpc.get_use_appbase():
-                                block_batch = self.blockchain.rpc.get_ops_in_block(
-                                    {"block_num": blocknum, "only_virtual": only_virtual_ops},
-                                    api="account_history",
-                                    add_to_queue=add_to_queue,
+                            batch_blocks = []
+                            for blocknum in range(blocknumblock, blocknumblock + batch_count):
+                                ops_resp = self.blockchain.rpc.get_ops_in_block(
+                                    {"block_num": blocknum, "only_virtual": True},
                                 )
-                            else:
-                                block_batch = self.blockchain.rpc.get_ops_in_block(
-                                    blocknum, only_virtual_ops, add_to_queue=add_to_queue
+                                ops = (
+                                    ops_resp.get("ops", [])
+                                    if isinstance(ops_resp, dict)
+                                    else ops_resp
                                 )
-                        else:
-                            if self.blockchain.rpc.get_use_appbase():
-                                block_batch = self.blockchain.rpc.get_block(
-                                    {"block_num": blocknum}, api="block", add_to_queue=add_to_queue
-                                )
-                            else:
-                                block_batch = self.blockchain.rpc.get_block(
-                                    blocknum, add_to_queue=add_to_queue
-                                )
-
-                    if not bool(block_batch):
-                        raise BatchedCallsNotSupported(
-                            f"{self.blockchain.rpc.url} Doesn't support batched calls"
-                        )
-                    if not isinstance(block_batch, list):
-                        block_batch = [block_batch]
-                    for block in block_batch:
-                        if not bool(block):
-                            continue
-                        if self.blockchain.rpc.get_use_appbase():
-                            if only_virtual_ops:
-                                block = {
-                                    "block": block["ops"][0]["block"],
-                                    "timestamp": block["ops"][0]["timestamp"],
-                                    "id": block["ops"][0]["block"],
-                                    "operations": block["ops"],
+                                if not ops:
+                                    continue
+                                block_dict = {
+                                    "block": blocknum,
+                                    "timestamp": ops[0]["timestamp"],
+                                    "operations": ops,
                                 }
-                            else:
-                                block = block["block"]
-                        block = Block(
-                            block,
-                            only_ops=only_ops,
-                            only_virtual_ops=only_virtual_ops,
-                            blockchain_instance=self.blockchain,
-                        )
-                        block["id"] = block.block_num
-                        block.identifier = block.block_num
-                        yield block
+                                batch_blocks.append(block_dict)
+                        else:
+                            resp = self.blockchain.rpc.get_block_range(
+                                {"starting_block_num": blocknumblock, "count": batch_count},
+                            )
+                            batch_blocks = (
+                                resp.get("blocks", []) if isinstance(resp, dict) else resp
+                            )
+
+                        if not batch_blocks:
+                            raise BatchedCallsNotSupported(
+                                f"{self.blockchain.rpc.url} Doesn't support batched calls"
+                            )
+
+                        for raw_block in batch_blocks:
+                            block_obj = Block(
+                                raw_block,
+                                only_ops=only_ops,
+                                only_virtual_ops=only_virtual_ops,
+                                blockchain_instance=self.blockchain,
+                            )
+                            block_num_value = block_obj.block_num
+                            if block_num_value is None:
+                                log.debug("Skipping block with missing block_num: %s", raw_block)
+                                continue
+                            block_obj["id"] = block_num_value
+                            block_obj.identifier = block_num_value
+                            if latest_block < int(block_num_value):
+                                latest_block = int(block_num_value)
+                            yield block_obj
             else:
                 # Blocks from start until head block
-                for blocknum in range(start, head_block + 1):
-                    # Get full block
-                    block = self.wait_for_and_get_block(
-                        blocknum,
-                        only_ops=only_ops,
-                        only_virtual_ops=only_virtual_ops,
-                        block_number_check_cnt=5,
-                        last_current_block_num=current_block_num,
-                    )
-                    yield block
+                if start is not None:
+                    for blocknum in range(start, head_block + 1):
+                        # Get full block
+                        block = self.wait_for_and_get_block(
+                            blocknum,
+                            only_ops=only_ops,
+                            only_virtual_ops=only_virtual_ops,
+                            block_number_check_cnt=5,
+                            last_current_block_num=current_block_num,
+                        )
+                        yield block
             # Set new start
             start = head_block + 1
             head_block_reached = True
@@ -692,13 +716,13 @@ class Blockchain(object):
 
     def wait_for_and_get_block(
         self,
-        block_number,
-        blocks_waiting_for=None,
-        only_ops=False,
-        only_virtual_ops=False,
-        block_number_check_cnt=-1,
-        last_current_block_num=None,
-    ):
+        block_number: int,
+        blocks_waiting_for: Optional[int] = None,
+        only_ops: bool = False,
+        only_virtual_ops: bool = False,
+        block_number_check_cnt: int = -1,
+        last_current_block_num: Optional[int] = None,
+    ) -> Optional[Block]:
         """Get the desired block from the chain, if the current head block is smaller (for both head and irreversible)
         then we wait, but a maxmimum of blocks_waiting_for * max_block_wait_repetition time before failure.
 
@@ -766,15 +790,31 @@ class Blockchain(object):
 
         return block
 
-    def ops(self, start=None, stop=None, only_virtual_ops=False, **kwargs):
+    def ops(
+        self,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        only_virtual_ops: bool = False,
+        **kwargs: Any,
+    ) -> None:
         """Blockchain.ops() is deprecated. Please use Blockchain.stream() instead."""
-        raise DeprecationWarning(
-            "Blockchain.ops() is deprecated. Please use Blockchain.stream() instead."
+        import warnings
+
+        warnings.warn(
+            "Blockchain.ops() is deprecated. Please use Blockchain.stream() instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        raise NotImplementedError("Use Blockchain.stream() instead.")
 
     def ops_statistics(
-        self, start, stop=None, add_to_ops_stat=None, with_virtual_ops=True, verbose=False
-    ):
+        self,
+        start: int,
+        stop: Optional[int] = None,
+        add_to_ops_stat: Optional[Dict[str, int]] = None,
+        with_virtual_ops: bool = True,
+        verbose: bool = False,
+    ) -> Optional[Dict[str, int]]:
         """Generates statistics for all operations (including virtual operations) starting from
         ``start``.
 
@@ -810,7 +850,9 @@ class Blockchain(object):
                 ops_stat = block.ops_statistics(add_to_ops_stat=ops_stat)
         return ops_stat
 
-    def stream(self, opNames=[], raw_ops=False, *args, **kwargs):
+    def stream(
+        self, opNames: Optional[List[str]] = None, raw_ops: bool = False, *args: Any, **kwargs: Any
+    ) -> Any:
         """
         Yield blockchain operations filtered by type, normalizing several node event formats into a consistent output.
 
@@ -839,34 +881,88 @@ class Blockchain(object):
             - The method accepts the same control parameters as blocks(...) via kwargs. The block stream determines timestamps and block-related metadata.
             - Operation events from different node formats (lists, legacy dicts, appbase-style dicts) are normalized by this method before yielding.
         """
+        if opNames is None:
+            opNames = []
         for block in self.blocks(**kwargs):
+            block_num_val = (
+                getattr(block, "block_num", None)
+                or block.get("block")
+                or block.get("block_num")
+                or block.get("id")
+                or block.get("identifier", 0)
+            )
+            timestamp_val = block.get("timestamp")
+
             if "transactions" in block:
-                trx = block["transactions"]
-            else:
-                trx = [block]
-            block_num = 0
-            trx_id = ""
-            _id = ""
-            timestamp = ""
-            for trx_nr in range(len(trx)):
-                if "operations" not in trx[trx_nr]:
-                    continue
-                for event in trx[trx_nr]["operations"]:
-                    if isinstance(event, list):
-                        op_type, op = event
-                        trx_id = block["transaction_ids"][trx_nr]
-                        block_num = block.get("id")
-                        _id = self.hash_op(event)
-                        timestamp = block.get("timestamp")
-                    elif isinstance(event, dict) and "type" in event and "value" in event:
-                        op_type = event["type"]
-                        if len(op_type) > 10 and op_type[len(op_type) - 10 :] == "_operation":
-                            op_type = op_type[:-10]
-                        op = event["value"]
-                        trx_id = block["transaction_ids"][trx_nr]
-                        block_num = block.get("id")
-                        _id = self.hash_op(event)
-                        timestamp = block.get("timestamp")
+                transactions = block["transactions"]
+                tx_ids = block.get("transaction_ids", [])
+                for trx_nr, trx in enumerate(transactions):
+                    if "operations" not in trx:
+                        continue
+                    for event in trx["operations"]:
+                        trx_id = tx_ids[trx_nr] if trx_nr < len(tx_ids) else ""
+                        op_type = ""
+                        op = {}
+                        if isinstance(event, list):
+                            op_type, op = event
+                            op_hash_input = event
+                        elif isinstance(event, dict) and "type" in event and "value" in event:
+                            op_type = event["type"]
+                            if op_type.endswith("_operation"):
+                                op_type = op_type[:-10]
+                            op = event["value"]
+                            op_hash_input = event
+                        elif (
+                            "op" in event
+                            and isinstance(event["op"], dict)
+                            and "type" in event["op"]
+                            and "value" in event["op"]
+                        ):
+                            op_type = event["op"]["type"]
+                            if op_type.endswith("_operation"):
+                                op_type = op_type[:-10]
+                            op = event["op"]["value"]
+                            trx_id = event.get("trx_id", trx_id)
+                            op_hash_input = event["op"]
+                        elif "op" in event and isinstance(event["op"], list):
+                            op_type, op = event["op"]
+                            trx_id = event.get("trx_id", trx_id)
+                            op_hash_input = event["op"]
+                            timestamp_val = event.get("timestamp", timestamp_val)
+                        else:
+                            continue
+
+                        if (not opNames or op_type in opNames) and block_num_val:
+                            if raw_ops:
+                                yield {
+                                    "block_num": block_num_val,
+                                    "trx_num": trx_nr,
+                                    "op": [op_type, op],
+                                    "timestamp": timestamp_val,
+                                }
+                            else:
+                                updated_op = {"type": op_type}
+                                updated_op.update(op.copy())
+                                updated_op.update(
+                                    {
+                                        "_id": self.hash_op(op_hash_input),
+                                        "timestamp": timestamp_val,
+                                        "block_num": block_num_val,
+                                        "trx_num": trx_nr,
+                                        "trx_id": trx_id,
+                                    }
+                                )
+                                yield updated_op
+            elif "operations" in block:
+                for event in block["operations"]:
+                    trx_nr = event.get("trx_in_block", 0)
+                    trx_id = event.get("trx_id", "")
+                    op_type = ""
+                    op = {}
+                    op_hash_input = None
+                    if "op" in event and isinstance(event["op"], list):
+                        op_type, op = event["op"]
+                        op_hash_input = event["op"]
                     elif (
                         "op" in event
                         and isinstance(event["op"], dict)
@@ -874,42 +970,39 @@ class Blockchain(object):
                         and "value" in event["op"]
                     ):
                         op_type = event["op"]["type"]
-                        if len(op_type) > 10 and op_type[len(op_type) - 10 :] == "_operation":
+                        if op_type.endswith("_operation"):
                             op_type = op_type[:-10]
                         op = event["op"]["value"]
-                        trx_id = event.get("trx_id")
-                        block_num = event.get("block")
-                        _id = self.hash_op(event["op"])
-                        timestamp = event.get("timestamp")
+                        op_hash_input = event["op"]
                     else:
-                        op_type, op = event["op"]
-                        trx_id = event.get("trx_id")
-                        block_num = event.get("block")
-                        _id = self.hash_op(event["op"])
-                        timestamp = event.get("timestamp")
-                    if not bool(opNames) or op_type in opNames and block_num > 0:
+                        continue
+                    timestamp_val = event.get("timestamp", timestamp_val)
+                    block_num_event = event.get("block", block_num_val)
+                    if (not opNames or op_type in opNames) and block_num_event:
                         if raw_ops:
                             yield {
-                                "block_num": block_num,
+                                "block_num": block_num_event,
                                 "trx_num": trx_nr,
                                 "op": [op_type, op],
-                                "timestamp": timestamp,
+                                "timestamp": timestamp_val,
                             }
                         else:
                             updated_op = {"type": op_type}
                             updated_op.update(op.copy())
                             updated_op.update(
                                 {
-                                    "_id": _id,
-                                    "timestamp": timestamp,
-                                    "block_num": block_num,
+                                    "_id": self.hash_op(op_hash_input),
+                                    "timestamp": timestamp_val,
+                                    "block_num": block_num_event,
                                     "trx_num": trx_nr,
                                     "trx_id": trx_id,
                                 }
                             )
                             yield updated_op
 
-    def awaitTxConfirmation(self, transaction, limit=10):
+    def awaitTxConfirmation(
+        self, transaction: Dict[str, Any], limit: int = 10
+    ) -> Optional[Dict[str, Any]]:
         """Returns the transaction as seen by the blockchain after being
         included into a block
 
@@ -938,7 +1031,7 @@ class Blockchain(object):
                 raise Exception("The operation has not been added after %d blocks!" % (limit))
 
     @staticmethod
-    def hash_op(event):
+    def hash_op(event: Union[Dict[str, Any], List[Any]]) -> str:
         """This method generates a hash of blockchain operation."""
         if isinstance(event, dict) and "type" in event and "value" in event:
             op_type = event["type"]
@@ -949,7 +1042,14 @@ class Blockchain(object):
         data = json.dumps(event, sort_keys=True)
         return hashlib.sha1(bytes(data, "utf-8")).hexdigest()
 
-    def get_all_accounts(self, start="", stop="", steps=1e3, limit=-1, **kwargs):
+    def get_all_accounts(
+        self,
+        start: str = "",
+        stop: str = "",
+        steps: Union[int, float] = 1e3,
+        limit: int = -1,
+        **kwargs: Any,
+    ) -> Any:
         """Yields account names between start and stop.
 
         :param str start: Start at this account name
@@ -959,18 +1059,15 @@ class Blockchain(object):
         cnt = 1
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        if self.blockchain.rpc.get_use_appbase() and start == "":
+        if start == "":
             lastname = None
         else:
             lastname = start
-        self.blockchain.rpc.set_next_node_on_empty_reply(self.blockchain.rpc.get_use_appbase())
+        self.blockchain.rpc.set_next_node_on_empty_reply(True)
         while True:
-            if self.blockchain.rpc.get_use_appbase():
-                ret = self.blockchain.rpc.list_accounts(
-                    {"start": lastname, "limit": steps, "order": "by_name"}, api="database"
-                )["accounts"]
-            else:
-                ret = self.blockchain.rpc.lookup_accounts(lastname, steps)
+            ret = self.blockchain.rpc.list_accounts(
+                {"start": lastname, "limit": steps, "order": "by_name"}
+            )["accounts"]
             for account in ret:
                 if isinstance(account, dict):
                     account_name = account["name"]
@@ -987,16 +1084,20 @@ class Blockchain(object):
             if len(ret) < steps:
                 return
 
-    def get_account_count(self):
+    def get_account_count(self) -> int:
         """Returns the number of accounts"""
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            ret = self.blockchain.rpc.get_account_count(api="condenser")
-        else:
-            ret = self.blockchain.rpc.get_account_count()
+        ret = self.blockchain.rpc.get_account_count()
         return ret
 
-    def get_account_reputations(self, start="", stop="", steps=1e3, limit=-1, **kwargs):
+    def get_account_reputations(
+        self,
+        start: str = "",
+        stop: str = "",
+        steps: Union[int, float] = 1e3,
+        limit: int = -1,
+        **kwargs: Any,
+    ) -> Any:
         """Yields account reputation between start and stop.
 
         :param str start: Start at this account name
@@ -1006,39 +1107,34 @@ class Blockchain(object):
         cnt = 1
         if not self.blockchain.is_connected():
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
-        if self.blockchain.rpc.get_use_appbase() and start == "":
+        if start == "":
             lastname = None
         else:
             lastname = start
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        skip_first = False
+        batch_limit = min(int(steps), 1000)
+        first_batch = True
         while True:
-            if self.blockchain.rpc.get_use_appbase():
-                ret = self.blockchain.rpc.get_account_reputations(
-                    {"account_lower_bound": lastname, "limit": steps}, api="condenser"
-                )
-            else:
-                ret = self.blockchain.rpc.get_account_reputations(lastname, steps, api="condenser")
-            for account in ret:
-                if isinstance(account, dict):
-                    account_name = account["account"]
-                else:
-                    account_name = account
-                if account_name != lastname or skip_first is False:
-                    yield account
+            resp = self.blockchain.rpc.list_accounts(
+                {"start": lastname, "limit": batch_limit, "order": "by_name"}
+            )
+            accounts = resp.get("accounts", []) if isinstance(resp, dict) else resp or []
+            for account in accounts:
+                account_name = account["name"]
+                reputation = int(account.get("reputation", 0))
+                if first_batch or account_name != lastname:
+                    yield {"account": account_name, "reputation": reputation}
                     cnt += 1
                     if account_name == stop or (limit > 0 and cnt > limit):
                         return
-            if lastname == account_name:
+            if not accounts:
                 return
-            lastname = account_name
-            if len(ret) < steps:
+            lastname = accounts[-1]["name"]
+            first_batch = False
+            if len(accounts) < batch_limit or (stop and lastname == stop):
                 return
-            # skip the first result for all follow-up requests because
-            # this was already included in the previous iteration.
-            skip_first = True
 
-    def get_similar_account_names(self, name, limit=5):
+    def get_similar_account_names(self, name: str, limit: int = 5) -> Optional[List[str]]:
         """
         Return a list of accounts with names similar to the given name.
 
@@ -1057,16 +1153,15 @@ class Blockchain(object):
         if not self.blockchain.is_connected():
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
-        if self.blockchain.rpc.get_use_appbase():
-            account = self.blockchain.rpc.list_accounts(
-                {"start": name, "limit": limit, "order": "by_name"}, api="database"
-            )
-            if bool(account):
-                return account["accounts"]
-        else:
-            return self.blockchain.rpc.lookup_accounts(name, limit)
+        account = self.blockchain.rpc.list_accounts(
+            {"start": name, "limit": limit, "order": "by_name"}
+        )
+        if bool(account):
+            return account["accounts"]
 
-    def find_rc_accounts(self, name):
+    def find_rc_accounts(
+        self, name: Union[str, List[str]]
+    ) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         Return resource credit (RC) parameters for one or more accounts.
 
@@ -1084,15 +1179,17 @@ class Blockchain(object):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if isinstance(name, list):
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": name}, api="rc")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": name})
             if bool(account):
                 return account["rc_accounts"]
         else:
-            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]}, api="rc")
+            account = self.blockchain.rpc.find_rc_accounts({"accounts": [name]})
             if bool(account):
                 return account["rc_accounts"][0]
 
-    def list_change_recovery_account_requests(self, start="", limit=1000, order="by_account"):
+    def list_change_recovery_account_requests(
+        self, start: Union[str, List[str]] = "", limit: int = 1000, order: str = "by_account"
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Return pending change_recovery_account requests from the blockchain.
 
@@ -1113,12 +1210,14 @@ class Blockchain(object):
             return None
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         requests = self.blockchain.rpc.list_change_recovery_account_requests(
-            {"start": start, "limit": limit, "order": order}, api="database"
+            {"start": start, "limit": limit, "order": order}
         )
         if bool(requests):
             return requests["requests"]
 
-    def find_change_recovery_account_requests(self, accounts):
+    def find_change_recovery_account_requests(
+        self, accounts: Union[str, List[str]]
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Find pending change_recovery_account requests for one or more accounts.
 
@@ -1138,8 +1237,6 @@ class Blockchain(object):
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         if isinstance(accounts, str):
             accounts = [accounts]
-        requests = self.blockchain.rpc.find_change_recovery_account_requests(
-            {"accounts": accounts}, api="database"
-        )
+        requests = self.blockchain.rpc.find_change_recovery_account_requests({"accounts": accounts})
         if bool(requests):
             return requests["requests"]

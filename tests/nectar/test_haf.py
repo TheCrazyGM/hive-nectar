@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 import json
 
+import httpx
 import pytest
 
 from nectar.haf import HAF
@@ -32,7 +32,7 @@ def patch_requests(monkeypatch):
         "history": [],
     }
 
-    def _request(method, url, headers=None, **kwargs):
+    def _request(self, method, url, headers=None, **kwargs):
         # Default success response returning an echo of the endpoint
         payload = kwargs.pop("_payload", {"ok": True, "url": url, "method": method})
         resp = FakeResponse(payload=payload)
@@ -40,7 +40,8 @@ def patch_requests(monkeypatch):
         calls["history"].append((method, url))
         return resp
 
-    monkeypatch.setattr("requests.request", _request)
+    # Patch httpx.Client.request instead of requests.request
+    monkeypatch.setattr("httpx.Client.request", _request)
     return calls
 
 
@@ -69,16 +70,17 @@ def test_get_available_apis():
 
 def test_reputation_success(monkeypatch):
     # Arrange: respond with a simple reputation payload
-    def responder(method, url, headers=None, **kwargs):
+    def responder(self, method, url, headers=None, **kwargs):
         return FakeResponse(payload={"account": "alice", "reputation": 70})
 
-    monkeypatch.setattr("requests.request", responder)
+    monkeypatch.setattr("httpx.Client.request", responder)
 
     haf = HAF()
     data = haf.reputation("alice")
     assert data is not None
     assert data["account"] == "alice"
     assert "reputation" in data
+
 
 def test_reputation_invalid_account_raises_value_error():
     haf = HAF()
@@ -113,12 +115,12 @@ def test_reputation_invalid_account_raises_value_error():
     ],
 )
 def test_haf_methods_success(monkeypatch, method_name, endpoint_suffix, sample_payload):
-    def _request(method, url, headers=None, **kwargs):
+    def _request(self, method, url, headers=None, **kwargs):
         # Verify we hit the expected endpoint
         assert url.endswith("/" + endpoint_suffix)
         return FakeResponse(payload=sample_payload)
 
-    monkeypatch.setattr("requests.request", _request)
+    monkeypatch.setattr("httpx.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)
@@ -144,13 +146,10 @@ def test_haf_methods_success(monkeypatch, method_name, endpoint_suffix, sample_p
     ],
 )
 def test_haf_methods_request_exception_returns_none(monkeypatch, method_name, needs_account):
-    class Boom(Exception):
-        pass
+    def _request(self, method, url, headers=None, **kwargs):
+        raise httpx.RequestError("network down", request=None)
 
-    def _request(method, url, headers=None, **kwargs):
-        raise Boom("network down")
-
-    monkeypatch.setattr("requests.request", _request)
+    monkeypatch.setattr("httpx.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)
@@ -172,11 +171,11 @@ def test_haf_methods_request_exception_returns_none(monkeypatch, method_name, ne
     ],
 )
 def test_haf_methods_invalid_json_returns_none(monkeypatch, method_name, needs_account):
-    def _request(method, url, headers=None, **kwargs):
+    def _request(self, method, url, headers=None, **kwargs):
         # Valid HTTP, but broken JSON
         return FakeResponse(payload=None, bad_json=True)
 
-    monkeypatch.setattr("requests.request", _request)
+    monkeypatch.setattr("httpx.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)

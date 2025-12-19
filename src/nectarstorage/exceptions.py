@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/exceptions.py
 class WalletLocked(Exception):
     pass

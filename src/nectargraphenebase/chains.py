@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
-default_prefix = "STM"
-known_chains = {
+from typing import Any, Dict
+
+default_prefix: str = "STM"
+known_chains: Dict[str, Dict[str, Any]] = {
     "HIVE": {
         "chain_id": "beeab0de00000000000000000000000000000000000000000000000000000000",
         "min_version": "0.24.0",

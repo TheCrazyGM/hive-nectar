@@ -20,6 +20,12 @@ You may find help in the nectar-discord. The discord channel can also be used to
 
 A complete library documentation is available at [ReadTheDocs](https://hive-nectar.readthedocs.io/en/latest/)
 
+# RPC surface
+
+- Single appbase JSON-RPC path: all calls use the `api.method` shape with defaults from the static `src/nectarapi/openapi.py` map (no condenser/appbase flag or bundled JSON specs).
+- Transport: pooled `httpx` client with retry/backoff handled by the RPC layer and shared across the module-level `shared_blockchain_instance()` helper.
+- Shared instance: constructing `Hive(...)` will reuse the shared transport once initialized; `set_shared_blockchain_instance`/`shared_blockchain_instance` expose a singleton when you want one process-wide instance.
+
 # About hive-nectar
 
 - Highly opinionated fork of beem

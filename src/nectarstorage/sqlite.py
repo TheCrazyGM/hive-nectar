@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/sqlite.py
 import logging
-import os
 import shutil
 import sqlite3
 import time
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional, Tuple, Union
 
 from appdirs import user_data_dir
 
@@ -39,87 +39,99 @@ class SQLiteFile:
         argument ``profile``.
     """
 
-    def __init__(self, *args, **kwargs):
+    data_dir: Path
+    storageDatabase: str
+    sqlite_file: Path
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         appauthor = "nectar"
         appname = kwargs.get("appname", "nectar")
-        self.data_dir = kwargs.get("data_dir", user_data_dir(appname, appauthor))
+        self.data_dir = Path(kwargs.get("data_dir", user_data_dir(appname, appauthor)))
 
         if "profile" in kwargs:
-            self.storageDatabase = "{}.sqlite".format(kwargs["profile"])
+            self.storageDatabase = f"{kwargs['profile']}.sqlite"
         else:
-            self.storageDatabase = "{}.sqlite".format(appname)
+            self.storageDatabase = f"{appname}.sqlite"
 
-        self.sqlite_file = os.path.join(self.data_dir, self.storageDatabase)
+        self.sqlite_file = self.data_dir / self.storageDatabase
 
         """ Ensure that the directory in which the data is stored
             exists
         """
-        if os.path.isdir(self.data_dir):  # pragma: no cover
+        if self.data_dir.is_dir():  # pragma: no cover
             return
         else:  # pragma: no cover
-            os.makedirs(self.data_dir)
+            self.data_dir.mkdir(parents=True)
 
-    def sqlite3_backup(self, backupdir):
+    def sqlite3_backup(self, backupdir: Union[str, Path]) -> None:
         """Create timestamped database copy"""
-        if not os.path.isdir(backupdir):
-            os.mkdir(backupdir)
-        backup_file = os.path.join(
-            backupdir,
-            os.path.basename(self.storageDatabase)
-            + datetime.now(timezone.utc).strftime("-" + timeformat),
+        backup_path = Path(backupdir)
+        if not backup_path.is_dir():
+            backup_path.mkdir()
+        backup_file = backup_path / (
+            f"{Path(self.storageDatabase).stem}-{datetime.now(timezone.utc).strftime(timeformat)}"
         )
         self.sqlite3_copy(self.sqlite_file, backup_file)
 
-    def sqlite3_copy(self, src, dst):
+    def sqlite3_copy(self, src: Path, dst: Path) -> None:
         """Copy sql file from src to dst"""
-        if not os.path.isfile(src):
+        if not src.is_file():
             return
-        connection = sqlite3.connect(self.sqlite_file)
-        cursor = connection.cursor()
-        # Lock database before making a backup
-        cursor.execute("begin immediate")
-        # Make new backup file
-        shutil.copyfile(src, dst)
-        log.info("Creating {}...".format(dst))
-        # Unlock database
-        connection.rollback()
+        connection = sqlite3.connect(str(self.sqlite_file))
+        try:
+            cursor = connection.cursor()
+            # Lock database before making a backup
+            cursor.execute("begin immediate")
+            # Make new backup file
+            shutil.copyfile(str(src), str(dst))
+            log.info(f"Creating {dst}...")
+            # Unlock database
+            connection.rollback()
+        finally:
+            connection.close()
 
-    def recover_with_latest_backup(self, backupdir="backups"):
+    def recover_with_latest_backup(self, backupdir: Union[str, Path] = "backups") -> None:
         """Replace database with latest backup"""
         file_date = 0
-        if not os.path.isdir(backupdir):
-            backupdir = os.path.join(self.data_dir, backupdir)
-        if not os.path.isdir(backupdir):
+        backup_path = Path(backupdir)
+        if not backup_path.is_dir():
+            # Treat string backupdir as relative to data_dir
+            backup_path = self.data_dir / str(backupdir)
+        if not backup_path.is_dir():
             return
         newest_backup_file = None
-        for filename in os.listdir(backupdir):
-            backup_file = os.path.join(backupdir, filename)
-            if os.stat(backup_file).st_ctime > file_date:
-                if os.path.isfile(backup_file):
-                    file_date = os.stat(backup_file).st_ctime
+        for backup_file in backup_path.iterdir():
+            if backup_file.stat().st_ctime > file_date:
+                if backup_file.is_file():
+                    file_date = backup_file.stat().st_ctime
                     newest_backup_file = backup_file
         if newest_backup_file is not None:
             self.sqlite3_copy(newest_backup_file, self.sqlite_file)
 
-    def clean_data(self, backupdir="backups"):
+    def clean_data(self, backupdir: Union[str, Path] = "backups") -> None:
         """Delete files older than 70 days"""
         log.info("Cleaning up old backups")
-        backupdir = os.path.join(self.data_dir, backupdir)
-        for filename in os.listdir(backupdir):
-            backup_file = os.path.join(backupdir, filename)
-            if os.stat(backup_file).st_ctime < (time.time() - 70 * 86400):
-                if os.path.isfile(backup_file):
-                    os.remove(backup_file)
-                    log.info("Deleting {}...".format(backup_file))
+        # Allow either a Path or a directory name relative to data_dir
+        backup_path = Path(backupdir)
+        if not backup_path.is_dir():
+            backup_path = self.data_dir / str(backupdir)
+        if not backup_path.is_dir():
+            return
+        for backup_file in backup_path.iterdir():
+            if backup_file.stat().st_ctime < (time.time() - 70 * 86400):
+                if backup_file.is_file():
+                    backup_file.unlink()
+                    log.info(f"Deleting {backup_file}...")
 
-    def refreshBackup(self):
+    def refreshBackup(self) -> None:
         """Make a new backup"""
-        backupdir = os.path.join(self.data_dir, "backups")
+        backupdir = self.data_dir / "backups"
         self.sqlite3_backup(backupdir)
-        self.clean_data(backupdir)
+        # Clean by logical name so clean_data resolves under data_dir correctly
+        self.clean_data("backups")
 
 
-class SQLiteCommon(object):
+class SQLiteCommon:
     """This class abstracts away common sqlite3 operations.
 
     This class should not be used directly.
@@ -130,8 +142,10 @@ class SQLiteCommon(object):
         * ``sqlite_file``: Path to the SQLite Database file
     """
 
-    def sql_fetchone(self, query):
-        connection = sqlite3.connect(self.sqlite_file)
+    sqlite_file: Path
+
+    def sql_fetchone(self, query: Tuple[str, Tuple]) -> Optional[Tuple]:
+        connection = sqlite3.connect(str(self.sqlite_file))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -140,8 +154,8 @@ class SQLiteCommon(object):
             connection.close()
         return result
 
-    def sql_fetchall(self, query):
-        connection = sqlite3.connect(self.sqlite_file)
+    def sql_fetchall(self, query: Tuple[str, Tuple]) -> list:
+        connection = sqlite3.connect(str(self.sqlite_file))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -150,8 +164,8 @@ class SQLiteCommon(object):
             connection.close()
         return results
 
-    def sql_execute(self, query, lastid=False):
-        connection = sqlite3.connect(self.sqlite_file)
+    def sql_execute(self, query: Tuple[str, Tuple], lastid: bool = False) -> Optional[int]:
+        connection = sqlite3.connect(str(self.sqlite_file))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -202,15 +216,15 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         if not self.exists():  # pragma: no cover
             self.create()
 
-    def _haveKey(self, key):
+    def _haveKey(self, key: str) -> bool:
         """Is the key `key` available?"""
         query = (
-            "SELECT {} FROM {} WHERE {}=?".format(self.__value__, self.__tablename__, self.__key__),
+            f"SELECT {self.__value__} FROM {self.__tablename__} WHERE {self.__key__}=?",
             (key,),
         )
         return True if self.sql_fetchone(query) else False
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: str) -> None:
         """Sets an item in the store
 
         :param str key: Key
@@ -218,27 +232,23 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         """
         if self._haveKey(key):
             query = (
-                "UPDATE {} SET {}=? WHERE {}=?".format(
-                    self.__tablename__, self.__value__, self.__key__
-                ),
+                f"UPDATE {self.__tablename__} SET {self.__value__}=? WHERE {self.__key__}=?",
                 (value, key),
             )
         else:
             query = (
-                "INSERT INTO {} ({}, {}) VALUES (?, ?)".format(
-                    self.__tablename__, self.__key__, self.__value__
-                ),
+                f"INSERT INTO {self.__tablename__} ({self.__key__}, {self.__value__}) VALUES (?, ?)",
                 (key, value),
             )
         self.sql_execute(query)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Optional[str]:
         """Gets an item from the store as if it was a dictionary
 
         :param str value: Value
         """
         query = (
-            "SELECT {} FROM {} WHERE {}=?".format(self.__value__, self.__tablename__, self.__key__),
+            f"SELECT {self.__value__} FROM {self.__tablename__} WHERE {self.__key__}=?",
             (key,),
         )
         result = self.sql_fetchone(query)
@@ -255,35 +265,35 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         return iter(self.keys())
 
     def keys(self):
-        query = ("SELECT {} from {}".format(self.__key__, self.__tablename__),)
-        return [x[0] for x in self.sql_fetchall(query)]
+        query = (f"SELECT {self.__key__} from {self.__tablename__}", ())
+        key_list = [x[0] for x in self.sql_fetchall(query)]
+        return dict.fromkeys(key_list).keys()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """return lenght of store"""
-        query = ("SELECT id from {}".format(self.__tablename__),)
+        query = (f"SELECT id from {self.__tablename__}", ())
         return len(self.sql_fetchall(query))
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         """Tests if a key is contained in the store.
 
         May test againsts self.defaults
 
         :param str value: Value
         """
-        if self._haveKey(key) or key in self.defaults:
+        key_str = str(key)
+        if self._haveKey(key_str) or key_str in self.defaults:
             return True
         else:
             return False
 
     def items(self):
         """returns all items off the store as tuples"""
-        query = ("SELECT {}, {} from {}".format(self.__key__, self.__value__, self.__tablename__),)
-        r = []
-        for key, value in self.sql_fetchall(query):
-            r.append((key, value))
-        return r
+        query = (f"SELECT {self.__key__}, {self.__value__} from {self.__tablename__}", ())
+        collected = {key: value for key, value in self.sql_fetchall(query)}
+        return collected.items()
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         """Return the key if exists or a default value
 
         :param str value: Value
@@ -295,40 +305,39 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
             return default
 
     # Specific for this library
-    def delete(self, key):
+    def delete(self, key: str) -> None:
         """Delete a key from the store
 
         :param str value: Value
         """
         query = (
-            "DELETE FROM {} WHERE {}=?".format(self.__tablename__, self.__key__),
+            f"DELETE FROM {self.__tablename__} WHERE {self.__key__}=?",
             (key,),
         )
         self.sql_execute(query)
 
-    def wipe(self):
+    def wipe(self) -> None:
         """Wipe the store"""
-        query = ("DELETE FROM {}".format(self.__tablename__),)
+        query = (f"DELETE FROM {self.__tablename__}", ())
         self.sql_execute(query)
 
-    def exists(self):
+    def exists(self) -> bool:
         """Check if the database table exists"""
         query = (
-            "SELECT name FROM sqlite_master " + "WHERE type='table' AND name=?",
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
             (self.__tablename__,),
         )
         return True if self.sql_fetchone(query) else False
 
-    def create(self):  # pragma: no cover
+    def create(self) -> None:  # pragma: no cover
         """Create the new table in the SQLite database"""
         query = (
-            (
-                """
-            CREATE TABLE {} (
+            f"""
+            CREATE TABLE {self.__tablename__} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                {} STRING(256),
-                {} STRING(256)
-            )"""
-            ).format(self.__tablename__, self.__key__, self.__value__),
+                {self.__key__} STRING(256),
+                {self.__value__} STRING(256)
+            )""",
+            (),
         )
         self.sql_execute(query)

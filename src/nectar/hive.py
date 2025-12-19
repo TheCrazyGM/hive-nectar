@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 import logging
 import math
 from datetime import date, datetime, timezone
+from typing import Any, Dict, Optional, Union
 
 from nectar.blockchaininstance import BlockChainInstance
 from nectar.constants import HIVE_100_PERCENT
+from nectar.price import Price
 from nectargraphenebase.chains import known_chains
 
 from .amount import Amount
@@ -32,22 +33,13 @@ class Hive(BlockChainInstance):
     :param bool offline: Boolean to prevent connecting to network (defaults
         to ``False``) *(optional)*
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param str blocking: Wait for broadcasted transactions to be included
         in a block and return full transaction (can be "head" or
         "irreversible")
     :param bool bundle: Do not broadcast transactions right away, but allow
         to bundle operations. It is not possible to send out more than one
         vote operation and more than one comment operation in a single broadcast *(optional)*
-    :param bool appbase: Use the new appbase rpc protocol on nodes with version
-        0.19.4 or higher. The settings has no effect on nodes with version of 0.19.3 or lower.
-    :param int num_retries: Set the maximum number of reconnects to the nodes before
-        NumRetriesReached is raised. Disabled for -1. (default is -1)
-    :param int num_retries_call: Repeat num_retries_call times a rpc call on node error (default is 5)
-    :param int timeout: Timeout setting for https nodes (default is 60)
-    :param bool use_hs: When True, a hivesigner object is created. Can be used for
-        broadcast posting op or creating hot_links (default is False)
-    :param HiveSigner hivesigner: A HiveSigner object can be set manually, set use_hs to True
     :param dict custom_chains: custom chain which should be added to the known chains
 
     Three wallet operation modes are possible:
@@ -106,7 +98,9 @@ class Hive(BlockChainInstance):
 
     """
 
-    def get_network(self, use_stored_data=True, config=None):
+    def get_network(
+        self, use_stored_data: bool = True, config: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """Identify the network
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -127,13 +121,21 @@ class Hive(BlockChainInstance):
             return known_chains["HIVE"]
 
     def rshares_to_token_backed_dollar(
-        self, rshares, not_broadcasted_vote=False, use_stored_data=True
-    ):
+        self,
+        rshares: Union[int, float],
+        not_broadcasted_vote: bool = False,
+        use_stored_data: bool = True,
+    ) -> float:
         return self.rshares_to_hbd(
             rshares, not_broadcasted_vote=not_broadcasted_vote, use_stored_data=use_stored_data
         )
 
-    def rshares_to_hbd(self, rshares, not_broadcasted_vote=False, use_stored_data=True):
+    def rshares_to_hbd(
+        self,
+        rshares: Union[int, float],
+        not_broadcasted_vote: bool = False,
+        use_stored_data: bool = True,
+    ) -> float:
         """Calculates the current HBD value of a vote"""
         payout = float(rshares) * self.get_hbd_per_rshares(
             use_stored_data=use_stored_data,
@@ -141,24 +143,37 @@ class Hive(BlockChainInstance):
         )
         return payout
 
-    def get_hbd_per_rshares(self, not_broadcasted_vote_rshares=0, use_stored_data=True):
+    def get_hbd_per_rshares(
+        self, not_broadcasted_vote_rshares: Union[int, float] = 0, use_stored_data: bool = True
+    ) -> float:
         """Returns the current rshares to HBD ratio"""
         reward_fund = self.get_reward_funds(use_stored_data=use_stored_data)
+        if not reward_fund or not isinstance(reward_fund, dict):
+            return 0
         reward_balance = float(Amount(reward_fund["reward_balance"], blockchain_instance=self))
         recent_claims = float(reward_fund["recent_claims"]) + not_broadcasted_vote_rshares
         if recent_claims == 0:
             return 0
         fund_per_share = reward_balance / (recent_claims)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
-        if median_price is None:
+        # Check if median_price is a valid Price object (not None or raw dict)
+        from nectar.price import Price
+
+        if median_price is None or (
+            isinstance(median_price, dict) and not isinstance(median_price, Price)
+        ):
             return 0
-        HBD_price = float(median_price * (Amount(1, self.hive_symbol, blockchain_instance=self)))
+        HBD_price = float(median_price * Amount(1, self.hive_symbol, blockchain_instance=self))
         return fund_per_share * HBD_price
 
-    def get_token_per_mvest(self, time_stamp=None, use_stored_data=True):
+    def get_token_per_mvest(
+        self, time_stamp: Optional[Union[datetime, int]] = None, use_stored_data: bool = True
+    ) -> float:
         return self.get_hive_per_mvest(time_stamp=time_stamp, use_stored_data=use_stored_data)
 
-    def get_hive_per_mvest(self, time_stamp=None, use_stored_data=True):
+    def get_hive_per_mvest(
+        self, time_stamp: Optional[Union[datetime, int]] = None, use_stored_data: bool = True
+    ) -> float:
         """Returns the MVEST to HIVE ratio
 
         :param int time_stamp: (optional) if set, return an estimated
@@ -181,13 +196,20 @@ class Hive(BlockChainInstance):
             else:
                 return a2 * time_stamp + b2
         global_properties = self.get_dynamic_global_properties(use_stored_data=use_stored_data)
+        if not global_properties or not isinstance(global_properties, dict):
+            return 0.0
         return float(
             Amount(global_properties["total_vesting_fund_hive"], blockchain_instance=self)
         ) / (
             float(Amount(global_properties["total_vesting_shares"], blockchain_instance=self)) / 1e6
         )
 
-    def vests_to_hp(self, vests, timestamp=None, use_stored_data=True):
+    def vests_to_hp(
+        self,
+        vests: Union[Amount, float],
+        timestamp: Optional[Union[datetime, int]] = None,
+        use_stored_data: bool = True,
+    ) -> float:
         """Converts vests to HP
 
         :param amount.Amount vests/float vests: Vests to convert
@@ -197,34 +219,55 @@ class Hive(BlockChainInstance):
         """
         if isinstance(vests, Amount):
             vests = float(vests)
-        return (
-            float(vests) / 1e6 * self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data)
+        return float(
+            float(vests)
+            / 1e6
+            * float(self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data))
         )
 
-    def vests_to_token_power(self, vests, timestamp=None, use_stored_data=True):
+    def vests_to_token_power(
+        self,
+        vests: Union[Amount, float],
+        timestamp: Optional[Union[datetime, int]] = None,
+        use_stored_data: bool = True,
+    ) -> float:
         return self.vests_to_hp(vests, timestamp=timestamp, use_stored_data=use_stored_data)
 
-    def hp_to_vests(self, hp, timestamp=None, use_stored_data=True):
+    def hp_to_vests(
+        self,
+        hp: Union[Amount, float],
+        timestamp: Optional[Union[datetime, int]] = None,
+        use_stored_data: bool = True,
+    ) -> float:
         """Converts HP to vests
 
         :param float hp: Hive power to convert
         :param datetime timestamp: (Optional) Can be used to calculate
             the conversion rate from the past
         """
-        return hp * 1e6 / self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data)
+        return (
+            float(hp)
+            * 1e6
+            / float(self.get_hive_per_mvest(timestamp, use_stored_data=use_stored_data))
+        )
 
-    def token_power_to_vests(self, token_power, timestamp=None, use_stored_data=True):
+    def token_power_to_vests(
+        self,
+        token_power: Union[Amount, float],
+        timestamp: Optional[Union[datetime, int]] = None,
+        use_stored_data: bool = True,
+    ) -> float:
         return self.hp_to_vests(token_power, timestamp=timestamp, use_stored_data=use_stored_data)
 
     def token_power_to_token_backed_dollar(
         self,
-        token_power,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        not_broadcasted_vote=True,
-        use_stored_data=True,
-    ):
+        token_power: Union[Amount, float],
+        post_rshares: int = 0,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        not_broadcasted_vote: bool = True,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Convert token power (Hive Power) to its token-backed dollar equivalent (HBD).
 
@@ -250,13 +293,13 @@ class Hive(BlockChainInstance):
 
     def hp_to_hbd(
         self,
-        hp,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        not_broadcasted_vote=True,
-        use_stored_data=True,
-    ):
+        hp: Union[Amount, float],
+        post_rshares: int = 0,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        not_broadcasted_vote: bool = True,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Convert Hive Power (HP) to the estimated HBD payout this vote would produce.
 
@@ -283,13 +326,13 @@ class Hive(BlockChainInstance):
 
     def vests_to_hbd(
         self,
-        vests,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        not_broadcasted_vote=True,
-        use_stored_data=True,
-    ):
+        vests: Union[Amount, float],
+        post_rshares: int = 0,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        not_broadcasted_vote: bool = True,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Convert vesting shares to their equivalent HBD payout for a single vote.
 
@@ -317,12 +360,12 @@ class Hive(BlockChainInstance):
 
     def hp_to_rshares(
         self,
-        hive_power,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        use_stored_data=True,
-    ):
+        hive_power: Union[Amount, float],
+        post_rshares: int = 0,
+        voting_power: int = HIVE_100_PERCENT,
+        vote_pct: int = HIVE_100_PERCENT,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Convert Hive Power (HP) to r-shares used for voting.
 
@@ -349,53 +392,12 @@ class Hive(BlockChainInstance):
         )
         return rshares
 
-    def vests_to_rshares(
+    def hbd_to_rshares(
         self,
-        vests,
-        post_rshares=0,
-        voting_power=HIVE_100_PERCENT,
-        vote_pct=HIVE_100_PERCENT,
-        subtract_dust_threshold=True,
-        use_stored_data=True,
-    ):
-        """
-        Convert vesting shares to vote r-shares.
-
-        Detailed behavior:
-        - `vests` is the voter's vesting amount in VESTS (not in micro-vests); the implementation multiplies this value by 1e6 internally.
-        - Computes the effective voting power using `voting_power` and `vote_pct`, applies Hive's normalization (HIVE_100_PERCENT), and returns the signed r-shares for that vote.
-        - If `subtract_dust_threshold` is True, results at or below the chain dust threshold return 0; otherwise the threshold is subtracted from the computed r-shares.
-        - The final r-shares are adjusted by `post_rshares` using the chain's vote-claim logic before being returned.
-
-        Parameters:
-            vests (int|float|Amount): Vesting shares in VESTS.
-            post_rshares (int): Current r-shares on the post being voted (used to compute claim adjustment).
-            voting_power (int): Voter's current voting power (100% == HIVE_100_PERCENT).
-            vote_pct (int): Vote percentage to apply (100% == HIVE_100_PERCENT); sign of this value determines vote direction.
-            subtract_dust_threshold (bool): If True, apply/subtract the chain dust threshold from the computed r-shares.
-            use_stored_data (bool): Whether to use cached chain data for thresholds and calculations.
-
-        Returns:
-            int: Signed r-shares resulting from the provided vesting shares and vote parameters.
-        """
-        # Calculate chain-accurate used power and derive rshares per core formula
-        if isinstance(vests, Amount):
-            vests = float(vests)
-        used_power = self._calc_resulting_vote(
-            voting_power=voting_power, vote_pct=vote_pct, use_stored_data=use_stored_data
-        )
-        # calculate vote rshares
-        rshares = int(math.copysign(vests * 1e6 * used_power / HIVE_100_PERCENT, vote_pct))
-        if subtract_dust_threshold:
-            if abs(rshares) <= self.get_dust_threshold(use_stored_data=use_stored_data):
-                return 0
-            rshares -= math.copysign(
-                self.get_dust_threshold(use_stored_data=use_stored_data), vote_pct
-            )
-        rshares = self._calc_vote_claim(rshares, post_rshares)
-        return rshares
-
-    def hbd_to_rshares(self, hbd, not_broadcasted_vote=False, use_stored_data=True):
+        hbd: Union[str, int, Amount],
+        not_broadcasted_vote: bool = False,
+        use_stored_data: bool = True,
+    ) -> float:
         """Obtain the r-shares from HBD
 
         :param hbd: HBD
@@ -423,6 +425,13 @@ class Hive(BlockChainInstance):
         # big votes which have a significant impact on the recent_claims.
         reward_fund = self.get_reward_funds(use_stored_data=use_stored_data)
         median_price = self.get_median_price(use_stored_data=use_stored_data)
+        if (
+            not reward_fund
+            or not isinstance(reward_fund, dict)
+            or not median_price
+            or (isinstance(median_price, dict) and not isinstance(median_price, Price))
+        ):
+            return int(float(hbd) / self.get_hbd_per_rshares(use_stored_data=use_stored_data))
         recent_claims = int(reward_fund["recent_claims"])
         reward_balance = Amount(reward_fund["reward_balance"], blockchain_instance=self)
         reward_pool_hbd = median_price * reward_balance
@@ -446,13 +455,13 @@ class Hive(BlockChainInstance):
 
     def rshares_to_vote_pct(
         self,
-        rshares,
-        post_rshares=0,
-        hive_power=None,
-        vests=None,
-        voting_power=HIVE_100_PERCENT,
-        use_stored_data=True,
-    ):
+        rshares: Union[int, float],
+        post_rshares: int = 0,
+        hive_power: Optional[Union[Amount, float]] = None,
+        vests: Optional[Union[Amount, float]] = None,
+        voting_power: int = HIVE_100_PERCENT,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Compute the voting percentage required to achieve a target r-shares value.
 
@@ -486,9 +495,16 @@ class Hive(BlockChainInstance):
         if hive_power is not None and vests is not None:
             raise ValueError("Either hive_power or vests has to be set. Not both!")
         if hive_power is not None:
-            vests = int(self.hp_to_vests(hive_power, use_stored_data=use_stored_data) * 1e6)
+            vests_value = self.hp_to_vests(hive_power, use_stored_data=use_stored_data)
+            vests = int(vests_value) if vests_value is not None else 0
 
-        if self.hardfork >= 20:
+        # Parse version as tuple for reliable comparison
+        version_parts = self.hardfork.split(".")
+        try:
+            major, minor = int(version_parts[0]), int(version_parts[1]) if len(version_parts) > 1 else 0
+        except (ValueError, IndexError):
+            major, minor = 1, 20  # Default to current behavior
+        if (major, minor) >= (1, 20):
             rshares += math.copysign(
                 self.get_dust_threshold(use_stored_data=use_stored_data), rshares
             )
@@ -515,21 +531,22 @@ class Hive(BlockChainInstance):
         if vests == 0 or voting_power == 0:
             return 0
         max_vote_denom = self._max_vote_denom(use_stored_data=use_stored_data)
-        used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests * 1e6)
+        vests_value = vests if vests is not None else 0
+        used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests_value * 1e6)
         # Invert the linear relation (ignoring ceil):
         vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
-        return int(math.copysign(vote_pct_abs, rshares))
+        return round(math.copysign(vote_pct_abs, rshares))
 
     def hbd_to_vote_pct(
         self,
-        hbd,
-        post_rshares=0,
-        hive_power=None,
-        vests=None,
-        voting_power=HIVE_100_PERCENT,
-        not_broadcasted_vote=True,
-        use_stored_data=True,
-    ):
+        hbd: Union[str, int, Amount],
+        post_rshares: int = 0,
+        hive_power: Optional[Union[Amount, float]] = None,
+        vests: Optional[Union[Amount, float]] = None,
+        voting_power: int = HIVE_100_PERCENT,
+        not_broadcasted_vote: bool = True,
+        use_stored_data: bool = True,
+    ) -> float:
         """
         Calculate the voting percentage required to achieve a target HBD payout for a given voting power and stake.
 
@@ -571,42 +588,43 @@ class Hive(BlockChainInstance):
         )
 
     @property
-    def chain_params(self):
+    def chain_params(self) -> Optional[Dict[str, Any]]:
         if self.offline or self.rpc is None:
             return known_chains["HIVE"]
         else:
             return self.get_network()
 
     @property
-    def hardfork(self):
+    def hardfork(self) -> str:
         if self.offline or self.rpc is None:
             versions = known_chains["HIVE"]["min_version"]
         else:
             hf_prop = self.get_hardfork_properties()
-            if "current_hardfork_version" in hf_prop:
+            if hf_prop and isinstance(hf_prop, dict) and "current_hardfork_version" in hf_prop:
                 versions = hf_prop["current_hardfork_version"]
             else:
-                versions = self.get_blockchain_version()
-        return int(versions.split(".")[1])
+                versions = known_chains["HIVE"]["min_version"]
+        return versions
 
     @property
-    def is_hive(self):
-        config = self.get_config()
-        if config is None:
-            return True
-        return "HIVE_CHAIN_ID" in self.get_config()
+    def is_hive(self) -> bool:
+        return True
 
     @property
-    def hbd_symbol(self):
-        """get the current chains symbol for HBD (e.g. "TBD" on testnet)"""
-        return self.backed_token_symbol
+    def hbd_symbol(self) -> str:
+        params = self.chain_params
+        if params and isinstance(params, dict):
+            return params.get("backed_token_symbol", "HBD")
+        return "HBD"
 
     @property
-    def hive_symbol(self):
-        """get the current chains symbol for HIVE (e.g. "TESTS" on testnet)"""
-        return self.token_symbol
+    def hive_symbol(self) -> str:
+        params = self.chain_params
+        if params and isinstance(params, dict):
+            return params.get("token_symbol", "HIVE")
+        return "HIVE"
 
     @property
-    def vests_symbol(self):
+    def vests_symbol(self) -> str:
         """get the current chains symbol for VESTS"""
         return self.vest_token_symbol

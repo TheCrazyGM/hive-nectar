@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import unittest
 from datetime import datetime
@@ -167,7 +166,8 @@ class Testcases(unittest.TestCase):
         t = "2018-07-10T10:08:39"
         t = formatTimeString(t)
         t2 = addTzInfo(datetime(2018, 7, 10, 10, 8, 39))
-        self.assertEqual(t, t2)
+        self.assertEqual(t, "2018-07-10T10:08:39")
+        self.assertEqual(formatTimeString(t2), t)
 
     def test_derive_beneficiaries(self):
         t = "thecrazygm:10"

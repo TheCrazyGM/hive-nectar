@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 # Hive-only canonical constants
 HIVE_100_PERCENT = 10000
 HIVE_1_PERCENT = 100

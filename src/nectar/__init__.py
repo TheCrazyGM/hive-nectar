@@ -1,5 +1,11 @@
 """nectar."""
 
+import logging
+
+# Quiet httpx logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 from .hive import Hive
 from .version import version as __version__
 
@@ -26,5 +32,6 @@ __all__ = [
     "nodelist",
     "imageuploader",
     "snapshot",
-    "hivesigner",
 ]
+
+export = __all__

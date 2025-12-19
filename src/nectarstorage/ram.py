@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/ram.py
 from .interfaces import StoreInterface
 
 
-# StoreInterface is done first, then dict which overwrites the interface
-# methods
 class InRamStore(StoreInterface):
     """The InRamStore inherits
     :class:`nectarstorage.interfaces.StoreInterface` and extends it by two
@@ -21,7 +18,7 @@ class InRamStore(StoreInterface):
     # Specific for this library
     def delete(self, key):
         """Delete a key from the store"""
-        self.pop(key, None)
+        self._data.pop(key, None)
 
     def wipe(self):
         """Wipe the store"""

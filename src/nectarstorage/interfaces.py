@@ -1,10 +1,13 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
-class StoreInterface(dict):
+from collections.abc import MutableMapping
+from typing import Any, Iterator
+
+
+class StoreInterface(MutableMapping):
     """The store interface is the most general store that we can have.
 
-    It inherits dict and thus behaves like a dictionary. As such any
-    key/value store can be used as store with or even without an adaptor.
+    It behaves like a dictionary but allows returning None for missing keys and
+    keeps a `defaults` mapping that can supply fallback values.
 
     .. note:: This class defines ``defaults`` that are used to return
         reasonable defaults for the library.
@@ -32,51 +35,58 @@ class StoreInterface(dict):
 
     defaults = {}
 
-    @classmethod
-    def setdefault(cls, key, value):
-        """Allows to define default values"""
-        cls.defaults[key] = value
+    def setdefault(self, key, value=None):
+        """Allows to define default values on this store instance."""
+        if value is None and key in self.defaults:
+            return self.defaults[key]
+        if value is not None:
+            self.defaults[key] = value
+        return self._data.setdefault(key, value)
 
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, *_args, **_kwargs):
+        self._data: dict[Any, Any] = {}
 
     def __setitem__(self, key, value):
         """Sets an item in the store"""
-        return dict.__setitem__(self, key, value)
+        self._data[key] = value
 
     def __getitem__(self, key):
         """Gets an item from the store as if it was a dictionary
 
-        .. note:: Special behavior! If a key is not found, ``None`` is
-            returned instead of raising an exception, unless a default
-            value is found, then that is returned.
+        .. note:: Returns the value from the store or from defaults if
+            the key is found there. Raises ``KeyError`` if not found
+            in either.
         """
-        if key in self:
-            return dict.__getitem__(self, key)
-        elif key in self.defaults:
+        if key in self._data:
+            return self._data[key]
+        if key in self.defaults:
             return self.defaults[key]
-        else:
-            return None
+        raise KeyError(key)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """Iterates through the store"""
-        return dict.__iter__(self)
+        return iter(self._data)
 
-    def __len__(self):
-        """return lenght of store"""
-        return dict.__len__(self)
+    def __len__(self) -> int:
+        """return length of store"""
+        return len(self._data)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """Tests if a key is contained in the store."""
-        return dict.__contains__(self, key)
+        return key in self._data
+
+    def __delitem__(self, key: Any) -> None:
+        if key not in self._data:
+            raise KeyError(key)
+        self._data.pop(key)
 
     def items(self):
         """Returns all items off the store as tuples"""
-        return dict.items(self)
+        return self._data.items()
 
     def get(self, key, default=None):
         """Return the key if exists or a default value"""
-        return dict.get(self, key, default)
+        return self._data.get(key, self.defaults.get(key, default))
 
     # Specific for this library
     def delete(self, key):
@@ -116,18 +126,17 @@ class KeyInterface(StoreInterface):
         raise NotImplementedError
 
     def add(self, wif, pub=None):
-        """Add a new public/private key pair (correspondence has to be
-         checked elsewhere!)
+        """Add a new public/private key pair (correspondence has to be checked elsewhere!)
 
         :param str pub: Public key
         :param str wif: Private key
         """
         raise NotImplementedError
 
-    def delete(self, pub):
+    def delete(self, key):
         """Delete a pubkey/privatekey pair from the store
 
-        :param str pub: Public key
+        :param str key: Public key
         """
         raise NotImplementedError
 
@@ -180,14 +189,13 @@ class TokenInterface(StoreInterface):
         """Returns True/False to indicate required use of unlock"""
         return False
 
-    # Interface to deal with encrypted keys
-    def getPublicKeys(self):
-        """Returns the public keys stored in the database"""
+    # Interface to deal with tokens
+    def getPublicNames(self):
+        """Returns the public token names stored in the database"""
         raise NotImplementedError
 
     def getPrivateKeyForPublicKey(self, pub):
-        """Returns the (possibly encrypted) private key that
-         corresponds to a public key
+        """Returns the (possibly encrypted) token that corresponds to a name
 
         :param str pub: Public key
 
@@ -195,19 +203,18 @@ class TokenInterface(StoreInterface):
         """
         raise NotImplementedError
 
-    def add(self, wif, pub=None):
-        """Add a new public/private key pair (correspondence has to be
-         checked elsewhere!)
+    def add(self, token, name=None):
+        """Add a new token entry (correspondence has to be checked elsewhere!)
 
-        :param str pub: Public key
-        :param str wif: Private key
+        :param str name: Public identifier
+        :param str token: Token value
         """
         raise NotImplementedError
 
-    def delete(self, pub):
-        """Delete a pubkey/privatekey pair from the store
+    def delete(self, key):
+        """Delete a token entry from the store
 
-        :param str pub: Public key
+        :param str key: Public identifier
         """
         raise NotImplementedError
 

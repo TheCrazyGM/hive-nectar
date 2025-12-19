@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import unittest
 
 from parameterized import parameterized
@@ -34,6 +33,18 @@ class Testcases(unittest.TestCase):
         set_shared_blockchain_instance(cls.bts)
         cls.bts.set_default_account("test")
 
+    @staticmethod
+    def _extract_op(tx):
+        op = tx["operations"][0]
+        if isinstance(op, dict):
+            name = op.get("type") or op.get("operation")
+            if name and name.endswith("_operation"):
+                name = name[: -len("_operation")]
+            return name, op.get("value", {})
+        elif isinstance(op, (list, tuple)) and len(op) >= 2:
+            return op[0], op[1]
+        return None, op
+
     @parameterized.expand(
         [
             ("normal"),
@@ -48,8 +59,8 @@ class Testcases(unittest.TestCase):
         bts.txbuffer.clear()
         w = Witness("gtg", blockchain_instance=bts)
         tx = w.feed_publish("4 %s" % bts.backed_token_symbol, "1 %s" % bts.token_symbol)
-        self.assertEqual((tx["operations"][0][0]), "feed_publish")
-        op = tx["operations"][0][1]
+        op_name, op = self._extract_op(tx)
+        self.assertEqual(op_name, "feed_publish")
         self.assertIn("gtg", op["publisher"])
 
     @parameterized.expand(
@@ -71,8 +82,8 @@ class Testcases(unittest.TestCase):
             "sbd_interest_rate": 0,
         }
         tx = w.update(wif, "", props)
-        self.assertEqual((tx["operations"][0][0]), "witness_update")
-        op = tx["operations"][0][1]
+        op_name, op = self._extract_op(tx)
+        self.assertEqual(op_name, "witness_update")
         self.assertIn("gtg", op["owner"])
 
     @parameterized.expand(
@@ -134,12 +145,9 @@ class Testcases(unittest.TestCase):
         else:
             bts = self.hiveio
         owner = "gtg"
-        if bts.rpc.get_use_appbase():
-            witness = bts.rpc.find_witnesses({"owners": [owner]}, api="database")["witnesses"]
-            if len(witness) > 0:
-                witness = witness[0]
-        else:
-            witness = bts.rpc.get_witness_by_account(owner)
+        witness = bts.rpc.find_witnesses({"owners": [owner]}, api="database_api")["witnesses"]
+        if len(witness) > 0:
+            witness = witness[0]
 
         w = Witness(owner, blockchain_instance=bts)
         keys = list(witness.keys())

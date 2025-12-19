@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/base.py
 import logging
 
@@ -61,13 +60,15 @@ class InRamPlainKeyStore(InRamStore, KeyInterface):
     def getPrivateKeyForPublicKey(self, pub):
         return self.get(str(pub), None)
 
-    def add(self, wif, pub):
+    def add(self, wif, pub=None):
+        if pub is None:
+            raise ValueError("pub key required")
         if str(pub) in self:
             raise KeyAlreadyInStoreException
         self[str(pub)] = str(wif)
 
-    def delete(self, pub):
-        InRamStore.delete(self, str(pub))
+    def delete(self, key):
+        InRamStore.delete(self, str(key))
 
 
 class SqlitePlainKeyStore(SQLiteStore, KeyInterface):
@@ -91,15 +92,17 @@ class SqlitePlainKeyStore(SQLiteStore, KeyInterface):
         return [k for k, v in self.items()]
 
     def getPrivateKeyForPublicKey(self, pub):
-        return self[pub]
+        return self.get(str(pub), None)
 
-    def add(self, wif, pub):
+    def add(self, wif, pub=None):
+        if pub is None:
+            raise ValueError("pub key required")
         if str(pub) in self:
             raise KeyAlreadyInStoreException
         self[str(pub)] = str(wif)
 
-    def delete(self, pub):
-        SQLiteStore.delete(self, str(pub))
+    def delete(self, key):
+        SQLiteStore.delete(self, str(key))
 
     def is_encrypted(self):
         """Returns False, as we are not encrypted here"""
@@ -125,7 +128,9 @@ class KeyEncryption(MasterPassword, EncryptedKeyInterface):
         if wif:
             return self.decrypt(wif)  # From Masterpassword
 
-    def add(self, wif, pub):
+    def add(self, wif, pub=None):
+        if pub is None:
+            raise ValueError("pub key required")
         if str(pub) in self:
             raise KeyAlreadyInStoreException
         self[str(pub)] = self.encrypt(str(wif))  # From Masterpassword
@@ -188,13 +193,15 @@ class InRamPlainTokenStore(InRamStore, TokenInterface):
     def getPrivateKeyForPublicKey(self, pub):
         return self.get(str(pub), None)
 
-    def add(self, token, name):
+    def add(self, token, name=None):
+        if name is None:
+            raise ValueError("name required")
         if str(name) in self:
             raise KeyAlreadyInStoreException
         self[str(name)] = str(token)
 
-    def delete(self, name):
-        InRamStore.delete(self, str(name))
+    def delete(self, key):
+        InRamStore.delete(self, str(key))
 
 
 class SqlitePlainTokenStore(SQLiteStore, TokenInterface):
@@ -217,10 +224,12 @@ class SqlitePlainTokenStore(SQLiteStore, TokenInterface):
     def getPublicNames(self):
         return [k for k, v in self.items()]
 
-    def getPrivateKeyForPublicKey(self, name):
-        return self[name]
+    def getPrivateKeyForPublicKey(self, pub):
+        return self[str(pub)]
 
-    def add(self, token, name):
+    def add(self, token, name=None):
+        if name is None:
+            raise ValueError("name required")
         if str(name) in self:
             raise KeyAlreadyInStoreException
         self[str(name)] = str(token)
@@ -228,8 +237,8 @@ class SqlitePlainTokenStore(SQLiteStore, TokenInterface):
     def updateToken(self, name, token):
         self[str(name)] = str(token)  # From Masterpassword
 
-    def delete(self, name):
-        SQLiteStore.delete(self, str(name))
+    def delete(self, key):
+        SQLiteStore.delete(self, str(key))
 
     def is_encrypted(self):
         """Returns False, as we are not encrypted here"""
@@ -250,12 +259,14 @@ class TokenEncryption(MasterPassword, EncryptedTokenInterface):
     def getPublicNames(self):
         return [k for k, v in self.items()]
 
-    def getPrivateKeyForPublicKey(self, name):
-        token = self.get(str(name), None)
+    def getPrivateKeyForPublicKey(self, pub):
+        token = self.get(str(pub), None)
         if token:
             return self.decrypt_text(token)  # From Masterpassword
 
-    def add(self, token, name):
+    def add(self, token, name=None):
+        if name is None:
+            raise ValueError("name required")
         if str(name) in self:
             raise KeyAlreadyInStoreException
         self[str(name)] = self.encrypt_text(str(token))  # From Masterpassword

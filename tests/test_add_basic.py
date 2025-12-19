@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Simple test for PublicKey.add method"""
 
 import hashlib

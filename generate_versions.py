@@ -14,7 +14,7 @@ def get_version():
             return data["project"]["version"]
     except ImportError:
         # Fall back to regex if tomli is not available
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             version_match = re.search(r'version\s*=\s*"([^"]+)"', content)
             if version_match:

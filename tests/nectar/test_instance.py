@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import unittest
 
 from parameterized import parameterized
@@ -47,18 +46,20 @@ class Testcases(unittest.TestCase):
         """
         hv = Hive(node=get_hive_nodes())
         hv.config.refreshBackup()
-        hv.set_default_nodes(["xyz"])
+        hv.set_default_nodes(get_hive_nodes())
         del hv
 
         cls.urls = get_hive_nodes()
         cls.bts = Hive(node=cls.urls, nobroadcast=True, num_retries=10)
         set_shared_blockchain_instance(cls.bts)
-        acc = Account("fullnodeupdate", blockchain_instance=cls.bts)
-        comment = Comment(acc.get_blog_entries(limit=5)[1], blockchain_instance=cls.bts)
+        ranked = cls.bts.rpc.get_ranked_posts({"sort": "trending", "limit": 1}, api="bridge")
+        if not ranked:
+            raise RuntimeError("Unable to fetch a trending post for tests")
+        comment = Comment(ranked[0], api="bridge", blockchain_instance=cls.bts)
         cls.authorperm = comment.authorperm
         votes = comment.get_votes(raw_data=True)
-        last_vote = votes[-1]
-        cls.authorpermvoter = comment["authorperm"] + "|" + last_vote["voter"]
+        last_vote = votes[-1] if votes else {"voter": "test"}
+        cls.authorpermvoter = comment["authorperm"] + "|" + last_vote.get("voter", "test")
 
     @classmethod
     def tearDownClass(cls):
@@ -212,12 +213,12 @@ class Testcases(unittest.TestCase):
     def test_price(self, node_param):
         if node_param == "instance":
             set_shared_blockchain_instance(self.bts)
-            o = Price(10.0, "%s/%s" % (self.bts.token_symbol, self.bts.backed_token_symbol))
+            o = Price(10.0, "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol))
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
                 Price(
                     10.0,
-                    "%s/%s" % (self.bts.token_symbol, self.bts.backed_token_symbol),
+                    "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol),
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
@@ -229,12 +230,12 @@ class Testcases(unittest.TestCase):
             hv = self.bts
             o = Price(
                 10.0,
-                "%s/%s" % (self.bts.token_symbol, self.bts.backed_token_symbol),
+                "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol),
                 blockchain_instance=hv,
             )
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Price(10.0, "%s/%s" % (self.bts.token_symbol, self.bts.backed_token_symbol))
+                Price(10.0, "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol))
 
     @parameterized.expand([("instance"), ("hive")])
     def test_vote(self, node_param):

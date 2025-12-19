@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
 from decimal import Decimal
 from fractions import Fraction
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
 
 from nectar.instance import shared_blockchain_instance
 
 from .amount import Amount, check_asset
 from .asset import Asset
 from .exceptions import InvalidAssetException
+
+if TYPE_CHECKING:
+    from .market import Market
 from .utils import assets_from_string, formatTimeString
 
 
@@ -70,12 +73,12 @@ class Price(dict):
 
     def __init__(
         self,
-        price=None,
-        base=None,
-        quote=None,
-        base_asset=None,  # to identify sell/buy
-        blockchain_instance=None,
-    ):
+        price: Optional[Union[str, Dict[str, Any], "Price"]] = None,
+        base: Optional[Union[str, Amount, Asset]] = None,
+        quote: Optional[Union[str, Amount, Asset]] = None,
+        base_asset: Optional[str] = None,  # to identify sell/buy
+        blockchain_instance: Optional[Any] = None,
+    ) -> None:
         """
         Initialize a Price object representing a ratio between a base and quote asset.
 
@@ -136,7 +139,12 @@ class Price(dict):
             #    self["base"] = Amount(price["quote"], blockchain_instance=self.blockchain)
 
         elif price is not None and isinstance(base, Asset) and isinstance(quote, Asset):
-            frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            if isinstance(price, Price):
+                frac = Fraction(float(price["price"])).limit_denominator(10 ** base["precision"])
+            elif isinstance(price, (int, float, str)):
+                frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            else:
+                raise ValueError("Unsupported price type")
             self["quote"] = Amount(
                 amount=frac.denominator, asset=quote, blockchain_instance=self.blockchain
             )
@@ -147,7 +155,12 @@ class Price(dict):
         elif price is not None and isinstance(base, str) and isinstance(quote, str):
             base = Asset(base, blockchain_instance=self.blockchain)
             quote = Asset(quote, blockchain_instance=self.blockchain)
-            frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            if isinstance(price, Price):
+                frac = Fraction(float(price["price"])).limit_denominator(10 ** base["precision"])
+            elif isinstance(price, (int, float, str)):
+                frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
+            else:
+                raise ValueError("Unsupported price type")
             self["quote"] = Amount(
                 amount=frac.denominator, asset=quote, blockchain_instance=self.blockchain
             )
@@ -188,7 +201,7 @@ class Price(dict):
         else:
             raise ValueError("Couldn't parse 'Price'.")
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         dict.__setitem__(self, key, value)
         if (
             "quote" in self and "base" in self and self["base"] and self["quote"]
@@ -197,7 +210,7 @@ class Price(dict):
                 self, "price", self._safedivide(self["base"]["amount"], self["quote"]["amount"])
             )
 
-    def copy(self):
+    def copy(self) -> "Price":
         return Price(
             None,
             base=self["base"].copy(),
@@ -205,16 +218,18 @@ class Price(dict):
             blockchain_instance=self.blockchain,
         )
 
-    def _safedivide(self, a, b):
+    def _safedivide(
+        self, a: Union[int, float, Decimal], b: Union[int, float, Decimal]
+    ) -> Union[int, float, Decimal]:
         if b != 0.0:
-            return a / b
+            return float(a) / float(b)
         else:
-            return float("Inf")
+            return float("inf")
 
-    def symbols(self):
+    def symbols(self) -> Tuple[str, str]:
         return self["base"]["symbol"], self["quote"]["symbol"]
 
-    def as_base(self, base):
+    def as_base(self, base: Union[str, Asset]) -> "Price":
         """
         Return a copy of this Price expressed with the given asset as the base.
 
@@ -235,7 +250,7 @@ class Price(dict):
         else:
             raise InvalidAssetException
 
-    def as_quote(self, quote):
+    def as_quote(self, quote: Union[str, Asset]) -> "Price":
         """
         Return a Price instance expressed with the given quote asset symbol.
 
@@ -259,7 +274,7 @@ class Price(dict):
         else:
             raise InvalidAssetException
 
-    def invert(self):
+    def invert(self) -> "Price":
         """
         Invert the price in place, swapping base and quote assets (e.g., HBD/HIVE -> HIVE/HBD).
 
@@ -278,10 +293,10 @@ class Price(dict):
         self["base"] = tmp
         return self
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return {"base": self["base"].json(), "quote": self["quote"].json()}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{price:.{precision}f} {base}/{quote}".format(
             price=self["price"],
             base=self["base"]["symbol"],
@@ -289,16 +304,16 @@ class Price(dict):
             precision=(self["base"]["asset"]["precision"] + self["quote"]["asset"]["precision"]),
         )
 
-    def __float__(self):
+    def __float__(self) -> float:
         return float(self["price"])
 
-    def _check_other(self, other):
+    def _check_other(self, other: "Price") -> None:
         if not other["base"]["symbol"] == self["base"]["symbol"]:
             raise AssertionError()
         if not other["quote"]["symbol"] == self["quote"]["symbol"]:
             raise AssertionError()
 
-    def __mul__(self, other):
+    def __mul__(self, other: Union["Price", Amount, float, int]) -> "Price":
         a = self.copy()
         if isinstance(other, Price):
             # Rotate/invert other
@@ -345,7 +360,7 @@ class Price(dict):
             a["base"] *= other
         return a
 
-    def __imul__(self, other):
+    def __imul__(self, other: Union["Price", Amount, float, int]) -> "Price":
         if isinstance(other, Price):
             tmp = self * other
             self["base"] = tmp["base"]
@@ -354,7 +369,7 @@ class Price(dict):
             self["base"] *= other
         return self
 
-    def __div__(self, other):
+    def __div__(self, other: Union["Price", Amount, float, int]) -> Union["Price", float]:
         a = self.copy()
         if isinstance(other, Price):
             # Rotate/invert other
@@ -387,57 +402,70 @@ class Price(dict):
             a["base"] /= other
         return a
 
-    def __idiv__(self, other):
+    def __idiv__(self, other: Union["Price", Amount, float, int]) -> "Price":
         if isinstance(other, Price):
             tmp = self / other
-            self["base"] = tmp["base"]
-            self["quote"] = tmp["quote"]
+            # tmp can be either Price or float, handle both cases
+            if isinstance(tmp, (int, float)):
+                # If division returned a float, we can't do in-place modification
+                # Convert to Price by updating the base amount
+                self["base"] = Amount(
+                    float(tmp) * float(self["base"]),
+                    self["base"]["symbol"],
+                    blockchain_instance=self.blockchain,
+                )
+            else:
+                # tmp is a Price, do normal in-place update
+                self["base"] = tmp["base"]
+                self["quote"] = tmp["quote"]
         else:
             self["base"] /= other
         return self
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Any) -> "Price":
         raise NotImplementedError("This is not possible as the price is a ratio")
 
-    def __ifloordiv__(self, other):
+    def __ifloordiv__(self, other: Any) -> "Price":
         raise NotImplementedError("This is not possible as the price is a ratio")
 
-    def __lt__(self, other):
+    def __lt__(self, other: Union["Price", Amount, float, int]) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] < other["price"]
         else:
             return self["price"] < float(other or 0)
 
-    def __le__(self, other):
+    def __le__(self, other: Union["Price", Amount, float, int]) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] <= other["price"]
         else:
             return self["price"] <= float(other or 0)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] == other["price"]
-        else:
+        if isinstance(other, (float, int)):
             return self["price"] == float(other or 0)
+        return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] != other["price"]
-        else:
+        if isinstance(other, (float, int)):
             return self["price"] != float(other or 0)
+        return True
 
-    def __ge__(self, other):
+    def __ge__(self, other: Union["Price", Amount, float, int]) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] >= other["price"]
         else:
             return self["price"] >= float(other or 0)
 
-    def __gt__(self, other):
+    def __gt__(self, other: Union["Price", Amount, float, int]) -> bool:
         if isinstance(other, Price):
             self._check_other(other)
             return self["price"] > other["price"]
@@ -449,7 +477,7 @@ class Price(dict):
     __str__ = __repr__
 
     @property
-    def market(self):
+    def market(self) -> "Market":
         """Open the corresponding market
 
         :returns: Instance of :class:`nectar.market.Market` for the
@@ -479,27 +507,31 @@ class Order(Price):
             data be ``None``.
     """
 
-    def __init__(self, base, quote=None, blockchain_instance=None, **kwargs):
+    def __init__(
+        self,
+        base: Union[Dict[str, Any], Amount],
+        quote: Optional[Amount] = None,
+        blockchain_instance: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if isinstance(base, dict) and "sell_price" in base:
-            super(Order, self).__init__(base["sell_price"], blockchain_instance=self.blockchain)
+            super().__init__(base["sell_price"], blockchain_instance=self.blockchain)
             self["id"] = base.get("id")
         elif isinstance(base, dict) and "min_to_receive" in base and "amount_to_sell" in base:
-            super(Order, self).__init__(
+            super().__init__(
                 Amount(base["min_to_receive"], blockchain_instance=self.blockchain),
                 Amount(base["amount_to_sell"], blockchain_instance=self.blockchain),
                 blockchain_instance=self.blockchain,
             )
             self["id"] = base.get("id")
         elif isinstance(base, Amount) and isinstance(quote, Amount):
-            super(Order, self).__init__(
-                None, base=base, quote=quote, blockchain_instance=self.blockchain
-            )
+            super().__init__(None, base=base, quote=quote, blockchain_instance=self.blockchain)
         else:
             raise ValueError("Unknown format to load Order")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if "deleted" in self and self["deleted"]:
             return "deleted order %s" % self["id"]
         else:
@@ -529,14 +561,16 @@ class FilledOrder(Price):
               that shows when the order has been filled!
     """
 
-    def __init__(self, order, blockchain_instance=None, **kwargs):
+    def __init__(
+        self, order: Dict[str, Any], blockchain_instance: Optional[Any] = None, **kwargs: Any
+    ) -> None:
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(order, dict) and "current_pays" in order and "open_pays" in order:
             # filled orders from account history
             if "op" in order:
                 order = order["op"]
 
-            super(FilledOrder, self).__init__(
+            super().__init__(
                 Amount(order["open_pays"], blockchain_instance=self.blockchain),
                 Amount(order["current_pays"], blockchain_instance=self.blockchain),
                 blockchain_instance=self.blockchain,
@@ -547,14 +581,14 @@ class FilledOrder(Price):
         else:
             raise ValueError("Couldn't parse 'Price'.")
 
-    def json(self):
+    def json(self) -> Dict[str, Any]:
         return {
             "date": formatTimeString(self["date"]),
             "current_pays": self["base"].json(),
             "open_pays": self["quote"].json(),
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         t = ""
         if "date" in self and self["date"]:
             t += "(%s) " % self["date"]

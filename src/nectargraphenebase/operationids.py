@@ -1,3 +1,5 @@
 #: Operation ids
-operations = {}
-operations["demooepration"] = 0
+from typing import Dict
+
+operations: Dict[str, int] = {}
+operations["demo_operation"] = 0
