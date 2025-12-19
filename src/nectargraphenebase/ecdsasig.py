@@ -138,7 +138,7 @@ def recover_public_key(
         sigder = encode_dss_signature(r, s)
         Q_point = Q.to_affine()  # type: ignore[attr-defined]
         public_key = ec.EllipticCurvePublicNumbers(
-            Q_point.x(), Q_point.y(), ec.SECP256K1()
+            int(Q_point.x()), int(Q_point.y()), ec.SECP256K1()
         ).public_key(default_backend())
         public_key.verify(sigder, message, ec.ECDSA(hashes.SHA256()))
         return public_key
