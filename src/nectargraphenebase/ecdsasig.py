@@ -63,18 +63,18 @@ def compressedPubkey(pk: Union[ecdsa.keys.VerifyingKey, Any]) -> bytes:
         order = ecdsa.SECP256k1.order
         # Get the curve point from VerifyingKey
         point = pk.pubkey.point  # type: ignore[attr-defined]
-        x = point.x()
-        y = point.y()
+        x = int(point.x())
+        y = int(point.y())
     elif isinstance(pk, PublicKey):
         # Handle account.PublicKey type
         order = ecdsa.SECP256k1.order
         point = pk.point()
-        x = point.x()
-        y = point.y()
+        x = int(point.x())
+        y = int(point.y())
     else:
         order = ecdsa.SECP256k1.order
-        x = pk.public_numbers().x
-        y = pk.public_numbers().y
+        x = int(pk.public_numbers().x)
+        y = int(pk.public_numbers().y)
     x_str = number_to_string(x, order)
     return bytes(chr(2 + (y & 1)), "ascii") + x_str
 
