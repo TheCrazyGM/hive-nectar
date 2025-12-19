@@ -96,7 +96,7 @@ operations: Dict[str, int] = {o: ops.index(o) for o in ops}
 
 def getOperationNameForId(i: int) -> str:
     """Convert an operation id into the corresponding string"""
-    for key, op_id in operations.items():
-        if int(op_id) == int(i):
+    for key in operations:
+        if operations[key] == i:
             return key
     return "Unknown Operation ID %d" % i

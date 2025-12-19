@@ -181,20 +181,23 @@ class GrapheneRPC:
         """
         if self.nodes.working_nodes_count == 0:
             return
-        if next_url:
-            self.url = next(self.nodes)
-            self.nodes.reset_error_cnt_call()
-            log.debug("Trying to connect to node %s" % self.url)
-            self.ws = None
-            self._proxy: Optional[str] = None
-            if self.use_tor:
-                self._proxy = "socks5h://localhost:9050"
-            # Use a shared client unless proxies are required.
-            self.session = shared_httpx_client(self._proxy)
-            self.headers = {
-                "User-Agent": "nectar v%s" % (nectar_version),
-                "content-type": "application/json; charset=utf-8",
-            }
+        while True:
+            if next_url:
+                self.url = next(self.nodes)
+                self.nodes.reset_error_cnt_call()
+                log.debug("Trying to connect to node %s" % self.url)
+                self.ws = None
+                self._proxy: Optional[str] = None
+                if self.use_tor:
+                    self._proxy = "socks5h://localhost:9050"
+                # Use a shared client unless proxies are required.
+                self.session = shared_httpx_client(self._proxy)
+                self.ws = None
+                self.headers = {
+                    "User-Agent": "nectar v%s" % (nectar_version),
+                    "content-type": "application/json; charset=utf-8",
+                }
+            break
 
     def request_send(self, payload: bytes) -> httpx.Response:
         """
@@ -439,7 +442,7 @@ class GrapheneRPC:
             r"\b431\b", reply_str
         ):
             raise RPCErrorDoRetry("Request Header Fields Too Large")
-        elif re.search("Loop Detected", reply_str) or re.search(r"\b508\b", reply_str):
+        elif re.search("Loop Detected", reply_str) or re.search("508", reply_str):
             raise RPCError("Loop Detected")
         elif re.search("Bandwidth Limit Exceeded", reply_str) or re.search(r"\b509\b", reply_str):
             raise RPCError("Bandwidth Limit Exceeded")
