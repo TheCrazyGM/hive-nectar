@@ -204,8 +204,8 @@ class Block(BlockchainObject):
     @property
     def operations(self) -> list[Any]:
         """Returns all block operations as list"""
-        if self.only_ops or self.only_virtual_ops:
-            return self.get("operations", [])
+        if (self.only_ops or self.only_virtual_ops) and "operations" in self:
+            return self["operations"]
         ops = []
         trxs = []
         if "transactions" in self:
