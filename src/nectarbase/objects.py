@@ -186,7 +186,7 @@ class Operation(GPHOperation):
     def getOperationNameForId(self, i: int) -> str:
         """Convert an operation id into the corresponding string"""
         for key in self.operations():
-            if int(self.operations()[key]) is int(i):
+            if int(self.operations()[key]) == int(i):
                 return key
         return "Unknown Operation ID %d" % i
 
