@@ -457,7 +457,7 @@ def seperate_yaml_dict_from_body(content: str) -> Tuple[str, Dict[str, Any]]:
 
 def create_yaml_header(
     comment: Dict[str, Any],
-    json_metadata: Dict[str, Any] = {},
+    json_metadata: Optional[Dict[str, Any]] = None,
     reply_identifier: Optional[str] = None,
 ) -> str:
     """
@@ -491,6 +491,8 @@ def create_yaml_header(
     Returns:
         str: The composed YAML front-matter block as a string.
     """
+    if json_metadata is None:
+        json_metadata = {}
     yaml_prefix = "---\n"
     if comment["title"] != "":
         yaml_prefix += f'title: "{comment["title"]}"\n'
@@ -615,7 +617,7 @@ def import_custom_json(jsonid: str, json_data: Dict[str, Any]) -> Tuple[List[str
     Returns the author and required posting authorities for a custom_json operation.
 
     Args:
-        jsonid: The id of the custom json
+        jsonid: The id of the custom json (not used but kept for compatibility)
         json_data: The data of the custom json
 
     Returns:

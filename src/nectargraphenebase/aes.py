@@ -30,7 +30,11 @@ class AESCipher:
 
     @staticmethod
     def _unpad(s: bytes) -> bytes:
-        return s[: -ord(s[len(s) - 1 :])]
+        count = s[-1]
+        # Validate padding to prevent padding oracle attacks
+        if s[-count:] == bytes([count]) * count:
+            return s[:-count]
+        raise ValueError("Invalid padding")
 
     def encrypt(self, raw: Any) -> str:
         raw = self._pad(AESCipher.str_to_bytes(raw))

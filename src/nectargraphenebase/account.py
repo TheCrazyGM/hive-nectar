@@ -762,7 +762,6 @@ class GrapheneAddress(Address):
         cls,
         pubkey: Union[str, "PublicKey"],
         compressed: bool = True,
-        version: int = 56,
         prefix: Optional[str] = None,
     ) -> "GrapheneAddress":
         # Ensure this is a public key
@@ -1099,8 +1098,6 @@ class BitcoinAddress(Address):
         cls,
         pubkey: Union[str, PublicKey],
         compressed: bool = False,
-        version: int = 56,
-        prefix: Optional[str] = None,
     ) -> "BitcoinAddress":
         # Ensure this is a public key
         pubkey = PublicKey(pubkey)

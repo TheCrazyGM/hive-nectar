@@ -138,7 +138,6 @@ class NodeList(list):
     def get_nodes(
         self,
         hive: bool = True,
-        exclude_limited: bool = False,
         dev: bool = False,
         testnet: bool = False,
         testnetdev: bool = False,
@@ -152,7 +151,6 @@ class NodeList(list):
 
         Args:
             hive: Filter for Hive nodes only (default: True)
-            exclude_limited: Exclude limited nodes (not applicable with beacon)
             dev: Include dev nodes (not applicable with beacon)
             testnet: Include testnet nodes (not applicable with beacon)
             testnetdev: Include testnet dev nodes (not applicable with beacon)
@@ -166,6 +164,19 @@ class NodeList(list):
             List of node URLs sorted by score (highest first)
         """
         filtered_nodes = []
+
+        # Determine allowed types based on flags (OR logic)
+        allowed_types = set()
+        if appbase:
+            allowed_types.add("appbase")
+        if normal:
+            allowed_types.add("normal")
+        if dev:
+            allowed_types.add("appbase-dev")
+        if testnet:
+            allowed_types.add("testnet")
+        if testnetdev:
+            allowed_types.add("testnet-dev")
 
         for node in self:
             # Filter by score
@@ -182,16 +193,8 @@ class NodeList(list):
             if not wss and node["url"].startswith("wss"):
                 continue
 
-            # Filter by type (beacon only provides appbase nodes)
-            if appbase and node["type"] != "appbase":
-                continue
-            if normal and node["type"] != "normal":
-                continue
-            if dev and node["type"] != "appbase-dev":
-                continue
-            if testnet and node["type"] != "testnet":
-                continue
-            if testnetdev and node["type"] != "testnet-dev":
+            # Filter by type (OR logic)
+            if allowed_types and node["type"] not in allowed_types:
                 continue
 
             filtered_nodes.append(node)
@@ -234,6 +237,7 @@ class NodeList(list):
         Returns:
             List of testnet node URLs
         """
+        log.warning("Testnet nodes are not available from beacon API")
         return self.get_nodes(
             normal=False,
             appbase=False,

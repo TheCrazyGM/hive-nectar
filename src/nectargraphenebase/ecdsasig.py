@@ -201,6 +201,8 @@ def recoverPubkeyParameter(
                 return i
         else:  # pragma: no cover
             p = recover_public_key(digest, signature, i)
+            if p is None:
+                continue
             p_comp = hexlify(compressedPubkey(p))
             p_string = hexlify(p.to_string())  # type: ignore[attr-defined]
             if isinstance(pubkey, PublicKey):

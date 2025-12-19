@@ -71,7 +71,8 @@ class ImageUploader:
             raise AssertionError("No local private posting key available to sign the image.")
 
         if isinstance(image, str):
-            image_data = open(image, "rb").read()
+            with open(image, "rb") as f:
+                image_data = f.read()
         elif isinstance(image, io.BytesIO):
             image_data = image.read()
         else:

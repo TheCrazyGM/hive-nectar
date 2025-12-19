@@ -121,10 +121,6 @@ class Amount:
             self.symbol = d.symbol
             self.asset = d.asset
             self.precision = d.precision
-            self.amount = d.amount
-            self.symbol = d.symbol
-            self.asset = d.asset
-            self.precision = d.precision
             self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
             self.str_repr = str(d)
             # self.str_repr = json.dumps((d.json()))

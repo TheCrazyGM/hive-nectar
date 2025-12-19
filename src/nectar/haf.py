@@ -77,7 +77,9 @@ class HAF:
         # Set default headers
         headers = kwargs.pop("headers", {})
         headers.setdefault("accept", "application/json")
-        headers.setdefault("User-Agent", "hive-nectar/0.1.3")
+        from nectar.version import version as nectar_version
+
+        headers.setdefault("User-Agent", f"hive-nectar/{nectar_version}")
 
         log.debug(f"Making {method} request to: {url}")
 

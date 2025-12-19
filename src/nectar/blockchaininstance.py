@@ -1185,7 +1185,7 @@ class BlockChainInstance:
     def sign(
         self,
         tx: dict[str, Any] | None = None,
-        wifs: list[str] | str = [],
+        wifs: list[str] | str | None = None,
         reconstruct_tx: bool = True,
     ) -> dict[str, Any]:
         """
@@ -1201,6 +1201,8 @@ class BlockChainInstance:
         Returns:
             dict: The signed transaction JSON with an added "trx_id" field containing the transaction id.
         """
+        if wifs is None:
+            wifs = []
         if tx:
             txbuffer = TransactionBuilder(tx=tx, blockchain_instance=self)
         else:
@@ -1334,12 +1336,12 @@ class BlockChainInstance:
         memo_key: str | None = None,
         posting_key: str | None = None,
         password: str | None = None,
-        additional_owner_keys: list[str] = [],
-        additional_active_keys: list[str] = [],
-        additional_posting_keys: list[str] = [],
-        additional_owner_accounts: list[str] = [],
-        additional_active_accounts: list[str] = [],
-        additional_posting_accounts: list[str] = [],
+        additional_owner_keys: list[str] | None = None,
+        additional_active_keys: list[str] | None = None,
+        additional_posting_keys: list[str] | None = None,
+        additional_owner_accounts: list[str] | None = None,
+        additional_active_accounts: list[str] | None = None,
+        additional_posting_accounts: list[str] | None = None,
         storekeys: bool = True,
         store_owner_key: bool = False,
         json_meta: dict[str, Any] | None = None,
@@ -1472,6 +1474,13 @@ class BlockChainInstance:
         owner_accounts_authority = []
         active_accounts_authority = []
         posting_accounts_authority = []
+
+        additional_owner_keys = additional_owner_keys or []
+        additional_active_keys = additional_active_keys or []
+        additional_posting_keys = additional_posting_keys or []
+        additional_owner_accounts = additional_owner_accounts or []
+        additional_active_accounts = additional_active_accounts or []
+        additional_posting_accounts = additional_posting_accounts or []
 
         # additional authorities
         for k in additional_owner_keys:

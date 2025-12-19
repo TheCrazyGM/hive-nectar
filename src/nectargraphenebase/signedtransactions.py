@@ -147,7 +147,7 @@ class Signed_Transaction(GrapheneObject):
     ) -> List[Any]:
         """Returned pubkeys have to be checked if they are existing"""
         if not chain:
-            raise
+            raise ValueError("chain parameter is required")
         chain_params = self.getChainParams(chain)
         self.deriveDigest(chain)
         signatures = self.data["signatures"].data

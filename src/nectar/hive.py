@@ -498,9 +498,13 @@ class Hive(BlockChainInstance):
             vests_value = self.hp_to_vests(hive_power, use_stored_data=use_stored_data)
             vests = int(vests_value) if vests_value is not None else 0
 
-        # Convert version string to comparable format (e.g., "1.24.0" -> "1.24")
-        hardfork_version = self.hardfork.rsplit(".", 1)[0]  # Remove last segment
-        if hardfork_version >= "1.20":
+        # Parse version as tuple for reliable comparison
+        version_parts = self.hardfork.split(".")
+        try:
+            major, minor = int(version_parts[0]), int(version_parts[1]) if len(version_parts) > 1 else 0
+        except (ValueError, IndexError):
+            major, minor = 1, 20  # Default to current behavior
+        if (major, minor) >= (1, 20):
             rshares += math.copysign(
                 self.get_dust_threshold(use_stored_data=use_stored_data), rshares
             )

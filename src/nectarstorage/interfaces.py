@@ -53,9 +53,9 @@ class StoreInterface(MutableMapping):
     def __getitem__(self, key):
         """Gets an item from the store as if it was a dictionary
 
-        .. note:: Special behavior! If a key is not found, ``None`` is
-            returned instead of raising an exception, unless a default
-            value is found, then that is returned.
+        .. note:: Returns the value from the store or from defaults if
+            the key is found there. Raises ``KeyError`` if not found
+            in either.
         """
         if key in self._data:
             return self._data[key]
