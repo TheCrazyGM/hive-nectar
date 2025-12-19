@@ -205,7 +205,11 @@ class Block(BlockchainObject):
     def operations(self) -> list[Any]:
         """Returns all block operations as list"""
         if (self.only_ops or self.only_virtual_ops) and "operations" in self:
-            return self["operations"]
+            ops = self["operations"]
+            # Normalize get_ops_in_block format (which wraps op in "op" key)
+            if ops and isinstance(ops[0], dict) and "op" in ops[0]:
+                return [x["op"] for x in ops]
+            return ops
         ops = []
         trxs = []
         if "transactions" in self:
@@ -217,7 +221,10 @@ class Block(BlockchainObject):
                 # Replace opid by op name
                 # op[0] = getOperationNameForId(op[0])
                 if isinstance(op, list):
-                    ops.append(list(op))
+                    if self.only_ops or self.only_virtual_ops:
+                        ops.append({"type": op[0], "value": op[1]})
+                    else:
+                        ops.append(list(op))
                 else:
                     ops.append(op.copy())
         return ops

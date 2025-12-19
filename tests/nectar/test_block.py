@@ -19,7 +19,10 @@ class Testcases(unittest.TestCase):
         Creates a Hive instance (nobroadcast=True, provided active key, retries=10), stores it on the class as `bts`, sets `test_block_id` to 19273700, registers the instance as the shared blockchain instance, and sets the default account to "test".
         """
         cls.bts = Hive(
-            node=get_hive_nodes(), nobroadcast=True, keys={"active": wif}, num_retries=10
+            node=get_hive_nodes(),
+            nobroadcast=True,
+            keys={"active": wif},
+            num_retries=10,
         )
         cls.test_block_id = 19273700
         # from getpass import getpass
@@ -105,3 +108,18 @@ class Testcases(unittest.TestCase):
                     self.assertEqual(list(block[k].values()), json_content[k])
                 else:
                     self.assertEqual(block[k], json_content[k])
+
+    def test_block_only_ops_dict_normalization(self):
+        """Verify that only_ops=True returns operations as dicts, not lists."""
+        bts = self.bts
+        test_block_id = self.test_block_id
+        # Initialize block with only_ops=True
+        block = Block(test_block_id, only_ops=True, blockchain_instance=bts)
+
+        self.assertTrue(len(block.operations) > 0, "Should have operations")
+
+        # Check the first operation
+        op = block.operations[0]
+        self.assertTrue(isinstance(op, dict), f"Operation should be dict, got {type(op)}")
+        self.assertIn("type", op)
+        self.assertIn("value", op)
