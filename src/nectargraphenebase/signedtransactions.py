@@ -5,6 +5,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
 import ecdsa
+from cryptography.exceptions import InvalidSignature
 
 from .account import PublicKey
 from .chains import known_chains
@@ -156,10 +157,13 @@ class Signed_Transaction(GrapheneObject):
         pubKeysFound = []
 
         for signature in signatures:
+            p = None
             if recover_parameter:
-                p = verify_message(self.message, bytes(signature))
-            else:
-                p = None
+                try:
+                    p = verify_message(self.message, bytes(signature))
+                except (ValueError, AssertionError, ecdsa.keys.BadSignatureError, InvalidSignature):
+                    p = None
+
             if p is None:
                 for i in range(4):
                     try:
@@ -167,10 +171,15 @@ class Signed_Transaction(GrapheneObject):
                         if p is not None:
                             phex = hexlify(p).decode("ascii")
                             pubKeysFound.append(phex)
-                    except (ValueError, AssertionError, ecdsa.keys.BadSignatureError) as e:
+                    except (
+                        ValueError,
+                        AssertionError,
+                        ecdsa.keys.BadSignatureError,
+                        InvalidSignature,
+                    ) as e:
                         log.debug("Signature recovery failed for parameter %d: %s", i, e)
                         p = None
-            elif p is not None:
+            else:
                 phex = hexlify(p).decode("ascii")
                 pubKeysFound.append(phex)
 
