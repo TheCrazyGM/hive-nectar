@@ -72,7 +72,11 @@ class Block(BlockchainObject):
         elif isinstance(block, dict):
             block = self._parse_json_data(block)
         super().__init__(
-            block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
+            block,
+            lazy=lazy,
+            full=full,
+            blockchain_instance=blockchain_instance,
+            **kwargs,
         )
         if self.identifier is None:
             self.identifier = self.get(self.id_item)
@@ -201,7 +205,7 @@ class Block(BlockchainObject):
     def operations(self) -> list[Any]:
         """Returns all block operations as list"""
         if self.only_ops or self.only_virtual_ops:
-            return self["operations"]
+            return self.get("operations", [])
         ops = []
         trxs = []
         if "transactions" in self:
@@ -265,7 +269,10 @@ class Block(BlockchainObject):
                             # Handle list case - find timestamp in list and update it
                             for i, item in enumerate(op_new):
                                 if isinstance(item, dict) and "timestamp" in item:
-                                    op_new[i] = {**item, "timestamp": formatTimeString(p_date)}
+                                    op_new[i] = {
+                                        **item,
+                                        "timestamp": formatTimeString(p_date),
+                                    }
                                     break
                 ops.append(op_new)
         return ops
@@ -341,7 +348,11 @@ class BlockHeader(BlockchainObject):
         if isinstance(block, float):
             block = int(block)
         super().__init__(
-            block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
+            block,
+            lazy=lazy,
+            full=full,
+            blockchain_instance=blockchain_instance,
+            **kwargs,
         )
 
     def refresh(self) -> None:
