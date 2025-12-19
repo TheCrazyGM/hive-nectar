@@ -40,6 +40,8 @@ from .wallet import Wallet
 
 log = logging.getLogger(__name__)
 
+RPC_NOT_ESTABLISHED = "RPC connection not established"
+
 
 class BlockChainInstance:
     """Connect to a Graphene network.
@@ -60,7 +62,7 @@ class BlockChainInstance:
     :param bool offline: Boolean to prevent connecting to network (defaults
         to ``False``) *(optional)*
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param str blocking: Wait for broadcasted transactions to be included
         in a block and return full transaction (can be "head" or
         "irreversible")
@@ -645,13 +647,13 @@ class BlockChainInstance:
     def get_resource_params(self) -> dict[str, Any]:
         """Returns the resource parameter"""
         if self.rpc is None:
-            raise RuntimeError("RPC connection not established")
+            raise RuntimeError(RPC_NOT_ESTABLISHED)
         return self.rpc.get_resource_params()["resource_params"]
 
     def get_resource_pool(self) -> dict[str, Any]:
         """Returns the resource pool"""
         if self.rpc is None:
-            raise RuntimeError("RPC connection not established")
+            raise RuntimeError(RPC_NOT_ESTABLISHED)
         return self.rpc.get_resource_pool()["resource_pool"]
 
     def get_rc_cost(self, resource_count: dict[str, int]) -> int:
