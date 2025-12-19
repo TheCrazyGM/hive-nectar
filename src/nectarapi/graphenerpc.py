@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import threading
 from typing import Any, Dict, List, Optional, Union
 
 import httpx
@@ -32,6 +33,7 @@ import atexit
 
 _shared_httpx_client: httpx.Client | None = None
 _proxy_clients: Dict[str, httpx.Client] = {}
+_client_lock = threading.Lock()
 
 
 def _cleanup_shared_client() -> None:
@@ -56,12 +58,14 @@ def shared_httpx_client(proxy: Optional[str] = None) -> httpx.Client:
     """
     global _shared_httpx_client
     if proxy:
-        if proxy not in _proxy_clients:
-            _proxy_clients[proxy] = httpx.Client(http2=False, proxy=proxy)
+        with _client_lock:
+            if proxy not in _proxy_clients:
+                _proxy_clients[proxy] = httpx.Client(http2=False, proxy=proxy)
         return _proxy_clients[proxy]
 
-    if _shared_httpx_client is None:
-        _shared_httpx_client = httpx.Client(http2=False)
+    with _client_lock:
+        if _shared_httpx_client is None:
+            _shared_httpx_client = httpx.Client(http2=False)
     return _shared_httpx_client
 
 
@@ -386,7 +390,7 @@ class GrapheneRPC:
     def _check_for_server_error(self, reply: Dict[str, Any]) -> None:
         """Checks for server error message in reply"""
         reply_str = str(reply)
-        if re.search("Internal Server Error", reply_str) or re.search("500", reply_str):
+        if re.search("Internal Server Error", reply_str) or re.search(r"\b500\b", reply_str):
             raise RPCErrorDoRetry("Internal Server Error")
         elif re.search("Not Implemented", reply_str) or re.search("501", reply_str):
             raise RPCError("Not Implemented")
@@ -442,7 +446,7 @@ class GrapheneRPC:
             r"\b431\b", reply_str
         ):
             raise RPCErrorDoRetry("Request Header Fields Too Large")
-        elif re.search("Loop Detected", reply_str) or re.search("508", reply_str):
+        elif re.search("Loop Detected", reply_str) or re.search(r"\b508\b", reply_str):
             raise RPCError("Loop Detected")
         elif re.search("Bandwidth Limit Exceeded", reply_str) or re.search(r"\b509\b", reply_str):
             raise RPCError("Bandwidth Limit Exceeded")

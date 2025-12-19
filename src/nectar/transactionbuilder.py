@@ -30,7 +30,7 @@ class TransactionBuilder(dict):
 
     :param dict tx: transaction (Optional). If not set, the new transaction is created.
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param Hive blockchain_instance: If not set, shared_blockchain_instance() is used
 
     .. testcode::

@@ -850,7 +850,7 @@ class Market(dict):
                         }
                     elif "probit" in str(r.url):
                         data = r.json()["data"]
-                        prices["huobi"] = {
+                        prices["probit"] = {
                             "price": float(data["last"]),
                             "volume": float(data["base_volume"]),
                         }
