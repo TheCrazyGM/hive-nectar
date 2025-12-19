@@ -213,6 +213,13 @@ class Block(BlockchainObject):
                     # Wrapper found: get_ops_in_block format
                     raw_op = x["op"]
                     if isinstance(raw_op, list):
+                        if isinstance(raw_op[0], int):
+                            try:
+                                from nectarbase.operationids import getOperationNameForId
+
+                                raw_op[0] = getOperationNameForId(raw_op[0])
+                            except Exception:
+                                pass
                         op_dict = {"type": raw_op[0], "value": raw_op[1]}
                     elif isinstance(raw_op, dict):
                         op_dict = raw_op.copy()
@@ -250,8 +257,14 @@ class Block(BlockchainObject):
                 current_trx_id = tx["transaction_id"]
 
             for op in tx["operations"]:
-                # Replace opid by op name
-                # op[0] = getOperationNameForId(op[0])
+                # Replace op id by op name when numeric
+                if isinstance(op, (list, tuple)) and len(op) > 0 and isinstance(op[0], int):
+                    try:
+                        from nectarbase.operationids import getOperationNameForId
+
+                        op[0] = getOperationNameForId(op[0])
+                    except Exception:
+                        pass
                 if isinstance(op, list):
                     if self.only_ops or self.only_virtual_ops:
                         op_dict = {"type": op[0], "value": op[1]}
@@ -327,8 +340,14 @@ class Block(BlockchainObject):
             for op in tx["operations"]:
                 if "operations" not in tx:
                     continue
-                # Replace opid by op name
-                # op[0] = getOperationNameForId(op[0])
+                # Replace op id by op name when numeric
+                if isinstance(op, (list, tuple)) and len(op) > 0 and isinstance(op[0], int):
+                    try:
+                        from nectarbase.operationids import getOperationNameForId
+
+                        op[0] = getOperationNameForId(op[0])
+                    except Exception:
+                        pass
                 if isinstance(op, list):
                     op_new = list(op)
                 else:

@@ -38,6 +38,7 @@ class TestBlockExtensive(unittest.TestCase):
         self.assertIsInstance(op, dict, "Operation should be a dictionary")
         self.assertIn("type", op)
         self.assertIn("value", op)
+        self.assertIsInstance(op.get("type"), str, "Operation type should be string")
 
         # Metadata assertions
         self.assertIn("transaction_id", op, "transaction_id missing in single block op")
@@ -69,6 +70,7 @@ class TestBlockExtensive(unittest.TestCase):
             self.assertIsInstance(op, dict, "Operation should be a dictionary")
             self.assertIn("type", op)
             self.assertIn("value", op)
+            self.assertIsInstance(op.get("type"), str, "Operation type should be string")
 
             # Metadata assertions
             self.assertIn(
@@ -100,6 +102,7 @@ class TestBlockExtensive(unittest.TestCase):
             # But mostly we check structure and metadata here
             self.assertIn("type", op)
             self.assertIn("value", op)
+            self.assertIsInstance(op.get("type"), str, "Operation type should be string")
 
             # Virtual ops in Hive often have a null transaction ID or string of zeros,
             # OR they inherit the block's context.

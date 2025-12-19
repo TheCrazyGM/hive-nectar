@@ -127,3 +127,7 @@ class Testcases(unittest.TestCase):
         # We expect transaction keys to be injected now
         self.assertIn("transaction_id", op, "transaction_id missing in normalized op")
         self.assertIn("block_num", op, "block_num missing in normalized op")
+        self.assertTrue(
+            isinstance(op.get("type"), str),
+            f"Operation type should be string, got {type(op.get('type'))}",
+        )
