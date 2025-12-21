@@ -91,6 +91,7 @@ class Amount(dict):
         new_appbase_format: bool = True,
         blockchain_instance: Any = None,
         json_str: bool = False,
+        **kwargs,
     ) -> None:
         """
         Initialize an Amount object representing a quantity of a specific blockchain asset.
