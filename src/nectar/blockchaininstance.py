@@ -172,7 +172,7 @@ class BlockChainInstance:
         self.path = kwargs.get("path", None)
 
         # Store config for access through other Classes
-        self.config = kwargs.get("config_store", get_default_config_store(**kwargs))
+        self.config = kwargs.get("config_store", get_default_config_store(node=node, **kwargs))
         if self.path is None:
             self.path = self.config["default_path"]
 

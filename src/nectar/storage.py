@@ -14,7 +14,11 @@ timeformat = "%Y%m%d-%H%M%S"
 
 
 def generate_config_store(
-    config: MutableMapping[str, Any], blockchain: str = "hive", **kwargs: Any
+    config: MutableMapping[str, Any],
+    blockchain: str = "hive",
+    node: Any = None,
+    offline: bool = False,
+    **kwargs: Any,
 ) -> MutableMapping[str, Any]:
     #: Default configuration
     """
@@ -30,13 +34,18 @@ def generate_config_store(
         MutableMapping: The same `config` mapping after defaults have been set.
     """
     if "node" not in config:
-        nodelist = NodeList()
-        if blockchain == "hive":
-            nodes = nodelist.get_hive_nodes(testnet=False)
+        if node:
+            config["node"] = node
+        elif offline:
+            config["node"] = []
         else:
-            # Hive-only
-            nodes = []
-        config["node"] = nodes
+            nodelist = NodeList()
+            if blockchain == "hive":
+                nodes = nodelist.get_hive_nodes(testnet=False)
+            else:
+                # Hive-only
+                nodes = []
+            config["node"] = nodes
     config.setdefault("default_chain", blockchain)
     config.setdefault("password_storage", "environment")
     config.setdefault("rpcpassword", "")
@@ -53,7 +62,7 @@ def generate_config_store(
 
 def get_default_config_store(*args, **kwargs) -> MutableMapping[str, Any]:
     config_store = SqliteConfigurationStore(*args, **kwargs)
-    return generate_config_store(config_store, blockchain="hive")
+    return generate_config_store(config_store, blockchain="hive", **kwargs)
 
 
 def get_default_key_store(
