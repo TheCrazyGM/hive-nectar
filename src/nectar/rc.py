@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Dict, Optional, Union
 
 from nectar.constants import (
@@ -21,6 +22,14 @@ class RC:
         otherwise the module-wide shared_blockchain_instance() is used. Extra keyword
         arguments are accepted for compatibility but ignored.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
     def get_tx_size(self, op: Union[Any, Operation, Dict[str, Any]]) -> int:

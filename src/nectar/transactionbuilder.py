@@ -1,5 +1,6 @@
 import logging
 import struct
+import warnings
 from binascii import unhexlify
 
 # import time (not currently used)
@@ -65,10 +66,17 @@ class TransactionBuilder(dict):
             expiration (int, optional, via kwargs): Transaction expiration (seconds or blockchain-specific
                 expiration value). If omitted, the blockchain instance's default expiration is used.
 
-        Notes:
             - The `blockchain_instance` parameter is a shared service/client and is intentionally not
               documented here beyond its effect on builder configuration.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
@@ -52,6 +53,18 @@ class Vote(BlockchainObject):
         - Validates keyword arguments and raises on unknown or conflicting legacy instance keys.
         """
         # Check for unknown kwargs
+        if kwargs:
+            if blockchain_instance is None and kwargs.get("hive_instance"):
+                blockchain_instance = kwargs["hive_instance"]
+                warnings.warn(
+                    "hive_instance is deprecated, use blockchain_instance instead",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                del kwargs["hive_instance"]
+            elif "hive_instance" in kwargs:
+                del kwargs["hive_instance"]
+
         if kwargs:
             raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
 
@@ -514,6 +527,14 @@ class ActiveVotes(VotesObject):
             ValueError: if multiple legacy instance parameters are provided.
             VoteDoesNotExistsException: when the RPC reports invalid parameters for the requested post (no such post).
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         votes = None
         if not self.blockchain.is_connected():
@@ -651,6 +672,7 @@ class AccountVotes(VotesObject):
         lazy=False,
         full=False,
         blockchain_instance=None,
+        **kwargs,
     ):
         """
         Initialize AccountVotes by loading votes for a given account within an optional time window.
@@ -671,6 +693,14 @@ class AccountVotes(VotesObject):
             full: bool
                 Passed to Vote when constructing Vote objects; controls whether to fully populate vote data.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         # Convert start/stop to datetime objects for comparison
         start_dt = None

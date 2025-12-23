@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import random
+import warnings
 from datetime import date, datetime, time, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -110,6 +111,14 @@ class Account(BlockchainObject):
             full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
             lazy (bool): If True, defer fetching/processing of some fields until needed.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()
@@ -480,7 +489,11 @@ class Account(BlockchainObject):
             )
         else:
             last_vote_dt = addTzInfo(last_vote_raw)
-        last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
+
+        if last_vote_dt:
+            last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
+        else:
+            last_vote_time_str = "N/A"
         try:
             rc_mana = self.get_rc_manabar()
             rc = self.get_rc()
@@ -2055,7 +2068,9 @@ class Account(BlockchainObject):
             account_bandwidth = None
         if account_bandwidth is None:
             return {"used": 0, "allocated": allocated_bandwidth}
-        last_bandwidth_update = formatTimeString(str(account_bandwidth["last_bandwidth_update"]))
+        from nectar.utils import parse_time
+
+        last_bandwidth_update = parse_time(str(account_bandwidth["last_bandwidth_update"]))
         average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
@@ -2309,7 +2324,10 @@ class Account(BlockchainObject):
         return self.blockchain.rpc.get_tags_used_by_author(account)["tags"]
 
     def get_expiring_vesting_delegations(
-        self, after: str | None = None, limit: int = 1000, account: str | None = None
+        self,
+        after: datetime | str | None = None,
+        limit: int = 1000,
+        account: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Return upcoming vesting-delegation expirations for an account.
@@ -3355,12 +3373,10 @@ class Account(BlockchainObject):
         """
         _limit = batch_size
         first = self.virtual_op_count()
-        if start is not None and not isinstance(start, (datetime, date, time)):
-            # Don't call addTzInfo on integers
-            pass
-        if stop is not None and not isinstance(stop, (datetime, date, time)):
-            # Don't call addTzInfo on integers
-            pass
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
         if not first or not batch_size:
             return
         if start is not None and isinstance(start, int) and start < 0 and not use_block_num:

@@ -52,7 +52,17 @@ class Witness(BlockchainObject):
             - Any unexpected keyword arguments are accepted for backward compatibility but will trigger a DeprecationWarning and be ignored.
         """
         if kwargs:
+            if blockchain_instance is None and kwargs.get("hive_instance"):
+                blockchain_instance = kwargs["hive_instance"]
+                warnings.warn(
+                    "hive_instance is deprecated, use blockchain_instance instead",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             for key in kwargs:
+                if key == "hive_instance":
+                    continue
                 warnings.warn(
                     f"Unexpected keyword argument '{key}' passed to Witness.__init__. "
                     "This may be a deprecated parameter and will be ignored.",
@@ -496,7 +506,7 @@ class Witnesses(WitnessesObject):
 
     """
 
-    def __init__(self, lazy=False, full=True, blockchain_instance=None):
+    def __init__(self, lazy=False, full=True, blockchain_instance=None, **kwargs):
         """
         Initialize a Witnesses collection and load active witnesses from the configured blockchain.
 
@@ -507,6 +517,14 @@ class Witnesses(WitnessesObject):
         Notes:
             Resolves the blockchain instance from `blockchain_instance` or the shared default and immediately calls `refresh()` to populate the list of active witnesses.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.lazy = lazy
         self.full = full
@@ -552,7 +570,7 @@ class WitnessesVotedByAccount(WitnessesObject):
 
     """
 
-    def __init__(self, account, lazy=False, full=True, blockchain_instance=None):
+    def __init__(self, account, lazy=False, full=True, blockchain_instance=None, **kwargs):
         """
         Initialize a WitnessesVotedByAccount collection for the given account.
 
@@ -566,6 +584,14 @@ class WitnessesVotedByAccount(WitnessesObject):
         Note:
             The blockchain instance is taken from the optional `blockchain_instance` argument or the shared default; it is not documented here as a parameter.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.account = Account(account, full=True, blockchain_instance=self.blockchain)
         account_name = self.account["name"]
@@ -612,6 +638,7 @@ class WitnessesRankedByVote(WitnessesObject):
         lazy=False,
         full=False,
         blockchain_instance=None,
+        **kwargs,
     ):
         """
         Initialize a list of witnesses ranked by vote, with optional pagination.
@@ -633,6 +660,14 @@ class WitnessesRankedByVote(WitnessesObject):
               to satisfy `limit`.
             - Returns early (no list created) if no witnesses are found.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         witnessList = []
         last_limit = limit
@@ -697,6 +732,7 @@ class ListWitnesses(WitnessesObject):
         lazy=False,
         full=False,
         blockchain_instance=None,
+        **kwargs,
     ):
         """
         Initialize a ListWitnesses collection starting from a given account name.
@@ -712,6 +748,14 @@ class ListWitnesses(WitnessesObject):
             lazy (bool): If True, construct Witness objects in lazy mode (defer full data load).
             full (bool): If True, request full witness data when constructing Witness objects.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.identifier = from_account
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
