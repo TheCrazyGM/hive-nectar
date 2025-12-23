@@ -29,14 +29,14 @@ def generate_config_store(
     Returns:
         MutableMapping: The same `config` mapping after defaults have been set.
     """
-    nodelist = NodeList()
-    if blockchain == "hive":
-        nodes = nodelist.get_hive_nodes(testnet=False)
-    else:
-        # Hive-only
-        nodes = []
-
-    config.setdefault("node", nodes)
+    if "node" not in config:
+        nodelist = NodeList()
+        if blockchain == "hive":
+            nodes = nodelist.get_hive_nodes(testnet=False)
+        else:
+            # Hive-only
+            nodes = []
+        config["node"] = nodes
     config.setdefault("default_chain", blockchain)
     config.setdefault("password_storage", "environment")
     config.setdefault("rpcpassword", "")
