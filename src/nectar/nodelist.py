@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import tempfile
 import threading
 import time
 from typing import Any, Dict, List, Optional
@@ -31,6 +33,8 @@ _cached_nodes: Optional[List[Dict[str, Any]]] = None
 _cache_timestamp: float = 0
 _cache_lock = threading.Lock()
 
+CACHE_FILE = os.path.join(tempfile.gettempdir(), "nectar_nodes_cache.json")
+
 
 def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
     """Fetch node list from PeakD beacon API with caching.
@@ -42,11 +46,26 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
 
     current_time = time.time()
 
-    # Return cached data if still valid
+    # Return cached data if still valid (memory)
     with _cache_lock:
         if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
-            log.debug("Using cached beacon nodes")
+            log.debug("Using cached beacon nodes (memory)")
             return _cached_nodes
+
+    # Try to load from disk cache if memory cache is empty or expired
+    if os.path.exists(CACHE_FILE):
+        try:
+            mtime = os.path.getmtime(CACHE_FILE)
+            if current_time - mtime < CACHE_DURATION:
+                with open(CACHE_FILE, "r") as f:
+                    nodes = json.load(f)
+                with _cache_lock:
+                    _cached_nodes = nodes
+                    _cache_timestamp = mtime
+                log.debug("Using cached beacon nodes (disk)")
+                return nodes
+        except (IOError, json.JSONDecodeError) as e:
+            log.warning(f"Failed to read disk cache: {e}")
 
     try:
         log.debug("Fetching fresh nodes from beacon API")
@@ -55,17 +74,35 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
             response.raise_for_status()
             nodes = response.json()
 
-            # Cache the successful result
+            # Cache the successful result to memory and disk
             with _cache_lock:
                 _cached_nodes = nodes
                 _cache_timestamp = current_time
+
+            try:
+                with open(CACHE_FILE, "w") as f:
+                    json.dump(nodes, f)
+            except IOError as e:
+                log.warning(f"Failed to write disk cache: {e}")
+
             return nodes
     except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, Exception) as e:
         log.warning(f"Failed to fetch nodes from beacon API: {e}")
+
+        # fallback: try to return expired disk cache if available
+        if os.path.exists(CACHE_FILE):
+            try:
+                with open(CACHE_FILE, "r") as f:
+                    nodes = json.load(f)
+                log.info("Using expired disk cache as fallback")
+                return nodes
+            except Exception:
+                pass
+
         # Return cached data even if expired, as fallback
         with _cache_lock:
             if _cached_nodes is not None:
-                log.info("Using expired cached nodes as fallback")
+                log.info("Using expired cached nodes as fallback (memory)")
                 return _cached_nodes
         return None
 
@@ -80,6 +117,13 @@ def clear_beacon_cache() -> None:
     with _cache_lock:
         _cached_nodes = None
         _cache_timestamp = 0
+
+    if os.path.exists(CACHE_FILE):
+        try:
+            os.remove(CACHE_FILE)
+        except OSError as e:
+            log.warning(f"Failed to remove disk cache: {e}")
+
     log.debug("Beacon node cache cleared")
 
 
