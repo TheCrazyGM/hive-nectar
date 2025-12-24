@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.13 - 2025-12-24
+
+- **Fix**: Serialize node configuration lists to JSON strings to fix `sqlite3` errors in Docker/fresh installs.
+
+## 0.2.12 - 2025-12-23
+
+- **Feature**: Allow specifying a node list or offline mode in `generate_config_store`.
+
+## 0.2.11 - 2025-12-23
+
+- **Feature**: Implemented disk-based caching for beacon node list (5 min TTL) to prevent API rate limits.
+- **Feature**: Added separate MD5-based file caching for NectarEngine node lists (standard & history).
+
+## 0.2.10 - 2025-12-23
+
+- **Refactor**: Only fetch default nodes if "node" key is missing in configuration.
+
+## 0.2.9 - 2025-12-22
+
+- **Refactor**: Deprecated `hive_instance` in favor of `blockchain_instance` across all classes with backward compatibility warnings.
+
+## 0.2.3 through 0.2.8 - 2025-12-19
+
+- **Maintenance**: Various fixes and stability improvements during rapid iteration.
+
 ## 0.2.2 - 2025-12-16
 
 ### Improvements
