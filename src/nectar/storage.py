@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, MutableMapping
 
@@ -35,9 +36,18 @@ def generate_config_store(
     """
     if "node" not in config:
         if node:
-            config["node"] = node
+            # Ensure provided node is a list if it's a string representation
+            if isinstance(node, str) and node.startswith("["):
+                # It's already serialized or a string, let it pass, though validation would be better.
+                # Assuming callers pass raw lists or single strings usually.
+                config["node"] = node
+            elif isinstance(node, list):
+                config["node"] = json.dumps(node)
+            else:
+                config["node"] = node  # Fallback
+
         elif offline:
-            config["node"] = []
+            config["node"] = json.dumps([])
         else:
             nodelist = NodeList()
             if blockchain == "hive":
@@ -45,7 +55,9 @@ def generate_config_store(
             else:
                 # Hive-only
                 nodes = []
-            config["node"] = nodes
+
+            # Serialize list to JSON string for SQLite storage
+            config["node"] = json.dumps(nodes)
     config.setdefault("default_chain", blockchain)
     config.setdefault("password_storage", "environment")
     config.setdefault("rpcpassword", "")
