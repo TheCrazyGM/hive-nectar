@@ -21,7 +21,11 @@ STATIC_NODES = [
     "https://anyx.io",
 ]
 
-BEACON_URL = "https://beacon.peakd.com/api/nodes"
+# PeakD beacon API URL is https://beacon.peakd.com/api/nodes
+# devapi.v4v.app is a faster mirror with much less constrained rate limits
+# maintained by the v4v.app team
+
+BEACON_URL = "https://devapi.v4v.app/v2/beacon/nodes/"
 REQUEST_TIMEOUT = 10  # seconds
 CACHE_DURATION = 300  # 5 minutes cache
 
@@ -201,7 +205,11 @@ class NodeList(list):
         return [node["url"] for node in filtered_nodes]
 
     def get_hive_nodes(
-        self, testnet: bool = False, not_working: bool = False, wss: bool = True, https: bool = True
+        self,
+        testnet: bool = False,
+        not_working: bool = False,
+        wss: bool = True,
+        https: bool = True,
     ) -> List[str]:
         """Return a list of Hive node URLs filtered and ordered by score.
 
