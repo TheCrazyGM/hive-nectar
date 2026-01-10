@@ -117,8 +117,11 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
                     log.warning(f"Failed to write to disk cache: {e}")
                 return nodes
             # else: try next beacon URL
-        except (httpx.RequestError, json.JSONDecodeError, Exception) as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, ValueError) as e:
             log.warning(f"Failed to fetch nodes from beacon API {beacon_url}: {e}")
+
+        except Exception as e:
+            log.error(f"Unexpected error fetching nodes from beacon API {beacon_url}: {e}")
 
     # Return cached data even if expired, as fallback
     if _cached_nodes is not None:

@@ -91,7 +91,7 @@ class Testcases(unittest.TestCase):
         self.assertTrue(CACHE_FILE.exists())
 
         # Verify cache file contains valid JSON data
-        with open(CACHE_FILE, "r") as f:
+        with CACHE_FILE.open("r") as f:
             cached_data = json.load(f)
         self.assertIsInstance(cached_data, list)
         self.assertEqual(len(cached_data), len(nodes))
