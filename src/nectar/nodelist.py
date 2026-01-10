@@ -28,7 +28,6 @@ STATIC_NODES = [
 # devapi.v4v.app is a faster mirror with much less constrained rate limits
 # maintained by the v4v.app team
 
-BEACON_URL = "https://beacon.v4v.app"
 BEACON_URLS = ["https://beacon.v4v.app", "https://beacon.peakd.com/api/nodes"]
 REQUEST_TIMEOUT = 10  # seconds
 CACHE_DURATION = 300  # 5 minutes cache
