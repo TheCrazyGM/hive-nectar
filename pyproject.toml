@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hive-nectar"
-version = "0.2.0"
+version = "0.2.13"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,7 +39,6 @@ dependencies = [
   "types-requests",
   "cryptography",
   "requests>=2.32.4",
-  "pycryptodome>=3.23.0",
   "httpx>=0.28.1",
 ]
 
@@ -73,7 +72,18 @@ explicit = true
 
 [tool.pytest]
 testpaths = ["tests"]
-python_files = "test_*.py"
+python_files = ["test_*.py"]
+norecursedirs = [
+  ".git",
+  ".*",
+  "*.egg*",
+  "old",
+  "docs",
+  "dist",
+  "build",
+  "examples",
+]
+addopts = ["-rw", "--doctest-modules"]
 
 [tool.ruff]
 target-version = "py310"
@@ -106,7 +116,7 @@ exclude = [
 
 
 [tool.mypy]
-python_version = ">3.10"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

@@ -209,7 +209,7 @@ class Testcases(unittest.TestCase):
 
         # Test that we can query by block number range
         start_block = h_all_raw[-1][1]["block"]
-        end_block = h_all_raw[0]["block"]
+        end_block = h_all_raw[0][1]["block"]
 
         try:
             h_list = list(

@@ -365,8 +365,8 @@ class BIP32Key:
         except AttributeError:
             # Fallback for older versions
             point = self.K.pubkey.point  # type: ignore[attr-defined]
-        padx = point.x().to_bytes(32, "big")
-        if point.y() & 1:
+        padx = int(point.x()).to_bytes(32, "big")
+        if int(point.y()) & 1:
             ck = b"\3" + padx
         else:
             ck = b"\2" + padx

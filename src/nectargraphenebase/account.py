@@ -637,16 +637,14 @@ class MnemonicKey(Prefix):
     def get_private(self) -> "PrivateKey":
         """Derive private key from the account_sequence, the role and the key_sequence"""
         if self.seed is None:
-            raise ValueError("seed is None, set or generate a mnemnoric first")
+            raise ValueError("seed is None, set or generate a mnemonic first")
         key = BIP32Key.fromEntropy(self.seed)
         path_result = parse_path(self.get_path(), as_bytes=False)
-        if isinstance(path_result, list):
-            for n in path_result:
-                key = key.ChildKey(n)
-                if key is None:
-                    raise ValueError(f"Failed to derive child key for path index: {n}")
-        else:
-            raise ValueError(f"Invalid path result: {path_result}")
+        for n in path_result:
+            key = key.ChildKey(n)
+            if key is None:
+                raise ValueError(f"Failed to derive child key for path index: {n}")
+
         return PrivateKey(key.WalletImportFormat(), prefix=self.prefix)
 
     def get_public(self) -> "PublicKey":
@@ -762,7 +760,6 @@ class GrapheneAddress(Address):
         cls,
         pubkey: Union[str, "PublicKey"],
         compressed: bool = True,
-        version: int = 56,
         prefix: Optional[str] = None,
     ) -> "GrapheneAddress":
         # Ensure this is a public key
@@ -812,8 +809,8 @@ class PublicKey(Prefix):
             p = ecdsa.VerifyingKey.from_string(
                 unhexlify(pk[2:]), curve=ecdsa.SECP256k1
             ).pubkey.point
-            x_str = number_to_string(p.x(), order)
-            pk = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
+            x_str = number_to_string(int(p.x()), order)
+            pk = hexlify(chr(2 + (int(p.y()) & 1)).encode("ascii") + x_str).decode("ascii")
 
         self._pk = Base58(pk, prefix=self.prefix)
 
@@ -955,8 +952,8 @@ class PublicKey(Prefix):
 
         order = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).curve.generator.order()
         p = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).verifying_key.pubkey.point
-        x_str = number_to_string(p.x(), order)
-        compressed = hexlify(chr(2 + (p.y() & 1)).encode("ascii") + x_str).decode("ascii")
+        x_str = number_to_string(int(p.x()), order)
+        compressed = hexlify(chr(2 + (int(p.y()) & 1)).encode("ascii") + x_str).decode("ascii")
         return cls(compressed, prefix=prefix or Prefix.prefix)
 
     def unCompressed(self) -> str:
@@ -1099,8 +1096,6 @@ class BitcoinAddress(Address):
         cls,
         pubkey: Union[str, PublicKey],
         compressed: bool = False,
-        version: int = 56,
-        prefix: Optional[str] = None,
     ) -> "BitcoinAddress":
         # Ensure this is a public key
         pubkey = PublicKey(pubkey)

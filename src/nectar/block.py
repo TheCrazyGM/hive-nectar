@@ -72,7 +72,11 @@ class Block(BlockchainObject):
         elif isinstance(block, dict):
             block = self._parse_json_data(block)
         super().__init__(
-            block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
+            block,
+            lazy=lazy,
+            full=full,
+            blockchain_instance=blockchain_instance,
+            **kwargs,
         )
         if self.identifier is None:
             self.identifier = self.get(self.id_item)
@@ -200,20 +204,118 @@ class Block(BlockchainObject):
     @property
     def operations(self) -> list[Any]:
         """Returns all block operations as list"""
-        if self.only_ops or self.only_virtual_ops:
-            return self["operations"]
+
+        def _normalize_op_type(op_type: Any) -> Any:
+            if isinstance(op_type, int):
+                try:
+                    from nectarbase.operationids import getOperationNameForId
+
+                    return getOperationNameForId(op_type)
+                except Exception:
+                    return op_type
+            return op_type
+
+        if (self.only_ops or self.only_virtual_ops) and "operations" in self:
+            ops = self["operations"]
+            # Normalize get_ops_in_block format (which wraps op in "op" key)
+            normalized_ops = []
+            for x in ops:
+                if isinstance(x, dict) and "op" in x:
+                    # Wrapper found: get_ops_in_block format
+                    raw_op = x["op"]
+                    if isinstance(raw_op, list):
+                        op_dict = {
+                            "type": _normalize_op_type(raw_op[0]),
+                            "value": raw_op[1],
+                        }
+                    elif isinstance(raw_op, dict):
+                        op_dict = raw_op.copy()
+                        if "type" in op_dict:
+                            op_dict["type"] = _normalize_op_type(op_dict["type"])
+                    else:
+                        continue  # Should not happen
+
+                    # Inject metadata from wrapper
+                    if "trx_id" in x:
+                        op_dict["transaction_id"] = x["trx_id"]
+                    if "timestamp" in x:
+                        op_dict["timestamp"] = x["timestamp"]
+                    if "block" in x:
+                        op_dict["block_num"] = x["block"]
+
+                    normalized_ops.append(op_dict)
+                elif isinstance(x, (list, tuple)) and len(x) >= 2:
+                    normalized_ops.append({"type": _normalize_op_type(x[0]), "value": x[1]})
+                elif isinstance(x, dict) and "type" in x and "value" in x:
+                    op_dict = x.copy()
+                    op_dict["type"] = _normalize_op_type(op_dict["type"])
+                    normalized_ops.append(op_dict)
+                else:
+                    # Legacy or direct format?
+                    normalized_ops.append(x)
+            return normalized_ops
         ops = []
         trxs = []
         if "transactions" in self:
             trxs = self["transactions"]
-        for tx in trxs:
+
+        for tx_idx, tx in enumerate(trxs):
             if "operations" not in tx:
                 continue
+
+            # Get transaction_id if available (it is usually in a separate list in the block)
+            current_trx_id = None
+            if "transaction_ids" in self and len(self["transaction_ids"]) > tx_idx:
+                current_trx_id = self["transaction_ids"][tx_idx]
+            # Provide fallback if it was somehow already in tx (e.g. from different API)
+            elif "transaction_id" in tx:
+                current_trx_id = tx["transaction_id"]
+
             for op in tx["operations"]:
-                # Replace opid by op name
-                # op[0] = getOperationNameForId(op[0])
+                # Replace op id by op name when numeric
+                if isinstance(op, (list, tuple)) and len(op) > 0:
+                    op[0] = _normalize_op_type(op[0])
                 if isinstance(op, list):
-                    ops.append(list(op))
+                    if self.only_ops or self.only_virtual_ops:
+                        op_dict = {"type": op[0], "value": op[1]}
+                        # Inject formatting that helpers.py expects
+                        if current_trx_id:
+                            op_dict["transaction_id"] = current_trx_id
+
+                        if "block_num" in tx:
+                            op_dict["block_num"] = tx["block_num"]
+                        elif self.block_num:
+                            op_dict["block_num"] = self.block_num
+
+                        op_dict["timestamp"] = self.time()
+                        ops.append(op_dict)
+                    else:
+                        ops.append(list(op))
+                elif isinstance(op, dict):
+                    # If op is already a dictionary, we still need to inject metadata if we are in only_ops mode
+                    if self.only_ops or self.only_virtual_ops:
+                        op_dict = op.copy()
+                        if "type" in op_dict:
+                            op_dict["type"] = _normalize_op_type(op_dict["type"])
+
+                        # In some cases op might be {"op": {"type": ..., "value": ...}} ??
+                        # But loop above handles raw operations list.
+                        # Assuming op is {"type": ..., "value": ...} or similar structure
+
+                        if current_trx_id and "transaction_id" not in op_dict:
+                            op_dict["transaction_id"] = current_trx_id
+
+                        if "block_num" not in op_dict:
+                            if "block_num" in tx:
+                                op_dict["block_num"] = tx["block_num"]
+                            elif self.block_num:
+                                op_dict["block_num"] = self.block_num
+
+                        if "timestamp" not in op_dict:
+                            op_dict["timestamp"] = self.time()
+                        ops.append(op_dict)
+                    else:
+                        ops.append(op.copy())
                 else:
                     ops.append(op.copy())
         return ops
@@ -250,8 +352,14 @@ class Block(BlockchainObject):
             for op in tx["operations"]:
                 if "operations" not in tx:
                     continue
-                # Replace opid by op name
-                # op[0] = getOperationNameForId(op[0])
+                # Replace op id by op name when numeric
+                if isinstance(op, (list, tuple)) and len(op) > 0 and isinstance(op[0], int):
+                    try:
+                        from nectarbase.operationids import getOperationNameForId
+
+                        op[0] = getOperationNameForId(op[0])
+                    except Exception:
+                        pass
                 if isinstance(op, list):
                     op_new = list(op)
                 else:
@@ -265,7 +373,10 @@ class Block(BlockchainObject):
                             # Handle list case - find timestamp in list and update it
                             for i, item in enumerate(op_new):
                                 if isinstance(item, dict) and "timestamp" in item:
-                                    op_new[i] = {**item, "timestamp": formatTimeString(p_date)}
+                                    op_new[i] = {
+                                        **item,
+                                        "timestamp": formatTimeString(p_date),
+                                    }
                                     break
                 ops.append(op_new)
         return ops
@@ -341,7 +452,11 @@ class BlockHeader(BlockchainObject):
         if isinstance(block, float):
             block = int(block)
         super().__init__(
-            block, lazy=lazy, full=full, blockchain_instance=blockchain_instance, **kwargs
+            block,
+            lazy=lazy,
+            full=full,
+            blockchain_instance=blockchain_instance,
+            **kwargs,
         )
 
     def refresh(self) -> None:
@@ -449,7 +564,10 @@ class Blocks(list):
                     x,
                     lazy=lazy,
                     full=full,
+                    only_ops=only_ops,
+                    only_virtual_ops=only_virtual_ops,
                     blockchain_instance=self.blockchain,
+                    **kwargs,
                 )
                 for x in blocks
             ]

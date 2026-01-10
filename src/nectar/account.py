@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import random
+import warnings
 from datetime import date, datetime, time, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -110,13 +111,25 @@ class Account(BlockchainObject):
             full (bool): If True, load complete account data (includes extended fields); if False use a lighter representation.
             lazy (bool): If True, defer fetching/processing of some fields until needed.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.full = full
         self.lazy = lazy
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(account, dict):
             account = self._parse_json_data(account)
         super().__init__(
-            account, lazy=lazy, full=full, id_item="name", blockchain_instance=self.blockchain
+            account,
+            lazy=lazy,
+            full=full,
+            id_item="name",
+            blockchain_instance=self.blockchain,
         )
 
     def refresh(self) -> None:
@@ -476,7 +489,11 @@ class Account(BlockchainObject):
             )
         else:
             last_vote_dt = addTzInfo(last_vote_raw)
-        last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
+
+        if last_vote_dt:
+            last_vote_time_str = formatTimedelta(datetime.now(timezone.utc) - last_vote_dt)
+        else:
+            last_vote_time_str = "N/A"
         try:
             rc_mana = self.get_rc_manabar()
             rc = self.get_rc()
@@ -504,7 +521,10 @@ class Account(BlockchainObject):
                 [
                     "Balance",
                     "%s, %s"
-                    % (str(self.balances["available"][0]), str(self.balances["available"][1])),
+                    % (
+                        str(self.balances["available"][0]),
+                        str(self.balances["available"][1]),
+                    ),
                 ]
             )
             if (
@@ -568,7 +588,10 @@ class Account(BlockchainObject):
                     t.add_row(["Est. RC for a vote", "%.2f G RC" % (vote_val / 10**9)])
                     t.add_row(["Est. RC for a transfer", "%.2f G RC" % (transfer_val / 10**9)])
                     t.add_row(
-                        ["Est. RC for a custom_json", "%.2f G RC" % (custom_json_val / 10**9)]
+                        [
+                            "Est. RC for a custom_json",
+                            "%.2f G RC" % (custom_json_val / 10**9),
+                        ]
                     )
 
                 if estimated_rc is not None and rc_calc is not None:
@@ -983,7 +1006,8 @@ class Account(BlockchainObject):
             float: Hive Power (HP) equivalent for the account's vesting shares.
         """
         return self.blockchain.vests_to_token_power(
-            self.get_vests(only_own_vests=only_own_vests), use_stored_data=use_stored_data
+            self.get_vests(only_own_vests=only_own_vests),
+            use_stored_data=use_stored_data,
         )
 
     def get_voting_value(
@@ -1058,7 +1082,12 @@ class Account(BlockchainObject):
         )
 
     def get_vote_pct_for_HBD(
-        self, hbd, post_rshares=0, voting_power=None, hive_power=None, not_broadcasted_vote=True
+        self,
+        hbd,
+        post_rshares=0,
+        voting_power=None,
+        hive_power=None,
+        not_broadcasted_vote=True,
     ):
         """
         Return the voting percentage (weight) required for this account to produce a vote worth the given HBD amount.
@@ -1171,7 +1200,8 @@ class Account(BlockchainObject):
 
         """
         remainingTime = self.get_recharge_timedelta(
-            voting_power_goal=voting_power_goal, starting_voting_power=starting_voting_power
+            voting_power_goal=voting_power_goal,
+            starting_voting_power=starting_voting_power,
         )
         return formatTimedelta(remainingTime)
 
@@ -1322,7 +1352,11 @@ class Account(BlockchainObject):
             )
 
     def get_feed_entries(
-        self, start_entry_id: int = 0, limit: int = 100, raw_data: bool = True, account=None
+        self,
+        start_entry_id: int = 0,
+        limit: int = 100,
+        raw_data: bool = True,
+        account=None,
     ):
         """
         Return a list of feed entries for the account.
@@ -1347,7 +1381,11 @@ class Account(BlockchainObject):
         )
 
     def get_blog_entries(
-        self, start_entry_id: int = 0, limit: int = 50, raw_data: bool = True, account=None
+        self,
+        start_entry_id: int = 0,
+        limit: int = 50,
+        raw_data: bool = True,
+        account=None,
     ):
         """
         Return the account's blog entries.
@@ -1378,7 +1416,12 @@ class Account(BlockchainObject):
         )
 
     def get_blog(
-        self, start_entry_id=0, limit=50, raw_data=False, short_entries=False, account=None
+        self,
+        start_entry_id=0,
+        limit=50,
+        raw_data=False,
+        short_entries=False,
+        account=None,
     ):
         """
         Return the blog entries for an account.
@@ -1664,7 +1707,11 @@ class Account(BlockchainObject):
             return Accounts(account_names, blockchain_instance=self.blockchain)
 
     def _get_followers(
-        self, direction: str = "follower", last_user: str = "", what: str = "blog", limit: int = 100
+        self,
+        direction: str = "follower",
+        last_user: str = "",
+        what: str = "blog",
+        limit: int = 100,
     ) -> list[dict]:
         """
         Fetch and return the full list of follower or following entries for this account by repeatedly calling the condenser follow APIs.
@@ -1799,7 +1846,11 @@ class Account(BlockchainObject):
             list: A list of Amount instances (copies) for each available reward balance.
         """
         if "reward_hive_balance" in self and "reward_hbd_balance" in self:
-            amount_list = ["reward_hive_balance", "reward_hbd_balance", "reward_vesting_balance"]
+            amount_list = [
+                "reward_hive_balance",
+                "reward_hbd_balance",
+                "reward_vesting_balance",
+            ]
         else:
             amount_list = []
         rewards_amount = []
@@ -2001,7 +2052,8 @@ class Account(BlockchainObject):
             return {"used": None, "allocated": None}
         max_virtual_bandwidth = float(reserve_ratio["max_virtual_bandwidth"])
         total_vesting_shares = Amount(
-            global_properties["total_vesting_shares"], blockchain_instance=self.blockchain
+            global_properties["total_vesting_shares"],
+            blockchain_instance=self.blockchain,
         ).amount
         allocated_bandwidth = (
             max_virtual_bandwidth
@@ -2016,7 +2068,9 @@ class Account(BlockchainObject):
             account_bandwidth = None
         if account_bandwidth is None:
             return {"used": 0, "allocated": allocated_bandwidth}
-        last_bandwidth_update = formatTimeString(str(account_bandwidth["last_bandwidth_update"]))
+        from nectar.utils import parse_time
+
+        last_bandwidth_update = parse_time(str(account_bandwidth["last_bandwidth_update"]))
         average_bandwidth = float(account_bandwidth["average_bandwidth"])
         total_seconds = 604800
 
@@ -2111,7 +2165,11 @@ class Account(BlockchainObject):
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         self.blockchain.rpc.set_next_node_on_empty_reply(False)
         delegations = self.blockchain.rpc.list_vesting_delegations(
-            {"start": [account, start_account], "limit": limit, "order": "by_delegation"},
+            {
+                "start": [account, start_account],
+                "limit": limit,
+                "order": "by_delegation",
+            },
         )["delegations"]
         return [d for d in delegations if d["delegator"] == account]
 
@@ -2266,7 +2324,10 @@ class Account(BlockchainObject):
         return self.blockchain.rpc.get_tags_used_by_author(account)["tags"]
 
     def get_expiring_vesting_delegations(
-        self, after: str | None = None, limit: int = 1000, account: str | None = None
+        self,
+        after: datetime | str | None = None,
+        limit: int = 1000,
+        account: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Return upcoming vesting-delegation expirations for an account.
@@ -3312,12 +3373,10 @@ class Account(BlockchainObject):
         """
         _limit = batch_size
         first = self.virtual_op_count()
-        if start is not None and not isinstance(start, (datetime, date, time)):
-            # Don't call addTzInfo on integers
-            pass
-        if stop is not None and not isinstance(stop, (datetime, date, time)):
-            # Don't call addTzInfo on integers
-            pass
+        if start is not None and isinstance(start, (datetime, date, time)):
+            start = addTzInfo(start)
+        if stop is not None and isinstance(stop, (datetime, date, time)):
+            stop = addTzInfo(stop)
         if not first or not batch_size:
             return
         if start is not None and isinstance(start, int) and start < 0 and not use_block_num:
@@ -3509,7 +3568,10 @@ class Account(BlockchainObject):
         return self.follow(unfollow, what=[], account=account)
 
     def follow(
-        self, other: str | list[str], what: list[str] = ["blog"], account: str | None = None
+        self,
+        other: str | list[str],
+        what: list[str] = ["blog"],
+        account: str | None = None,
     ) -> dict[str, Any]:
         """Follow/Unfollow/Mute/Unmute another account's blog
 
@@ -3587,7 +3649,10 @@ class Account(BlockchainObject):
         return self.update_account_metadata(metadata)
 
     def update_account_metadata(
-        self, metadata: dict[str, Any] | str, account: str | Account | None = None, **kwargs
+        self,
+        metadata: dict[str, Any] | str,
+        account: str | Account | None = None,
+        **kwargs,
     ) -> dict[str, Any]:
         """Update an account's profile in json_metadata
 
@@ -3626,13 +3691,25 @@ class Account(BlockchainObject):
             account = self
         else:
             account = Account(account, blockchain_instance=self.blockchain)
+
+        # We need to preserve the existing active json_metadata
+        if "json_metadata" not in account:
+            account.refresh()
+        current_active_meta = account.get("json_metadata", "")
+
         if isinstance(metadata, dict):
+            # Ensure version: 2 is present for profile updates
+            if "profile" in metadata and isinstance(metadata["profile"], dict):
+                if "version" not in metadata["profile"]:
+                    metadata["profile"]["version"] = 2
             metadata = json.dumps(metadata)
         elif not isinstance(metadata, str):
             raise ValueError("Profile must be a dict or string!")
+
         op = operations.Account_update2(
             **{
                 "account": account["name"],
+                "json_metadata": current_active_meta,
                 "posting_json_metadata": metadata,
                 "prefix": self.blockchain.prefix,
             }
@@ -4104,7 +4181,10 @@ class Account(BlockchainObject):
         Raises:
             AssertionError: If `asset` is not one of the allowed symbols.
         """
-        if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
+        if asset not in [
+            self.blockchain.token_symbol,
+            self.blockchain.backed_token_symbol,
+        ]:
             raise AssertionError()
 
         if account is None:
@@ -4161,7 +4241,10 @@ class Account(BlockchainObject):
         Raises:
             AssertionError: If `asset` is not a supported token symbol for this chain.
         """
-        if asset not in [self.blockchain.token_symbol, self.blockchain.backed_token_symbol]:
+        if asset not in [
+            self.blockchain.token_symbol,
+            self.blockchain.backed_token_symbol,
+        ]:
             raise AssertionError()
 
         if account is None:
@@ -4933,11 +5016,17 @@ class AccountsObject(list):
             t.add_row(["Max eff. HP", "%.2f" % max(eff_sp)])
         if len(last_vote_h) > 0:
             t.add_row(
-                ["Mean last vote diff in hours", "%.2f" % (sum(last_vote_h) / len(last_vote_h))]
+                [
+                    "Mean last vote diff in hours",
+                    "%.2f" % (sum(last_vote_h) / len(last_vote_h)),
+                ]
             )
         if len(last_post_d) > 0:
             t.add_row(
-                ["Mean last post diff in days", "%.2f" % (sum(last_post_d) / len(last_post_d))]
+                [
+                    "Mean last post diff in days",
+                    "%.2f" % (sum(last_post_d) / len(last_post_d)),
+                ]
             )
         t.add_row([tag_type + " without vote in 365 days", no_vote])
         t.add_row([tag_type + " without post in 365 days", no_post])

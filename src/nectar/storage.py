@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, MutableMapping
 
@@ -14,7 +15,11 @@ timeformat = "%Y%m%d-%H%M%S"
 
 
 def generate_config_store(
-    config: MutableMapping[str, Any], blockchain: str = "hive", **kwargs: Any
+    config: MutableMapping[str, Any],
+    blockchain: str = "hive",
+    node: Any = None,
+    offline: bool = False,
+    **kwargs: Any,
 ) -> MutableMapping[str, Any]:
     #: Default configuration
     """
@@ -29,14 +34,30 @@ def generate_config_store(
     Returns:
         MutableMapping: The same `config` mapping after defaults have been set.
     """
-    nodelist = NodeList()
-    if blockchain == "hive":
-        nodes = nodelist.get_hive_nodes(testnet=False)
-    else:
-        # Hive-only
-        nodes = []
+    if "node" not in config:
+        if node:
+            # Ensure provided node is a list if it's a string representation
+            if isinstance(node, str) and node.startswith("["):
+                # It's already serialized or a string, let it pass, though validation would be better.
+                # Assuming callers pass raw lists or single strings usually.
+                config["node"] = node
+            elif isinstance(node, list):
+                config["node"] = json.dumps(node)
+            else:
+                config["node"] = node  # Fallback
 
-    config.setdefault("node", nodes)
+        elif offline:
+            config["node"] = json.dumps([])
+        else:
+            nodelist = NodeList()
+            if blockchain == "hive":
+                nodes = nodelist.get_hive_nodes(testnet=False)
+            else:
+                # Hive-only
+                nodes = []
+
+            # Serialize list to JSON string for SQLite storage
+            config["node"] = json.dumps(nodes)
     config.setdefault("default_chain", blockchain)
     config.setdefault("password_storage", "environment")
     config.setdefault("rpcpassword", "")
@@ -53,7 +74,7 @@ def generate_config_store(
 
 def get_default_config_store(*args, **kwargs) -> MutableMapping[str, Any]:
     config_store = SqliteConfigurationStore(*args, **kwargs)
-    return generate_config_store(config_store, blockchain="hive")
+    return generate_config_store(config_store, blockchain="hive", **kwargs)
 
 
 def get_default_key_store(

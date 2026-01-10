@@ -227,6 +227,7 @@ def export_trx(tx, export):
     default=False,
     help="Legacy compatibility flag (no-op, Hive only).",
 )
+# Note: The testnet flag is deliberately retained for backward compatibility but is unused in the implementation.
 @click.option("--no-wallet", "-p", is_flag=True, default=False, help="Do not load the wallet")
 @click.option(
     "--unsigned",
@@ -263,7 +264,7 @@ def cli(
     node,
     offline,
     no_broadcast,
-    testnet,
+    testnet,  # noqa: ARG001
     no_wallet,
     unsigned,
     keys,
@@ -1661,7 +1662,7 @@ def follower(account):
         print("\nFollowers statistics for @%s (please wait...)" % a.name)
         followers = a.get_followers(False)
         if isinstance(followers, list) and not isinstance(followers, Accounts):
-            raise ValueError("Expected Accounts object when raw_name_list is False")
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         followers.print_summarize_table(tag_type="Followers")
 
 
@@ -1680,7 +1681,7 @@ def following(account):
         print("\nFollowing statistics for @%s (please wait...)" % a.name)
         following = a.get_following(False)
         if isinstance(following, list) and not isinstance(following, Accounts):
-            raise ValueError("Expected Accounts object when raw_name_list is False")
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         following.print_summarize_table(tag_type="Following")
 
 
@@ -1699,7 +1700,7 @@ def muter(account):
         print("\nMuters statistics for @%s (please wait...)" % a.name)
         muters = a.get_muters(False)
         if isinstance(muters, list) and not isinstance(muters, Accounts):
-            raise ValueError("Expected Accounts object when raw_name_list is False")
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         muters.print_summarize_table(tag_type="Muters")
 
 
@@ -1718,7 +1719,7 @@ def muting(account):
         print("\nMuting statistics for @%s (please wait...)" % a.name)
         muting = a.get_mutings(False)
         if isinstance(muting, list) and not isinstance(muting, Accounts):
-            raise ValueError("Expected Accounts object when raw_name_list is False")
+            raise TypeError("Expected Accounts object when raw_name_list is False")
         muting.print_summarize_table(tag_type="Muting")
 
 
@@ -3392,8 +3393,7 @@ def tradehistory(days, hours, limit, width, height, ascii):
     # Using built-in timezone support
     stop = datetime.now(timezone.utc)
     start = stop - timedelta(days=days)
-    intervall = timedelta(hours=hours)
-    trades = m.trade_history(start=start, stop=stop, limit=limit, intervall=intervall)
+    trades = m.trade_history(start=start, stop=stop, limit=limit)
     price = []
     # Hive-only: compute price as TOKEN/BACKED (e.g., HIVE/HBD)
     for trade in trades:
@@ -4579,8 +4579,10 @@ def rewards(
                         # Ensure timezone awareness
                         if received.tzinfo is None:
                             received = received.replace(tzinfo=timezone.utc)
-                    except Exception:
+                    except Exception as e:
                         # If all else fails, skip this entry
+                        if hv.debug:
+                            print(f"Skipping entry due to timestamp parsing error: {e}")
                         continue
                 if received < limit_time:
                     continue

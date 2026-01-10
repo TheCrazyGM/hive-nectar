@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Dict, Optional, Union
 
 from nectar.constants import (
@@ -21,6 +22,14 @@ class RC:
         otherwise the module-wide shared_blockchain_instance() is used. Extra keyword
         arguments are accepted for compatibility but ignored.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
     def get_tx_size(self, op: Union[Any, Operation, Dict[str, Any]]) -> int:
@@ -107,7 +116,7 @@ class RC:
                            }
 
             rc = RC()
-            print(rc.comment_from_dict(comment_dict))
+            print(rc.comment_dict(comment_dict))
 
         """
         op = operations.Comment(**comment_dict)
@@ -150,7 +159,7 @@ class RC:
                         }
 
             rc = RC()
-            print(rc.comment(vote_dict))
+            print(rc.vote_dict(vote_dict))
 
         """
         op = operations.Vote(**vote_dict)
@@ -210,7 +219,7 @@ class RC:
                                 }
 
             rc = RC()
-            print(rc.comment(custom_json_dict))
+            print(rc.custom_json_dict(custom_json_dict))
 
         """
         op = operations.Custom_json(**custom_json_dict)
@@ -233,7 +242,7 @@ class RC:
         resource_count = self.get_resource_count(tx_size, execution_time_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def claim_account(self, tx_size: int = 300) -> int:
+    def claim_account(self, tx_size: int = 300) -> Dict[str, int]:
         """Claim account"""
         execution_time_count = resource_execution_time["claim_account_operation_exec_time"]
         resource_count = self.get_resource_count(
@@ -278,7 +287,7 @@ class RC:
 
     def set_slot_delegator(
         self, from_pool: str, to_account: str, to_slot: int, signer: str
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str from_pool: Pool to set the slot to
@@ -297,7 +306,7 @@ class RC:
         ]
         return self.blockchain.custom_json("rc", json_body, required_auths=[signer])
 
-    def delegate_from_pool(self, from_pool: str, to_account: str, max_rc: int) -> Dict[str, int]:
+    def delegate_from_pool(self, from_pool: str, to_account: str, max_rc: int) -> Dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str from_pool: Pool to set the slot to
@@ -315,12 +324,12 @@ class RC:
         ]
         return self.blockchain.custom_json("rc", json_body, required_auths=[from_pool])
 
-    def delegate_to_pool(self, username: str, to_pool: str, rc: int) -> Dict[str, int]:
+    def delegate_to_pool(self, username: str, to_pool: str, rc: int) -> Dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str username: user delegating rc to the pool
         :param str to_pool: Pool to delegate to
-        :param str rc: rc to delegate
+        :param int rc: rc to delegate
         """
         json_body = [
             "delegate_to_pool",

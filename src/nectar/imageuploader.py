@@ -2,7 +2,8 @@ import io
 from binascii import hexlify
 from typing import Any, Dict, Optional, Union
 
-import requests
+import httpx
+from httpx import ConnectError, HTTPStatusError, RequestError, TimeoutException
 
 from nectar.account import Account
 from nectar.exceptions import MissingKeyError
@@ -70,7 +71,8 @@ class ImageUploader:
             raise AssertionError("No local private posting key available to sign the image.")
 
         if isinstance(image, str):
-            image_data = open(image, "rb").read()
+            with open(image, "rb") as f:
+                image_data = f.read()
         elif isinstance(image, io.BytesIO):
             image_data = image.read()
         else:
@@ -80,7 +82,33 @@ class ImageUploader:
         signature = sign_message(message, posting_wif)
         signature_in_hex = hexlify(signature).decode("ascii")
 
-        files = {image_name or "image": image_data}
+        # Prepare files for httpx
+        # We want to send the file with the field name "image" (expected by images.hive.blog)
+        # and the filename specified by image_name.
+        # If image_name is not provided, we default to "image".
+        filename = image_name or "image"
+        # files = {'field_name': ('filename', file_data)}
+        files = {"image": (filename, image_data)}
         url = "{}/{}/{}".format(self.base_url, account["name"], signature_in_hex)
-        r = requests.post(url, files=files)
-        return r.json()
+
+        retries = 3
+        timeout = 60
+
+        with httpx.Client(timeout=timeout) as client:
+            for i in range(retries + 1):
+                try:
+                    r = client.post(url, files=files)
+                    r.raise_for_status()
+                    return r.json()
+                except (
+                    ConnectError,
+                    RequestError,
+                    TimeoutException,
+                    HTTPStatusError,
+                ) as e:
+                    if i < retries:
+                        continue
+                    raise AssertionError(f"Upload failed after {retries} retries: {str(e)}") from e
+
+        # Should be unreachable if loop works correctly
+        raise AssertionError("Upload failed")

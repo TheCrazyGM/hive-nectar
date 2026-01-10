@@ -1,8 +1,41 @@
 # Changelog
 
+## 0.2.13 - 2025-12-24
+
+- **Fix**: Serialize node configuration lists to JSON strings to fix `sqlite3` errors in Docker/fresh installs.
+
+## 0.2.12 - 2025-12-23
+
+- **Feature**: Allow specifying a node list or offline mode in `generate_config_store`.
+
+## 0.2.11 - 2025-12-23
+
+- **Feature**: Implemented disk-based caching for beacon node list (5 min TTL) to prevent API rate limits.
+- **Feature**: Added separate MD5-based file caching for NectarEngine node lists (standard & history).
+
+## 0.2.10 - 2025-12-23
+
+- **Refactor**: Only fetch default nodes if "node" key is missing in configuration.
+
+## 0.2.9 - 2025-12-22
+
+- **Refactor**: Deprecated `hive_instance` in favor of `blockchain_instance` across all classes with backward compatibility warnings.
+
+## 0.2.3 through 0.2.8 - 2025-12-19
+
+- **Maintenance**: Various fixes and stability improvements during rapid iteration.
+
+## 0.2.2 - 2025-12-16
+
+### Improvements
+
+- **HTTP Client**: Completed the migration to `httpx` by replacing all remaining `requests` and `urllib` usage in `market.py`, `haf.py`, and `nodelist.py`.
+- **Logging**: Reduced log verbosity by setting `httpx` and `httpcore` loggers to `WARNING` level.
+
 ## 0.2.0 - 2025-12-01
 
 ### Breaking Changes
+
 - **Refactor**: Removed `use_stored_data` parameter from `_calc_resulting_vote` call in `hive.py`.
 - **Refactor**: Converted `Amount.tuple` property to `as_tuple()` method.
 - **Refactor**: Converted API method calls from dict parameters to positional arguments across multiple modules.
@@ -11,9 +44,12 @@
 - **Refactor**: Deprecated `appbase` utility functions.
 
 ### Improvements
+
 - **HTTP Client**: Standardized HTTP/RPC communication by transitioning to `httpx` and implementing a single, shared client instance for improved efficiency and consistency.
+- **Transaction**: Increased default transaction expiration from 30 seconds to 300 seconds to better handle node clock skew and network latency.
 
 ### Features
+
 - **Transaction**: Added `json_str` parameter to multiple transaction operations.
 - **Node Management**: Simplified `NodeList` to use PeakD beacon API with static fallback nodes.
 - **Performance**: Improved blockchain tests with limited data collection and structure validation.
@@ -21,6 +57,7 @@
 - **CLI**: Added string time parsing support to account history methods.
 
 ### Fixes
+
 - **Security**: Fixed `PasswordKey` seed generation and `PublicKey` string methods.
 - **Security**: Fixed cipher decoding in `extract_memo_data`.
 - **Reliability**: Improved type safety and null handling across almost all core modules (`Account`, `BlockChainInstance`, `Hive`, etc.).

@@ -1,6 +1,69 @@
 Changelog
 =========
 
+0.2.13 - 2025-12-24
+-------------------
+
+-  **Fix**: Serialize node configuration lists to JSON strings to fix
+   ``sqlite3`` errors in Docker/fresh installs.
+
+.. _section-1:
+
+0.2.12 - 2025-12-23
+-------------------
+
+-  **Feature**: Allow specifying a node list or offline mode in
+   ``generate_config_store``.
+
+.. _section-2:
+
+0.2.11 - 2025-12-23
+-------------------
+
+-  **Feature**: Implemented disk-based caching for beacon node list (5
+   min TTL) to prevent API rate limits.
+-  **Feature**: Added separate MD5-based file caching for NectarEngine
+   node lists (standard & history).
+
+.. _section-3:
+
+0.2.10 - 2025-12-23
+-------------------
+
+-  **Refactor**: Only fetch default nodes if “node” key is missing in
+   configuration.
+
+.. _section-4:
+
+0.2.9 - 2025-12-22
+------------------
+
+-  **Refactor**: Deprecated ``hive_instance`` in favor of
+   ``blockchain_instance`` across all classes with backward
+   compatibility warnings.
+
+0.2.3 through 0.2.8 - 2025-12-19
+--------------------------------
+
+-  **Maintenance**: Various fixes and stability improvements during
+   rapid iteration.
+
+.. _section-5:
+
+0.2.2 - 2025-12-16
+------------------
+
+Improvements
+~~~~~~~~~~~~
+
+-  **HTTP Client**: Completed the migration to ``httpx`` by replacing
+   all remaining ``requests`` and ``urllib`` usage in ``market.py``,
+   ``haf.py``, and ``nodelist.py``.
+-  **Logging**: Reduced log verbosity by setting ``httpx`` and
+   ``httpcore`` loggers to ``WARNING`` level.
+
+.. _section-6:
+
 0.2.0 - 2025-12-01
 ------------------
 
@@ -19,12 +82,17 @@ Breaking Changes
    throughout codebase.
 -  **Refactor**: Deprecated ``appbase`` utility functions.
 
+.. _improvements-1:
+
 Improvements
 ~~~~~~~~~~~~
 
 -  **HTTP Client**: Standardized HTTP/RPC communication by transitioning
    to ``httpx`` and implementing a single, shared client instance for
    improved efficiency and consistency.
+-  **Transaction**: Increased default transaction expiration from 30
+   seconds to 300 seconds to better handle node clock skew and network
+   latency.
 
 Features
 ~~~~~~~~
@@ -53,7 +121,7 @@ Fixes
 -  **Reliability**: Improved RPC retry logic and error handling for
    witness and node operations.
 
-.. _section-1:
+.. _section-7:
 
 0.1.5 - 2025-11-04
 ------------------
@@ -115,7 +183,7 @@ Fixes
    how to compute both the downvote-to-zero percent and the upvote
    percent to reach a target HBD.
 
-.. _section-2:
+.. _section-8:
 
 0.1.3 - 2025-09-18
 ------------------
@@ -123,14 +191,14 @@ Fixes
 -  **Test**: Working on getting 100% test coverage
 -  **Feature**: Added some HAF features for things like reputation.
 
-.. _section-3:
+.. _section-9:
 
 0.1.2 - 2025-09-17
 ------------------
 
 -  **Fix**: Replaced missing ``**kwargs`` in ``Blocks`` constructor.
 
-.. _section-4:
+.. _section-10:
 
 0.1.1 - 2025-09-17
 ------------------
@@ -212,7 +280,7 @@ Fixes
 -  **Feature**: Add a pure-Python fallback for public key derivation
    when the ``ecdsa`` library is unavailable, improving portability.
 
-.. _section-5:
+.. _section-11:
 
 0.0.11 - 2025-07-25
 -------------------
@@ -221,7 +289,7 @@ Fixes
    (``Comment``) and improved ``weighted_score`` type check in node list
    ranking (``NodeList``).
 
-.. _section-6:
+.. _section-12:
 
 0.0.10 - 2025-07-12
 -------------------
@@ -230,7 +298,7 @@ Fixes
    generation (in ``derive_permlink``) to resolve validation errors
    caused by the uppercase ``U``.
 
-.. _section-7:
+.. _section-13:
 
 0.0.9 - 2025-07-12
 ------------------
@@ -245,14 +313,14 @@ Fixes
       ensuring completeness.
    -  Removed unused fall-back paths and cleaned up internal code.
 
-.. _section-8:
+.. _section-14:
 
 0.0.8
 -----
 
 Added new documentation and type hints to community
 
-.. _section-9:
+.. _section-15:
 
 0.0.7
 -----
@@ -260,42 +328,42 @@ Added new documentation and type hints to community
 Removed all python2 legacy dependencies, drop python3 version
 requirement to >=3.10
 
-.. _section-10:
+.. _section-16:
 
 0.0.6
 -----
 
 Updated to more robust error reporting
 
-.. _section-11:
+.. _section-17:
 
 0.0.5
 -----
 
 More community fixes, including the Community Title Property
 
-.. _section-12:
+.. _section-18:
 
 0.0.4
 -----
 
 Small community fixes
 
-.. _section-13:
+.. _section-19:
 
 0.0.3
 -----
 
 Working on bridge api
 
-.. _section-14:
+.. _section-20:
 
 0.0.2
 -----
 
 Rebranded to Nectar
 
-.. _section-15:
+.. _section-21:
 
 0.0.1
 -----

@@ -33,7 +33,7 @@ class Hive(BlockChainInstance):
     :param bool offline: Boolean to prevent connecting to network (defaults
         to ``False``) *(optional)*
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param str blocking: Wait for broadcasted transactions to be included
         in a block and return full transaction (can be "head" or
         "irreversible")
@@ -498,9 +498,13 @@ class Hive(BlockChainInstance):
             vests_value = self.hp_to_vests(hive_power, use_stored_data=use_stored_data)
             vests = int(vests_value) if vests_value is not None else 0
 
-        # Convert version string to comparable format (e.g., "1.24.0" -> "1.24")
-        hardfork_version = self.hardfork.rsplit(".", 1)[0]  # Remove last segment
-        if hardfork_version >= "1.20":
+        # Parse version as tuple for reliable comparison
+        version_parts = self.hardfork.split(".")
+        try:
+            major, minor = int(version_parts[0]), int(version_parts[1]) if len(version_parts) > 1 else 0
+        except (ValueError, IndexError):
+            major, minor = 1, 20  # Default to current behavior
+        if (major, minor) >= (1, 20):
             rshares += math.copysign(
                 self.get_dust_threshold(use_stored_data=use_stored_data), rshares
             )
@@ -531,7 +535,7 @@ class Hive(BlockChainInstance):
         used_power_est = (abs(rshares) * HIVE_100_PERCENT) / (vests_value * 1e6)
         # Invert the linear relation (ignoring ceil):
         vote_pct_abs = used_power_est * max_vote_denom * HIVE_100_PERCENT / (86400 * voting_power)
-        return int(round(math.copysign(vote_pct_abs, rshares)))
+        return round(math.copysign(vote_pct_abs, rshares))
 
     def hbd_to_vote_pct(
         self,

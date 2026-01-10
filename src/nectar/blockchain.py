@@ -798,9 +798,14 @@ class Blockchain:
         **kwargs: Any,
     ) -> None:
         """Blockchain.ops() is deprecated. Please use Blockchain.stream() instead."""
-        raise DeprecationWarning(
-            "Blockchain.ops() is deprecated. Please use Blockchain.stream() instead."
+        import warnings
+
+        warnings.warn(
+            "Blockchain.ops() is deprecated. Please use Blockchain.stream() instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        raise NotImplementedError("Use Blockchain.stream() instead.")
 
     def ops_statistics(
         self,
@@ -846,7 +851,7 @@ class Blockchain:
         return ops_stat
 
     def stream(
-        self, opNames: List[str] = [], raw_ops: bool = False, *args: Any, **kwargs: Any
+        self, opNames: Optional[List[str]] = None, raw_ops: bool = False, *args: Any, **kwargs: Any
     ) -> Any:
         """
         Yield blockchain operations filtered by type, normalizing several node event formats into a consistent output.
@@ -876,6 +881,8 @@ class Blockchain:
             - The method accepts the same control parameters as blocks(...) via kwargs. The block stream determines timestamps and block-related metadata.
             - Operation events from different node formats (lists, legacy dicts, appbase-style dicts) are normalized by this method before yielding.
         """
+        if opNames is None:
+            opNames = []
         for block in self.blocks(**kwargs):
             block_num_val = (
                 getattr(block, "block_num", None)

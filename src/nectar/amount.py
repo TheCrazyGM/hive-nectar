@@ -90,6 +90,7 @@ class Amount(dict):
         fixed_point_arithmetic: bool = False,
         new_appbase_format: bool = True,
         blockchain_instance: Any = None,
+        json_str: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -329,7 +330,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __mul__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __mul__(self, other: Union[int, float, Decimal, "Amount", "Price"]) -> "Amount":
         from .price import Price
 
         a = self.copy()
@@ -383,7 +384,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __mod__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __mod__(self, other: Union[int, float, Decimal, "Amount"]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -394,7 +395,7 @@ class Amount(dict):
             a["amount"] = quantize(a["amount"], self["asset"]["precision"])
         return a
 
-    def __pow__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __pow__(self, other: Union[int, float, Decimal, "Amount"]) -> "Amount":
         a = self.copy()
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
@@ -456,7 +457,7 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __ifloordiv__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __ifloordiv__(self, other: Union[int, float, Decimal, "Amount"]) -> "Amount":
         if isinstance(other, Amount):
             self["amount"] //= other["amount"]
         else:
@@ -474,9 +475,9 @@ class Amount(dict):
             self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __ipow__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __ipow__(self, other: Union[int, float, Decimal, "Amount"]) -> "Amount":
         if isinstance(other, Amount):
-            self["amount"] **= other
+            self["amount"] **= other["amount"]
         else:
             self["amount"] **= Decimal(other)
         if self.fixed_point_arithmetic:

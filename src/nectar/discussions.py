@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Any, List, Optional
 
 from .comment import Comment
@@ -108,6 +109,14 @@ class Discussions:
         Notes:
             - The resolved blockchain instance is stored on self.blockchain (falls back to shared_blockchain_instance() when none provided).
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.lazy = lazy
 
@@ -358,6 +367,14 @@ class Discussions_by_trending(list):
         """
         Initialize a Discussions_by_trending iterator that fetches trending discussions.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -434,6 +451,14 @@ class Discussions_by_author_before_date(list):
         """
         Initialize a Discussions_by_author_before_date container of posts by a specific author before a given date.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         posts = []
         # Try to use the bridge API first (preferred method)
@@ -493,6 +518,14 @@ class Comment_discussions_by_payout(list):
         """
         Initialize a Comment_discussions_by_payout iterator that fetches comment discussions sorted by payout.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -561,6 +594,14 @@ class Post_discussions_by_payout(list):
         """
         Initialize Post_discussions_by_payout: fetches post discussions sorted by payout and populates the list (raw dicts or Comment objects).
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -629,6 +670,14 @@ class Discussions_by_created(list):
         """
         Initialize a Discussions_by_created fetcher and populate it with posts matching the query.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -696,6 +745,14 @@ class Discussions_by_active(list):
         """
         Initialize Discussions_by_active: fetch discussions sorted by "active" and populate the sequence.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -764,6 +821,14 @@ class Discussions_by_cashout(list):
         """
         Initialize Discussions_by_cashout fetcher.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -832,6 +897,14 @@ class Discussions_by_votes(list):
         """
         Initialize Discussions_by_votes: fetch discussions approximating "votes" and store results.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -900,6 +973,14 @@ class Discussions_by_children(list):
         """
         Initialize a Discussions_by_children fetcher that yields child (reply) discussions for a tag/post.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -970,6 +1051,14 @@ class Discussions_by_hot(list):
         """
         Initialize a Discussions_by_hot iterator that fetches "hot" discussions.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1037,6 +1126,14 @@ class Discussions_by_feed(list):
         """
         Initialize a Discussions_by_feed instance that fetches a user's feed discussions.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1104,6 +1201,14 @@ class Discussions_by_blog(list):
         """
         Initialize a Discussions_by_blog fetcher that retrieves a user's blog posts.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1171,6 +1276,14 @@ class Discussions_by_comments(list):
         """
         Initialize Discussions_by_comments.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in ["start_author", "start_permlink", "limit"]:
@@ -1251,6 +1364,14 @@ class Discussions_by_promoted(list):
         """
         Initialize Discussions_by_promoted.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in [
@@ -1318,6 +1439,14 @@ class Discussions_by_replies(list):
         """
         Initialize Discussions_by_replies.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         reduced_query = {}
         for key in ["start_parent_author", "start_permlink", "limit"]:
@@ -1380,6 +1509,14 @@ class Replies_by_last_update(list):
         """
         Initialize a Replies_by_last_update iterator that loads replies to a specific post.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         posts = []
         author = discussion_query.get("start_author")
@@ -1426,6 +1563,14 @@ class Trending_tags(list):
         """
         Initialize a Trending_tags iterator by fetching trending tags from the blockchain RPC.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         limit = discussion_query["limit"] if "limit" in discussion_query else 0
         tags = []

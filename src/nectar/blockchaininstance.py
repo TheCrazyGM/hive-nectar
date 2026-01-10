@@ -40,6 +40,8 @@ from .wallet import Wallet
 
 log = logging.getLogger(__name__)
 
+RPC_NOT_ESTABLISHED = "RPC connection not established"
+
 
 class BlockChainInstance:
     """Connect to a Graphene network.
@@ -60,7 +62,7 @@ class BlockChainInstance:
     :param bool offline: Boolean to prevent connecting to network (defaults
         to ``False``) *(optional)*
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param str blocking: Wait for broadcasted transactions to be included
         in a block and return full transaction (can be "head" or
         "irreversible")
@@ -170,7 +172,7 @@ class BlockChainInstance:
         self.path = kwargs.get("path", None)
 
         # Store config for access through other Classes
-        self.config = kwargs.get("config_store", get_default_config_store(**kwargs))
+        self.config = kwargs.get("config_store", get_default_config_store(node=node, **kwargs))
         if self.path is None:
             self.path = self.config["default_path"]
 
@@ -179,11 +181,17 @@ class BlockChainInstance:
                 # Type assertion: we know node is not None here
                 assert node is not None
                 self.connect(
-                    node=node, rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                    node=node,
+                    rpcuser=rpcuser or "",
+                    rpcpassword=rpcpassword or "",
+                    **kwargs,
                 )
             else:
                 self.connect(
-                    node="", rpcuser=rpcuser or "", rpcpassword=rpcpassword or "", **kwargs
+                    node="",
+                    rpcuser=rpcuser or "",
+                    rpcpassword=rpcpassword or "",
+                    **kwargs,
                 )
 
         self.clear_data()
@@ -199,7 +207,11 @@ class BlockChainInstance:
     # Basic Calls
     # -------------------------------------------------------------------------
     def connect(
-        self, node: str | list[str] = "", rpcuser: str = "", rpcpassword: str = "", **kwargs
+        self,
+        node: str | list[str] = "",
+        rpcuser: str = "",
+        rpcpassword: str = "",
+        **kwargs,
     ) -> None:
         """
         Connect to a Hive node and initialize the internal RPC client.
@@ -490,7 +502,7 @@ class BlockChainInstance:
         self.rpc.set_next_node_on_empty_reply(True)
         return self.rpc.get_feed_history()
 
-    def get_reward_funds(self, use_stored_data: bool = True) -> list[dict[str, Any]] | None:
+    def get_reward_funds(self, use_stored_data: bool = True) -> dict[str, Any] | None:
         """Get details for a reward fund.
 
         :param bool use_stored_data: if True, stored data will be returned. If stored data are
@@ -512,7 +524,9 @@ class BlockChainInstance:
             return None
         if len(funds) > 0:
             funds = funds[0]
-        ret = funds
+            ret = funds
+        else:
+            ret = None
         return ret
 
     def get_current_median_history(self, use_stored_data: bool = True) -> dict[str, Any] | None:
@@ -633,13 +647,13 @@ class BlockChainInstance:
     def get_resource_params(self) -> dict[str, Any]:
         """Returns the resource parameter"""
         if self.rpc is None:
-            raise RuntimeError("RPC connection not established")
+            raise RuntimeError(RPC_NOT_ESTABLISHED)
         return self.rpc.get_resource_params()["resource_params"]
 
     def get_resource_pool(self) -> dict[str, Any]:
         """Returns the resource pool"""
         if self.rpc is None:
-            raise RuntimeError("RPC connection not established")
+            raise RuntimeError(RPC_NOT_ESTABLISHED)
         return self.rpc.get_resource_pool()["resource_pool"]
 
     def get_rc_cost(self, resource_count: dict[str, int]) -> int:
@@ -675,7 +689,11 @@ class BlockChainInstance:
         return total_cost
 
     def _compute_rc_cost(
-        self, curve_params: dict[str, Any], current_pool: int, resource_count: int, rc_regen: int
+        self,
+        curve_params: dict[str, Any],
+        current_pool: int,
+        resource_count: int,
+        rc_regen: int,
     ) -> int:
         """Helper function for computing the RC costs"""
         num = int(rc_regen)
@@ -811,7 +829,10 @@ class BlockChainInstance:
         return rshares
 
     def token_power_to_vests(
-        self, token_power: float, timestamp: datetime | None = None, use_stored_data: bool = True
+        self,
+        token_power: float,
+        timestamp: datetime | None = None,
+        use_stored_data: bool = True,
     ) -> float:
         """Converts TokenPower to vests
 
@@ -822,7 +843,10 @@ class BlockChainInstance:
         raise Exception("not implemented")
 
     def vests_to_token_power(
-        self, vests: float | Amount, timestamp: int | None = None, use_stored_data: bool = True
+        self,
+        vests: float | Amount,
+        timestamp: int | None = None,
+        use_stored_data: bool = True,
     ) -> float:
         """Converts vests to TokenPower
 
@@ -845,7 +869,10 @@ class BlockChainInstance:
         raise Exception("not implemented")
 
     def rshares_to_token_backed_dollar(
-        self, rshares: int, not_broadcasted_vote: bool = False, use_stored_data: bool = True
+        self,
+        rshares: int,
+        not_broadcasted_vote: bool = False,
+        use_stored_data: bool = True,
     ) -> float:
         """Calculates the current HBD value of a vote"""
         raise Exception("not implemented")
@@ -1162,7 +1189,7 @@ class BlockChainInstance:
     def sign(
         self,
         tx: dict[str, Any] | None = None,
-        wifs: list[str] | str = [],
+        wifs: list[str] | str | None = None,
         reconstruct_tx: bool = True,
     ) -> dict[str, Any]:
         """
@@ -1178,6 +1205,8 @@ class BlockChainInstance:
         Returns:
             dict: The signed transaction JSON with an added "trx_id" field containing the transaction id.
         """
+        if wifs is None:
+            wifs = []
         if tx:
             txbuffer = TransactionBuilder(tx=tx, blockchain_instance=self)
         else:
@@ -1311,12 +1340,12 @@ class BlockChainInstance:
         memo_key: str | None = None,
         posting_key: str | None = None,
         password: str | None = None,
-        additional_owner_keys: list[str] = [],
-        additional_active_keys: list[str] = [],
-        additional_posting_keys: list[str] = [],
-        additional_owner_accounts: list[str] = [],
-        additional_active_accounts: list[str] = [],
-        additional_posting_accounts: list[str] = [],
+        additional_owner_keys: list[str] | None = None,
+        additional_active_keys: list[str] | None = None,
+        additional_posting_keys: list[str] | None = None,
+        additional_owner_accounts: list[str] | None = None,
+        additional_active_accounts: list[str] | None = None,
+        additional_posting_accounts: list[str] | None = None,
         storekeys: bool = True,
         store_owner_key: bool = False,
         json_meta: dict[str, Any] | None = None,
@@ -1450,6 +1479,13 @@ class BlockChainInstance:
         active_accounts_authority = []
         posting_accounts_authority = []
 
+        additional_owner_keys = additional_owner_keys or []
+        additional_active_keys = additional_active_keys or []
+        additional_posting_keys = additional_posting_keys or []
+        additional_owner_accounts = additional_owner_accounts or []
+        additional_active_accounts = additional_active_accounts or []
+        additional_posting_accounts = additional_posting_accounts or []
+
         # additional authorities
         for k in additional_owner_keys:
             owner_key_authority.append([k, 1])
@@ -1491,7 +1527,7 @@ class BlockChainInstance:
                 "weight_threshold": 1,
             },
             "posting": {
-                "account_auths": active_accounts_authority,
+                "account_auths": posting_accounts_authority,
                 "key_auths": posting_key_authority,
                 "address_auths": [],
                 "weight_threshold": 1,
@@ -2300,7 +2336,10 @@ class BlockChainInstance:
         # if comment_options are used, add a new op to the transaction
         if comment_options or beneficiaries:
             comment_op = self._build_comment_options_op(
-                account["name"] or "", permlink or "", comment_options or {}, beneficiaries or []
+                account["name"] or "",
+                permlink or "",
+                comment_options or {},
+                beneficiaries or [],
             )
             ops.append(comment_op)
 
@@ -2465,7 +2504,9 @@ class BlockChainInstance:
 
             options["beneficiaries"] = beneficiaries
 
-        default_max_payout = "1000000.000 %s" % (self.backed_token_symbol)
+        default_max_payout = Amount(
+            "1000000.000 %s" % (self.backed_token_symbol), blockchain_instance=self
+        )
         comment_op = operations.Comment_options(
             **{
                 "author": author,

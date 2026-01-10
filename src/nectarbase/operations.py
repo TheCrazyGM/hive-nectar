@@ -739,7 +739,7 @@ class Comment_options(GrapheneObject):
         if len(args) == 1 and len(kwargs) == 0:
             kwargs = args[0]
         prefix = kwargs.get("prefix", default_prefix)
-        json_str = kwargs.get("json_str", False)
+        json_str = kwargs.get("json_str", True)
         # handle beneficiaries
         if "beneficiaries" in kwargs and kwargs["beneficiaries"]:
             kwargs["extensions"] = [[0, {"beneficiaries": kwargs["beneficiaries"]}]]

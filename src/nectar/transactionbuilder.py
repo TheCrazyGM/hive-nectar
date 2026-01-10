@@ -1,5 +1,6 @@
 import logging
 import struct
+import warnings
 from binascii import unhexlify
 
 # import time (not currently used)
@@ -30,7 +31,7 @@ class TransactionBuilder(dict):
 
     :param dict tx: transaction (Optional). If not set, the new transaction is created.
     :param int expiration: Delay in seconds until transactions are supposed
-        to expire *(optional)* (default is 30)
+        to expire *(optional)* (default is 300)
     :param Hive blockchain_instance: If not set, shared_blockchain_instance() is used
 
     .. testcode::
@@ -65,10 +66,17 @@ class TransactionBuilder(dict):
             expiration (int, optional, via kwargs): Transaction expiration (seconds or blockchain-specific
                 expiration value). If omitted, the blockchain instance's default expiration is used.
 
-        Notes:
             - The `blockchain_instance` parameter is a shared service/client and is intentionally not
               documented here beyond its effect on builder configuration.
         """
+        if blockchain_instance is None and kwargs.get("hive_instance"):
+            blockchain_instance = kwargs["hive_instance"]
+            warnings.warn(
+                "hive_instance is deprecated, use blockchain_instance instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.clear()
         if tx and isinstance(tx, dict):
@@ -342,18 +350,23 @@ class TransactionBuilder(dict):
         exp_seconds = int(self.expiration or self.blockchain.expiration or 300)
         # ensure at least 5 minutes to avoid expiration race with head block time drift
         exp_seconds = max(exp_seconds, 300)
+        from datetime import datetime, timedelta, timezone
+
         if self.blockchain.is_connected():
             dgp = self.blockchain.get_dynamic_global_properties(use_stored_data=False)
-            head_time_str = dgp.get("time")
-            from datetime import datetime, timedelta, timezone
+            if dgp is None:
+                # Fallback to system time if we can't get chain time
+                expiration = formatTimeFromNow(exp_seconds)
+            else:
+                head_time_str = dgp.get("time")
 
-            head_time = datetime.strptime(head_time_str, "%Y-%m-%dT%H:%M:%S").replace(
-                tzinfo=timezone.utc
-            )
-            now_utc = datetime.now(timezone.utc)
-            base_time = max(head_time, now_utc)
-            expiration_dt = base_time + timedelta(seconds=exp_seconds)
-            expiration = expiration_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                head_time = datetime.strptime(head_time_str, "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                now_utc = datetime.now(timezone.utc)
+                base_time = max(head_time, now_utc)
+                expiration_dt = base_time + timedelta(seconds=exp_seconds)
+                expiration = expiration_dt.strftime("%Y-%m-%dT%H:%M:%S")
         else:
             expiration = formatTimeFromNow(exp_seconds)
 
@@ -413,7 +426,7 @@ class TransactionBuilder(dict):
 
     def sign(self, reconstruct_tx=True):
         """
-        Sign the built transaction using HiveSigner, a Ledger device, or local WIFs and attach signatures to the builder.
+        Sign the built transaction using a Ledger device or local WIFs and attach signatures to the builder.
 
         If the transaction is not constructed (or if reconstruct_tx is True) the transaction will be reconstructed before signing. The method attempts signing in this order:
         1. Ledger (if ledger mode is active) — signs with the Ledger device and appends signatures.

@@ -314,7 +314,7 @@ class Wallet:
                         keys.append(key)
                 except MissingKeyError:
                     key = None
-            if key is None:
+            if not keys:
                 raise MissingKeyError("No private key for {} found".format(name))
             return keys
         return

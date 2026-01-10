@@ -89,6 +89,8 @@ METHOD_API_MAP: Dict[str, str] = {
     "get_methods": "jsonrpc",
     # Proposals
     "find_proposals": "condenser_api",
+    "get_trending_tags": "condenser_api",
+    "get_discussions_by_promoted": "condenser_api",
 }
 
 

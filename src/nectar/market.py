@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import requests
+import httpx
 
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
@@ -191,10 +191,10 @@ class Market(dict):
             return volume
         if "hbd_volume" in volume and "hive_volume" in volume:
             return {
-                self["base"]["symbol"]: Amount(
+                self.blockchain.backed_token_symbol: Amount(
                     volume["hbd_volume"], blockchain_instance=self.blockchain
                 ),
-                self["quote"]["symbol"]: Amount(
+                self.blockchain.token_symbol: Amount(
                     volume["hive_volume"], blockchain_instance=self.blockchain
                 ),
             }
@@ -313,22 +313,13 @@ class Market(dict):
         self,
         start: Optional[Union[datetime, date, time]] = None,
         stop: Optional[Union[datetime, date, time]] = None,
-        intervall: Optional[timedelta] = None,
         limit: int = 25,
         raw_data: bool = False,
     ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
         """Returns the trade history for the internal market
 
-        This function allows to fetch a fixed number of trades at fixed
-        intervall times to reduce the call duration time. E.g. it is possible to
-        receive the trades from the last 7 days, by fetching 100 trades each 6 hours.
-
-        When intervall is set to None, all trades are received between start and stop.
-        This can take a while.
-
         :param datetime start: Start date
         :param datetime stop: Stop date
-        :param timedelta intervall: Defines the intervall
         :param int limit: Defines how many trades are fetched at each intervall point
         :param bool raw_data: when True, the raw data are returned
         """
@@ -732,7 +723,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, timeout=30) for u in urls)
+                responses = list(httpx.get(u, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -819,7 +810,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(requests.get(u, headers=headers, timeout=30) for u in urls)
+                responses = list(httpx.get(u, headers=headers, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -859,13 +850,13 @@ class Market(dict):
                         }
                     elif "probit" in str(r.url):
                         data = r.json()["data"]
-                        prices["huobi"] = {
+                        prices["probit"] = {
                             "price": float(data["last"]),
                             "volume": float(data["base_volume"]),
                         }
                     elif "coingecko" in str(r.url):
                         data = r.json()["hive"]
-                        if "btc_24h_vol":
+                        if "btc_24h_vol" in data:
                             volume = float(data["btc_24h_vol"])
                         else:
                             volume = 1

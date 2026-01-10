@@ -121,10 +121,6 @@ class Amount:
             self.symbol = d.symbol
             self.asset = d.asset
             self.precision = d.precision
-            self.amount = d.amount
-            self.symbol = d.symbol
-            self.asset = d.asset
-            self.precision = d.precision
             self.amount = round(value_to_decimal(self.amount, self.precision) * 10**self.precision)
             self.str_repr = str(d)
             # self.str_repr = json.dumps((d.json()))
@@ -158,9 +154,19 @@ class Amount:
     def __str__(self) -> str:
         if self.json_str:
             return json.dumps(
-                {"amount": str(self.amount), "precision": self.precision, "nai": self.asset}
+                {
+                    "amount": str(self.amount),
+                    "precision": self.precision,
+                    "nai": self.asset,
+                }
             )
         return self.str_repr
+
+    def toJson(self):
+        try:
+            return json.loads(str(self))
+        except Exception:
+            return str(self)
 
 
 class Operation(GPHOperation):
@@ -180,7 +186,7 @@ class Operation(GPHOperation):
     def getOperationNameForId(self, i: int) -> str:
         """Convert an operation id into the corresponding string"""
         for key in self.operations():
-            if int(self.operations()[key]) is int(i):
+            if int(self.operations()[key]) == int(i):
                 return key
         return "Unknown Operation ID %d" % i
 
@@ -243,10 +249,15 @@ class WitnessProps(GrapheneObject):
                             (
                                 "account_creation_fee",
                                 Amount(
-                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
                                 ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                             ("sbd_interest_rate", Uint16(kwargs["sbd_interest_rate"])),
                         ]
                     )
@@ -258,10 +269,15 @@ class WitnessProps(GrapheneObject):
                             (
                                 "account_creation_fee",
                                 Amount(
-                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
                                 ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                             ("hbd_interest_rate", Uint16(kwargs["hbd_interest_rate"])),
                         ]
                     )
@@ -273,10 +289,15 @@ class WitnessProps(GrapheneObject):
                             (
                                 "account_creation_fee",
                                 Amount(
-                                    kwargs["account_creation_fee"], prefix=prefix, json_str=json_str
+                                    kwargs["account_creation_fee"],
+                                    prefix=prefix,
+                                    json_str=json_str,
                                 ),
                             ),
-                            ("maximum_block_size", Uint32(kwargs["maximum_block_size"])),
+                            (
+                                "maximum_block_size",
+                                Uint32(kwargs["maximum_block_size"]),
+                            ),
                         ]
                     )
                 )
@@ -358,8 +379,14 @@ class ExchangeRate(GrapheneObject):
             super().__init__(
                 OrderedDict(
                     [
-                        ("base", Amount(kwargs["base"], prefix=prefix, json_str=json_str)),
-                        ("quote", Amount(kwargs["quote"], prefix=prefix, json_str=json_str)),
+                        (
+                            "base",
+                            Amount(kwargs["base"], prefix=prefix, json_str=json_str),
+                        ),
+                        (
+                            "quote",
+                            Amount(kwargs["quote"], prefix=prefix, json_str=json_str),
+                        ),
                     ]
                 )
             )
@@ -393,7 +420,10 @@ class Beneficiaries(GrapheneObject):
         super().__init__(
             OrderedDict(
                 [
-                    ("beneficiaries", Array([Beneficiary(o) for o in kwargs["beneficiaries"]])),
+                    (
+                        "beneficiaries",
+                        Array([Beneficiary(o) for o in kwargs["beneficiaries"]]),
+                    ),
                 ]
             )
         )
@@ -428,6 +458,11 @@ class CommentOptionExtensions(Static_variant):
         else:
             raise Exception("Unknown CommentOptionExtension")
         super().__init__(data, type_id)
+
+    def __str__(self):
+        if self.type_id == 0:
+            return json.dumps({"type": "comment_payout_beneficiaries", "value": self.data.json()})
+        return super().__str__()
 
 
 class UpdateProposalEndDate(GrapheneObject):
@@ -470,11 +505,17 @@ class UpdateProposalExtensions(Static_variant):
                 type_id = 1
             else:
                 type_id = ~0
+            data = o["value"]
         else:
             type_id, data = o
 
         if type_id == 1:
-            data = UpdateProposalEndDate(o["value"])
+            data = UpdateProposalEndDate(data)
         else:
             raise Exception("Unknown UpdateProposalExtension")
         super().__init__(data, type_id, False)
+
+    def __str__(self):
+        if self.type_id == 1:
+            return json.dumps({"type": "update_proposal_end_date", "value": self.data.json()})
+        return super().__str__()

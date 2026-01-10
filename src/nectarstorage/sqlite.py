@@ -78,26 +78,29 @@ class SQLiteFile:
         if not src.is_file():
             return
         connection = sqlite3.connect(str(self.sqlite_file))
-        cursor = connection.cursor()
-        # Lock database before making a backup
-        cursor.execute("begin immediate")
-        # Make new backup file
-        shutil.copyfile(str(src), str(dst))
-        log.info(f"Creating {dst}...")
-        # Unlock database
-        connection.rollback()
+        try:
+            cursor = connection.cursor()
+            # Lock database before making a backup
+            cursor.execute("begin immediate")
+            # Make new backup file
+            shutil.copyfile(str(src), str(dst))
+            log.info(f"Creating {dst}...")
+            # Unlock database
+            connection.rollback()
+        finally:
+            connection.close()
 
     def recover_with_latest_backup(self, backupdir: Union[str, Path] = "backups") -> None:
         """Replace database with latest backup"""
         file_date = 0
         backup_path = Path(backupdir)
         if not backup_path.is_dir():
-            backup_path = self.data_dir / backupdir
+            # Treat string backupdir as relative to data_dir
+            backup_path = self.data_dir / str(backupdir)
         if not backup_path.is_dir():
             return
         newest_backup_file = None
-        for filename in backup_path.iterdir():
-            backup_file = backup_path / filename
+        for backup_file in backup_path.iterdir():
             if backup_file.stat().st_ctime > file_date:
                 if backup_file.is_file():
                     file_date = backup_file.stat().st_ctime
@@ -108,9 +111,13 @@ class SQLiteFile:
     def clean_data(self, backupdir: Union[str, Path] = "backups") -> None:
         """Delete files older than 70 days"""
         log.info("Cleaning up old backups")
-        backup_path = self.data_dir / backupdir
-        for filename in backup_path.iterdir():
-            backup_file = backup_path / filename
+        # Allow either a Path or a directory name relative to data_dir
+        backup_path = Path(backupdir)
+        if not backup_path.is_dir():
+            backup_path = self.data_dir / str(backupdir)
+        if not backup_path.is_dir():
+            return
+        for backup_file in backup_path.iterdir():
             if backup_file.stat().st_ctime < (time.time() - 70 * 86400):
                 if backup_file.is_file():
                     backup_file.unlink()
@@ -120,7 +127,8 @@ class SQLiteFile:
         """Make a new backup"""
         backupdir = self.data_dir / "backups"
         self.sqlite3_backup(backupdir)
-        self.clean_data(backupdir)
+        # Clean by logical name so clean_data resolves under data_dir correctly
+        self.clean_data("backups")
 
 
 class SQLiteCommon:
