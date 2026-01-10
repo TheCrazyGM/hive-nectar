@@ -25,7 +25,8 @@ STATIC_NODES = [
 # devapi.v4v.app is a faster mirror with much less constrained rate limits
 # maintained by the v4v.app team
 
-BEACON_URL = "https://devapi.v4v.app/v2/beacon/nodes/"
+BEACON_URL = "https://beacon.v4v.app"
+BEACON_URLS = ["https://beacon.v4v.app", "https://beacon.peakd.com/api/nodes"]
 REQUEST_TIMEOUT = 10  # seconds
 CACHE_DURATION = 300  # 5 minutes cache
 
@@ -49,24 +50,38 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
         log.debug("Using cached beacon nodes")
         return _cached_nodes
 
-    try:
-        log.debug("Fetching fresh nodes from beacon API")
-        request = Request(BEACON_URL, headers={"Accept": "*/*"})
-        with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
-            data = response.read().decode("utf-8")
-            nodes = json.loads(data)
+    for beacon_url in BEACON_URLS:
+        try:
+            log.debug(f"Fetching fresh nodes from beacon API: {beacon_url}")
+            request = Request(beacon_url, headers={"Accept": "*/*"})
+            with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                data = response.read().decode("utf-8")
+                raw = json.loads(data)
 
-            # Cache the successful result
-            _cached_nodes = nodes
-            _cache_timestamp = current_time
-            return nodes
-    except (URLError, HTTPError, json.JSONDecodeError, Exception) as e:
-        log.warning(f"Failed to fetch nodes from beacon API: {e}")
-        # Return cached data even if expired, as fallback
-        if _cached_nodes is not None:
-            log.info("Using expired cached nodes as fallback")
-            return _cached_nodes
-        return None
+                # Validate that the beacon returned a list of node dicts
+                if isinstance(raw, list):
+                    nodes: List[Dict[str, Any]] = []
+                    for item in raw:
+                        if isinstance(item, dict):
+                            nodes.append(item)
+                        else:
+                            log.warning("Skipping non-dict entry from beacon nodes: %r", item)
+
+                    # Cache the successful result
+                    _cached_nodes = nodes
+                    _cache_timestamp = current_time
+                    return nodes
+                else:
+                    log.warning("Beacon API returned unexpected data type: %s", type(raw))
+                    # Try next beacon URL
+        except (URLError, HTTPError, json.JSONDecodeError, Exception) as e:
+            log.warning(f"Failed to fetch nodes from beacon API {beacon_url}: {e}")
+
+    # Return cached data even if expired, as fallback
+    if _cached_nodes is not None:
+        log.info("Using expired cached nodes as fallback")
+        return _cached_nodes
+    return None
 
 
 def clear_beacon_cache() -> None:
