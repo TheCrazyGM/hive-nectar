@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hive-nectar"
-version = "0.2.13"
+version = "0.2.14"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 requires-python = ">=3.10"

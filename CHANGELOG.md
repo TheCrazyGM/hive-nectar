@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.14 - 2026-01-21
+
+- **Feature**: Updated node fetching to use both PeakD beacon and the new v4v beacon API.
+
 ## 0.2.13 - 2025-12-24
 
 - **Fix**: Serialize node configuration lists to JSON strings to fix `sqlite3` errors in Docker/fresh installs.
@@ -72,7 +76,7 @@
 
 ## 0.1.4b - 2025-10-12
 
-- **Refactor**: Refactored **Account**’s vote‑pct calculation to correctly convert the desired token value to an `Amount`, introduce a safe ratio clamp (‑10 to 10) to avoid extreme values, and return 0 for zero‑vote scenarios; updated all discussion query fallbacks to use the *condenser* API and handle dict‑style responses, and tweaked tests to instantiate `Account` directly.
+- **Refactor**: Refactored **Account**’s vote‑pct calculation to correctly convert the desired token value to an `Amount`, introduce a safe ratio clamp (‑10 to 10) to avoid extreme values, and return 0 for zero‑vote scenarios; updated all discussion query fallbacks to use the _condenser_ API and handle dict‑style responses, and tweaked tests to instantiate `Account` directly.
 
 ## 0.1.4b - 2025-09-19
 
@@ -102,7 +106,7 @@
 
 ## 0.1.0b - 2025-09-17
 
-- **Breaking Change**: Killed everything that was not specifcally HIVE related. If you used this for STEEM and / or Blurt, they are no longer supported.
+- **Breaking Change**: Killed everything that was not specifically HIVE related. If you used this for STEEM and / or Blurt, they are no longer supported.
 - **Fix**: Corrected inverted fallback logic in chain detection to prefer HIVE over STEEM when `blockchain_name` is None.
 - **Fix**: Restored backward compatibility for constructor parameters:
   - `Vote.__init__`: Added support for deprecated `steem_instance` and `hive_instance` kwargs with deprecation warnings.
