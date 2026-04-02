@@ -159,7 +159,22 @@ class Nodes(list[Node]):
         call_retry: bool = False,
         showMsg: bool = True,
     ) -> None:
-        """Sleep and check if num_retries is reached"""
+        """
+        Sleep and check if num_retries is reached. If num_retries is reached, raise NumRetriesReached or CallRetriesReached.
+        Only logs first and last retry messages if showMsg is True.
+
+
+        :param errorMsg: Optional error message to log
+        :param sleep: Whether to sleep before retrying
+        :param call_retry: Whether this is a retry for a call error (as opposed to a connection error)
+        :param showMsg: Whether to show retry messages only on the first and last retry
+
+
+        """
+        first_or_last_retry = (
+            self.error_cnt_call == 1 or self.error_cnt_call == self.num_retries_call
+        )
+
         if errorMsg:
             log.warning("Error: {}".format(errorMsg))
         if call_retry:
@@ -171,7 +186,7 @@ class Nodes(list[Node]):
             if self.num_retries >= 0 and self.error_cnt > self.num_retries:
                 raise NumRetriesReached()
 
-        if showMsg:
+        if showMsg and first_or_last_retry:
             if call_retry:
                 log.warning(
                     "Retry RPC Call on node: %s (%d/%d)" % (self.url, cnt, self.num_retries_call)
