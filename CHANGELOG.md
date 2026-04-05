@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.15 - 2026-04-05
+
+- **Logging**: stop repeated log spam when retrying a failed network connection
+
 ## 0.2.14 - 2026-01-21
 
 - **Feature**: Updated node fetching to use both PeakD beacon and the new v4v beacon API.
