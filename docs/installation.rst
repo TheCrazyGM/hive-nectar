@@ -5,7 +5,7 @@ The minimal working python version is 3.5.x
 nectar can be installed parallel to python-steem/beem.
 
 For Debian and Ubuntu, please ensure that the following packages are installed:
-        
+
 .. code:: bash
 
     sudo apt-get install build-essential libssl-dev python-dev curl
@@ -33,7 +33,7 @@ Install pip (https://pip.pypa.io/en/stable/installing/):
 .. code:: bash
 
    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-   
+
    python get-pip.py
 
 Signing and Verify can be fasten (200 %) by installing cryptography. Install cryptography with pip:
@@ -41,7 +41,7 @@ Signing and Verify can be fasten (200 %) by installing cryptography. Install cry
 .. code:: bash
 
     pip install -U cryptography
-    
+
 Install nectar with pip:
 
 .. code:: bash
@@ -58,19 +58,19 @@ or::
 
 Manual installation
 -------------------
-    
+
 You can install nectar from this repository if you want the latest
 but possibly non-compiling version::
 
     git clone https://github.com/thecrazygm/hive-nectar.git
     cd hive-nectar
-    uv sync 
+    uv sync
     uv sync --dev
 
 Run tests after install::
 
     pytest
-    
+
 Enable Logging
 --------------
 

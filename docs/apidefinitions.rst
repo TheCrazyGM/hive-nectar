@@ -178,7 +178,7 @@ get_content
     acc = Account("gtg")
     post = acc.get_feed(0,1)[0]
     print(Comment(post["authorperm"]))
-    
+
 
 get_content_replies
 ~~~~~~~~~~~~~~~~~~~
@@ -386,7 +386,7 @@ get_feed_history
     from nectar import Hive
     hv = Hive()
     print(hv.get_feed_history())
-    
+
 get_follow_count
 ~~~~~~~~~~~~~~~~
 
@@ -736,7 +736,7 @@ get_witness_schedule
 get_witnesses
 ~~~~~~~~~~~~~
 not implemented
-    
+
 get_witnesses_by_vote
 ~~~~~~~~~~~~~~~~~~~~~
 

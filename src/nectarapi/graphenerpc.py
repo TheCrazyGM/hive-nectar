@@ -1,3 +1,4 @@
+import atexit
 import json
 import logging
 import re
@@ -28,8 +29,6 @@ from .rpcutils import get_query
 
 log = logging.getLogger(__name__)
 
-
-import atexit
 
 _shared_httpx_client: httpx.Client | None = None
 _proxy_clients: Dict[str, httpx.Client] = {}
@@ -402,9 +401,7 @@ class GrapheneRPC:
             raise RPCErrorDoRetry("Service Unavailable")
         elif re.search("Gateway Timeout", reply_str) or re.search(r"\b504\b", reply_str):
             raise RPCErrorDoRetry("Gateway Timeout")
-        elif re.search("HTTP Version not supported", reply_str) or re.search(
-            r"\b505\b", reply_str
-        ):
+        elif re.search("HTTP Version not supported", reply_str) or re.search(r"\b505\b", reply_str):
             raise RPCError("HTTP Version not supported")
         elif re.search("Proxy Authentication Required", reply_str) or re.search(
             r"\b407\b", reply_str

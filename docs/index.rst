@@ -17,7 +17,7 @@
 Welcome to nectar's documentation!
 ==================================
 
-Hive is a blockchain-based rewards platform for publishers to monetize 
+Hive is a blockchain-based rewards platform for publishers to monetize
 content and grow community.
 
 It is based on *Graphene* (tm), a blockchain technology stack (i.e.
@@ -52,7 +52,7 @@ Quickstart
 .. note:: All methods that construct and sign a transaction can be given
           the ``account=`` parameter to identify the user that is going
           to affected by this transaction, e.g.:
-          
+
           * the source account in a transfer
           * the accout that buys/sells an asset in the exchange
           * the account whos collateral will be modified

@@ -50,7 +50,7 @@ By creating this object different options can be set.
 .. note:: All init methods of nectar classes can be given
           the ``blockchain_instance=`` parameter to assure that
           all objects use the same Hive object. When the
-          ``blockchain_instance=`` parameter is not used, the 
+          ``blockchain_instance=`` parameter is not used, the
           hive object is taken from shared_blockchain_instance().
 
           :func:`nectar.instance.shared_blockchain_instance` returns a global instance of Hive.

@@ -1,7 +1,6 @@
 import json
-from typing import Any
-
 from collections.abc import Mapping
+from typing import Any
 
 
 class DotDict(dict):

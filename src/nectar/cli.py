@@ -4383,7 +4383,7 @@ def curation(
                 ]
 
                 rows.append(row)
-            sortedList = sorted(rows, key=lambda row: (row[1]), reverse=False)
+            sortedList = sorted(rows, key=lambda row: row[1], reverse=False)
             new_row = []
             new_row2 = []
             voter = []
@@ -4803,7 +4803,7 @@ def rewards(
                             (invested_USD),
                         ]
                     )
-        sortedList = sorted(rows, key=lambda row: (row[2]), reverse=False)
+        sortedList = sorted(rows, key=lambda row: row[2], reverse=False)
         if only_sum:
             sortedList = []
         for row in sortedList:
@@ -5131,7 +5131,7 @@ def pending(
                         (invested_USD),
                     ]
                 )
-        sortedList = sorted(rows, key=lambda row: (row[2]), reverse=True)
+        sortedList = sorted(rows, key=lambda row: row[2], reverse=True)
         if only_sum:
             sortedList = []
         for row in sortedList:
@@ -5584,7 +5584,7 @@ def info(objects):
                     t.add_row([key, value])
                 print(t)
             else:
-                print("Post now known" % obj)
+                print("Post %s not known" % obj)
         elif re.match(r"^[a-zA-Z0-9\_]{40}$", obj):
             b = Blockchain(blockchain_instance=hv)
             from nectarapi.exceptions import UnknownTransaction

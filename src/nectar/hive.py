@@ -501,7 +501,10 @@ class Hive(BlockChainInstance):
         # Parse version as tuple for reliable comparison
         version_parts = self.hardfork.split(".")
         try:
-            major, minor = int(version_parts[0]), int(version_parts[1]) if len(version_parts) > 1 else 0
+            major, minor = (
+                int(version_parts[0]),
+                int(version_parts[1]) if len(version_parts) > 1 else 0,
+            )
         except (ValueError, IndexError):
             major, minor = 1, 20  # Default to current behavior
         if (major, minor) >= (1, 20):
