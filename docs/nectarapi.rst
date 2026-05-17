@@ -11,6 +11,7 @@ Submodules
    nectarapi.graphenerpc
    nectarapi.node
    nectarapi.noderpc
+   nectarapi.openapi
    nectarapi.rpcutils
    nectarapi.version
 

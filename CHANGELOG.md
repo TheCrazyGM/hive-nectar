@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Docs**: Regenerate the Sphinx API reference from the `src/` layout so the documentation sidebar lists package modules instead of `src`.
+
 ## 0.2.15 - 2026-04-05
 
 - **Logging**: stop repeated log spam when retrying a failed network connection

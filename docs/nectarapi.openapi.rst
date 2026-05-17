@@ -1,7 +1,7 @@
-nectar.hivesigner module
+nectarapi.openapi module
 ========================
 
-.. automodule:: nectar.hivesigner
+.. automodule:: nectarapi.openapi
    :members:
    :show-inheritance:
    :undoc-members:

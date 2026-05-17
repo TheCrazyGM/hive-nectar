@@ -14,6 +14,7 @@
 ..    :alt: nectar
 ..    :align: center
 ..
+
 Welcome to nectar's documentation!
 ==================================
 
